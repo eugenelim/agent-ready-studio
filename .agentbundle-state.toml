@@ -6,6 +6,7 @@ source = "<redacted-local-path>"
 install-route = "cli"
 scope = "repo"
 user-root = "~/.agentbundle"
+target-file = "~/.claude/settings.json"
 primitives = ["skill", "agent", "hook-body", "hook-wiring", "command"]
 
 [pack.core.adapters.claude-code.files]
@@ -416,3 +417,58 @@ primitives = ["skill", "agent", "hook-body", "hook-wiring", "command"]
 "tools/hooks/session-start.py" = { from-pack-version = "2.25.9", sha = "d26c62eff7f9f98ec41ddf37aa6344e9b6b98e021feb41399f60198c4e31b41c" }
 "tools/hooks/work-loop-check.py" = { from-pack-version = "2.25.9", sha = "aaa859d192039576e0d59110af25ecea1bf0266e1fc03fb1002d71c239161919" }
 "workspace.toml" = { from-pack-version = "2.25.9", sha = "86e9327a283e3bfcbc9553377bc0df78add418711980533bc081cc05577d5754" }
+
+[pack.governance-extras.adapters.claude-code]
+installed-version = "0.10.5"
+source = "<redacted-local-path>"
+install-route = "cli"
+scope = "repo"
+user-root = "~/.agentbundle"
+target-file = "~/.claude/settings.json"
+primitives = ["skill"]
+
+[pack.governance-extras.adapters.claude-code.files]
+".claude/skills/new-adr/SKILL.md" = { from-pack-version = "0.10.5", sha = "4e55cafc9a782e856f75327f0c8509d5c365975636397f44b71811cccbaa258d" }
+".claude/skills/new-adr/assets/adr.md" = { from-pack-version = "0.10.5", sha = "e3ec1cb77f7215b4104ab329708a5fe18315ffca60061d1768c0b26609e415fd" }
+".claude/skills/new-adr/evals/eval_queries.json" = { from-pack-version = "0.10.5", sha = "1e456a2d7425acda17f612674e6006a51e9ca5376b08ee9765ce2e2428082ff5" }
+".claude/skills/new-adr/evals/evals.json" = { from-pack-version = "0.10.5", sha = "7d9c8878678c0b27c4066673b6c4d8d035ff1f8035ac6c333ded8ab36aea0dd9" }
+".claude/skills/new-adr/references/infra-decisions.md" = { from-pack-version = "0.10.5", sha = "4ef01829e9a85ed394444f8ef521177d3d88596a465ac288c19fd4017d2fa4b6" }
+".claude/skills/new-adr/scripts/next-ordinal.py" = { from-pack-version = "0.10.5", sha = "197740f6940f2a6af16f8fcb6259d6ac324c7326d248aee634874a3669d1c3b8" }
+".claude/skills/new-rfc/SKILL.md" = { from-pack-version = "0.10.5", sha = "9a7ebf6d851180d090bb7d37e708d911aa69edb2239fe385320d3eb193e455ab" }
+".claude/skills/new-rfc/assets/rfc.md" = { from-pack-version = "0.10.5", sha = "a192b390bffabf3339e88e852d803663748e1809cd7164e7f9112b4619cf0f94" }
+".claude/skills/new-rfc/evals/eval_queries.json" = { from-pack-version = "0.10.5", sha = "42255412985ab7043ba900da142963e8af8f9928a1a9461e9df16c4840c42cf5" }
+".claude/skills/new-rfc/evals/evals.json" = { from-pack-version = "0.10.5", sha = "6b9cb018b3680adfa8f4b19331d1b16ccf05fc7857f6a16b412c326c0f91a5c9" }
+".claude/skills/new-rfc/evals/files/cognitive-load/ordinary-prose.md" = { from-pack-version = "0.10.5", sha = "f411ecaedaeeb0c73779bede4fd2bf2ecc32d07f5b23d41e6d1db4b39b73a26c" }
+".claude/skills/new-rfc/scripts/next-ordinal.py" = { from-pack-version = "0.10.5", sha = "197740f6940f2a6af16f8fcb6259d6ac324c7326d248aee634874a3669d1c3b8" }
+".claude/skills/rfc-status/SKILL.md" = { from-pack-version = "0.10.5", sha = "12c33b601e93a791954ce734f747e416ba9bf6acf581fafb7ca376dc56708818" }
+".claude/skills/rfc-status/evals/eval_queries.json" = { from-pack-version = "0.10.5", sha = "401c7ab54e55ad61352dc6f378c89520f3974f0e249c5c7c9f9780f301cbf1db" }
+"docs/adr/README.md" = { from-pack-version = "0.10.5", sha = "8d2edfda9f4d8c4e1dc39f38c3220fda1e03d80edfcec39a03747d6ac38405d3" }
+"docs/rfc/README.md" = { from-pack-version = "0.10.5", sha = "f6bba4594bf3a87e185a4059369e8d0ac7ce7bf3e8b15b8304a8829b92680cd5" }
+"governance/manifest.example.yaml" = { from-pack-version = "0.10.5", sha = "cb254eccc74b0a8951a6b26691baebc506c55e0268cf5b49985b232482612d19" }
+
+[pack.governance-extras.adapters.codex]
+installed-version = "0.10.5"
+source = "<redacted-local-path>"
+install-route = "cli"
+scope = "repo"
+user-root = "~/.agentbundle"
+primitives = ["skill"]
+
+[pack.governance-extras.adapters.codex.files]
+".agents/skills/new-adr/SKILL.md" = { from-pack-version = "0.10.5", sha = "4e55cafc9a782e856f75327f0c8509d5c365975636397f44b71811cccbaa258d" }
+".agents/skills/new-adr/assets/adr.md" = { from-pack-version = "0.10.5", sha = "e3ec1cb77f7215b4104ab329708a5fe18315ffca60061d1768c0b26609e415fd" }
+".agents/skills/new-adr/evals/eval_queries.json" = { from-pack-version = "0.10.5", sha = "1e456a2d7425acda17f612674e6006a51e9ca5376b08ee9765ce2e2428082ff5" }
+".agents/skills/new-adr/evals/evals.json" = { from-pack-version = "0.10.5", sha = "7d9c8878678c0b27c4066673b6c4d8d035ff1f8035ac6c333ded8ab36aea0dd9" }
+".agents/skills/new-adr/references/infra-decisions.md" = { from-pack-version = "0.10.5", sha = "4ef01829e9a85ed394444f8ef521177d3d88596a465ac288c19fd4017d2fa4b6" }
+".agents/skills/new-adr/scripts/next-ordinal.py" = { from-pack-version = "0.10.5", sha = "197740f6940f2a6af16f8fcb6259d6ac324c7326d248aee634874a3669d1c3b8" }
+".agents/skills/new-rfc/SKILL.md" = { from-pack-version = "0.10.5", sha = "9a7ebf6d851180d090bb7d37e708d911aa69edb2239fe385320d3eb193e455ab" }
+".agents/skills/new-rfc/assets/rfc.md" = { from-pack-version = "0.10.5", sha = "a192b390bffabf3339e88e852d803663748e1809cd7164e7f9112b4619cf0f94" }
+".agents/skills/new-rfc/evals/eval_queries.json" = { from-pack-version = "0.10.5", sha = "42255412985ab7043ba900da142963e8af8f9928a1a9461e9df16c4840c42cf5" }
+".agents/skills/new-rfc/evals/evals.json" = { from-pack-version = "0.10.5", sha = "6b9cb018b3680adfa8f4b19331d1b16ccf05fc7857f6a16b412c326c0f91a5c9" }
+".agents/skills/new-rfc/evals/files/cognitive-load/ordinary-prose.md" = { from-pack-version = "0.10.5", sha = "f411ecaedaeeb0c73779bede4fd2bf2ecc32d07f5b23d41e6d1db4b39b73a26c" }
+".agents/skills/new-rfc/scripts/next-ordinal.py" = { from-pack-version = "0.10.5", sha = "197740f6940f2a6af16f8fcb6259d6ac324c7326d248aee634874a3669d1c3b8" }
+".agents/skills/rfc-status/SKILL.md" = { from-pack-version = "0.10.5", sha = "12c33b601e93a791954ce734f747e416ba9bf6acf581fafb7ca376dc56708818" }
+".agents/skills/rfc-status/evals/eval_queries.json" = { from-pack-version = "0.10.5", sha = "401c7ab54e55ad61352dc6f378c89520f3974f0e249c5c7c9f9780f301cbf1db" }
+"docs/adr/README.md" = { from-pack-version = "0.10.5", sha = "8d2edfda9f4d8c4e1dc39f38c3220fda1e03d80edfcec39a03747d6ac38405d3" }
+"docs/rfc/README.md" = { from-pack-version = "0.10.5", sha = "f6bba4594bf3a87e185a4059369e8d0ac7ce7bf3e8b15b8304a8829b92680cd5" }
+"governance/manifest.example.yaml" = { from-pack-version = "0.10.5", sha = "cb254eccc74b0a8951a6b26691baebc506c55e0268cf5b49985b232482612d19" }
