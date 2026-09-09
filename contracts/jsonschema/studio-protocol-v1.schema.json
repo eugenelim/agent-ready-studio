@@ -1,0 +1,474 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready.studio/contracts/studio-protocol-v1.schema.json",
+  "title": "Agent-Ready Studio protocol v1",
+  "description": "JSON-RPC 2.0-style envelopes carried as newline-delimited JSON between Electron main and the Studio Service.",
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/successResponse" },
+    { "$ref": "#/$defs/errorResponse" },
+    { "$ref": "#/$defs/notification" }
+  ],
+  "$defs": {
+    "protocolVersion": { "const": "1" },
+    "id": { "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "integer" }] },
+    "requestEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/id" },
+        "method": { "$ref": "#/$defs/method" },
+        "params": { "type": "object" }
+      }
+    },
+    "request": {
+      "oneOf": [
+        { "$ref": "#/$defs/helloRequest" },
+        { "$ref": "#/$defs/healthRequest" },
+        { "$ref": "#/$defs/blueprintListRequest" },
+        { "$ref": "#/$defs/workspaceCreateRequest" },
+        { "$ref": "#/$defs/workspaceListRequest" },
+        { "$ref": "#/$defs/workspaceGetRequest" },
+        { "$ref": "#/$defs/homeGetRequest" },
+        { "$ref": "#/$defs/demoSeedRequest" },
+        { "$ref": "#/$defs/executionStartRequest" },
+        { "$ref": "#/$defs/reviewListRequest" },
+        { "$ref": "#/$defs/reviewGetRequest" },
+        { "$ref": "#/$defs/artifactReviseRequest" },
+        { "$ref": "#/$defs/reviewResolveRequest" }
+      ]
+    },
+    "successResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "result"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/id" },
+        "result": { "$ref": "#/$defs/result" }
+      }
+    },
+    "errorResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "error"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+        "error": { "$ref": "#/$defs/errorObject" }
+      }
+    },
+    "errorObject": {
+      "oneOf": [
+        { "$ref": "#/$defs/parseError" }, { "$ref": "#/$defs/invalidRequestError" },
+        { "$ref": "#/$defs/methodNotFoundError" }, { "$ref": "#/$defs/invalidParamsError" },
+        { "$ref": "#/$defs/internalError" }, { "$ref": "#/$defs/incompatibleProtocolError" },
+        { "$ref": "#/$defs/notFoundError" }, { "$ref": "#/$defs/staleReviewError" },
+        { "$ref": "#/$defs/conflictError" }
+      ]
+    },
+    "parseError": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data"], "properties": { "code": { "const": -32700 }, "message": { "type": "string", "minLength": 1 }, "data": { "$ref": "#/$defs/validationErrorData" } } },
+    "invalidRequestError": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data"], "properties": { "code": { "const": -32600 }, "message": { "type": "string", "minLength": 1 }, "data": { "$ref": "#/$defs/validationErrorData" } } },
+    "methodNotFoundError": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data"], "properties": { "code": { "const": -32601 }, "message": { "type": "string", "minLength": 1 }, "data": { "$ref": "#/$defs/resourceErrorData" } } },
+    "invalidParamsError": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data"], "properties": { "code": { "const": -32602 }, "message": { "type": "string", "minLength": 1 }, "data": { "$ref": "#/$defs/validationErrorData" } } },
+    "internalError": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data"], "properties": { "code": { "const": -32603 }, "message": { "type": "string", "minLength": 1 }, "data": { "$ref": "#/$defs/internalErrorData" } } },
+    "validationErrorData": { "type": "object", "additionalProperties": false, "required": ["kind", "issues"], "properties": { "kind": { "const": "validation" }, "issues": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["path", "message"], "properties": { "path": { "type": "string" }, "message": { "type": "string" } } } } } },
+    "protocolVersionErrorData": { "type": "object", "additionalProperties": false, "required": ["kind", "expected", "received"], "properties": { "kind": { "const": "protocol-version" }, "expected": { "$ref": "#/$defs/protocolVersion" }, "received": { "type": "string" } } },
+    "resourceErrorData": { "type": "object", "additionalProperties": false, "required": ["kind", "resourceType", "id"], "properties": { "kind": { "const": "resource" }, "resourceType": { "type": "string" }, "id": { "type": "string" } } },
+    "conflictErrorData": { "type": "object", "additionalProperties": false, "required": ["kind", "resourceType", "id", "currentStatus"], "properties": { "kind": { "const": "conflict" }, "resourceType": { "type": "string" }, "id": { "type": "string" }, "currentStatus": { "type": "string" } } },
+    "internalErrorData": { "type": "object", "additionalProperties": false, "required": ["kind", "requestId"], "properties": { "kind": { "const": "internal" }, "requestId": { "type": "string" } } },
+    "incompatibleProtocolError": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data"], "properties": { "code": { "const": -32001 }, "message": { "type": "string", "minLength": 1 }, "data": { "$ref": "#/$defs/protocolVersionErrorData" } } },
+    "notFoundError": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data"], "properties": { "code": { "const": -32002 }, "message": { "type": "string", "minLength": 1 }, "data": { "$ref": "#/$defs/resourceErrorData" } } },
+    "staleReviewError": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data"], "properties": { "code": { "const": -32003 }, "message": { "type": "string", "minLength": 1 }, "data": { "$ref": "#/$defs/conflictErrorData" } } },
+    "conflictError": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data"], "properties": { "code": { "const": -32004 }, "message": { "type": "string", "minLength": 1 }, "data": { "$ref": "#/$defs/conflictErrorData" } } },
+    "notificationEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "method": { "$ref": "#/$defs/notificationMethod" },
+        "params": {
+          "type": "object",
+          "required": ["protocolVersion", "occurredAt"],
+          "properties": {
+            "protocolVersion": { "$ref": "#/$defs/protocolVersion" },
+            "occurredAt": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
+    },
+    "notification": {
+      "oneOf": [
+        { "$ref": "#/$defs/workspaceCreatedNotification" },
+        { "$ref": "#/$defs/executionStartedNotification" },
+        { "$ref": "#/$defs/executionProgressedNotification" },
+        { "$ref": "#/$defs/revisionProposedNotification" },
+        { "$ref": "#/$defs/reviewRequestedNotification" },
+        { "$ref": "#/$defs/decisionRecordedNotification" },
+        { "$ref": "#/$defs/revisionAcceptedNotification" },
+        { "$ref": "#/$defs/executionCompletedNotification" },
+        { "$ref": "#/$defs/executionFailedNotification" }
+      ]
+    },
+    "method": {
+      "enum": [
+        "system.hello",
+        "health.get",
+        "blueprint.list",
+        "workspace.create",
+        "workspace.list",
+        "workspace.get",
+        "home.get",
+        "demo.seed",
+        "execution.start",
+        "review.list",
+        "review.get",
+        "artifact.revise",
+        "review.resolve"
+      ]
+    },
+    "notificationMethod": {
+      "enum": [
+        "workspace.created",
+        "execution.started",
+        "execution.progressed",
+        "artifact.revision.proposed",
+        "review.requested",
+        "decision.recorded",
+        "artifact.revision.accepted",
+        "execution.completed",
+        "execution.failed"
+      ]
+    },
+    "emptyParams": { "type": "object", "additionalProperties": false },
+    "helloRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "system.hello" }, "params": { "$ref": "#/$defs/helloParams" } } }] },
+    "healthRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "health.get" }, "params": { "$ref": "#/$defs/emptyParams" } } }] },
+    "blueprintListRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "blueprint.list" }, "params": { "$ref": "#/$defs/emptyParams" } } }] },
+    "workspaceCreateRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "workspace.create" }, "params": { "$ref": "#/$defs/workspaceCreateParams" } } }] },
+    "workspaceListRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "workspace.list" }, "params": { "$ref": "#/$defs/emptyParams" } } }] },
+    "workspaceGetRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "workspace.get" }, "params": { "$ref": "#/$defs/idParams" } } }] },
+    "homeGetRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "home.get" }, "params": { "$ref": "#/$defs/reviewListParams" } } }] },
+    "demoSeedRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "demo.seed" }, "params": { "$ref": "#/$defs/workspaceIdParams" } } }] },
+    "executionStartRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "execution.start" }, "params": { "$ref": "#/$defs/executionStartParams" } } }] },
+    "reviewListRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "review.list" }, "params": { "$ref": "#/$defs/reviewListParams" } } }] },
+    "reviewGetRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "review.get" }, "params": { "$ref": "#/$defs/idParams" } } }] },
+    "artifactReviseRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "artifact.revise" }, "params": { "$ref": "#/$defs/artifactReviseParams" } } }] },
+    "reviewResolveRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "review.resolve" }, "params": { "$ref": "#/$defs/reviewResolveParams" } } }] },
+    "helloParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "client"],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/protocolVersion" },
+        "client": { "type": "string", "minLength": 1 }
+      }
+    },
+    "workspaceCreateParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "blueprintId", "blueprintVersion"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "blueprintId": { "const": "product-development" },
+        "blueprintVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "idParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": { "id": { "type": "string", "minLength": 1 } }
+    },
+    "workspaceIdParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId"],
+      "properties": { "workspaceId": { "type": "string", "minLength": 1 } }
+    },
+    "executionStartParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "transformationId", "inputRevisionIds", "executorKind"],
+      "properties": {
+        "workspaceId": { "type": "string", "minLength": 1 },
+        "transformationId": { "const": "strategy.frame-product-intent" },
+        "inputRevisionIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "executorKind": { "const": "deterministic" }
+      }
+    },
+    "reviewListParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "workspaceId": { "type": "string", "minLength": 1 } }
+    },
+    "productIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "outcome", "opportunity", "targetUsers", "assumptions", "guardrails", "nonGoals", "confidence", "openQuestions"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "outcome": { "type": "string", "minLength": 1 },
+        "opportunity": { "type": "string", "minLength": 1 },
+        "targetUsers": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "assumptions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "guardrails": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "nonGoals": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "confidence": { "enum": ["low", "medium", "high"] },
+        "openQuestions": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "artifactReviseParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "baseRevisionId", "actorId", "content"],
+      "properties": {
+        "artifactId": { "type": "string", "minLength": 1 },
+        "baseRevisionId": { "type": "string", "minLength": 1 },
+        "actorId": { "type": "string", "minLength": 1 },
+        "content": { "$ref": "#/$defs/productIntent" }
+      }
+    },
+    "reviewResolveParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewId", "actorId", "action"],
+      "properties": {
+        "reviewId": { "type": "string", "minLength": 1 },
+        "actorId": { "type": "string", "minLength": 1 },
+        "action": { "enum": ["approve", "request-revision"] },
+        "comment": { "type": "string", "maxLength": 4000 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "action": { "const": "request-revision" } } },
+          "then": { "required": ["comment"], "properties": { "comment": { "minLength": 1, "pattern": "\\S" } } }
+        }
+      ]
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "blueprintId", "blueprintVersion", "installedCapabilityPacks", "createdAt", "updatedAt"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "blueprintId": { "const": "product-development" },
+        "blueprintVersion": { "type": "string", "minLength": 1 },
+        "installedCapabilityPacks": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "reviewSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "workspaceId", "artifactId", "revisionId", "artifactTitle", "artifactType", "reason", "producer", "status", "createdAt", "unresolvedQuestionCount"],
+      "properties": {
+        "id": { "type": "string" }, "workspaceId": { "type": "string" },
+        "artifactId": { "type": "string" }, "revisionId": { "type": "string" },
+        "artifactTitle": { "type": "string" }, "artifactType": { "type": "string" },
+        "reason": { "type": "string" }, "producer": { "type": "string" },
+        "status": { "enum": ["open", "revision-needed", "resolved", "superseded"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "unresolvedQuestionCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "inputPacket": {
+      "type": "object", "additionalProperties": false,
+      "required": ["objective", "sourceNotes", "targetUsers", "knownContext", "constraints", "nonGoals", "expectedOutputArtifactType"],
+      "properties": {
+        "objective": { "type": "string", "minLength": 1 },
+        "sourceNotes": { "type": "string", "minLength": 1 },
+        "targetUsers": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "knownContext": { "type": "array", "items": { "type": "string" } },
+        "constraints": { "type": "array", "items": { "type": "string" } },
+        "nonGoals": { "type": "array", "items": { "type": "string" } },
+        "expectedOutputArtifactType": { "const": "product-intent" }
+      }
+    },
+    "productIntentRevision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "artifactId", "schemaVersion", "content", "producer", "inputRevisionIds", "status", "createdAt"],
+      "properties": {
+        "id": { "type": "string" }, "artifactId": { "type": "string" },
+        "schemaVersion": { "type": "string" }, "content": { "$ref": "#/$defs/productIntent" },
+        "producer": { "type": "string" }, "transformationId": { "type": ["string", "null"] },
+        "inputRevisionIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+        "status": { "enum": ["draft", "proposed", "accepted", "rejected", "superseded"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "proposedProductIntentRevision": { "allOf": [{ "$ref": "#/$defs/productIntentRevision" }, { "properties": { "status": { "const": "proposed" } } }] },
+    "acceptedProductIntentRevision": { "allOf": [{ "$ref": "#/$defs/productIntentRevision" }, { "properties": { "status": { "const": "accepted" } } }] },
+    "inputRevision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "artifactId", "artifactType", "schemaVersion", "content", "createdAt"],
+      "properties": { "id": { "type": "string" }, "artifactId": { "type": "string" }, "artifactType": { "const": "input-packet" }, "schemaVersion": { "type": "string" }, "content": { "$ref": "#/$defs/inputPacket" }, "createdAt": { "type": "string", "format": "date-time" } }
+    },
+    "evidenceRelation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "sourceRevisionId", "targetRevisionId", "label"],
+      "properties": { "id": { "type": "string" }, "kind": { "enum": ["input-to", "evidence-for", "supersedes"] }, "sourceRevisionId": { "type": "string" }, "targetRevisionId": { "type": "string" }, "label": { "type": "string" } }
+    },
+    "executionView": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "executorKind", "status", "startedAt", "completedAt", "inputRevisionIds", "outputRevisionId", "events"],
+      "properties": {
+        "id": { "type": "string" }, "executorKind": { "enum": ["human", "deterministic", "claude", "codex", "agentbundle", "ci", "external"] },
+        "status": { "enum": ["running", "completed", "failed"] },
+        "startedAt": { "type": "string", "format": "date-time" }, "completedAt": { "type": ["string", "null"], "format": "date-time" },
+        "inputRevisionIds": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "outputRevisionId": { "type": ["string", "null"] },
+        "events": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["sequence", "kind", "message", "occurredAt"], "properties": { "sequence": { "type": "integer" }, "kind": { "enum": ["started", "progress", "result", "completed", "failed"] }, "message": { "type": "string" }, "occurredAt": { "type": "string", "format": "date-time" } } } }
+      }
+    },
+    "decisionView": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "reviewId", "revisionId", "actorId", "actorName", "action", "comment", "createdAt"],
+      "properties": {
+        "id": { "type": "string" }, "reviewId": { "type": "string" },
+        "revisionId": { "type": "string" }, "actorId": { "type": "string" },
+        "actorName": { "type": "string" },
+        "action": { "enum": ["approve", "request-revision"] },
+        "comment": { "type": ["string", "null"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "reviewPackage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["review", "workspace", "initiativeTitle", "artifactTitle", "artifactType", "proposedRevision", "acceptedRevision", "inputs", "evidence", "comments", "decisions", "changedFields", "execution"],
+      "properties": {
+        "review": { "$ref": "#/$defs/reviewSummary" }, "workspace": { "$ref": "#/$defs/workspace" },
+        "initiativeTitle": { "type": "string" }, "artifactTitle": { "type": "string" }, "artifactType": { "const": "product-intent" },
+        "proposedRevision": { "$ref": "#/$defs/proposedProductIntentRevision" },
+        "acceptedRevision": { "oneOf": [{ "$ref": "#/$defs/acceptedProductIntentRevision" }, { "type": "null" }] },
+        "inputs": { "type": "array", "items": { "$ref": "#/$defs/inputRevision" } },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidenceRelation" } },
+        "comments": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "actorId", "body", "createdAt"], "properties": { "id": { "type": "string" }, "actorId": { "type": "string" }, "body": { "type": "string" }, "createdAt": { "type": "string", "format": "date-time" } } } },
+        "decisions": { "type": "array", "items": { "$ref": "#/$defs/decisionView" } },
+        "changedFields": { "type": "array", "items": { "type": "string" } },
+        "execution": { "oneOf": [{ "$ref": "#/$defs/executionView" }, { "type": "null" }] }
+      }
+    },
+    "result": {
+      "oneOf": [
+        { "$ref": "#/$defs/helloResult" }, { "$ref": "#/$defs/healthResult" },
+        { "$ref": "#/$defs/blueprintListResult" }, { "$ref": "#/$defs/workspaceResult" },
+        { "$ref": "#/$defs/workspaceListResult" }, { "$ref": "#/$defs/homeResult" },
+        { "$ref": "#/$defs/demoSeedResult" },
+        { "$ref": "#/$defs/executionResult" }, { "$ref": "#/$defs/reviewListResult" },
+        { "$ref": "#/$defs/reviewResult" }, { "$ref": "#/$defs/artifactRevisionResult" },
+        { "$ref": "#/$defs/reviewResolutionResult" }
+      ]
+    },
+    "helloResult": { "type": "object", "additionalProperties": false, "required": ["kind", "protocolVersion", "serviceVersion"], "properties": { "kind": { "const": "hello" }, "protocolVersion": { "$ref": "#/$defs/protocolVersion" }, "serviceVersion": { "type": "string", "minLength": 1 } } },
+    "healthResult": { "type": "object", "additionalProperties": false, "required": ["kind", "status", "protocolVersion"], "properties": { "kind": { "const": "health" }, "status": { "const": "ok" }, "protocolVersion": { "$ref": "#/$defs/protocolVersion" } } },
+    "workspaceResult": { "type": "object", "additionalProperties": false, "required": ["kind", "workspace"], "properties": { "kind": { "const": "workspace" }, "workspace": { "$ref": "#/$defs/workspace" } } },
+    "workspaceListResult": { "type": "object", "additionalProperties": false, "required": ["kind", "items"], "properties": { "kind": { "const": "workspaces" }, "items": { "type": "array", "items": { "$ref": "#/$defs/workspace" } } } },
+    "homeItem": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "id", "workspaceId", "title", "artifactType", "reason", "producer", "status", "createdAt", "unresolvedQuestionCount"],
+      "properties": {
+        "kind": { "enum": ["review", "execution"] }, "id": { "type": "string" },
+        "workspaceId": { "type": "string" }, "initiativeTitle": { "type": "string" },
+        "title": { "type": "string" }, "artifactType": { "type": "string" },
+        "reason": { "type": "string" }, "producer": { "type": "string" },
+        "status": { "enum": ["decision-needed", "running", "revision-needed", "completed", "failed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "unresolvedQuestionCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "needsDecisionItem": { "allOf": [{ "$ref": "#/$defs/homeItem" }, { "properties": { "kind": { "const": "review" }, "status": { "const": "decision-needed" } } }] },
+    "runningItem": { "allOf": [{ "$ref": "#/$defs/homeItem" }, { "properties": { "kind": { "const": "execution" }, "status": { "const": "running" } } }] },
+    "blockedItem": { "allOf": [{ "$ref": "#/$defs/homeItem" }, { "properties": { "status": { "enum": ["revision-needed", "failed"] } } }] },
+    "completedItem": { "allOf": [{ "$ref": "#/$defs/homeItem" }, { "properties": { "status": { "const": "completed" } } }] },
+    "homeResult": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "needsDecision", "running", "blocked", "recentlyCompleted"],
+      "properties": {
+        "kind": { "const": "home" },
+        "needsDecision": { "type": "array", "items": { "$ref": "#/$defs/needsDecisionItem" } },
+        "running": { "type": "array", "items": { "$ref": "#/$defs/runningItem" } },
+        "blocked": { "type": "array", "items": { "$ref": "#/$defs/blockedItem" } },
+        "recentlyCompleted": { "type": "array", "items": { "$ref": "#/$defs/completedItem" } }
+      }
+    },
+    "blueprintListResult": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "items"],
+      "properties": { "kind": { "const": "blueprints" }, "items": { "type": "array", "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "version", "name", "modules"],
+        "properties": { "id": { "type": "string" }, "version": { "type": "string" }, "name": { "type": "string" }, "modules": { "type": "array", "items": { "type": "string" } } }
+      } } }
+    },
+    "demoSeedResult": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "workspaceId", "actorId", "initiativeArtifactId", "inputPacketRevisionId"],
+      "properties": { "kind": { "const": "demo-seed" }, "workspaceId": { "type": "string" }, "actorId": { "type": "string" }, "initiativeArtifactId": { "type": "string" }, "inputPacketRevisionId": { "type": "string" } }
+    },
+    "executionResult": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "executionId", "status", "outputRevisionId", "reviewId"],
+      "properties": { "kind": { "const": "execution" }, "executionId": { "type": "string" }, "status": { "enum": ["running", "completed", "failed"] }, "outputRevisionId": { "type": ["string", "null"] }, "reviewId": { "type": ["string", "null"] } }
+    },
+    "reviewListResult": { "type": "object", "additionalProperties": false, "required": ["kind", "items"], "properties": { "kind": { "const": "reviews" }, "items": { "type": "array", "items": { "$ref": "#/$defs/reviewSummary" } } } },
+    "reviewResult": { "type": "object", "additionalProperties": false, "required": ["kind", "package"], "properties": { "kind": { "const": "review-package" }, "package": { "$ref": "#/$defs/reviewPackage" } } },
+    "artifactRevisionResult": { "type": "object", "additionalProperties": false, "required": ["kind", "revisionId", "reviewId"], "properties": { "kind": { "const": "artifact-revision" }, "revisionId": { "type": "string" }, "reviewId": { "type": "string" } } },
+    "reviewResolutionResult": { "type": "object", "additionalProperties": false, "required": ["kind", "reviewId", "revisionId", "decisionId", "status"], "properties": { "kind": { "const": "review-resolution" }, "reviewId": { "type": "string" }, "revisionId": { "type": "string" }, "decisionId": { "type": "string" }, "status": { "enum": ["accepted", "revision-needed"] } } },
+    "eventParams": {
+      "type": "object", "required": ["protocolVersion", "occurredAt"],
+      "properties": { "protocolVersion": { "$ref": "#/$defs/protocolVersion" }, "occurredAt": { "type": "string", "format": "date-time" } }
+    },
+    "workspaceEventParams": { "allOf": [{ "$ref": "#/$defs/eventParams" }, { "type": "object", "required": ["workspaceId"], "properties": { "workspaceId": { "type": "string", "minLength": 1 } } }], "unevaluatedProperties": false },
+    "executionEventParams": { "allOf": [{ "$ref": "#/$defs/eventParams" }, { "type": "object", "required": ["executionId"], "properties": { "executionId": { "type": "string", "minLength": 1 } } }], "unevaluatedProperties": false },
+    "progressEventParams": { "allOf": [{ "$ref": "#/$defs/eventParams" }, { "type": "object", "required": ["executionId", "sequence", "message"], "properties": { "executionId": { "type": "string" }, "sequence": { "type": "integer", "minimum": 0 }, "message": { "type": "string", "minLength": 1 } } }], "unevaluatedProperties": false },
+    "revisionEventParams": { "allOf": [{ "$ref": "#/$defs/eventParams" }, { "type": "object", "required": ["artifactId", "revisionId"], "properties": { "artifactId": { "type": "string" }, "revisionId": { "type": "string" } } }], "unevaluatedProperties": false },
+    "reviewEventParams": { "allOf": [{ "$ref": "#/$defs/eventParams" }, { "type": "object", "required": ["reviewId", "revisionId"], "properties": { "reviewId": { "type": "string" }, "revisionId": { "type": "string" } } }], "unevaluatedProperties": false },
+    "decisionEventParams": { "allOf": [{ "$ref": "#/$defs/eventParams" }, { "type": "object", "required": ["decisionId", "reviewId", "revisionId", "action"], "properties": { "decisionId": { "type": "string" }, "reviewId": { "type": "string" }, "revisionId": { "type": "string" }, "action": { "enum": ["approve", "request-revision"] } } }], "unevaluatedProperties": false },
+    "failureEventParams": { "allOf": [{ "$ref": "#/$defs/eventParams" }, { "type": "object", "required": ["executionId", "message"], "properties": { "executionId": { "type": "string" }, "message": { "type": "string", "minLength": 1 } } }], "unevaluatedProperties": false },
+    "workspaceCreatedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "workspace.created" }, "params": { "$ref": "#/$defs/workspaceEventParams" } } }] },
+    "executionStartedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "execution.started" }, "params": { "$ref": "#/$defs/executionEventParams" } } }] },
+    "executionProgressedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "execution.progressed" }, "params": { "$ref": "#/$defs/progressEventParams" } } }] },
+    "revisionProposedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "artifact.revision.proposed" }, "params": { "$ref": "#/$defs/revisionEventParams" } } }] },
+    "reviewRequestedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "review.requested" }, "params": { "$ref": "#/$defs/reviewEventParams" } } }] },
+    "decisionRecordedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "decision.recorded" }, "params": { "$ref": "#/$defs/decisionEventParams" } } }] },
+    "revisionAcceptedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "artifact.revision.accepted" }, "params": { "$ref": "#/$defs/revisionEventParams" } } }] },
+    "executionCompletedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "execution.completed" }, "params": { "$ref": "#/$defs/executionEventParams" } } }] },
+    "executionFailedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "execution.failed" }, "params": { "$ref": "#/$defs/failureEventParams" } } }] }
+  },
+  "x-studio": {
+    "protocolVersion": "1",
+    "transport": "ndjson-stdio",
+    "logs": "stderr-only",
+    "spec": "docs/specs/product-development-walking-skeleton/spec.md",
+    "methodResults": {
+      "system.hello": "#/$defs/helloResult",
+      "health.get": "#/$defs/healthResult",
+      "blueprint.list": "#/$defs/blueprintListResult",
+      "workspace.create": "#/$defs/workspaceResult",
+      "workspace.list": "#/$defs/workspaceListResult",
+      "workspace.get": "#/$defs/workspaceResult",
+      "home.get": "#/$defs/homeResult",
+      "demo.seed": "#/$defs/demoSeedResult",
+      "execution.start": "#/$defs/executionResult",
+      "review.list": "#/$defs/reviewListResult",
+      "review.get": "#/$defs/reviewResult",
+      "artifact.revise": "#/$defs/artifactRevisionResult",
+      "review.resolve": "#/$defs/reviewResolutionResult"
+    },
+    "errorCodes": {
+      "-32700": "parse-error",
+      "-32600": "invalid-request",
+      "-32601": "method-not-found",
+      "-32602": "invalid-params",
+      "-32603": "internal-error",
+      "-32001": "incompatible-protocol",
+      "-32002": "resource-not-found",
+      "-32003": "stale-review",
+      "-32004": "conflict"
+    }
+  }
+}
