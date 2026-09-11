@@ -1,0 +1,21 @@
+{
+  "name": "@agent-ready/studio-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/service.ts",
+    "./entry": "./dist/service.js"
+  },
+  "dependencies": {
+    "@agent-ready/domain": "workspace:*",
+    "@agent-ready/execution-sdk": "workspace:*",
+    "@agent-ready/executor-fake": "workspace:*",
+    "@agent-ready/blueprint-product-development": "workspace:*",
+    "@agent-ready/protocol": "workspace:*",
+    "@agent-ready/storage-sqlite": "workspace:*",
+    "@agent-ready/workspace-sdk": "workspace:*",
+    "better-sqlite3": "13.0.3",
+    "zod": "4.1.12"
+  }
+}

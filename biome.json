@@ -1,0 +1,30 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
+  "files": {
+    "includes": [
+      "package.json",
+      "biome.json",
+      "vitest.config.ts",
+      "packages/**",
+      "apps/**",
+      "!**/dist",
+      "!**/coverage",
+      "!**/node_modules",
+      "!**/out"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  },
+  "assist": {
+    "enabled": true
+  }
+}

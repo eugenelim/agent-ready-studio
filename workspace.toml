@@ -21,5 +21,11 @@
 [backlog]
 open = [
   { path = "docs/product/briefs/agent-ready-studio.md", kind = "brief", source = { mode = "repo-origin" }, summary = "Define the Agent-Ready Studio foundation and walking-skeleton delivery outcome", needs = [] },
+  { path = "docs/product/briefs/observable-execution.md", kind = "brief", source = { mode = "repo-origin" }, summary = "Make execution observable in flight, restoring Home's Running group removed by amendment 0004", needs = [] },
 ]
 closed = []
+
+[work]
+active = [
+  { path = "docs/specs/product-development-walking-skeleton/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Build the Product Development walking skeleton", needs = [] },
+]

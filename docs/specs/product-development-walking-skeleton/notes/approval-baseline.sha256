@@ -1,3 +1,17 @@
-e7c7ee81ac0c3002e7a281b0ccccaaedae94f321774f49527fecfd205eef7358  docs/specs/product-development-walking-skeleton/spec.md
-6507269d7b6f197717fef4099c7c2b83b3c0e803097f762567f1abe94b68ff3d  docs/specs/product-development-walking-skeleton/plan.md
-67f23195c03e9af7338a589ef8e54efbf8ca0bb6f4d310a17bac0bfecb898812  contracts/jsonschema/studio-protocol-v1.schema.json
+# Retention fingerprint for the artifacts the plan names as required reading.
+#
+# Superseded and re-pinned by amendments 0002 (AC-50, Reviews surface), 0003
+# (AC-51, Overview and Strategy) and 0004 (Home's Running group, which also moved
+# the protocol contract). The owner approved that amended baseline on 2026-09-11;
+# the record is reviews/amended-baseline-approval.md.
+#
+# Re-pinned once more on closing, because marking the plan Done edits plan.md and
+# would otherwise leave this file matching nothing. The only delta from the bytes
+# the owner approved is that one status token, Executing -> Done; spec.md and the
+# protocol contract are byte-identical to the approved state.
+#
+# Reproduce with:
+#   shasum -a 256 -c docs/specs/product-development-walking-skeleton/notes/approval-baseline.sha256
+249472dfe3322c87193808f72c5e7345c64d80618a6fe66dd101b0e25c66c306  docs/specs/product-development-walking-skeleton/spec.md
+de42ee6605c6193fe8349dfef3f18658fdb5ffed077e81fb2688fdc16cc91e39  docs/specs/product-development-walking-skeleton/plan.md
+b7c723a5f3d02741ad871958764ef8abb832ee125232279758fa925a369282d3  contracts/jsonschema/studio-protocol-v1.schema.json

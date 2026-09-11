@@ -1,25 +1,19 @@
 # Roadmap
 
-> **Template.** Scaffolded by the bundle — replace the `<theme>` placeholders
-> and the `YYYY-MM-DD` dates with your project's real roadmap and review dates
-> before relying on it.
+Direction for Agent-Ready Studio's next horizons. It is not a commitment.
 
-> Direction for the next 2-4 quarters. **Not** commitments. The whole point
-> of writing this down is that it can change.
-
-**Last updated:** YYYY-MM-DD
-**Reviewed:** quarterly. Next review: YYYY-MM-DD.
-
-If the current date is more than 90 days past "Last updated", treat this
-file as stale and ask before relying on it.
+**Last updated:** 2026-09-09
+**Reviewed:** quarterly. Next review: 2026-12-09.
 
 ## Now (current quarter)
 
 What we're actively working on. Each item should link to a spec in
 `docs/specs/` once one exists.
 
-- **<theme>.** <one-sentence description.> [spec: link]
-- **<theme>.** ...
+- **Product Development walking skeleton.** Complete verification and durable
+  documentation for the implemented local path from workspace and Input Packet
+  to deterministic Product Intent, human decision, and restart-safe state.
+  [spec](../specs/product-development-walking-skeleton/spec.md)
 
 ## Next (following 1-2 quarters)
 
@@ -28,8 +22,11 @@ Items here should have at least an RFC or a one-paragraph problem
 statement somewhere — if there's nothing written down, it's not yet
 ready to be on the roadmap.
 
-- **<theme>.** <description.> [RFC: link, or "intent only"]
-- **<theme>.** ...
+- **Artifact depth.** Improve rich artifact rendering and editing, semantic
+  diffs, evidence provenance, and graph-based applicability. Intent only.
+- **Optional agent-ready capability.** Assess validated Agent-Ready and
+  repository capability packs without making them core requirements. Intent
+  only.
 
 ## Later
 
@@ -37,8 +34,9 @@ Things we believe matter but aren't actively planning. Items here serve
 two purposes: signal to contributors that we'd accept a PR, and let us
 say "not now" without saying "never."
 
-- <theme>
-- <theme>
+- Collaboration and sensitive-data controls.
+- Remote runners, production integrations, and cloud sync.
+- Visual canvases and portfolio or outcome projections.
 
 ## Not in scope
 
@@ -46,13 +44,17 @@ Things that have come up and that we've explicitly decided are *not*
 in scope. This is the most valuable section for AI agents and new
 contributors — it prevents wasted exploration of dead ends.
 
-- **<thing we won't do>.** <why, briefly. link to ADR or RFC if there
-  was one.>
-- **<thing>.** ...
+- **Real provider dispatch, Git worktrees, and terminal emulation.** The first
+  slice proves a deterministic, executor-independent path without turning the
+  product into repository automation.
+- **Arbitrary executable plugins.** Extensions stay declarative and validated;
+  the initial product does not load third-party code into privileged processes.
+- **Authentication, cloud sync, and multi-user collaboration.** These expand
+  the local product's trust and operating model and need separate governance.
 
 ## How this file is maintained
 
-- **Owners:** the maintainers (or the steering committee, if one exists).
+- **Owners:** Agent-Ready Studio maintainers.
 - **Updates:** roadmap items move between sections via small PRs. Substantive
   additions or deletions go through an RFC.
 - **Review cadence:** quarterly. The review updates the "Last updated" date
