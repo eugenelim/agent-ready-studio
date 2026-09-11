@@ -46,12 +46,7 @@ These finding classes are recorded in the intents but not acted on:
    owned by Agent-Ready Repo's maintainers while this repository owns the
    artifact. Recorded in its boundary; it needs an upstream-owned artifact that
    those maintainers accept.
-3. **Two charter conflicts.** ARS-CORE-005 and ARS-SHAPE-005 both let an
-   approved policy advance work into accepted state, contradicting principle 2
-   of [the charter](../../CHARTER.md). The conflict lives in the outcome text,
-   so recording it in the boundary does not resolve it — round 2 correctly
-   re-raised ARS-CORE-005 as a BLOCKER. Resolving it means changing one of the
-   two, which is a shaping decision.
+3. ~~**Two charter conflicts.**~~ **Resolved — see below.**
 
 ## Per-initiative results
 
@@ -199,10 +194,94 @@ rests on a single unverified gap.
 
 Reviewed revisions after this round:
 
-- ARS-CORE-001 — `sha256:f5fc23030f597a76`
+- ARS-CORE-001 — `sha256:2359012f1bed8cc6`
 - ARS-UX-007 — `sha256:a410a1cf00afea75`
 - ARS-PD-005 — `sha256:625c1dcb3e96ae8b`
 - ARS-EXT-006 — `sha256:375686592677f506`
+
+## Charter conflicts — resolved
+
+ARS-CORE-005 and ARS-SHAPE-005 both let an approved policy advance work into
+accepted state, contradicting principle 2 of [the charter](../../CHARTER.md).
+Two reviewers raised it independently, and round 2 re-raised it as a BLOCKER
+because the conflict lives in the outcome text, where recording it in a boundary
+could not reach it.
+
+**Resolved in favour of the charter.** The charter states the rule twice —
+principle 2, and the Scope list's "does not accept executor output as product
+truth without an attributable human decision" — and both reviewers judged the
+intents, not the charter, to be the defect. Both outcomes now say acceptance is
+a durable, attributable human decision.
+
+The captured direction is not discarded, only scoped: an explicit auditable
+policy may still govern transitions **short of acceptance**. What each intent
+now asks is which transitions those are, and whether automated advancement is
+separate work at all.
+
+Changing this back — permitting policy-based acceptance — would need a charter
+RFC, not an edit to an intent. Both boundaries say so.
+
+The resolution was then independently re-reviewed, because changing an outcome
+is a material edit that invalidates the prior review. That reviewer confirmed
+the contradiction is gone — neither outcome admits non-human acceptance, and the
+surviving policy clause is falsifiable, with "a policy moving work into accepted
+state" as its failing observation.
+
+It raised one BLOCKER against the resolution itself: both rewritten outcomes had
+restated the charter's acceptance rule verbatim, which the rubric treats as a
+`said twice / wrong owner` defect. Sustained and fixed — each outcome now states
+only what its capability delivers, and defers acceptance to the boundary's
+citation of principle 2. That was the third time restating the charter instead
+of citing it slipped in; the rule is now cited in exactly one place per intent.
+
+Revisions after the resolution and its review:
+
+- ARS-CORE-005 — `sha256:097d87b2edf9d196`
+- ARS-SHAPE-005 — `sha256:bd55292699f7c656`
+
+## ARS-CORE-001 — checked against source
+
+Round 3 showed most of ARS-CORE-001's outcome already ships, and the reviewer
+read that as an artifact-need failure: name an unmet gap, or drop the capture.
+
+**That framing was wrong, and is corrected here.** An intent whose outcome is
+already delivered is not defective. Writing an intent and then shipping it is
+the normal path, and the shipped work reflects the intent rather than replacing
+it. The installed workspace contract agrees: `Fulfilled` is a terminal state for
+`kind = "intent"`, alongside `Accepted`. The contract anticipates satisfied
+intents; it does not treat them as errors.
+
+What the source check was actually good for is precision. The actor model
+already declares four kinds — human, agent, deterministic, external — and the
+decision path resolves and stamps a real actor. But no actor of a non-human kind
+is created anywhere, including tests, and a revision's producer is a free-text
+value: an actor identity for human work, a fixed label for deterministic
+executor output. System work is attributed by convention while human work is
+attributed by reference.
+
+So ARS-CORE-001 stands. Its boundary now says which part of it shipped work
+already reflects and which part it does not, and its open question is whether
+system work should share the human actor model at all.
+
+One consequence for a later shaping session, not acted on here: if an intent is
+ever moved to `Fulfilled`, it must also leave `shaping_queue.backlog`, because a
+terminal status in that collection raises `impossible_transition`. Every intent
+in this capture stays `Draft`, so nothing is affected today.
+
+A finding from the resolution review was **refuted by the owner**: it argued
+ARS-CORE-001's outcome is broader than its residual scope and should be narrowed
+to system-actor attribution alone. The owner's position is that an intent
+written and then shipped is the normal path and the shipped work reflects the
+intent, so an outcome covering delivered capability is not a defect to correct.
+The intent keeps its full outcome; the boundary carries the distinction.
+
+Two further findings were sustained and fixed: the current-state claims now cite
+this record as what establishes them, and a copied count of non-human actor
+kinds was removed because it decays with its source.
+
+Revision after the check:
+
+- ARS-CORE-001 — `sha256:2359012f1bed8cc6`
 
 ## Grounding gaps the reviewers reported
 

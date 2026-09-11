@@ -19,8 +19,9 @@
 
 ## Outcome
 
-Proposed work advances only through attributable review decisions or an
-explicit auditable policy, while dissent and revision requests remain durable.
+Every approval and revision request against proposed work is durably recorded
+and attributable, dissent survives the revisions that follow it, and any
+auditable policy that advances work stops short of acceptance.
 
 ## Opportunity
 
@@ -32,9 +33,9 @@ and accepted or simply missed.
 ## Boundary
 
 - Acceptance is governed by principle 2 of [the charter](../../CHARTER.md),
-  which owns that rule. The outcome's policy clause is not settled: whether any
-  automated policy can satisfy that principle is unresolved, and until it is,
-  the principle governs.
+  which owns that rule. An advancement policy may move work between
+  non-accepted states; it may never move work into accepted state. Changing
+  that would need a charter RFC, not a change here.
 - Does not cover who is allowed to decide; routing and authority are
   ARS-SCALE-001 and ARS-SCALE-002.
 - Does not define discipline-specific review semantics; those are ARS-PD-008.
@@ -49,8 +50,9 @@ validation.
   verdicts can be added per discipline later.
 - A comment is durable and addressable, not a transient annotation cleared by
   the next revision.
-- An auditable advancement policy is acceptable to teams only where the
-  reviewed risk is low and the policy is visible at the point of advancement.
+- An auditable policy governing advancement short of acceptance is acceptable
+  to teams only where the reviewed risk is low and the policy is visible at the
+  point of advancement.
 
 ## Unresolved questions
 
@@ -61,10 +63,8 @@ validation.
 3. How does dissent stay visible after the artifact it targeted has moved
    several revisions on?
 4. Is review state per artifact, per revision, or per proposal round?
-5. Does the charter requirement that accepted state follow a durable,
-   attributable human decision conflict with the outcome's automated-policy
-   clause; which must change, and should automated advancement be separate
-   work given core review and decision works without it?
+5. Should automated advancement short of acceptance be separate work, given
+   that core review and decision succeed without it?
 
 ## Projection
 

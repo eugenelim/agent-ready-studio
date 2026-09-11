@@ -19,9 +19,9 @@
 
 ## Outcome
 
-Humans and agents can contribute revisions to the same artifact lineage while
-acceptance and advancement remain explicitly human-governed unless an approved
-policy says otherwise.
+Humans and agents can contribute revisions to the same artifact lineage with
+every contribution attributable to its own actor, and any approved policy
+governs only advancement short of acceptance.
 
 ## Opportunity
 
@@ -32,10 +32,9 @@ contributions attributed without either party owning the artifact outright.
 ## Boundary
 
 - Agent contributions are proposals. Acceptance is governed by principle 2 of
-  [the charter](../../CHARTER.md), which owns that rule; policies may route work
-  or request review. The outcome's policy clause is not settled: whether any
-  policy can satisfy that principle is unresolved, and until it is, the
-  principle governs.
+  [the charter](../../CHARTER.md), which owns that rule. A policy may route
+  work, request review, or advance work between non-accepted states; it may
+  never accept an agent contribution.
 - Attribution distinguishes human from system actors and never blurs them.
 - Does not grant an agent authority to decide, route, or dispatch.
 
@@ -62,10 +61,9 @@ validation.
    chain of contributions?
 4. How is an agent's confidence or uncertainty represented, if at all, without
    inventing evidence?
-5. Does the charter requirement that accepted state follow a durable,
-   attributable human decision conflict with the outcome's policy clause; which
-   must change, and can a policy that routes work or requests review ever
-   satisfy it?
+5. Which advancement transitions short of acceptance may a policy govern for
+   a mixed-actor lineage, and does ARS-CORE-005 own that rule rather than this
+   intent?
 
 ## Projection
 
