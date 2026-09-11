@@ -36,10 +36,14 @@ promise becomes conditional on setup a team may never complete.
   records, not credentials.
 - Does not cover multi-user or team actors; those sit in ARS-SCALE-001.
 - The walking skeleton already ships workspace creation without external
-  dependencies and attributable human actor records. This intent covers
-  attributable system-actor records and the actor-record shape later team,
-  audit, and permission capabilities need; whether either is genuinely unmet
-  remains open. It does not rebuild shipped behaviour.
+  dependencies and attributable human actor records, so shipped work already
+  reflects most of this intent. Not yet reflected is system-actor attribution:
+  the non-human actor kinds are declared but never instantiated, and a revision
+  records its producer as a free-text value holding an actor identity for human
+  work and a fixed label for executor output. [The shaping
+  review](../shaping/intent-shaping-review-2026-09-11.md) records the source
+  check establishing that asymmetry. This intent does not rebuild shipped
+  behaviour.
 
 ## Assumptions
 
@@ -64,8 +68,8 @@ validation.
    which record is authoritative?
 4. Does a single machine ever hold more than one workspace, and if so what is
    shared between them?
-5. Is attributable system-actor attribution actually missing today, and if it
-   is not, does this intent have any remaining scope?
+5. Should system work be attributed through the same actor records as human
+   work, or is a producer label sufficient for non-human execution?
 
 ## Projection
 
