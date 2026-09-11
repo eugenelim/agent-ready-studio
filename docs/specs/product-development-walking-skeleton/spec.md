@@ -1,6 +1,6 @@
 # Spec: Product Development walking skeleton
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** Agent-Ready Studio maintainers
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0001, ADR-0002, ADR-0003, ADR-0004
@@ -109,128 +109,182 @@ relation, or review write.
 | Migration, transactional decisions, duplicate/stale attempts, and reopen persistence | TDD integration | SQLite constraints and transaction behavior are part of the contract. |
 | Deterministic Input Packet to Product Intent to review | TDD integration | The service path must prove real abstractions rather than renderer mocks. |
 | Handshake, correlation, after-commit notifications, disconnect, restart, and bounded shutdown | Goal-based integration | Observable behavior spans streams and lifecycle ownership. |
-| Review Inbox, editor, decisions, loading, error, and disconnected states | TDD component | User states are deterministic against the narrow preload contract. |
+| Correlated-request deadline, structured timeout error, and released pending entry (AC-47) | TDD integration | A never-answering service is simulated deterministically, so settle, release, and continued service are crisp assertions across the process boundary. |
+| Timeout fidelity across Electron main and the preload API (AC-49) | TDD | The crossing is asserted against the real preload surface, not a replaced one, because a substituted preload cannot show that the condition survives the hop. |
+| Review Inbox, editor, decisions, loading, error, disconnected, and timed-out states (AC-25, AC-48) | TDD component | User states are deterministic against the narrow preload contract, and the timed-out state is one of them. |
+| Reviews surface: the complete review list grouped by lifecycle status (AC-50) | TDD component | The grouping and the empty-group statement are deterministic against the narrow preload contract, and the rendered list is measured in the retained visual evidence. |
+| Strategy and Overview module surfaces (AC-51) | TDD component | The product-intent filter, the status labels and the conditional empty state are deterministic against the narrow preload contract, and both surfaces are measured directly in the retained visual evidence, as their own captures. |
 | Decision clarity, pane overflow, theme parity, focus, touch-safe actions, and reduced motion | Visual/manual QA | Inspect headful Electron when available; otherwise render the production renderer in headless Chromium at the required viewports and retain screenshots plus automated accessibility/overflow assertions. |
+| Root commands, workspace manifests, and pinned Node/pnpm lines (AC-01) | Goal-based check | Invocation is the proof: each finite command must exit zero from a fresh clone, and the long-running `pnpm dev` must reach startup readiness within a bound and then terminate cleanly. |
+| Service stdout carrying only protocol messages, with logs on stderr (AC-32) | Goal-based integration | Stream separation is observable only from a spawned process, and one assertion over captured streams settles it. |
+| BrowserWindow security preferences, renderer Content-Security-Policy, and default-denied navigation and `window.open` (AC-24, AC-45) | TDD | These are compressible configuration invariants whose removal a main-process unit test catches immediately. |
+| Preload surface exposing only typed, runtime-validated, purpose-specific methods (AC-34) | TDD | The absence of a generic IPC, process, shell, or filesystem method is a crisp assertion over the exposed API shape. |
+| Packaged or production-built launch, fresh migration, `health.get`, and bounded exit (AC-27) | Goal-based end-to-end | Only the real staged entry proves the native addon and service path; the environment gap is recorded when packaging cannot run. |
 | Complete create, transform, review, decision, and restart flow | Goal-based end-to-end | This is the cheapest proof that all real boundaries compose. |
 
 ## Acceptance Criteria
 
-- [ ] **AC-01** A fresh clone exposes working `pnpm install`, `pnpm dev`, `pnpm lint`,
+- [x] **AC-01** A fresh clone exposes working `pnpm install`, `pnpm dev`, `pnpm lint`,
   `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm verify` commands; no
   command is a placeholder success.
-- [ ] **AC-02** Renderer workspace creation persists name, optional description,
-  `product-development` blueprint ID/version, timestamps, and an empty pack list
-  without asking for Git, AgentBundle, credentials, providers, or network.
-- [ ] **AC-03** The validated blueprint exposes exactly Overview, Strategy, Research,
+- [x] **AC-02** Renderer workspace creation persists name, optional description,
+  `product-development` blueprint ID/version, timestamps, an empty pack list,
+  and the workspace's local human actor, without asking for Git, AgentBundle,
+  credentials, providers, or network.
+- [x] **AC-46** No protocol request carries an actor identity. `review.resolve`
+  and `artifact.revise` accept no actor field, and a request supplying one is
+  refused without writes. The service resolves the workspace's local human
+  actor and stamps it on the Decision and on any human-produced revision, so a
+  restarted renderer records an attributable decision using only
+  contract-defined reads.
+- [x] **AC-03** The validated blueprint exposes exactly Overview, Strategy, Research,
   Experience, Architecture, Delivery, Release, and Outcomes. Reviews is global
   navigation, not a ninth blueprint module.
-- [ ] **AC-04** Research, Experience, Architecture, Delivery, Release, and Outcomes each
+- [x] **AC-04** Research, Experience, Architecture, Delivery, Release, and Outcomes each
   render a purpose-specific empty state with no fabricated chart or metric.
-- [ ] **AC-05** Initiative is a typed artifact and relation composition, not a
+- [x] **AC-05** Initiative is a typed artifact and relation composition, not a
   dedicated persistence table.
-- [ ] **AC-39** Explicit demo seed idempotently creates one “Build Agent-Ready
+- [x] **AC-39** Explicit demo seed idempotently creates one “Build Agent-Ready
   Studio” initiative with the desired outcome from the Ready brief.
-- [ ] **AC-06** A versioned Input Packet contains objective, source notes, target users,
+- [x] **AC-06** A versioned Input Packet contains objective, source notes, target users,
   known context, constraints, non-goals, and expected output type, using
   meaningful Agent-Ready Studio content.
-- [ ] **AC-07** The transformation `strategy.frame-product-intent` accepts only a valid,
+- [x] **AC-07** The transformation `strategy.frame-product-intent` accepts only a valid,
   existing Input Packet revision and identifies eligible executor kinds without
   naming a provider in its semantic definition.
-- [ ] **AC-08** The deterministic fake executor receives a typed packet and emits stable
+- [x] **AC-08** The deterministic fake executor receives a typed packet and emits stable
   started, progress, result, and completion data with no random or generated
   time-dependent content.
-- [ ] **AC-09** Product Intent content requires title, outcome, opportunity, target users,
+- [x] **AC-09** Product Intent content requires title, outcome, opportunity, target users,
   assumptions, guardrails, non-goals, confidence, and open questions.
-- [ ] **AC-29** Fake output deterministically maps meaningful fields from the
+- [x] **AC-29** Fake output deterministically maps meaningful fields from the
   seeded Input Packet into every required Product Intent field.
-- [ ] **AC-10** A proposal records immutable content/provenance, schema version, producer,
+- [x] **AC-10** A proposal records immutable content/provenance, schema version, producer,
   transformation, exact unique input revision IDs, creation time, and a current
   lifecycle projection of Proposed; no accepted pointer changes during run.
-- [ ] **AC-11** Execution packet inputs, stored proposal lineage, lineage relations, and
+- [x] **AC-11** Execution packet inputs, stored proposal lineage, lineage relations, and
   the revision IDs displayed in Work Item Studio are equal. Missing or
   mismatched input IDs cause no execution or proposal writes.
-- [ ] **AC-12** Human is a valid actor and executor kind in domain and execution
+- [x] **AC-12** Human is a valid actor and executor kind in domain and execution
   contracts without an agent provider.
-- [ ] **AC-30** Saving edited Product Intent content creates a new Proposed
+- [x] **AC-30** Saving edited Product Intent content creates a new Proposed
   revision with every required field, supersedes
   the prior outstanding proposal, preserves history and accepted state, and
   opens a review targeting only the new revision. Its exact lineage contains the
   validated base revision; a missing or stale base produces no writes.
-- [ ] **AC-13** Resolving a review with a stale revision, a second decision, or a
+- [x] **AC-13** Resolving a review with a stale revision, a second decision, or a
   concurrent losing attempt is rejected without changing artifact, review, or
   decision state.
-- [ ] **AC-14** Home groups real projections into Needs your decision, Running, Blocked or
+- [x] **AC-14** Home groups real projections into Needs your decision, Blocked or
   revision requested, and Recently completed and shows workspace/initiative,
   artifact title/type, decision reason, producer/transformation, labeled status,
-  created time, and unresolved-question count.
-- [ ] **AC-40** `home.get` reconstructs every Inbox group after reload without
-  notification history.
-- [ ] **AC-15** Work Item Studio renders three persistent regions at desktop width:
+  created time, and unresolved-question count. Execution in this slice is atomic —
+  the run commits with its proposal, review and events, or it writes nothing — so
+  no execution is ever observable while in flight and Home has no Running group.
+  That group is deferred to the slice that introduces long-running or resumable
+  execution.
+- [x] **AC-40** `home.get` reconstructs every Inbox group named in AC-14 after
+  reload, from committed rows and without notification history.
+- [x] **AC-51** Strategy renders the workspace's Product Intent work, read from
+  `review.list` and filtered to the `product-intent` artifact type, each entry
+  labelled with its review status and opening the Work Item Studio, and states
+  that it is empty only when the workspace has none. Overview states that it is
+  empty until there is work to summarise. Neither renders a fabricated chart,
+  metric, or description standing in for absent content.
+- [x] **AC-50** Reviews renders the complete review list from `review.list`,
+  grouped by lifecycle status — open, revision needed, resolved, superseded —
+  each entry showing artifact title and type, decision reason, producer, created
+  time and unresolved-question count, and each opening the Work Item Studio.
+  Home remains the decision inbox and is not duplicated here; a status group with
+  no reviews states so rather than being omitted.
+- [x] **AC-15** Work Item Studio renders three persistent regions at desktop width:
   workflow/lineage left, artifact center, and review/decision right; Run details
   appears only after selecting its tab.
-- [ ] **AC-41** `review.get` reconstructs the complete Review Package after
+- [x] **AC-41** `review.get` reconstructs the complete Review Package after
   reload: content, accepted baseline, inputs, evidence, comments, decisions,
   change summary, execution timestamps, and normalized events.
-- [ ] **AC-16** Input shows the exact execution input revision. Evidence lists lineage and
+- [x] **AC-16** Input shows the exact execution input revision. Evidence lists lineage and
   evidence relations or says “No external evidence linked.” Change summary
   compares structured proposal fields with the current accepted revision or
   says “No accepted baseline” for the first proposal.
-- [ ] **AC-17** Approve and advance atomically records one attributable human Decision,
+- [x] **AC-17** Approve and advance atomically records one attributable human Decision,
   appends Accepted lifecycle state, supersedes any prior accepted lifecycle
   state, advances the artifact pointer, resolves the matching review, and
   preserves all revision content.
-- [ ] **AC-18** Request revision rejects absent, empty, or whitespace-only
+- [x] **AC-18** Request revision rejects absent, empty, or whitespace-only
   comments without writes.
-- [ ] **AC-31** A valid revision request records the comment and attributable
+- [x] **AC-31** A valid revision request records the comment and attributable
   Decision, leaves the
   proposal unaccepted, and marks the matching review revision-needed.
-- [ ] **AC-19** Workspaces, artifacts/revisions/lifecycle, relations, reviews/comments,
+- [x] **AC-19** Workspaces, artifacts/revisions/lifecycle, relations, reviews/comments,
   decisions, executions/events, and accepted pointers retain the same semantic
   state after service close and database reopen.
-- [ ] **AC-20** Protocol v1 validates method-specific request params, result payloads, and
+- [x] **AC-20** Protocol v1 validates method-specific request params, result payloads, and
   notification payloads; method/payload mismatches and unknown fields receive a
   structured error without dispatch.
-- [ ] **AC-21** `system.hello` refuses an incompatible protocol version before
+- [x] **AC-21** `system.hello` refuses an incompatible protocol version before
   any other method dispatch.
-- [ ] **AC-32** Service stdout contains only one JSON protocol message per line;
+- [x] **AC-32** Service stdout contains only one JSON protocol message per line;
   logs and diagnostics use stderr.
-- [ ] **AC-22** Normalized events persist in the same transaction as semantic state;
+- [x] **AC-22** Normalized events persist in the same transaction as semantic state;
   notifications publish only after commit, rolled-back operations publish
   nothing.
-- [ ] **AC-42** Renderer reconnect reloads authoritative `home.get` and
+- [x] **AC-42** Renderer reconnect reloads authoritative `home.get` and
   `review.get` projections rather than replaying notification history.
-- [ ] **AC-23** Electron main owns the child and transport, exposes no process
+- [x] **AC-23** Electron main owns the child and transport, exposes no process
   primitive, and closes the service and SQLite within five seconds of requested
   shutdown.
-- [ ] **AC-33** Electron main reports disconnected and incompatible states to
+- [x] **AC-33** Electron main reports disconnected and incompatible states to
   preload with a bounded retry that re-handshakes before dispatch.
-- [ ] **AC-24** The BrowserWindow uses `nodeIntegration: false`,
+- [x] **AC-24** The BrowserWindow uses `nodeIntegration: false`,
   `contextIsolation: true`, and `sandbox: true`.
-- [ ] **AC-34** Preload exposes only typed, runtime-validated,
+- [x] **AC-45** The renderer document loads under a Content-Security-Policy that
+  allows no inline script and no remote origin, and Electron main denies every
+  navigation and every `window.open` request by default.
+- [x] **AC-34** Preload exposes only typed, runtime-validated,
   purpose-specific workspace, artifact, execution, and review methods.
-- [ ] **AC-25** Review Inbox and Work Item Studio show labeled loading, no-work,
-  execution-failed, service-disconnected, protocol-incompatible, and retrying
-  states.
-- [ ] **AC-43** Retry re-handshakes, re-queries authoritative state, and never
-  invents completion from a lost or stale notification.
-- [ ] **AC-26** Rendered review surfaces pass Decision clarity: the artifact and
+- [x] **AC-25** Review Inbox and Work Item Studio show labeled loading, no-work,
+  execution-failed, service-disconnected, protocol-incompatible, retrying, and
+  timed-out states.
+- [x] **AC-43** Retry after a reported disconnected or incompatible state
+  re-handshakes before dispatch. Every retry, on any path, re-queries
+  authoritative state and never invents completion from a lost or stale
+  notification.
+- [x] **AC-47** A correlated request that receives no response within a bounded
+  deadline fails closed at the transport: the transport settles that request
+  with a structured timeout error distinguishable from a service-returned
+  error, releases its pending correlation entry, and remains able to serve
+  subsequent requests on the same connection. A timed-out request is never
+  treated as completed and never infers a result.
+- [x] **AC-49** Electron main and the preload API surface the AC-47 timeout to
+  the awaiting renderer caller as a typed, runtime-validated outcome that is
+  distinguishable from a service-returned error and from the disconnected and
+  incompatible conditions of AC-33. No timeout is normalized into a generic
+  failure on the way across.
+- [x] **AC-48** A surface awaiting a request that times out under AC-47 and
+  receives the AC-49 outcome leaves the loading state for a labeled timed-out
+  state offering retry, and never waits indefinitely. That retry re-issues the
+  request on the still-live connection and re-queries authoritative state per
+  AC-43; it does not re-handshake, because AC-47 keeps the connection
+  serviceable and re-handshake belongs to AC-33's reconnect path.
+- [x] **AC-26** Rendered review surfaces pass Decision clarity: the artifact and
   required decision are visible without opening Run details.
-- [ ] **AC-35** Proposal and accepted labels use non-color cues and remain
+- [x] **AC-35** Proposal and accepted labels use non-color cues and remain
   distinct in both light and dark themes.
-- [ ] **AC-36** Every interactive control has visible keyboard focus and an
+- [x] **AC-36** Every interactive control has visible keyboard focus and an
   accessible name.
-- [ ] **AC-37** At 200% zoom and at a 1024px-wide viewport, decision controls
+- [x] **AC-37** At 200% zoom and at a 1024px-wide viewport, decision controls
   remain reachable without two-dimensional page scrolling.
-- [ ] **AC-38** Reduced-motion and non-hover input modes retain every action and
+- [x] **AC-38** Reduced-motion and non-hover input modes retain every action and
   every state change remains understandable without decorative motion.
-- [ ] **AC-44** After restart, a resolved Work Item displays the persisted
+- [x] **AC-44** After restart, a resolved Work Item displays the persisted
   Decision ID, human actor name, action, comment when present, and timestamp.
-- [ ] **AC-27** A packaged or production-built desktop path launches the real child
+- [x] **AC-27** A packaged or production-built desktop path launches the real child
   service, migrates a fresh database, completes `health.get`, and exits within
   five seconds. If packaging cannot run in this environment, the production
   build plus an equivalent spawned-service integration is recorded explicitly
   as the remaining packaging gap.
-- [ ] **AC-28** One end-to-end proof drives renderer boundary to Electron transport to
+- [x] **AC-28** One end-to-end proof drives renderer boundary to Electron transport to
   real service to SQLite through create, seed, transform, approve or request
   revision, restart, and retained state without network or credentials.
 
@@ -242,6 +296,17 @@ relation, or review write.
   provider-specific executors.
 - Collaboration, sensitive-data controls, remote runners, integrations, visual
   canvases, and portfolio/outcome projections.
+- Window bounds persistence, so a resized or repositioned window is restored on
+  the next launch. The window currently fills the display work area every time it
+  opens. Deferred because it needs a durable UI-state store this slice does not
+  have, and no criterion requires it.
+- Observable execution, so a run in flight is visible and a dead run is
+  distinguishable from a live one. Removed from AC-14 by amendment 0004: this
+  slice's execution is a single atomic transaction, so no execution row can ever
+  be observed as `running` or `failed` and the Home group of that name could
+  never be populated. Owner: Agent-Ready Studio maintainers. Work intake:
+  `docs/product/briefs/observable-execution.md`, registered in
+  `workspace.toml [backlog].open`.
 
 ## Assumptions
 

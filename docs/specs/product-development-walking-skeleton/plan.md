@@ -1,6 +1,6 @@
 # Plan: Product Development walking skeleton
 
-- **Status:** Drafting
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 - **Owner:** Agent-Ready Studio maintainers
 - **Repository anchors:** [`docs/architecture/reference.md`](../../architecture/reference.md);
@@ -26,6 +26,8 @@ slice.
 - Do not commit. Do not require network, credentials, Git, AgentBundle, or an
   agent runtime for tests or product use.
 - Keep generated build output and SQLite databases untracked.
+- Bind every SQLite statement's artifact, workspace, comment, and content
+  values as parameters. Compose no query text from user-supplied content.
 
 ## Construction tests
 
@@ -57,6 +59,8 @@ slice.
 
 ### Design decisions
 
+*Realizes:* AC-03, AC-05, AC-07, AC-22 · `$defs.blueprint`, `$defs.executionView`.
+
 - Combine blueprint, capability-manifest, and transformation contracts in
   `workspace-sdk`; keep executor packets/events in `execution-sdk` because both
   have concrete consumers.
@@ -71,6 +75,8 @@ slice.
 
 ### Data & schema
 
+*Realizes:* AC-05, AC-10, AC-17, AC-19, AC-22, AC-30 · `$defs.productIntentRevision`, `$defs.evidenceRelation`.
+
 SQLite migrations create tables for workspaces, actors, artifacts,
 artifact_revisions, artifact_revision_states, relations, reviews,
 review_comments, decisions, transformations, executions, execution_events, and
@@ -80,25 +86,35 @@ lifecycle rows are insert-only; artifact rows hold the nullable current
 accepted revision ID.
 
 Structured content and validated metadata are stored as canonical JSON text.
-Reads validate and map rows before they cross the storage boundary.
+Reads validate and map rows before they cross the storage boundary. Every
+statement binds artifact, workspace, comment, and content values as parameters;
+no query text is composed from user-supplied content.
 
 ### Interfaces & contracts
+
+*Realizes:* AC-20, AC-21, AC-32, AC-33, AC-40, AC-41, AC-46, AC-47, AC-49 · `$defs.request`, `$defs.result`, `$defs.notification`, `$defs.reviewPackage`, `$defs.homeResult`.
 
 Protocol v1 implements `system.hello`, `health.get`, `blueprint.list`,
 `workspace.create`, `workspace.list`, `workspace.get`, `demo.seed`, `home.get`,
 `execution.start`, `review.list`, `review.get`, `artifact.revise`, and
-`review.resolve`. `home.get` returns all four inbox groups, including running
-and failed execution work. `review.get` returns the complete Review Package for
+`review.resolve`. `home.get` returns three inbox groups — Needs your decision,
+Blocked or revision requested, and Recently completed — each item a review;
+amendment 0004 removed the Running group, because this slice's execution is
+atomic and no execution is observable in flight. `review.get` returns the complete Review Package for
 every Work Item region. Notifications cover workspace creation, execution
 lifecycle, proposal creation, review request, decision record, and revision
 acceptance.
 
 `StudioTransport` owns request correlation, method-to-result validation,
-notification subscription, disconnect behavior, and shutdown. Electron main
+notification subscription, per-request timeout, disconnect behavior, and
+shutdown. ADR-0004 names correlation, timeouts, shutdown, and malformed-line
+behavior as the four boundary obligations; each is realized here. Electron main
 owns a child-process adapter;
 preload exposes a frozen `studio` API with domain-specific methods only.
 
 ### Component / module decomposition
+
+*Realizes:* AC-01, AC-24, AC-34 · package-boundary construction tests above.
 
 - `packages/domain`: entities, identifiers, content schemas, transition rules.
 - `packages/protocol`: JSON-RPC envelopes, method schemas, validators, client
@@ -116,15 +132,28 @@ preload exposes a frozen `studio` API with domain-specific methods only.
 
 ### State & control flow
 
-`workspace.create` installs the Product Development blueprint with no packs.
-`demo.seed` idempotently creates the local human, initiative, and Input Packet.
+*Realizes:* AC-02, AC-11, AC-13, AC-17, AC-18, AC-30, AC-31, AC-46 · `$defs.reviewPackage`, `$defs.reviewSummary`, `$defs.decisionView`.
+
+The normative statement of revision immutability, lifecycle append-only
+ordering, review targeting, and lineage exactness is the spec's **State
+contract**; this sub-section does not restate those rules and must not diverge
+from them. What follows is only the per-method control flow that realizes them.
+
+`workspace.create` installs the Product Development blueprint with no packs and
+creates that workspace's local human actor, so actor identity exists before any
+decision and independently of demo content. `demo.seed` idempotently creates the
+initiative and Input Packet, and is idempotent against the already-created
+actor. No request carries an actor identity: the application layer resolves the
+workspace's human actor and stamps it on every Decision and human-produced
+revision.
 `execution.start` validates an applicable transformation and exact input
 revision, records Running, invokes the fake executor, stores normalized events,
 inserts a Proposed Product Intent revision plus lineage, requests review, and
 records Completed without accepting the proposal.
 
-`review.resolve(approve)` runs one transaction: validate open review, exact
-target revision, and human actor; create Decision; append Accepted and any
+`review.resolve(approve)` runs one transaction: validate the open review and its
+exact target revision, and resolve the workspace's service-owned human actor;
+create Decision; append Accepted and any
 Superseded lifecycle rows; update the artifact accepted pointer; resolve the
 review; and persist normalized events. Notifications publish only after commit.
 `review.resolve(requestRevision)` requires a nonblank comment, records comment
@@ -134,6 +163,8 @@ outstanding proposal through lifecycle, closes its resolvable review, and opens
 a review targeting the new revision; it never updates revision content.
 
 ### Behavior & rules
+
+*Realizes:* AC-08, AC-14, AC-29 · `$defs.executionEvent`, `$defs.homeItem`.
 
 - IDs are stable prefixed UUIDs in production and injectable deterministic IDs
   in tests.
@@ -146,10 +177,24 @@ a review targeting the new revision; it never updates revision content.
 
 ### Failure, edge cases & resilience
 
+*Realizes:* AC-20, AC-21, AC-22, AC-23, AC-25, AC-33, AC-42, AC-43, AC-47, AC-48, AC-49 · `$defs.error`, `$defs.conflictErrorData`, `$defs.protocolVersionErrorData`.
+
 - Invalid or incompatible protocol messages receive structured JSON-RPC errors
   without crashing or corrupting stdout.
 - A missing or exited service produces a renderer-visible disconnected state
   and bounded restart action.
+- A live service that accepts a request but never answers it fails closed at
+  three points along one path, each with its own owner. At the transport
+  (AC-47, T6) the correlated request settles at a bounded deadline, its pending
+  entry is released, and the connection keeps serving subsequent requests. At
+  the main and preload crossing (AC-49, T7) that outcome reaches the renderer
+  typed and runtime-validated, distinguishable from a service-returned error and
+  from AC-33's disconnected and incompatible conditions, so it cannot be
+  normalized into a generic failure in transit. At the renderer (AC-48, T8 and
+  T9) the waiting surface leaves loading for a labeled timed-out state offering
+  retry. The transport timeout is not a disconnect: it does not trigger the
+  AC-33 reconnect path, and retry after it re-issues on the still-live
+  connection without re-handshaking.
 - Failed execution records failure and diagnostics while preserving inputs.
 - Transactions roll back partial proposal/review/decision writes.
 - Rolled-back work publishes no notification; reconnect always reloads the
@@ -158,6 +203,8 @@ a review targeting the new revision; it never updates revision content.
   SQLite, then terminates the child within a bounded grace period.
 
 ### Quality attributes (NFRs)
+
+*Realizes:* AC-24, AC-34, AC-35 through AC-38, AC-45 · `$defs.helloResult`, `$defs.healthResult`.
 
 - Security: no Node integration, context isolation and sandbox enabled, narrow
   preload, no active generated HTML, no generic shell or filesystem endpoint.
@@ -169,6 +216,8 @@ a review targeting the new revision; it never updates revision content.
   setup, small public interfaces, and truthful docs.
 
 ### Dependencies & integration
+
+*Realizes:* AC-01, AC-23, AC-27 · `$defs.protocolVersion`.
 
 Use pnpm workspaces, TypeScript, React, Electron, electron-vite, Zod,
 better-sqlite3, Vitest, Testing Library, and a single lightweight styling path
@@ -222,19 +271,70 @@ second ABI-specific addon is needed for the pinned versions.
   evidence remain repository-owned. No artifact is published or committed by
   this task.
 
+## Review shape
+
+**DEEP.** The whole slice is far above the 2,000 reviewable behavior-and-test
+line threshold — seven packages and two apps, a thirteen-table schema with
+migrations, thirteen protocol methods with their error and notification shapes,
+an Electron main/preload boundary, and a renderer carrying eight blueprint
+modules, three inbox groups, seven labeled states and a three-region studio. The
+shape is DEEP rather than WIDE because the layers differ in kind and no single
+transformation invariant covers them, so it is decomposed into dependency-ordered
+review units rather than shipped as one diff.
+
+The task graph is strictly linear (T1 → T2 → … → T9, with T10 on all), so waves
+carry no parallelism; these boundaries exist for reviewability, not throughput.
+
+| Unit | Tasks | Boundary — what exists and works when the unit closes |
+| --- | --- | --- |
+| U1 | T1 | A fresh clone runs every root command; durable product documents resolve. |
+| U2 | T2-T5 | The headless core: a seeded Input Packet produces a Product Intent proposal and an open review, and both decision paths persist — proved in-process, with no Electron and no renderer. |
+| U3 | T6-T7 | The process boundary: a spawned compiled service answers `health.get` over NDJSON and its outcomes cross Electron main and the real preload. |
+| U4 | T8-T9 | The renderer: workspace shell, Review Inbox and Work Item Studio against the narrow preload contract. |
+| U5 | T10 | The end-to-end proof and durable-output reconciliation. |
+
+Each unit is independently reviewable and leaves the repository working.
+
+The engine executes this as follows in Phase 1. Every task's wave closes with its
+own GATES: `wave-complete` to `CODE-VERIFICATION`, then `wave-passed
+--wave-index n` back to `CODE-IMPLEMENTATION`, paired with `loop-cohort wave
+advance --from-index n`. The engine's REVIEW gate and human gate fire **once**,
+after the final wave, because `gates-clean` is the only edge into `CODE-REVIEW`
+and carries the `wave check --expect last` guard. A per-unit engine review gate
+before the final wave is therefore not reachable, and
+`reviewers-clean --intent-incomplete` — which requires `CODE-REVIEW` — is not
+available at an intermediate unit boundary either.
+
+Unit boundaries are consequently **session, context and PR-stack boundaries, not
+engine gates**: a fresh implementer session per unit, a controller checkpoint at
+each boundary, and one reviewable stack layer per unit. `spec.md` stays
+`Implementing` from `plan-locked` until the single post-final-wave review
+completes, and only that review may mark it `Shipped`.
+
+Unit membership is a review-and-session boundary only. It changes no task, no
+`Depends on:` edge, and no acceptance criterion; the dependency order below
+remains the single source of execution sequence.
+
 ## Tasks
 
 ### T1: Establish repository and durable product surface
 
+**Review unit:** U1
+
 **Depends on:** none
 
-**Verification mode:** TDD for manifest checks; document reconciliation.
+**Verification mode:** Goal-based check.
 
 **Implements:** Objective durable repository outcome; AC-01.
 
 **Tests:**
-- Root-manifest assertions cover every required command and Node/pnpm pins
-  (AC-01).
+- `no stub (mode)` — goal-based. Each command either runs or does not, so the
+  proof is invocation, not an assertion the compiler already makes.
+- Root-manifest check: every required command and the Node/pnpm pins are
+  present; each finite command (`pnpm install`, `pnpm lint`, `pnpm typecheck`,
+  `pnpm test`, `pnpm build`, `pnpm verify`) exits zero from a fresh clone, and
+  the long-running `pnpm dev` is proved by bounded startup readiness followed by
+  clean termination rather than by an exit code (AC-01).
 - Capability inventory check counts every required stable ID exactly once.
 
 **Approach:**
@@ -247,16 +347,29 @@ second ABI-specific addon is needed for the pinned versions.
 
 ### T2: Implement protocol and extension contracts
 
+**Review unit:** U2
+
 **Depends on:** T1
 
 **Verification mode:** TDD.
 
 **Implements:** Protocol/blueprint behavior; AC-03, AC-07, AC-20, AC-21,
-AC-40, AC-41, AC-44.
+AC-40, AC-41, AC-44, AC-46.
 
 **Tests:**
-- TDD stub: a `workspace.create` envelope carrying `review.resolve` params is
-  rejected by the protocol validator (AC-20).
+- `no stub (implementation-discovered)`. Discovery predicate: the assertable
+  seam is the Zod method map's validator export in `packages/protocol`, which
+  does not exist until this task creates it and whose signature depends on the
+  method-map shape chosen here; naming it now would invent a symbol.
+  Proof obligation: on entering CODE-IMPLEMENTATION, write the mismatched-params
+  rejection red test first against the real validator, prove its red, and only
+  then implement validation.
+- A `workspace.create` envelope carrying `review.resolve` params is rejected by
+  the protocol validator (AC-20).
+- A `review.resolve` or `artifact.revise` request carrying an `actorId` field is
+  rejected by the protocol validator, and a Review Package whose reviewed
+  revision is `accepted` validates only when its review is not `open` (AC-41,
+  AC-46).
 - Positive and negative fixtures cover every implemented request, result, and
   notification; blueprint validation rejects duplicate module IDs (AC-03,
   AC-07, AC-20).
@@ -272,6 +385,8 @@ AC-40, AC-41, AC-44.
 
 ### T3: Implement domain kernel and transitions
 
+**Review unit:** U2
+
 **Depends on:** T2
 
 **Verification mode:** TDD.
@@ -280,8 +395,15 @@ AC-40, AC-41, AC-44.
 AC-30, AC-31.
 
 **Tests:**
-- TDD stub: attempting to approve a revision whose ID differs from the open
-  review target returns a stale-review error and no transition (AC-13).
+- `no stub (implementation-discovered)`. Discovery predicate: the assertable
+  seam is the pure transition command for review resolution in
+  `packages/domain`, which does not exist until this task creates it and whose
+  parameter record depends on the domain entity shapes defined alongside it.
+  Proof obligation: on entering CODE-IMPLEMENTATION, write the stale-target
+  refusal red test first against the real transition, prove its red, and only
+  then implement the guard.
+- Approving a revision whose ID differs from the open review target returns a
+  stale-review error and performs no transition (AC-13).
 - Unit tests cover immutable content, lifecycle append rules, actor/executor
   kinds, lineage equality, required Product Intent fields, and duplicate
   decision refusal (AC-09 through AC-13, AC-17, AC-18).
@@ -296,6 +418,8 @@ AC-30, AC-31.
 
 ### T4: Implement SQLite migrations and storage
 
+**Review unit:** U2
+
 **Depends on:** T3
 
 **Verification mode:** TDD integration.
@@ -303,10 +427,19 @@ AC-30, AC-31.
 **Implements:** Durable transactional state; AC-17 through AC-19, AC-22.
 
 **Tests:**
-- TDD stub: closing and reopening a migrated database retains the accepted
-  revision pointer and its attributable decision (AC-19).
+- `no stub (implementation-discovered)`. Discovery predicate: the assertable
+  seam is the storage-interface factory in `packages/storage-sqlite`, which does
+  not exist until this task creates it and whose open/close surface depends on
+  the migration runner built with it. Proof obligation: on entering
+  CODE-IMPLEMENTATION, write the close-and-reopen persistence red test first
+  against the real factory, prove its red, and only then implement migrations.
+- Closing and reopening a migrated database retains the accepted revision
+  pointer and its attributable decision (AC-19).
 - Integration tests cover fresh migration, foreign keys, unique lineage,
   insert-only revision/state records, atomic branches, and rollback.
+- A storage test writes workspace, comment, and Product Intent content
+  containing SQL metacharacters and quote sequences, then reads it back byte-
+  identical, proving values are bound as parameters rather than interpolated.
 
 **Approach:**
 - Implement storage interfaces and version-1 migrations using better-sqlite3.
@@ -317,21 +450,33 @@ AC-30, AC-31.
 
 ### T5: Implement application service and fake executor
 
+**Review unit:** U2
+
 **Depends on:** T4
 
 **Verification mode:** TDD integration.
 
 **Implements:** End-to-end service semantics; AC-02, AC-05 through AC-13,
-AC-17 through AC-19, AC-22, AC-29 through AC-31, AC-39 through AC-44.
+AC-17 through AC-19, AC-22, AC-29 through AC-31, AC-39 through AC-44, AC-46.
 
 **Tests:**
-- TDD stub: the seeded Input Packet produces a deterministic Product Intent
-  proposal and open review while leaving accepted revision null (AC-05 through
+- `no stub (implementation-discovered)`. Discovery predicate: the assertable
+  seam is the application service's `execution.start` handler in
+  `apps/studio-service`, which does not exist until this task creates it and
+  whose dependency record depends on the storage and domain interfaces it
+  composes. Proof obligation: on entering CODE-IMPLEMENTATION, write the
+  seeded-packet-to-proposal red test first against the real handler, prove its
+  red, and only then implement the transformation path.
+- The seeded Input Packet produces a deterministic Product Intent proposal and
+  an open review while leaving the accepted revision null (AC-05 through
   AC-11).
 - Service tests cover zero-pack workspace creation, idempotent demo seed,
   exact lineage, normalized events, failure recording, both decisions, human
   revision, and stale/duplicate refusal (AC-02, AC-05 through AC-13, AC-17,
   AC-18).
+- Workspace creation persists the local human actor, demo seed is idempotent
+  against it, and both decisions and a human revision carry that
+  service-resolved actor with no caller-supplied identity (AC-02, AC-46).
 
 **Approach:**
 - Implement application handlers over storage/domain interfaces.
@@ -342,16 +487,30 @@ AC-17 through AC-19, AC-22, AC-29 through AC-31, AC-39 through AC-44.
 
 ### T6: Implement NDJSON server and transport client
 
+**Review unit:** U3
+
 **Depends on:** T5
 
-**Verification mode:** Goal-based spawned-process integration.
+**Verification mode:** TDD integration for dispatch and transport behavior;
+goal-based spawned-process check for the compiled-service smoke.
 
 **Implements:** Versioned process contract; AC-20 through AC-23, AC-32,
-AC-33, AC-40 through AC-44.
+AC-33, AC-40 through AC-44, AC-47.
 
 **Tests:**
-- TDD stub: an incompatible `system.hello` request returns the version error
-  and does not dispatch another method (AC-21).
+- `no stub (implementation-discovered)` for the TDD-integration portion.
+  Discovery predicate: the dispatch and transport seams — the service entry's
+  request-handling export and the `StudioTransport` client surface — do not
+  exist until T6 creates them, and T2 through T5 fix the schemas they consume,
+  so no callable signature can be named now without inventing one. Proof
+  obligation: on entering CODE-IMPLEMENTATION, write the incompatible
+  `system.hello` red test first against the real seam, prove its red, and only
+  then implement dispatch.
+- Incompatible `system.hello` returns the `-32001` version error and dispatches
+  no other method (AC-21).
+- A request the service accepts but never answers settles with a structured
+  timeout error at the bounded deadline, releases its pending correlation entry,
+  and leaves the transport able to serve the next request (AC-47).
 - Spawned-stream tests cover framing, request correlation, method/payload
   mismatch, stdout/stderr separation, after-commit notification order,
   reconnect query, failure, and five-second shutdown (AC-20 through AC-23).
@@ -369,16 +528,34 @@ AC-33, AC-40 through AC-44.
 
 ### T7: Implement Electron process and preload boundary
 
+**Review unit:** U3
+
 **Depends on:** T6
 
-**Verification mode:** TDD and production-path smoke.
+**Verification mode:** TDD for the main/preload boundary; goal-based
+production-path smoke.
 
 **Implements:** Privileged boundary and service lifecycle; AC-23, AC-24,
-AC-27, AC-33, AC-34.
+AC-27, AC-33, AC-34, AC-45, AC-49.
 
 **Tests:**
+- `no stub (implementation-discovered)` for the TDD portion. Discovery
+  predicate: the assertable seam is the electron-vite main entry's window-
+  construction and preload-exposure functions, which do not exist until this
+  task creates them and whose shape depends on the electron-vite entry layout
+  chosen here. Proof obligation: on entering CODE-IMPLEMENTATION, write the
+  BrowserWindow-preferences and CSP/navigation red tests first against the real
+  main entry, prove their red, and only then configure the window.
 - Main-process tests assert secure BrowserWindow preferences and the absence of
-  generic IPC, process, shell, or filesystem methods (AC-24).
+  generic IPC, process, shell, or filesystem methods (AC-24, AC-34).
+- Main-process tests assert the renderer Content-Security-Policy value, that a
+  `will-navigate` attempt is denied, and that a `window.open` request is denied
+  (AC-45).
+- A request that times out in the transport surfaces through the real preload
+  API as a typed, runtime-validated timeout outcome that the caller can tell
+  apart from a service-returned error and from the disconnected and
+  incompatible conditions; this asserts against the actual preload surface, not
+  a replaced one (AC-49).
 - Lifecycle tests cover child location, incompatible handshake, unexpected
   exit, bounded restart, and graceful application quit (AC-23, AC-27).
 
@@ -392,17 +569,29 @@ addressable outside ASAR.
 
 ### T8: Implement workspace shell and Review Inbox
 
+**Review unit:** U4
+
 **Depends on:** T7
 
 **Verification mode:** TDD component.
 
 **Implements:** Workspace and decision-inbox experience; AC-02 through AC-04,
-AC-14, AC-25, AC-33, AC-39, AC-40, AC-42, AC-43.
+AC-14, AC-25, AC-33, AC-39, AC-40, AC-42, AC-43, AC-48.
 
 **Tests:**
-- Component tests create a workspace through preload and render all four inbox
-  groups plus loading, empty, disconnected, incompatible, failed, and retrying
-  states (AC-02, AC-14, AC-25).
+- `no stub (implementation-discovered)`. Discovery predicate: the assertable
+  seam is the Review Inbox component and its preload-backed data hook, neither
+  of which exists until this task creates them; naming a component or hook
+  symbol now would invent it. Proof obligation: on entering
+  CODE-IMPLEMENTATION, write the inbox-group rendering red test first against
+  the real component, prove its red, and only then build the inbox.
+- Component tests create a workspace through preload and render every inbox
+  group plus loading, empty, disconnected, incompatible, failed, retrying, and
+  timed-out states (AC-02, AC-14, AC-25). Amendment 0004 reduced the groups from
+  four to three.
+- A surface whose request times out leaves loading for the labeled timed-out
+  state, offers retry, and on retry re-queries authoritative state rather than
+  inferring completion (AC-48, AC-43).
 - Navigation tests cover exactly eight blueprint modules and the six honest
   empty states (AC-03, AC-04).
 
@@ -416,20 +605,37 @@ without service implementation imports.
 
 ### T9: Implement Work Item Studio and review actions
 
+**Review unit:** U4
+
 **Depends on:** T8
 
-**Verification mode:** TDD component plus visual/manual QA.
+**Verification mode:** TDD component for behavior; visual/manual QA for the
+rendered quality floor.
 
 **Implements:** Artifact-first review and experience quality; AC-11 through
-AC-18, AC-26, AC-30, AC-31, AC-35 through AC-38, AC-41, AC-44.
+AC-18, AC-25, AC-26, AC-30, AC-31, AC-35 through AC-38, AC-41, AC-44, AC-48,
+AC-50, AC-51.
 
 **Tests:**
+- `no stub (implementation-discovered)` for the TDD-component portion.
+  Discovery predicate: the assertable seam is the Work Item Studio component
+  tree and its decision-panel callbacks, which do not exist until this task
+  creates them and whose props depend on the T8 shell built immediately before.
+  Proof obligation: on entering CODE-IMPLEMENTATION, write the
+  approve-and-advance red test first against the real decision panel, prove its
+  red, and only then wire the action.
+- `no stub (mode)` for the visual/manual QA portion — the proof is rendered
+  output, not an assertion.
 - Component tests cover three-region layout, tabs, exact revision lineage,
   evidence/no-evidence, change baseline/no-baseline, Run details disclosure,
   editor revision, approval, and required revision comment (AC-11 through
   AC-18).
 - Reloaded resolved-package tests show Decision ID, actor, action, comment, and
   timestamp from the service projection (AC-41, AC-44).
+- Work Item Studio renders the same labeled state set as the inbox — loading,
+  no-work, execution-failed, service-disconnected, protocol-incompatible,
+  retrying, and timed-out — and a `review.get` that times out leaves loading for
+  the timed-out state offering retry (AC-25, AC-48).
 - Visual checks cover two themes, keyboard focus, 1024px width, 200% zoom,
   reduced motion, and non-hover input (AC-26, AC-35 through AC-38).
 
@@ -443,6 +649,8 @@ evidence from headful Electron or production renderer screenshots captured in
 headless Chromium at the required viewports.
 
 ### T10: Prove and reconcile the complete slice
+
+**Review unit:** U5
 
 **Depends on:** T1-T9
 
@@ -489,6 +697,113 @@ only after an explicit seed action.
 
 - 2026-09-09: Initial plan derived from the Ready delivery brief and Accepted
   foundation ADRs.
+- 2026-09-10: **Amendment 0004.** Amended AC-14 and AC-40 to drop Home's Running
+  group, and removed the unreachable projection branch that fed it. `readHome`
+  selected executions with status `running` or `failed`, but `storage.transaction`
+  is an immediate transaction and `executionStart` inserts the row as running and
+  completes it in the same call, so a crash rolls the insert back and nothing ever
+  writes `failed` — the group was permanently empty and its only non-empty
+  rendering was a component fixture. The scope owner chose amending over splitting
+  execution into two transactions, which is the right design for long-running or
+  resumable work and the wrong one for a deterministic in-process call, and would
+  have reopened AC-22. `home.get` loses its `running` array, and the Home item's
+  `kind` and `status` narrow to the variants the remaining branch can produce.
+  Found by quality review at spec-level coverage scope in round 30, by mutation
+  testing. No task or dependency edge changed. Evidence and authority:
+  `notes/amendments/0004-home-running-group.md`.
+- 2026-09-10: **Amendment 0003.** Added AC-51, giving Overview and Strategy
+  honest content. AC-04 names six module surfaces and requires a purpose-specific
+  empty state for each; Overview and Strategy are named by no criterion and had
+  been given static description sentences instead, which read as content while
+  holding none. Strategy now renders the workspace's Product Intent work, read
+  from `review.list` filtered to the product-intent artifact type, and states
+  emptiness only when there is none — a flat empty state would have matched the
+  other six and been false the moment the demo is seeded. Overview states
+  emptiness like the six. Found by the scope owner running the application. No
+  task, dependency edge or existing criterion changed; AC-51 joins T9. Evidence
+  and authority: `notes/amendments/0003-module-surfaces.md`.
+- 2026-09-10: **Amendment 0002.** Added AC-50, giving the Reviews surface its own
+  content. Home and Reviews rendered the same `ReviewInbox`, because AC-14 assigns
+  the four-group decision inbox to Home and no criterion said what Reviews shows —
+  so it was built by reusing Home's body, leaving `review.list` defined by the
+  contract, exposed by the preload and called by nothing. Reviews now renders the
+  complete review list grouped by all four lifecycle statuses, with empty groups
+  stated rather than omitted; Home is unchanged. Found by the scope owner running
+  the application at the human gate, who chose this shape over reducing Reviews to
+  a detail host or leaving the duplication recorded. No task, dependency edge or
+  existing criterion changed; AC-50 joins T9, which owns the renderer surfaces.
+  Evidence and authority: `notes/amendments/0002-reviews-surface.md`.
+- 2026-09-09: **Amendment 0001.** Corrected the Review shape section's lifecycle
+  claim, which described per-unit engine review and human gates that Phase 1
+  refuses: `gates-clean` is the only edge into `CODE-REVIEW` and carries the
+  `wave check --expect last` guard, so `reviewers-clean --intent-incomplete` is
+  unreachable at an intermediate unit boundary. The section now states what the
+  engine executes — per-wave GATES, one review and one human gate after the final
+  wave — and records unit boundaries as session, context and PR-stack boundaries
+  rather than engine gates. Found during EXECUTE at wave 0 after T1 passed its
+  gates; seven pre-EXECUTE rounds did not catch it because no brief asked whether
+  the engine could execute the described sequence. No task, dependency edge, or
+  acceptance criterion changed; the five-unit decomposition stands. Evidence and
+  authority: `notes/amendments/0001-review-shape-lifecycle.md`.
+- 2026-09-09: Declared the review shape and decomposed delivery into five
+  dependency-ordered review units (U1 T1, U2 T2-T5, U3 T6-T7, U4 T8-T9,
+  U5 T10), each independently reviewable and each leaving the repository
+  working. The slice is DEEP and far above the 2,000 reviewable-line threshold,
+  and the task graph is strictly linear, so the units exist for reviewability
+  rather than throughput. Owner decision, taken before the approval gate because
+  the approved plan hash makes substantive plan edits refusable afterwards. No
+  task, dependency edge, or acceptance criterion changed.
+- 2026-09-09: Repaired the three findings sustained by pre-EXECUTE review
+  round 5 by completing the timeout path rather than the seam the last finding
+  pointed at. New AC-49 gives Electron main and preload the crossing between
+  AC-47 and AC-48: the timeout reaches the renderer typed and runtime-validated,
+  distinguishable from a service-returned error and from AC-33's disconnected
+  and incompatible conditions, asserted by T7 against the real preload rather
+  than a replaced one. The re-handshake ambiguity is settled in the spec: AC-43
+  now scopes re-handshake to the reconnect path after a reported disconnected or
+  incompatible state, and AC-48 records that retry after a timeout re-issues on
+  the still-live connection without re-handshaking, because AC-47 keeps that
+  connection serviceable. T9 now claims AC-25 and AC-48 for the Work Item Studio
+  surfaces it builds, with its own labeled-state and timed-out test.
+- 2026-09-09: Repaired the two findings sustained by pre-EXECUTE review round 4
+  by specifying the timeout contract as a whole rather than patching AC-47.
+  AC-47 now covers only the transport outcome it can verify — bounded deadline,
+  structured timeout error distinguishable from a service error, released
+  pending entry, connection still serviceable, never an inferred completion —
+  and stays with T6. New AC-48 owns the renderer outcome and belongs to T8 at
+  the TDD-component mode every other renderer state uses. AC-25 now lists the
+  timed-out state so the renderer's labeled set is stated once and completely,
+  and T8's component test enumerates the same set. The resilience design names
+  both halves and records that a transport timeout is not a disconnect and does
+  not trigger the AC-33 reconnect path. AC-47 and AC-48 were added to the
+  Realizes traces of the sub-sections that realize them.
+- 2026-09-09: Repaired the three findings sustained by pre-EXECUTE review
+  round 3. Added AC-47 giving a correlated request that is never answered a
+  bounded, fail-closed outcome, closing ADR-0004's timeout obligation, and
+  carried it into `StudioTransport`'s responsibilities, the resilience
+  sub-section, T6, and the Testing Strategy. Moved the contract's backward spec
+  edge to the conventional `x-spec` key. Removed the test-artifact sentence from
+  AC-45, leaving the Testing Strategy row and T7 to own mode and artifact.
+- 2026-09-09: Repaired the six findings sustained by pre-EXECUTE review round 2.
+  Recorded `no stub (implementation-discovered)` for T2 through T5, so every
+  task now carries one of the two legal dispositions. Required
+  `transformationId` on `productIntentRevision`. Restricted the v1 executor-kind
+  enum to the four kinds the normative architecture reference admits. Traced
+  every Design (LLD) sub-section to its criteria and contract definitions, and
+  made the state sub-section defer to the spec's State contract instead of
+  restating it. Committed the storage boundary to parameterized statements, with
+  a T4 metacharacter round-trip test. Corrected T1's completion predicate so
+  exit-zero applies only to the finite commands and `pnpm dev` is proved by
+  bounded startup readiness and clean termination.
+- 2026-09-09: Repaired the six findings sustained by pre-EXECUTE review round 1.
+  Made the actor service-resolved and removed `actorId` from every request;
+  created the local human actor at workspace creation. Un-pinned the Review
+  Package's reviewed revision from `proposed` so a resolved package validates.
+  Added the transformation, workspace name, and initiative fields Home requires.
+  Added the renderer Content-Security-Policy and navigation-denial criterion.
+  Recorded a legal stub disposition for every task and corrected T1's, T6's,
+  T7's, and T9's declared verification modes. Gave AC-01, AC-24, AC-27, AC-32,
+  AC-34, and AC-45 their Testing Strategy rows.
 - 2026-09-09: Split implementation into dependency-ordered construction tasks;
   defined append-only revision lifecycle, stale-review guards, after-commit
   notifications, production service launch probe, and retained evidence in

@@ -40,6 +40,26 @@ build/
 
 # Build pipeline output.
 dist/
+out/
+
+# Transient staging directories used by `pnpm visual-evidence` while it swaps
+# the retained evidence set. Present only between two renames.
+docs/specs/product-development-walking-skeleton/notes/visual.next/
+docs/specs/product-development-walking-skeleton/notes/visual.previous/
+
+# Local runtime database created by the desktop application
+studio.db
+studio.db-journal
+studio.db-wal
+studio.db-shm
+coverage/
+*.tsbuildinfo
+node_modules/
+
+# Studio runtime data is local state, not repository source.
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
 # workspace-status repair artifacts — written by repair-plan/repair-apply;
 # never committed (plan files, lock files, and atomic-write temps are session-scoped).

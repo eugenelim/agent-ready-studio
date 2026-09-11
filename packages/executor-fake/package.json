@@ -1,0 +1,12 @@
+{
+  "name": "@agent-ready/executor-fake",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@agent-ready/domain": "workspace:*",
+    "@agent-ready/execution-sdk": "workspace:*",
+    "zod": "4.1.12"
+  }
+}
