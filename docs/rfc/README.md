@@ -6,7 +6,7 @@
 
 | #    | Title | Status | Opened     | Closed |
 | ---- | ----- | ------ | ---------- | ------ |
-<!-- no RFCs yet -->
+| [0001](0001-studio-authority-planes-and-workspace-runtime-boundary.md) | Agent-Ready Studio authority planes, component topology, and Workspace Runtime boundary | Accepted | 2026-09-11 | 2026-09-11 |
 
 ## Adding a new RFC
 
