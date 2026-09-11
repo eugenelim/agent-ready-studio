@@ -22,10 +22,150 @@
 open = [
   { path = "docs/product/briefs/agent-ready-studio.md", kind = "brief", source = { mode = "repo-origin" }, summary = "Define the Agent-Ready Studio foundation and walking-skeleton delivery outcome", needs = [] },
   { path = "docs/product/briefs/observable-execution.md", kind = "brief", source = { mode = "repo-origin" }, summary = "Make execution observable in flight, restoring Home's Running group removed by amendment 0004", needs = [] },
+  { path = "docs/product/intents/agent-ready-studio-product-vision.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Move product teams from strategic uncertainty to learning through connected, reviewable work", needs = [] },
+  { path = "docs/product/intents/make-product-work-visible-before-automating-it.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make product work visible and reviewable before adding governed automation over it", needs = [] },
 ]
 closed = []
 
 [work]
 active = [
   { path = "docs/specs/product-development-walking-skeleton/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Build the Product Development walking skeleton", needs = [] },
+]
+
+["ini-001"]
+name      = "Studio Foundation and Workspace Kernel"
+status    = "active"
+milestone = "M1 · Product Development walking skeleton"
+
+["ini-001".shaping_queue]
+active  = []
+backlog = [
+  { path = "docs/product/intents/workspace-and-actor-kernel.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Create and use a local workspace with attributable human and system actors without Git, AgentBundle, a provider, or a cloud account", needs = [] },
+  { path = "docs/product/intents/product-development-blueprint-and-progressive-maturity.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Support manual, assisted, and agent-ready operating modes in one Product Development workspace model", needs = [] },
+  { path = "docs/product/intents/typed-artifacts-immutable-revisions-and-accepted-state.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Represent product work as typed artifacts with immutable history, explicit proposals, and one accepted revision", needs = [] },
+  { path = "docs/product/intents/relations-lineage-evidence-and-source-authority.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Determine which exact inputs, evidence, decisions, and source revisions led to an artifact proposal", needs = [] },
+  { path = "docs/product/intents/reviews-comments-decisions-and-advancement-policies.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Advance proposed work only through attributable decisions or an explicit auditable policy, keeping dissent durable", needs = [] },
+  { path = "docs/product/intents/local-studio-service-persistence-protocol-and-source-adapters.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Back the Studio UI with a restart-safe local service, a versioned protocol, and replaceable content-source boundaries", needs = [] },
+]
+
+["ini-002"]
+name      = "Artifact-First Work Experience"
+status    = "paused"
+
+["ini-002".shaping_queue]
+active  = []
+backlog = [
+  { path = "docs/product/intents/review-inbox.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Start from the work requiring judgment, ordered by decision need and downstream impact", needs = [] },
+  { path = "docs/product/intents/work-item-studio.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Inspect inputs, revisions, lineage, evidence, questions, comments, and decision controls in one work surface", needs = [] },
+  { path = "docs/product/intents/versioned-input-packets-and-normalized-review-packages.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Start every transformation from a versioned input packet and end it in a consistent review package", needs = [] },
+  { path = "docs/product/intents/artifact-renderer-and-editor-registry.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Give each discipline's artifacts purpose-built reading and editing experiences with a generic fallback", needs = [] },
+  { path = "docs/product/intents/semantic-diffs-annotations-patches-and-revision-requests.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Show meaningful changes to structured work and let reviewers request targeted revisions", needs = [] },
+  { path = "docs/product/intents/evidence-lineage-and-decision-history-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Navigate from a claim back to its sources, assumptions, prior revisions, comments, and deciding actors", needs = [] },
+  { path = "docs/product/intents/observable-long-running-execution.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Distinguish queued, running, stalled, failed, waiting, and completed work and recover after restart", needs = [] },
+  { path = "docs/product/intents/alternative-comparison-synthesis-and-typed-visual-canvases.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Compare competing artifacts, synthesize a preferred result, and review spatial work as typed entities", needs = [] },
+]
+
+["ini-003"]
+name      = "Multidisciplinary Product Development"
+status    = "paused"
+
+["ini-003".shaping_queue]
+active  = []
+backlog = [
+  { path = "docs/product/intents/initiative-outcome-bet-assumption-and-question-graph.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Organize work around an initiative and trace outcomes, bets, assumptions, questions, delivery, and results", needs = [] },
+  { path = "docs/product/intents/product-strategy-workspace.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Frame strategic challenges, guiding policies, coherent actions, kill criteria, and investment decisions as reviewable artifacts", needs = [] },
+  { path = "docs/product/intents/research-workspace-and-evidence-synthesis.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Manage research questions, sources, observations, findings, confidence, and synthesis with traceability to primary evidence", needs = [] },
+  { path = "docs/product/intents/experience-design-workspace.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Develop and review journeys, flows, screen states, blueprints, content, accessibility, and usability evidence", needs = [] },
+  { path = "docs/product/intents/architecture-workspace.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Develop and review system context, components, interfaces, quality attributes, ADRs, threat models, and migrations", needs = [] },
+  { path = "docs/product/intents/delivery-workspace.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Move accepted product work through briefs, specifications, plans, change sets, acceptance evidence, and merge decisions", needs = [] },
+  { path = "docs/product/intents/release-operations-outcomes-and-learning-workspace.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Review release readiness, rollout evidence, operational validation, measured outcomes, and resulting changes", needs = [] },
+  { path = "docs/product/intents/graph-based-workflows-and-discipline-specific-review-models.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Offer applicable next transformations while preserving each discipline's distinct review semantics", needs = [] },
+]
+
+["ini-004"]
+name      = "Repository Workspace Pane"
+status    = "active"
+milestone = "M1 · Read-only repository workspace status"
+
+["ini-004".shaping_queue]
+active  = []
+backlog = [
+  { path = "docs/product/intents/read-only-public-github-repository-connection.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Inspect a public GitHub repository from its URL without installing anything or keeping a persistent clone", needs = [] },
+  { path = "docs/product/intents/repository-identity-revision-pinning-and-trust-boundary.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Identify exactly which repository and revision is shown and keep remote content from becoming trusted instructions", needs = [] },
+  { path = "docs/product/intents/agent-ready-repository-detection.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Detect whether a repository uses AgentBundle and Agent-Ready Repo conventions and which surfaces exist", needs = [] },
+  { path = "docs/product/intents/workspace-status-pane-of-glass.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Show a repository's initiatives, queues, blockers, findings, signals, and next safe actions inside Studio", needs = [] },
+  { path = "docs/product/intents/queue-detail-blocker-explanation-reconciliation-and-refresh.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Inspect why work is blocked, what would unblock, whether the index has drifted, and which repair is available", needs = [] },
+  { path = "docs/product/intents/pack-profile-adapter-and-skill-capability-visibility.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Show which packs, profiles, adapters, skills, subagents, hooks, and capabilities a repository has or lacks", needs = [] },
+  { path = "docs/product/intents/multi-repository-overview-and-cross-repository-dependencies.md", kind = "intent", source = { mode = "repo-origin" }, summary = "View several repositories as one product workspace with dependencies, receipts, and responsibility boundaries", needs = [] },
+  { path = "docs/product/intents/local-folder-and-managed-clone-connections.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Connect an existing local checkout or a Studio-managed checkout with a clear file-ownership model", needs = [] },
+  { path = "docs/product/intents/installation-hidden-workspace-mechanics-private-repositories-and-source-authority.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Install and update components, authenticate to authorized private repositories, and make every write-back visible", needs = [] },
+]
+
+["ini-005"]
+name      = "Studio Shaping Workbench"
+status    = "paused"
+
+["ini-005".shaping_queue]
+active  = []
+backlog = [
+  { path = "docs/product/intents/open-shaping-work-from-workspace-status.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Select a shaping item from a repository's queue and open the correct Studio work surface", needs = [] },
+  { path = "docs/product/intents/capture-and-edit-intent-drafts-in-studio.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Create or revise a Draft intent in Studio, preserve its source context, and project it into a repository", needs = [] },
+  { path = "docs/product/intents/frame-de-risk-and-decompose-intent-transformations.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Guide the recursive framing, assumption-testing, and decomposition sequence while preserving each decision", needs = [] },
+  { path = "docs/product/intents/strategy-research-and-experience-design-routing.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Route shaping work by its semantic type rather than by a hard-coded provider", needs = [] },
+  { path = "docs/product/intents/human-agent-coauthoring-review-and-ratification.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Let humans and agents revise one artifact lineage while acceptance stays explicitly human-governed", needs = [] },
+  { path = "docs/product/intents/promote-shaped-work-to-brief-specification-and-build.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Carry an accepted shaped intent across a visible handoff into brief, specification, and build without losing lineage", needs = [] },
+  { path = "docs/product/intents/studio-self-hosting.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Display Studio's own repository workspace and shape its own capability intents inside Studio", needs = [] },
+  { path = "docs/product/intents/cross-repository-shaping-control.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Act as the product-work control plane while shaping work in another Agent-Ready repository", needs = [] },
+]
+
+["ini-006"]
+name      = "Workspace Blueprints, Capability Packs, and AgentBundle Platform"
+status    = "paused"
+
+["ini-006".shaping_queue]
+active  = []
+backlog = [
+  { path = "docs/product/intents/versioned-workspace-blueprints.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Keep a workspace blueprint defining types, relations, navigation, transformations, reviews, and views after creation", needs = [] },
+  { path = "docs/product/intents/optional-capability-packs.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Add multidisciplinary or execution capability to a workspace without redefining its blueprint", needs = [] },
+  { path = "docs/product/intents/declarative-manifests-and-host-known-renderers.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Declare schemas, views, transformations, and review models through validated manifests, not injected code", needs = [] },
+  { path = "docs/product/intents/blueprint-and-pack-compatibility-migrations-and-extension-trust.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Upgrade blueprint and pack versions without silent semantic change, data loss, or unrestricted extension access", needs = [] },
+  { path = "docs/product/intents/agent-ready-capability-pack-and-agentbundle-lifecycle.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Install an optional pack that understands AgentBundle catalogues, packs, adapters, profiles, and reconciliation", needs = [] },
+  { path = "docs/product/intents/machine-readable-skill-contracts-and-organization-owned-templates.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Let skills and organization packs declare inputs, outputs, capabilities, review policy, and safety boundaries", needs = [] },
+]
+
+["ini-007"]
+name      = "Headless Execution and Delivery Runtime"
+status    = "paused"
+
+["ini-007".shaping_queue]
+active  = []
+backlog = [
+  { path = "docs/product/intents/execution-broker-and-normalized-worker-protocol.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Send a structured execution packet to a compatible executor and receive normalized status, artifacts, and results", needs = [] },
+  { path = "docs/product/intents/claude-and-codex-headless-executors.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Dispatch equivalent semantic work to Claude or Codex without provider event formats entering the domain model", needs = [] },
+  { path = "docs/product/intents/agentbundle-headless-shaping-and-build-adapter.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Use AgentBundle's installed workflows as a governed execution environment for shaping and delivery work", needs = [] },
+  { path = "docs/product/intents/harden-agent-ready-repo-headless-contract-for-studio-control.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose stable machine-oriented discovery, dispatch, gate, status, interruption, and resumption contracts upstream", needs = [] },
+  { path = "docs/product/intents/work-loop-dispatch-and-isolated-git-proposals.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Dispatch an approved specification in an isolated workspace and receive a proposed Git revision", needs = [] },
+  { path = "docs/product/intents/durable-human-gates-and-session-control.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Pause long-running work at a durable gate, survive restart, resume, and support steering and termination", needs = [] },
+  { path = "docs/product/intents/liveness-normalized-events-crash-recovery-and-process-cleanup.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Distinguish running from abandoned work, preserve event history, recover state, and terminate process trees", needs = [] },
+  { path = "docs/product/intents/filesystem-and-git-reconciliation-with-artifact-discovery.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reconcile executor claims against actual files and Git state and discover generated artifacts", needs = [] },
+  { path = "docs/product/intents/operational-permissions-sandboxing-and-context-disclosure-audit.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Separate permission to operate from approval of product work and audit what context an executor received", needs = [] },
+  { path = "docs/product/intents/command-center-ide-remote-runner-ci-and-deployment-adapters.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Descend into a command center or IDE, or delegate remotely, without losing run identity and lineage", needs = [] },
+  { path = "docs/product/intents/multi-executor-comparison-and-synthesis.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Compare executor outputs at the artifact level and choose, combine, or adjudicate proposals", needs = [] },
+  { path = "docs/product/intents/cross-repository-execution-coordination-and-receipts.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Coordinate work spanning repositories and rely on reviewed completion receipts", needs = [] },
+  { path = "docs/product/intents/studio-builds-itself-through-the-governed-runtime.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Build Studio's own accepted work through the same Runner and Agent-Ready controls offered to other repositories", needs = [] },
+]
+
+["ini-008"]
+name      = "Collaboration, Security, Integrations, and Outcomes"
+status    = "paused"
+
+["ini-008".shaping_queue]
+active  = []
+backlog = [
+  { path = "docs/product/intents/team-actors-ownership-review-routing-and-notifications.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Assign ownership, decision authority, reviewers, and notifications by artifact type, initiative, and risk", needs = [] },
+  { path = "docs/product/intents/artifact-level-permissions-and-sensitive-data-controls.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Apply access controls and handling policies appropriate to an artifact's sensitivity", needs = [] },
+  { path = "docs/product/intents/model-access-context-disclosure-and-audit.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Audit which model or executor received which context, under which policy, for which revision and decision", needs = [] },
+  { path = "docs/product/intents/cloud-synchronization-object-storage-and-durable-binary-assets.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Synchronize work and retain large binary artifacts without forcing every asset into Git", needs = [] },
+  { path = "docs/product/intents/external-product-development-integrations-and-portfolio-views.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Integrate repositories, trackers, design systems, CI, analytics, and flags, with portfolio projections", needs = [] },
+  { path = "docs/product/intents/production-outcome-feedback-retention-export-and-governance.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Connect shipped work to production outcomes while retaining retention, export, deletion, and governance control", needs = [] },
 ]
