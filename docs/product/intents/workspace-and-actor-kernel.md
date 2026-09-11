@@ -40,10 +40,8 @@ promise becomes conditional on setup a team may never complete.
   reflects most of this intent. Not yet reflected is system-actor attribution:
   the non-human actor kinds are declared but never instantiated, and a revision
   records its producer as a free-text value holding an actor identity for human
-  work and a fixed label for executor output. [The shaping
-  review](../shaping/intent-shaping-review-2026-09-11.md) records the source
-  check establishing that asymmetry. This intent does not rebuild shipped
-  behaviour.
+  work and a fixed label for executor output. This intent does not rebuild
+  shipped behaviour.
 
 ## Assumptions
 
