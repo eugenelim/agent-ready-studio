@@ -21,10 +21,6 @@ file that owns them.
   encodes soft priority or suggested order.
 - **Implementation begins only after shaping and the applicable brief and
   specification gates.** Appearing in this index grants no delivery authority.
-- **Every capability intent has been independently reviewed once, and none
-  passed.** See
-  [the shaping review record](shaping/intent-shaping-review-2026-09-11.md) for
-  what each reviewer found, what was corrected, and what was deferred.
 
 ## Vision and strategy anchors
 

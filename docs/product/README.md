@@ -18,7 +18,6 @@
 - [`briefs/<slug>.md`](briefs/) — multi-feature delivery briefs and their
   auto-rolled-up coverage maps. One file per brief, created or continued by
   `author-delivery-brief`.
-- [`shaping/`](shaping/) — upstream shaping artifacts and review records.
 - [`changelog.md`](changelog.md) — user-visible changes by release,
   in [Keep a Changelog](https://keepachangelog.com/) format. Updated
   every PR that changes user-visible behavior.
