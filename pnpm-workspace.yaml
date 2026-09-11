@@ -1,0 +1,39 @@
+packages:
+  - packages/*
+  - apps/*
+# pnpm denies dependency build scripts by default. We keep that default for
+# every package, including the one native addon: better-sqlite3 13.0.3 ships
+# platform prebuilds inside its npm tarball (prebuilds/darwin-arm64.node and
+# seven others), loaded at runtime by node-gyp-build, so no postinstall script
+# is needed. Verified: with this set to false the binding loads and reports
+# SQLite 3.53.4, matching notes/native-runtime-probe.md. Consequence — no
+# dependency build script runs in this repository, and the prebuilt binary is
+# covered by the lockfile integrity hash rather than fetched separately.
+allowBuilds:
+  better-sqlite3: false
+  # esbuild arrives via vite 7 (vite 8 used rolldown). Its postinstall only links
+  # the platform binary that ships as an optional dependency; verified unnecessary
+  # here — the service bundle builds and all tests pass with the script denied.
+  esbuild: false
+  # Electron is the one dependency whose build script must run. Its install.js
+  # places the runtime binary that ADR-0001 pins; without it dist/ is empty and
+  # the application cannot start at all. Unlike the two above, the need is real
+  # rather than assumed — verified by checking that dist/ was empty with the
+  # script denied. The v43.6.0 darwin-arm64 archive is already present in the
+  # local Electron cache, so this extracts from disk rather than fetching.
+  electron: true
+# Cooldown exemptions. `minimumReleaseAge` delays installing a version until it
+# has been on the registry long enough for a compromised publish to surface; this
+# key names the packages exempt from it. No `minimumReleaseAge` is set in this
+# repository, so today this list is inert — it is kept, rather than deleted,
+# because these five are the React runtime set whose versions must move together,
+# and a cooldown applied to some but not all of them produces an unresolvable
+# install rather than a delayed one. Every entry is exact-pinned and covered by a
+# lockfile integrity hash, so a later compromise of these versions cannot change
+# what installs. Revisit when a minimum release age is actually configured.
+minimumReleaseAgeExclude:
+  - react-dom@19.3.0
+  - react@19.3.0
+  - scheduler@0.28.0
+  - '@types/react-dom@19.3.0'
+  - '@types/react@19.3.0'

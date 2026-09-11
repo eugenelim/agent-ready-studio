@@ -1,0 +1,26 @@
+{
+  "name": "agent-ready-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "vite build --config vitest.config.ts && pnpm --filter @agent-ready/studio-desktop --fail-if-no-match dev",
+    "lint": "biome check .",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "pretest": "vite build --config vitest.config.ts && pnpm --filter @agent-ready/studio-desktop build",
+    "test": "vitest run",
+    "build": "vite build --config vitest.config.ts && pnpm --filter @agent-ready/studio-desktop build && tsc --build tsconfig.json",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "visual-evidence": "node apps/desktop/tools/visual-evidence.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.4",
+    "typescript": "5.9.3",
+    "vite": "7.3.6",
+    "vitest": "4.1.0"
+  }
+}

@@ -1,0 +1,47 @@
+# Contributing to Agent-Ready Studio
+
+Agent-Ready Studio is building a local, decision-oriented desktop product. Keep
+changes aligned with the accepted architecture and the active specification.
+
+## Local setup
+
+Use Node.js 24 and pnpm 12.3.4 through Corepack.
+
+```bash
+corepack enable
+pnpm install
+```
+
+## Before you open a change
+
+1. Read [AGENTS.md](AGENTS.md) and the applicable scoped guidance.
+2. Read [the architecture reference](docs/architecture/reference.md) for
+   dependency and trust-boundary rules.
+3. For feature work, follow the active specification and its approved plan.
+
+## Verification
+
+Run the finite root checks before handing work over:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm verify
+```
+
+`pnpm dev` is reserved for the Electron desktop application. It exits non-zero
+if the desktop package is missing and otherwise stays running until the
+development process is stopped. The command builds the Studio Service before
+starting Electron.
+
+Vitest must fail when it collects no tests. Component tests opt into jsdom with
+a per-file `// @vitest-environment jsdom` docblock; Node-side tests do not carry
+that docblock.
+
+## Documentation
+
+Keep living documentation truthful in the same change as the behavior it
+describes. Do not edit Accepted ADR bodies or the approved walking-skeleton
+specification, plan, or protocol contract without the required review path.

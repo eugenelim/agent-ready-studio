@@ -46,8 +46,9 @@ describes what the repository currently contains.
 ### Applications
 
 - `apps/desktop` owns Electron main, preload, renderer composition, and service
-  connection state. It depends on protocol and UI-facing contracts, never on
-  Studio Service implementation modules.
+  connection state. Its production code depends on protocol and UI-facing
+  contracts, never on Studio Service or storage implementation modules. The
+  Node-side `src/e2e` test is the deliberate composition exception.
 - `apps/studio-service` owns use cases, the service entry point, JSON-RPC method
   dispatch, event publication, process shutdown, and composition of domain,
   execution, blueprint, and storage adapters.

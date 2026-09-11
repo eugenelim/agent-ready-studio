@@ -224,21 +224,19 @@
     "artifactReviseParams": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["artifactId", "baseRevisionId", "actorId", "content"],
+      "required": ["artifactId", "baseRevisionId", "content"],
       "properties": {
         "artifactId": { "type": "string", "minLength": 1 },
         "baseRevisionId": { "type": "string", "minLength": 1 },
-        "actorId": { "type": "string", "minLength": 1 },
         "content": { "$ref": "#/$defs/productIntent" }
       }
     },
     "reviewResolveParams": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["reviewId", "actorId", "action"],
+      "required": ["reviewId", "action"],
       "properties": {
         "reviewId": { "type": "string", "minLength": 1 },
-        "actorId": { "type": "string", "minLength": 1 },
         "action": { "enum": ["approve", "request-revision"] },
         "comment": { "type": "string", "maxLength": 4000 }
       },
@@ -293,7 +291,7 @@
     },
     "productIntentRevision": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "artifactId", "schemaVersion", "content", "producer", "inputRevisionIds", "status", "createdAt"],
+      "required": ["id", "artifactId", "schemaVersion", "content", "producer", "transformationId", "inputRevisionIds", "status", "createdAt"],
       "properties": {
         "id": { "type": "string" }, "artifactId": { "type": "string" },
         "schemaVersion": { "type": "string" }, "content": { "$ref": "#/$defs/productIntent" },
@@ -319,7 +317,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["id", "executorKind", "status", "startedAt", "completedAt", "inputRevisionIds", "outputRevisionId", "events"],
       "properties": {
-        "id": { "type": "string" }, "executorKind": { "enum": ["human", "deterministic", "claude", "codex", "agentbundle", "ci", "external"] },
+        "id": { "type": "string" }, "executorKind": { "enum": ["human", "agent", "deterministic", "external"] },
         "status": { "enum": ["running", "completed", "failed"] },
         "startedAt": { "type": "string", "format": "date-time" }, "completedAt": { "type": ["string", "null"], "format": "date-time" },
         "inputRevisionIds": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
@@ -341,11 +339,17 @@
     },
     "reviewPackage": {
       "type": "object", "additionalProperties": false,
-      "required": ["review", "workspace", "initiativeTitle", "artifactTitle", "artifactType", "proposedRevision", "acceptedRevision", "inputs", "evidence", "comments", "decisions", "changedFields", "execution"],
+      "required": ["review", "workspace", "initiativeTitle", "artifactTitle", "artifactType", "reviewedRevision", "acceptedRevision", "inputs", "evidence", "comments", "decisions", "changedFields", "execution"],
+      "allOf": [
+        {
+          "if": { "required": ["review"], "properties": { "review": { "required": ["status"], "properties": { "status": { "const": "open" } } } } },
+          "then": { "properties": { "reviewedRevision": { "$ref": "#/$defs/proposedProductIntentRevision" } } }
+        }
+      ],
       "properties": {
         "review": { "$ref": "#/$defs/reviewSummary" }, "workspace": { "$ref": "#/$defs/workspace" },
         "initiativeTitle": { "type": "string" }, "artifactTitle": { "type": "string" }, "artifactType": { "const": "product-intent" },
-        "proposedRevision": { "$ref": "#/$defs/proposedProductIntentRevision" },
+        "reviewedRevision": { "$ref": "#/$defs/productIntentRevision" },
         "acceptedRevision": { "oneOf": [{ "$ref": "#/$defs/acceptedProductIntentRevision" }, { "type": "null" }] },
         "inputs": { "type": "array", "items": { "$ref": "#/$defs/inputRevision" } },
         "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidenceRelation" } },
@@ -372,28 +376,28 @@
     "workspaceListResult": { "type": "object", "additionalProperties": false, "required": ["kind", "items"], "properties": { "kind": { "const": "workspaces" }, "items": { "type": "array", "items": { "$ref": "#/$defs/workspace" } } } },
     "homeItem": {
       "type": "object", "additionalProperties": false,
-      "required": ["kind", "id", "workspaceId", "title", "artifactType", "reason", "producer", "status", "createdAt", "unresolvedQuestionCount"],
+      "required": ["kind", "id", "workspaceId", "workspaceName", "initiativeTitle", "title", "artifactType", "reason", "producer", "transformationId", "status", "createdAt", "unresolvedQuestionCount"],
       "properties": {
-        "kind": { "enum": ["review", "execution"] }, "id": { "type": "string" },
-        "workspaceId": { "type": "string" }, "initiativeTitle": { "type": "string" },
+        "kind": { "const": "review" }, "id": { "type": "string" },
+        "workspaceId": { "type": "string" }, "workspaceName": { "type": "string" },
+        "initiativeTitle": { "type": ["string", "null"] },
         "title": { "type": "string" }, "artifactType": { "type": "string" },
         "reason": { "type": "string" }, "producer": { "type": "string" },
-        "status": { "enum": ["decision-needed", "running", "revision-needed", "completed", "failed"] },
+        "transformationId": { "type": ["string", "null"] },
+        "status": { "enum": ["decision-needed", "revision-needed", "completed"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "unresolvedQuestionCount": { "type": "integer", "minimum": 0 }
       }
     },
-    "needsDecisionItem": { "allOf": [{ "$ref": "#/$defs/homeItem" }, { "properties": { "kind": { "const": "review" }, "status": { "const": "decision-needed" } } }] },
-    "runningItem": { "allOf": [{ "$ref": "#/$defs/homeItem" }, { "properties": { "kind": { "const": "execution" }, "status": { "const": "running" } } }] },
-    "blockedItem": { "allOf": [{ "$ref": "#/$defs/homeItem" }, { "properties": { "status": { "enum": ["revision-needed", "failed"] } } }] },
+    "needsDecisionItem": { "allOf": [{ "$ref": "#/$defs/homeItem" }, { "properties": { "status": { "const": "decision-needed" } } }] },
+    "blockedItem": { "allOf": [{ "$ref": "#/$defs/homeItem" }, { "properties": { "status": { "const": "revision-needed" } } }] },
     "completedItem": { "allOf": [{ "$ref": "#/$defs/homeItem" }, { "properties": { "status": { "const": "completed" } } }] },
     "homeResult": {
       "type": "object", "additionalProperties": false,
-      "required": ["kind", "needsDecision", "running", "blocked", "recentlyCompleted"],
+      "required": ["kind", "needsDecision", "blocked", "recentlyCompleted"],
       "properties": {
         "kind": { "const": "home" },
         "needsDecision": { "type": "array", "items": { "$ref": "#/$defs/needsDecisionItem" } },
-        "running": { "type": "array", "items": { "$ref": "#/$defs/runningItem" } },
         "blocked": { "type": "array", "items": { "$ref": "#/$defs/blockedItem" } },
         "recentlyCompleted": { "type": "array", "items": { "$ref": "#/$defs/completedItem" } }
       }
@@ -439,11 +443,11 @@
     "executionCompletedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "execution.completed" }, "params": { "$ref": "#/$defs/executionEventParams" } } }] },
     "executionFailedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "execution.failed" }, "params": { "$ref": "#/$defs/failureEventParams" } } }] }
   },
+  "x-spec": ["docs/specs/product-development-walking-skeleton/"],
   "x-studio": {
     "protocolVersion": "1",
     "transport": "ndjson-stdio",
     "logs": "stderr-only",
-    "spec": "docs/specs/product-development-walking-skeleton/spec.md",
     "methodResults": {
       "system.hello": "#/$defs/helloResult",
       "health.get": "#/$defs/healthResult",

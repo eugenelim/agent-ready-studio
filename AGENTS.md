@@ -1,14 +1,15 @@
-# AGENTS.md
-
-> This is the canonical agent context file. Replace the marked project and
-> command details with verified repository facts. Preserve equivalent existing
-> sources and keep subtree-specific deltas in the nearest scoped `AGENTS.md`.
+# Agent guidance
 
 ## Project overview
 
-This is <project-name>—<one-line description of what it does and for whom>.
+Agent-Ready Studio is a local desktop product that helps multidisciplinary
+product teams turn uncertain inputs into explicit, reviewable decisions through
+connected artifacts.
 
-Link the repository's existing architecture or design source here when one exists. Do not relocate it to match a pack convention.
+The [reference architecture](docs/architecture/reference.md) is normative.
+Product direction lives in
+[the delivery brief](docs/product/briefs/agent-ready-studio.md) and
+[capability intents](docs/product/capability-intents.md).
 
 ## Rule lookups
 
@@ -20,22 +21,42 @@ Follow the repository's existing contributor workflow. Use the `work-loop`
 skill for repository changes when installed; it owns planning, verification,
 review, and recovery.
 
-If the repository has `CONTRIBUTING.md` or equivalent guidance, link to it here.
-If it has none, the seeded [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) is an
-optional starting point to adopt with maintainer approval, not an authority that
-outranks existing guidance.
+Follow [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor procedure and
+[`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) for repository documentation
+conventions.
 
 ## Build and test commands
 
 ```bash
-<install command>
-<test command>
-<lint command>
-<build command>
+corepack enable
+pnpm install
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm verify
+pnpm dev
 ```
 
-Use commands verified from repository guidance, manifests, task runners, or CI.
-Do not guess them from the detected language alone.
+`pnpm dev` builds the Studio Service and starts the
+`@agent-ready/studio-desktop` development process. It is long-running; the
+finite gate set is `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and
+`pnpm verify`. Verify runs lint, typecheck, test, and build in that order.
+
+Component test files opt into jsdom with a per-file
+`// @vitest-environment jsdom` docblock. Node-side test files must not carry the
+docblock because their process and `node:` URL behavior needs the Node
+environment.
+
+Keep the dependency build decisions in `pnpm-workspace.yaml` intact:
+`better-sqlite3` and `esbuild` remain `false`, while `electron` remains `true`.
+Changing one requires new installation and runtime evidence.
+
+Renderer production code uses only the frozen, typed preload API exposed as
+`window.studio`. It must not import Electron, Studio Service, or storage
+implementation modules. The Node-side test under `apps/desktop/src/e2e/` is the
+deliberate exception used to compose the real preload, main transport, service,
+and SQLite boundaries.
 
 ## Coding conventions
 
@@ -78,24 +99,16 @@ Lead with the useful outcome and omit routine tool narration. Preserve required
 interactive updates, and end a completion receipt with changed state,
 verification, and remaining work.
 
-<!--
-Recommended additional guidance — add only after verifying its trigger. Each
-option should link to the owning source instead of copying its rules.
+## Repository structure
 
-- `Documentation` — trigger: two or more authoritative sources need routing.
-  Benefit: agents can find architecture, decisions, and contributor guidance
-  without imposing a new document layout.
-- `Security considerations` — trigger: security/privacy boundaries, sanctioned
-  helpers, sensitive-data rules, or an external quality gate change behavior.
-  Benefit: agents use the repository's approved controls.
-- `Scoped instructions` — trigger: existing scoped files or a subtree has
-  materially different commands, ownership, generated sources, or rules.
-  Benefit: agents load action-changing deltas only where they apply.
-- `Repository structure` — trigger: ownership or change boundaries are not
-  obvious, such as generated projections, multiple build roots, or unusual test
-  ownership. Benefit: agents see responsibility and change guidance without a
-  generic directory tree.
+- `packages/` holds reusable domain, protocol, blueprint, execution, and
+  storage modules.
+- `apps/studio-service/` owns application behavior, transport, and SQLite
+  writes; `apps/desktop/` owns Electron main, preload, and renderer
+  composition.
+- `contracts/` holds the versioned public protocol contract. Do not change it
+  without the required approval.
+- `docs/specs/` holds feature contracts; approved specification and plan bodies
+  are immutable during implementation.
 
-Omit every additional section whose content is not verified.
--->
 > If this repository provides `AGENTS.local.md`, read it for repository-specific guidance.
