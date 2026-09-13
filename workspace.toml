@@ -23,6 +23,7 @@ open = [
   { path = "docs/product/briefs/observable-execution.md", kind = "brief", source = { mode = "repo-origin" }, summary = "Make execution observable in flight, restoring Home's Running group removed by amendment 0004", needs = [] },
   { path = "docs/product/intents/agent-ready-studio-product-vision.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Move product teams from strategic uncertainty to learning through connected, reviewable work", needs = [] },
   { path = "docs/product/intents/make-product-work-visible-before-automating-it.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make product work visible and reviewable before adding governed automation over it", needs = [] },
+  { path = "docs/product/research/recorded-policy-acceptance-charter-alignment.md", kind = "research", source = { mode = "repo-origin" }, summary = "Reconcile recorded-policy acceptance semantics across ARS-CORE-005 and ARS-SHAPE-005 with the accepted charter before either intent advances", needs = [] },
 ]
 closed = []
 
@@ -115,7 +116,7 @@ backlog = [
   { path = "docs/product/intents/capture-and-edit-intent-drafts-in-studio.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Create or revise a Draft intent in Studio, preserve its source context, and project it into a repository", needs = [] },
   { path = "docs/product/intents/frame-de-risk-and-decompose-intent-transformations.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Guide the recursive framing, assumption-testing, and decomposition sequence while preserving each decision", needs = [] },
   { path = "docs/product/intents/strategy-research-and-experience-design-routing.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Route shaping work by its semantic type rather than by a hard-coded provider", needs = [] },
-  { path = "docs/product/intents/human-agent-coauthoring-review-and-ratification.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Let humans and agents revise one artifact lineage while acceptance stays explicitly human-governed", needs = [] },
+  { path = "docs/product/intents/human-agent-coauthoring-review-and-ratification.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Let humans and agents revise one artifact lineage while acceptance remains explicit, attributable, and auditable", needs = [] },
   { path = "docs/product/intents/promote-shaped-work-to-brief-specification-and-build.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Carry an accepted shaped intent across a visible handoff into brief, specification, and build without losing lineage", needs = [] },
   { path = "docs/product/intents/studio-self-hosting.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Display Studio's own repository workspace and shape its own capability intents inside Studio", needs = [] },
   { path = "docs/product/intents/cross-repository-shaping-control.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Act as the product-work control plane while shaping work in another Agent-Ready repository", needs = [] },

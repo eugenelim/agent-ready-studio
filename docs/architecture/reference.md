@@ -42,6 +42,98 @@ describes what the repository currently contains.
   Research, Experience, Architecture, Delivery, Release, and Outcomes begin as
   typed artifacts and relations, not discipline-specific database entities.
 
+## Authority planes
+
+Every durable fact and every authoritative operation belongs to exactly one
+plane. A plane is not co-owned. [ADR-0005](../adr/0005-five-plane-authority-model.md)
+carries the argument, the alternatives, and the consequences.
+
+- **Product** owns workspaces, initiatives, typed artifacts, immutable
+  revisions, evidence, lineage, reviews, comments, decisions, accepted state,
+  and multidisciplinary product-work semantics.
+- **Control** owns source registrations, durable run records, scheduling,
+  claims and leases, durable human gates, advancement policies, runtime
+  selection, credential references, and cross-repository coordination.
+- **Execution** owns source materialization, temporary clones and worktrees,
+  executor supervision, tool hosting, environment policy, filesystem and Git
+  reconciliation, checkpoints, and proposal production.
+- **Capability** owns Workspace Blueprints, Capability Packs, transformation
+  definitions, executor requirements, and review semantics.
+- **Source** owns the identity and revision of Studio-managed content, local
+  folders, local Git checkouts, remote Git sources, managed clones, archives,
+  and external artifact systems.
+
+### Current implementation ownership
+
+| Plane | Implemented today by |
+| --- | --- |
+| Product | Studio Service domain and use-case modules, surfaced by the desktop client |
+| Control | No complete implementing component yet. The Studio Service is the proposed owner |
+| Execution | No implementing component yet. `packages/executor-fake` is an in-process deterministic test double, not an Execution-plane component |
+| Capability | The current blueprint and workspace contract packages |
+| Source | No source registry and no source adapter exists yet |
+
+### What a plane does not decide
+
+- A plane identifies semantic authority. It is not a process, package,
+  directory, repository, deployment, protocol, or trust boundary.
+- One component may currently implement more than one plane.
+- Naming a plane does not enforce isolation. Process, filesystem, container,
+  VM, credential, identity, and network boundaries provide actual isolation.
+- This material does not assign the Execution plane to a separate Workspace
+  Runtime process. RFC-0001's Stage 2 gate remains unresolved until Connect and
+  Orient has been delivered and assessed.
+- `apps/workspace-runtime` does not exist and is not authorized here.
+
+## Repository layout and component placement
+
+Root directories are classified by component lifecycle, not by subject matter.
+[ADR-0006](../adr/0006-monorepo-component-placement.md) carries the argument.
+
+| Root | Contains | Test |
+| --- | --- | --- |
+| `apps/` | Independently runnable or deployable components, including clients, services, runtimes, and workers | Does it have its own process or deployment lifecycle? |
+| `packages/` | Reusable implementation libraries consumed by applications or other packages | Is it imported, with no independently operated lifecycle? |
+| `contracts/` | Language-neutral, externally versioned schemas, compatibility fixtures, and conformance material | Must a non-TypeScript consumer be able to consume or validate it? |
+| `tools/` | Repository-local development, verification, migration, release, generation, and maintenance tooling | Does it ship to a user? If yes, it is not `tools/`. Product runtime functionality is never `tools/` |
+| `docs/` | Charter, decisions, proposals, architecture, product state, specifications, plans, and guidance | — |
+| `infra/` | Packaging, provisioning, deployment, and cloud infrastructure | Absent until actual infrastructure has a maintained owner and lifecycle |
+
+Placement rules:
+
+- Future first-party Studio runnable components stay in the
+  `agent-ready-studio` monorepo.
+- `agent-ready-repo` remains a separate repository.
+- No third Workspace Runtime repository is created at this stage.
+- If a durable Workspace Runtime is later established, its repository home is
+  this monorepo under `apps/`. That conditional placement does not establish
+  the Runtime process boundary.
+- `apps/` remains flat until actual component count, ownership, or deployment
+  pressure justifies grouping.
+- Repository separation is not a security boundary.
+- No directory is created by these rules.
+
+### Conditional Runtime contract placement
+
+If the durable Workspace Runtime boundary is established after the Connect and
+Orient Stage 2 assessment, its northbound contract belongs in
+`packages/runtime-protocol`, with language-neutral schemas under
+`contracts/jsonschema/runtime`.
+[ADR-0007](../adr/0007-runtime-contract-placement.md) carries the argument.
+
+- Neither location currently exists, and neither is authorized for creation
+  here.
+- Creation waits for a real specification defining an actual contract.
+- The placement lapses if the Stage 2 gate withdraws the durable Runtime
+  boundary, and it was accepted ahead of the evidence that would justify its
+  cost, so it must be revisited if the runtime specification shows no
+  independently evolving runtime deployment will exist.
+- Runtime wire types may not import application implementation packages.
+- Consumers map wire types to domain types at their own boundaries.
+- The placement supports independent protocol evolution and a clean dependency
+  direction. It does not imply that a cloud Runtime or a second independently
+  released deployment already exists.
+
 ## Building-block view
 
 ### Applications
@@ -167,3 +259,9 @@ describes what the repository currently contains.
 - [ADR-0002](../adr/0002-workspace-extension-model.md)
 - [ADR-0003](../adr/0003-artifact-revisions-and-decisions.md)
 - [ADR-0004](../adr/0004-versioned-json-rpc-ndjson-boundary.md)
+- [ADR-0005](../adr/0005-five-plane-authority-model.md) — five-plane authority
+  model
+- [ADR-0006](../adr/0006-monorepo-component-placement.md) — monorepo component
+  placement
+- [ADR-0007](../adr/0007-runtime-contract-placement.md) — conditional
+  Runtime-contract placement
