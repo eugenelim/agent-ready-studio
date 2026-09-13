@@ -2,9 +2,11 @@
 
 ## Project overview
 
-Agent-Ready Studio is a local desktop product that helps multidisciplinary
-product teams turn uncertain inputs into explicit, reviewable decisions through
-connected artifacts.
+Agent-Ready Studio helps multidisciplinary product teams turn uncertain inputs
+into connected, reviewable product work and explicit decisions, from strategy
+and research through experience, architecture, delivery, release, and learning.
+The [charter](docs/CHARTER.md) owns that mission, its scope, and its permanent
+boundaries. What is built today is a local desktop product.
 
 The [reference architecture](docs/architecture/reference.md) is normative.
 Product direction lives in
