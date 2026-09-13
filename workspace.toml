@@ -20,22 +20,25 @@
 
 [backlog]
 open = [
-  { path = "docs/product/briefs/agent-ready-studio.md", kind = "brief", source = { mode = "repo-origin" }, summary = "Define the Agent-Ready Studio foundation and walking-skeleton delivery outcome", needs = [] },
   { path = "docs/product/briefs/observable-execution.md", kind = "brief", source = { mode = "repo-origin" }, summary = "Make execution observable in flight, restoring Home's Running group removed by amendment 0004", needs = [] },
   { path = "docs/product/intents/agent-ready-studio-product-vision.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Move product teams from strategic uncertainty to learning through connected, reviewable work", needs = [] },
   { path = "docs/product/intents/make-product-work-visible-before-automating-it.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make product work visible and reviewable before adding governed automation over it", needs = [] },
 ]
 closed = []
 
-[work]
-active = [
-  { path = "docs/specs/product-development-walking-skeleton/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Build the Product Development walking skeleton", needs = [] },
-]
-
 ["ini-001"]
 name      = "Studio Foundation and Workspace Kernel"
-status    = "active"
-milestone = "M1 · Product Development walking skeleton"
+status    = "paused"
+
+["ini-001".brief_queue]
+shipped = [
+  { path = "docs/product/briefs/agent-ready-studio.md", kind = "brief", source = { mode = "repo-origin" }, summary = "Define the Agent-Ready Studio foundation and walking-skeleton delivery outcome", needs = [] },
+]
+
+["ini-001".work]
+shipped = [
+  { path = "docs/specs/product-development-walking-skeleton/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/agent-ready-studio.md" }, summary = "Build the Product Development walking skeleton", needs = [] },
+]
 
 ["ini-001".shaping_queue]
 active  = []
