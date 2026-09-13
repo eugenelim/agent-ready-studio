@@ -11,6 +11,9 @@ for what belongs here and what does not.
 | [ADR-0002](0002-workspace-extension-model.md) | Blueprints, Capability Packs, and Executor Adapters | Accepted |
 | [ADR-0003](0003-artifact-revisions-and-decisions.md) | Immutable revisions with explicit decisions | Accepted |
 | [ADR-0004](0004-versioned-json-rpc-ndjson-boundary.md) | Versioned JSON-RPC over NDJSON | Accepted |
+| [ADR-0005](0005-five-plane-authority-model.md) | Five distinct authority planes | Accepted |
+| [ADR-0006](0006-monorepo-component-placement.md) | Runnable units in the Studio monorepo | Accepted |
+| [ADR-0007](0007-runtime-contract-placement.md) | Runtime contract in its own versioned package | Accepted |
 
 ## Adding a new ADR
 
