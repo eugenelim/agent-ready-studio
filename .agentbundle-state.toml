@@ -77,7 +77,7 @@ primitives = ["skill", "agent", "hook-body", "hook-wiring", "command"]
 ".claude/skills/project-knowledge/references/distill-mode.md" = { from-pack-version = "2.25.9", sha = "e92f41a83a54fc93260c83b9143be4bf5c9805800e7dabf59851ce6d8c312c63" }
 ".claude/skills/project-knowledge/references/enquire-mode.md" = { from-pack-version = "2.25.9", sha = "70d2344801487d3a821abbe1af1790fa1cb0dd5a0bbd2b59aa718cbbc0cf4c8c" }
 ".claude/skills/project-knowledge/scripts/_statelock.py" = { from-pack-version = "2.25.9", sha = "ba8c05c78bd2b4ae45a7845efc3e48d2510dc944e04b63b4bc7a87140d9585b4" }
-".claude/skills/project-knowledge/scripts/knowledge_store.py" = { from-pack-version = "2.25.9", sha = "04141cf62d7663e2776836089a4dd5599dd98681529586fc5f2fec130dd2a736" }
+".claude/skills/project-knowledge/scripts/knowledge_store.py" = { from-pack-version = "2.25.9", sha = "df2578e5bc0139aabea6701be7fb3376d99d032b2f590bc3b740c08acd104ddc" }
 ".claude/skills/project-knowledge/scripts/project_knowledge.py" = { from-pack-version = "2.25.9", sha = "cb5c8afa5bb0ba298111658a1fe19de8cb5679626b71739f80986f8b7a4abed7" }
 ".claude/skills/receive-brief/SKILL.md" = { from-pack-version = "2.25.9", sha = "39bb04e14fd88f12d4f9f9c0ba174283d6fcd07d061731219035d5567c88fa0e" }
 ".claude/skills/receive-brief/evals/eval_queries.json" = { from-pack-version = "2.25.9", sha = "776e8094263a69d20165a4d97a1c3ed80e76ab1583fed7cefd51b948ed882c4a" }
@@ -278,7 +278,7 @@ primitives = ["skill", "agent", "hook-body", "hook-wiring", "command"]
 ".agents/skills/project-knowledge/references/distill-mode.md" = { from-pack-version = "2.25.9", sha = "e92f41a83a54fc93260c83b9143be4bf5c9805800e7dabf59851ce6d8c312c63" }
 ".agents/skills/project-knowledge/references/enquire-mode.md" = { from-pack-version = "2.25.9", sha = "70d2344801487d3a821abbe1af1790fa1cb0dd5a0bbd2b59aa718cbbc0cf4c8c" }
 ".agents/skills/project-knowledge/scripts/_statelock.py" = { from-pack-version = "2.25.9", sha = "ba8c05c78bd2b4ae45a7845efc3e48d2510dc944e04b63b4bc7a87140d9585b4" }
-".agents/skills/project-knowledge/scripts/knowledge_store.py" = { from-pack-version = "2.25.9", sha = "04141cf62d7663e2776836089a4dd5599dd98681529586fc5f2fec130dd2a736" }
+".agents/skills/project-knowledge/scripts/knowledge_store.py" = { from-pack-version = "2.25.9", sha = "df2578e5bc0139aabea6701be7fb3376d99d032b2f590bc3b740c08acd104ddc" }
 ".agents/skills/project-knowledge/scripts/project_knowledge.py" = { from-pack-version = "2.25.9", sha = "cb5c8afa5bb0ba298111658a1fe19de8cb5679626b71739f80986f8b7a4abed7" }
 ".agents/skills/receive-brief/SKILL.md" = { from-pack-version = "2.25.9", sha = "39bb04e14fd88f12d4f9f9c0ba174283d6fcd07d061731219035d5567c88fa0e" }
 ".agents/skills/receive-brief/evals/eval_queries.json" = { from-pack-version = "2.25.9", sha = "776e8094263a69d20165a4d97a1c3ed80e76ab1583fed7cefd51b948ed882c4a" }
