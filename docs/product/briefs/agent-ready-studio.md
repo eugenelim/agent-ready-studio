@@ -1,6 +1,6 @@
 # Delivery brief: Agent-Ready Studio
 
-- **Status:** Ready
+- **Status:** Shipped
 - **Slug:** `agent-ready-studio`
 - **Received:** 2026-09-09
 - **Owner:** Agent-Ready Studio maintainers
