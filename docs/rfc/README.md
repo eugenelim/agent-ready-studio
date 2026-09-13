@@ -7,6 +7,7 @@
 | #    | Title | Status | Opened     | Closed |
 | ---- | ----- | ------ | ---------- | ------ |
 | [0001](0001-studio-authority-planes-and-workspace-runtime-boundary.md) | Agent-Ready Studio authority planes, component topology, and Workspace Runtime boundary | Accepted | 2026-09-11 | 2026-09-11 |
+| [0002](0002-clarify-studio-charter-for-connected-sources-and-governed-execution.md) | Clarify the Agent-Ready Studio charter for connected sources and governed execution | Accepted | 2026-09-13 | 2026-09-13 |
 
 ## Adding a new RFC
 

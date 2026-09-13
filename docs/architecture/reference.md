@@ -11,8 +11,9 @@ describes what the repository currently contains.
   extension boundaries.
 - Node.js 24 is the intended active-LTS runtime. The repository uses pnpm
   workspaces and pins the package-manager version.
-- The application is local-first and works without Git, AgentBundle, an agent
-  provider, credentials, a terminal, a repository, or a remote service.
+- The application is local-first and works without Git, AgentBundle, a
+  capability pack, an agent provider, credentials, a terminal, a repository,
+  or a remote service.
 - The Electron renderer has no Node integration. Context isolation and renderer
   sandboxing stay enabled, and preload exposes only a narrow typed host API.
 - The user-approved spec and AgentBundle `work-loop` govern delivery. No change
@@ -91,7 +92,11 @@ describes what the repository currently contains.
    another revision, while lifecycle is projected from append-only state
    records.
 3. Executors propose state and cannot accept their own proposal.
-4. Acceptance and workflow advancement are attributable to a decision or an
+4. Acceptance is attributable to a durable human decision, or to an explicit
+   recorded policy whose authority is a named human holding acceptance
+   authority and whose application is audited; such a policy is never
+   established through the executor path whose output it accepts. Workflow
+   advancement short of acceptance is attributable to a decision or an
    explicit recorded policy.
 5. Human, agent, deterministic automation, and external system are valid
    executor kinds.
