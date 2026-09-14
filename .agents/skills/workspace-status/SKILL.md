@@ -63,6 +63,13 @@ Run the production backend via **argument vector** (the canonical and only safe 
 
 The `status` subcommand runs a bounded scan (Type 2 + Type 3 only — no global spec walk). Use `reconcile` for a full audit that also finds untracked live specs (Type 1). Use `explain` to investigate a specific item. See **§1a. Subcommand guidance** below.
 
+To inspect workspace membership for an explicit selection of spec directories,
+repeat `--spec-dir` once per directory:
+
+```
+["<python>", "<skill-dir>/scripts/workspace_status.py", "selected-membership", "--root", "<repo-root>", "--spec-dir", "docs/specs/<slug>"]
+```
+
 `<python>` is the Python 3.11+ interpreter available in your environment: `python3` on macOS/Linux; `python` on Windows. `<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). Passing the paths as **discrete arguments** prevents shell expansion of `$()`, backticks, `$VAR`, and other metacharacters — the values are never interpreted by a shell.
 
 **Shell-string-only tools:** If your adapter cannot be configured to pass a discrete argument vector, use the shell-specific form below — or, for maximum portability, set the working directory to the repository root and pass `--root .`:
@@ -140,6 +147,12 @@ canonical.active                 — canonical valid work.active specs; resumabl
 canonical.blocked                — canonical non-dispatchable entries and retained legacy memberships
 canonical.findings               — stable finding code/path/dispatchable/next_action records (no raw artifact text)
 canonical.legacy_memberships     — retained legacy context; always non-dispatchable
+canonical.evaluations            — full per-entry evaluation list. Omitted by `status`,
+                                   which is the orientation mode: every dispatch decision
+                                   it carries is already in ready/active/blocked/findings,
+                                   and it grows with the workspace. Pass
+                                   `--include-evaluations` to restore it; `reconcile` and
+                                   `explain` always carry it.
 canonical.*[].origin_mode        — repository or tracker origin from structured provenance
 canonical.*[].profile            — active tracker profile id/version when declared
 canonical.*[].refresh            — compared/accepted revisions, unresolved-conflict flag,
@@ -242,6 +255,7 @@ pinned dependency.
 | Subcommand | When to use | Type 1 walk | Writes |
 |------------|-------------|-------------|--------|
 | `status` (default) | Session start, queue check — fast bounded scan | No | — |
+| `selected-membership --spec-dir docs/specs/<slug>` | Report membership for each explicitly selected spec directory; repeat the flag to preserve selection order | No | — |
 | `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes | — |
 | `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No | — |
 | `repair-plan` | Build a deterministic repair plan for Type 2 queue findings | Yes | `.workspace-repair-plan.json` |
@@ -251,6 +265,17 @@ pinned dependency.
 | `repair-rollback --operation-id <id> --confirmation-file <path>` | Restore one exact legacy representation without deleting its artifact | No | `.workspace-migrations.json`, `workspace.toml` |
 
 **`reconcile`** — use when you suspect specs have been approved or put in-progress without being added to `workspace.toml`. The Type 1 walk reads every `spec.md` in `docs/specs/` and reports any Approved/Implementing spec not listed in any initiative.
+
+**`selected-membership`** — requires at least one repository-relative
+`docs/specs/<slug>` directory and evaluates only the supplied selection. Each
+ordered result contains `selected_directory`, `canonical_artifact_path`,
+`membership_present`, and `occurrences`. An occurrence identifies its
+initiative when present, lifecycle collection, zero-based entry position, and
+canonical, legacy, or parse-blocked form. The selected artifact need not exist.
+The command reads `workspace.toml` and reports facts only: it never changes a
+file, chooses an artifact for deletion, or turns presence or absence into an
+operation exit gate. Invalid selectors and invalid workspace data return a
+structured reason with a concise diagnostic.
 
 **`explain`** — pass a slug or `spec/` path to get the item's current classification, dependencies, blocking needs, and which downstream items would become unblocked if this item shipped. Lookup is restricted to **active initiatives' work queues** (queue/active/shipped); shaping items and items in paused or closed initiatives return `selector_status: "not_found"`.
 
@@ -478,7 +503,9 @@ render:
   ...
 ```
 
-Prefix each entry with its declared `room` (`[shape]` or `[build]`). Display
+Each entry carries exactly `room`, `slug`-or-`path`, `summary`, and `needs` —
+the fields rendered here plus the dependency list. Prefix each entry with its
+declared `room` (`[shape]` or `[build]`). Display
 `slug` when present, otherwise display `path` (target five-field entries use
 `path`). Iterate in array order. Use `summary` from the JSON when present. Only
 when a legacy `slug`
