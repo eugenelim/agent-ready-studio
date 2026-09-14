@@ -66,6 +66,7 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
+SCHEMA_VERSION = 1
 
 PHASES = ("implement", "review", "gates-failed")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
@@ -146,7 +147,12 @@ def _get_repo_root() -> Path:
             capture_output=True, text=True, encoding="utf-8", check=False,
             env=safe_env, timeout=GIT_TIMEOUT_S,
         )
-    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        # The class, not one member of it — `PATH` holding a directory named
+        # `git` raises PermissionError, which reached this tool's callers as a
+        # 33-line traceback. Kept identical to `loop-engine.py`'s copy; the
+        # refusal text of both is asserted by
+        # `test_git_lookup_failure_refuses_boundedly_in_both_tools`.
         raise ValueError(f"could not determine repo root: {exc}") from exc
     if result.returncode != 0 or not result.stdout.strip():
         raise ValueError("could not determine repo root (git rev-parse --show-toplevel failed)")
@@ -680,8 +686,8 @@ def begin_contract_amendment(
     amendment_id: str,
 ) -> dict:
     """Return the cohort snapshot for one authorized, replay-safe amendment."""
-    if state.get("schema_version") != 1:
-        raise ValueError("contract-amendment requires schema_version=1")
+    if state.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError(f"contract-amendment requires schema_version={SCHEMA_VERSION}")
     if state.get("run_id") != expected_run_id:
         raise ValueError("contract-amendment run_id mismatch")
     owner_authority_ref = _bounded_amendment_ref(
@@ -1133,9 +1139,9 @@ def cmd_status(args: argparse.Namespace) -> int:
         state = read_state(spec_dir)
     except (FileNotFoundError, ValueError) as exc:
         return stop(str(exc))
-    if state.get("schema_version") != 1:
+    if state.get("schema_version") != SCHEMA_VERSION:
         sv = state.get("schema_version")
-        return stop(f"status: unsupported schema_version={sv!r} (expected 1)")
+        return stop(f"status: unsupported schema_version={sv!r} (expected {SCHEMA_VERSION})")
     result = {
         "schema_version": state.get("schema_version"),
         "run_id": state.get("run_id"),
@@ -2432,7 +2438,7 @@ def build_parser() -> argparse.ArgumentParser:
     # identity
     sp = sub.add_parser(
         "identity",
-        help="read-only: verify schema_version=1 and optionally run_id match",
+        help=f"read-only: verify schema_version={SCHEMA_VERSION} and optionally run_id match",
     )
     sp.add_argument("spec_dir")
     sp.add_argument("--expect-run-id", dest="expect_run_id", default=None)
@@ -2501,7 +2507,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp_sched.add_argument("--expect-run-id", dest="expect_run_id", default=None)
     sp_sched.add_argument(
         "--plan", default=None,
-        help="path to plan.md (default: <spec-dir>/plan.md)",
+        help="path to plan.md (must be <spec-dir>/plan.md)",
     )
     sp_sched.set_defaults(func=cmd_schedule)
 
