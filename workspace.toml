@@ -92,7 +92,9 @@ status    = "active"
 milestone = "M1 · Read-only repository workspace status"
 
 ["ini-004".shaping_queue]
-active  = []
+active  = [
+  { path = "docs/product/intents/connect-and-orient.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Orient to one public repository at an exact revision through a safe, read-only Agent-Ready status projection", needs = [] },
+]
 backlog = [
   { path = "docs/product/intents/read-only-public-github-repository-connection.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Inspect a public GitHub repository from its URL without installing anything or keeping a persistent clone", needs = [] },
   { path = "docs/product/intents/repository-identity-revision-pinning-and-trust-boundary.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Identify exactly which repository and revision is shown and keep remote content from becoming trusted instructions", needs = [] },
