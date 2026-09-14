@@ -223,10 +223,21 @@ Default horizon: Later. 6 captured capabilities.
 | ARS-SCALE-005 | External product-development integrations and portfolio views | [`external-product-development-integrations-and-portfolio-views.md`](intents/external-product-development-integrations-and-portfolio-views.md) | Later | Draft | ARS-CAP-010, ARS-CAP-009 |
 | ARS-SCALE-006 | Production outcome feedback, retention, export, and governance | [`production-outcome-feedback-retention-export-and-governance.md`](intents/production-outcome-feedback-retention-export-and-governance.md) | Later | Draft | ARS-CAP-010, ARS-CAP-009 |
 
+## Delivery threads
+
+A delivery thread is one bounded, independently reviewable steel thread that
+exercises several capability intents without replacing any of them. It carries
+its own identifier series so it can never be mistaken for a capability.
+
+| ID | Title | Level | Intent file | Status |
+| --- | --- | --- | --- | --- |
+| ARS-THREAD-001 | Connect and Orient | feature | [`connect-and-orient.md`](intents/connect-and-orient.md) | Draft |
+
 ## Counts
 
 - 2 parent intents: 1 product-vision, 1 product-strategy.
 - 64 detailed capability intents, all Draft, all at capability level.
+- 1 delivery thread, Draft, at feature level.
 - 8 initiative groups.
 - 10 preserved portfolio anchors, ARS-CAP-001 through ARS-CAP-010.
 
