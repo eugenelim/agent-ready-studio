@@ -1,6 +1,6 @@
 # Spec: Connect and Orient — connect and see the verdict
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** Agent-Ready Studio maintainers
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0001, RFC-0002, ADR-0005, ADR-0006, ADR-0007
@@ -349,7 +349,7 @@ the next Runtime-dependent initiative. **On expiry:** deleted or rewritten.
 
 Every criterion appears in exactly one group below, named in full.
 
-- **URL, host, charset, ref, redirect and target construction (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010)** — TDD, with each redirect phase observed against the git client that performs it. Closed accept and reject sets, each mapped to its reason row.
+- **URL, host, charset, ref, redirect and target construction (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010)** — TDD, with each redirect phase asserted as the pinned configuration present on the argument vector the git client receives; the client's own refusal is observed by the manual smoke instead, per AC-0009. Closed accept and reject sets, each mapped to its reason row.
 - **Revision resolution and verification (AC-0011, AC-0012, AC-0013, AC-0014)** — TDD, against an injected source transport. Deterministic transitions; no added test uses the network.
 - **Process boundary, argument vector, environment and process group (AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0154)** — Goal-based check, exercised by an integration test. Process identity, argv shape, the two environment partitions, the descendant executable set, group signalling and observed memory termination are all observable from the parent.
 - **Provisional contract validation and provenance (AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042, AC-0155)** — TDD. Naming, correlation, full-shape validation, bounded reads, origin-based provenance and seam isolation are schema- and structure-shaped invariants.
@@ -387,7 +387,7 @@ assisted authoring and has known false negatives.
 - [ ] **AC-0006.** Studio rejects an owner or repository name outside the owner/repository charset in *Canonical values*.
 - [ ] **AC-0007.** Studio rejects a requested ref outside the ref charset in *Canonical values*.
 - [ ] **AC-0008.** Studio applies the ref charset to the ref it resolves from the remote as well as to a user-supplied ref.
-- [ ] **AC-0009.** Every redirect is refused during both resolution and materialization, enforced by `http.followRedirects=false` in the pinned `git` configuration. Same-host redirects are refused too, so a renamed repository fails rather than silently following.
+- [ ] **AC-0009.** Every `git` argument vector used for resolution and for materialization carries `http.followRedirects=false` from the pinned `git` configuration, which is what refuses every redirect on both phases — including a same-host redirect, so a renamed repository fails rather than silently following. **The automated obligation is the presence of that configuration on both phases**, and it is falsifiable by dropping the key. Observing a real client refuse a redirect requires an HTTP exchange that AC-0148 forbids: `GIT_ALLOW_PROTOCOL=https` refuses an http stand-in, and an https stand-in against a test-started endpoint requires a TLS trust term the pinned configuration deliberately does not carry. That observation is therefore recorded by the manual smoke in *Testing Strategy*, and this criterion claims no automated observation of client behaviour.
 - [ ] **AC-0010.** The URL on every `git` argument vector is constructed from the canonical identity AC-0001 recorded; the submitted string never reaches a transport.
 
 ### Exact revision
@@ -576,7 +576,7 @@ assisted authoring and has known false negatives.
 ### Suite-level and evidence
 
 - [ ] **AC-0148.** Every automated test this delivery adds passes with no network access, no credential, no model provider, and no remote service.
-- [ ] **AC-0149.** The fixture corpus covers every case AC-0133 through AC-0146 and the bounds criteria consume, including cases git cannot represent, which are constructed on disk after checkout.
+- [ ] **AC-0149.** The fixture corpus covers every case AC-0133 through AC-0146 and the bounds criteria consume. A case whose effect is observed *at* checkout is present in the source object database before checkout, built by `git` plumbing where an ordinary working-tree write cannot produce it; constructing such a case on disk after checkout would bypass the event its proof observes. Only a case with no checkout-observable effect is constructed on disk after checkout.
 - [ ] **AC-0150.** Delivery produces the evidence note in *Canonical values*, recording the trial's time box, code location, process topology, message shape, state held by the child, supervision performed, isolation enforced, isolation left as convention, credential and environment boundary, materialization and removal behavior, failure behavior, and the code that must be deleted or rewritten.
 - [ ] **AC-0151.** The evidence note records, for each thing the Runtime held, whether it needed the Runtime or merely inherited it by holding the materialization.
 - [ ] **AC-0152.** The evidence note records that AC-0042's no-local-path property and the Runtime placement of supervision were both **mandated by this specification rather than discovered**, so the gate assessor is not handed a constructed answer on Stage 2 criteria 1 or 3.

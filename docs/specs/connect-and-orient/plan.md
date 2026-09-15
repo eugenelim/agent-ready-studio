@@ -150,13 +150,17 @@ why the permitted-executables row admits the probe explicitly.
 
 **Tests:**
 - Every fixture the security proofs and bounds criteria consume, built
- reproducibly with no network; cases git cannot represent are constructed on
- disk after checkout.
+ reproducibly with no network. A case whose effect is observed *at* checkout —
+ AC-0136's `.git`-variant tree entry is the one in this slice — is built into
+ the source object database before checkout, by plumbing where a working-tree
+ write cannot produce it on a case-insensitive filesystem; building it on disk
+ afterwards would bypass the very event its proof observes. Only a case with no
+ checkout-observable effect is constructed on disk after checkout.
 - A positive control per proof, at process-tree observation level for
  executable effects and at the reader for filesystem effects, each removing
  the guard of the proof it certifies. **T1 builds and certifies the controls only;
-  the paired absence proofs are T6's, because the guards they remove do not
-  exist until T4 and T6.**
+  the paired absence proofs land in T6, T10 and T11, because the guards they
+  remove do not exist until T4, T6, T10 and T11.**
 - Covers AC-0149.
 
 **Red stub** (`stub: true`):
@@ -170,8 +174,8 @@ it("AC-0147 a hook probe fires when the guard is removed", async () => {
 ```
 
 **Approach:** corpus and probe harness under the trial code root's test scope.
-The positive controls are built here; the paired absence proofs land in T6 and
-reuse this harness so probe identity is pinned across both.
+The positive controls are built here; the paired absence proofs land in T6, T10
+and T11 and reuse this harness, so probe identity is pinned across all of them.
 
 **Done when:** `pnpm verify` is green and AC-0149 holds.
 
@@ -184,7 +188,7 @@ reuse this harness so probe identity is pinned across both.
 - Differential strings — embedded tabs, newlines, a second `@`, backslashes,
  percent-encodings — asserted as accept-then-compare: the constructed target
  must equal the canonical identity, not the submitted string.
-- Covers AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010.
+- Covers AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0010.
 
 **Red stub** (`stub: true`):
 
@@ -197,7 +201,7 @@ it("AC-0010 builds the fetch target from the canonical identity", () => {
 
 **Approach:** pure module in `apps/studio-service/src/`, no I/O.
 
-**Done when:** `pnpm verify` is green and AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010 hold.
+**Done when:** `pnpm verify` is green and AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0010 hold.
 
 ### T3: A remote ref resolves to a verified exact commit
 
@@ -207,8 +211,13 @@ it("AC-0010 builds the fetch target from the canonical identity", () => {
 - Resolution yields the exact SHA AC-0011 requires; `HEAD` verified inside the
  materialization root by the Runtime; mismatch routes to its stop reason.
 - The ref charset applied to the remote-reported default branch.
-- Redirects refused on both phases, observed against the git client.
-- Covers AC-0011, AC-0012, AC-0013, AC-0014.
+- Redirect refusal asserted on both phases as the presence of
+ `http.followRedirects=false` on every resolution and materialization argument
+ vector, with a test that fails when the key is dropped. Observing a real client
+ refuse a redirect needs an HTTP exchange AC-0148 forbids, so that observation is
+ T13's manual smoke, per AC-0009. This task claims no automated observation of
+ client behaviour.
+- Covers AC-0008, AC-0009, AC-0011, AC-0012, AC-0013, AC-0014.
 
 **Red stub** (`stub: true`):
 
@@ -219,11 +228,11 @@ it("AC-0008 refuses a remote default branch outside the ref charset", async () =
 });
 ```
 
-**Approach:** git driver behind an injected transport for the charset cases; a
-real local remote for the redirect cases, which an injected transport cannot
-observe.
+**Approach:** git driver behind an injected transport. The redirect cases assert
+the argument vector the driver builds, because AC-0009's client-behaviour
+observation is T13's manual smoke rather than an automated test.
 
-**Done when:** `pnpm verify` is green and AC-0011, AC-0012, AC-0013, AC-0014 hold.
+**Done when:** `pnpm verify` is green and AC-0008, AC-0009, AC-0011, AC-0012, AC-0013, AC-0014 hold.
 
 ### T4: The process tree runs under a pinned vector and environment
 
@@ -311,9 +320,15 @@ AC-0069, AC-0070, AC-0071, AC-0072, AC-0073, AC-0074, AC-0075, AC-0076, AC-0077,
 - Submodules not fetched or traversed.
 - Tree-bytes and file-count killed on an observed breach within the measured
  tolerance; the two wall-clock deadlines killed exactly.
-- Every absence proof from AC-0133 to AC-0146, each using the probe T1's
- control validated.
-- Covers AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0133, AC-0134, AC-0135, AC-0136, AC-0137, AC-0138, AC-0139, AC-0140, AC-0141, AC-0142, AC-0143, AC-0144, AC-0145, AC-0146, AC-0147.
+- Every absence proof whose observed surface exists by this task — AC-0133 to
+ AC-0137 and AC-0139 to AC-0145 — each using the probe T1's control validated.
+ **AC-0138 and AC-0146 are not provable here:** AC-0138 observes a verdict, a
+ routing decision and a state, which do not exist until T9 and T10, and AC-0146
+ observes storage, which does not exist until T11. They are gated at T10 and
+ T11 and reuse this task's harness, so probe identity stays pinned across all
+ three. AC-0147 is gated at T11 for the same reason — it ranges over AC-0133
+ through AC-0146, so it cannot be discharged until the last of them is.
+- Covers AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0133, AC-0134, AC-0135, AC-0136, AC-0137, AC-0139, AC-0140, AC-0141, AC-0142, AC-0143, AC-0144, AC-0145.
 
 **Red stub** (`stub: true`):
 
@@ -326,7 +341,7 @@ it("AC-0050 kills materialization on an observed tree-bytes breach", async () =>
 
 **Approach:** inspector locator, supervisor sampling at the stated interval.
 
-**Done when:** `pnpm verify` is green and AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0133, AC-0134, AC-0135, AC-0136, AC-0137, AC-0138, AC-0139, AC-0140, AC-0141, AC-0142, AC-0143, AC-0144, AC-0145, AC-0146, AC-0147 hold.
+**Done when:** `pnpm verify` is green and AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0133, AC-0134, AC-0135, AC-0136, AC-0137, AC-0139, AC-0140, AC-0141, AC-0142, AC-0143, AC-0144, AC-0145 hold.
 
 ### T7: The version marker is read, parsed safely, and never over-read
 
@@ -421,7 +436,11 @@ it("AC-0036 refuses a well-named result whose body does not conform", () => {
 - The four degradation sentences per degraded state, with `inspection-stopped`
  attributed per reason rather than once.
 - No attribution crosses; no credential offered anywhere.
-- Covers AC-0086, AC-0087, AC-0088, AC-0089, AC-0090, AC-0091, AC-0092, AC-0093, AC-0094, AC-0095, AC-0096, AC-0097, AC-0098, AC-0099.
+- The AC-0138 absence proof, reusing T1's validated probe: instruction-shaped
+ repository text changes no verdict, no routing decision and no state. It lands
+ here because this is the first task at which all three of those surfaces
+ exist.
+- Covers AC-0086, AC-0087, AC-0088, AC-0089, AC-0090, AC-0091, AC-0092, AC-0093, AC-0094, AC-0095, AC-0096, AC-0097, AC-0098, AC-0099, AC-0138.
 
 **Red stub** (`stub: true`):
 
@@ -434,7 +453,7 @@ it("AC-0091 attributes a stop reason per reason, not per state", () => {
 
 **Approach:** projection and degradation mapping driven from the spec's tables.
 
-**Done when:** `pnpm verify` is green and AC-0086, AC-0087, AC-0088, AC-0089, AC-0090, AC-0091, AC-0092, AC-0093, AC-0094, AC-0095, AC-0096, AC-0097, AC-0098, AC-0099 hold.
+**Done when:** `pnpm verify` is green and AC-0086, AC-0087, AC-0088, AC-0089, AC-0090, AC-0091, AC-0092, AC-0093, AC-0094, AC-0095, AC-0096, AC-0097, AC-0098, AC-0099, AC-0138 hold.
 
 ### T11: The verdict survives restart and cancellation
 
@@ -446,7 +465,13 @@ it("AC-0091 attributes a stop reason per reason, not per state", () => {
  value, not one class.
 - Cancellation recorded; one process per request with no cross-request
  readability; restart leaves no prior process.
-- Covers AC-0084, AC-0085, AC-0100, AC-0101, AC-0102, AC-0103, AC-0104.
+- The AC-0146 absence proof, reusing T1's validated probe: no credential-bearing
+ value reaches storage or a diagnostic. It lands here because this is the first
+ task at which storage exists.
+- AC-0147's positive controls, verified as a set. This is the last task gating
+ any of AC-0133 through AC-0146, so it is the earliest point at which AC-0147's
+ range is complete; the controls themselves were built and certified at T1.
+- Covers AC-0084, AC-0085, AC-0100, AC-0101, AC-0102, AC-0103, AC-0104, AC-0146, AC-0147.
 
 **Red stub** (`stub: true`):
 
@@ -460,7 +485,7 @@ it("AC-0102 reads the verdict back after a reopen", async () => {
 
 **Approach:** one appended migration, storage operations, cancellation use case.
 
-**Done when:** `pnpm verify` is green and AC-0084, AC-0085, AC-0100, AC-0101, AC-0102, AC-0103, AC-0104 hold.
+**Done when:** `pnpm verify` is green and AC-0084, AC-0085, AC-0100, AC-0101, AC-0102, AC-0103, AC-0104, AC-0146, AC-0147 hold.
 
 ### T12: A lead connects a repository and sees the verdict
 
@@ -514,8 +539,9 @@ and the ΔE2000 value are written and reviewed before a component consumes them.
  surface (AC-0130). These close on that record, not on a gate. AC-0130 sits
  here rather than in the TDD accessibility group because renderer tests run
  under jsdom, which computes no geometry and so cannot observe occlusion.
-- Live unauthenticated smoke, recording readability and the observed
- projection.
+- Live unauthenticated smoke, recording readability, the observed projection,
+ and — as the behavioural evidence for AC-0009 that no automated test may carry —
+ whether the real client refused a redirect on each of the two phases.
 - Covers AC-0114, AC-0129, AC-0130, AC-0131, AC-0132, AC-0148, AC-0150, AC-0151, AC-0152, AC-0153.
 
 **Approach:** write the evidence note from observed behaviour, including the
@@ -571,6 +597,61 @@ bound in *Canonical values*.
 
 ## Changelog
 
+- 2026-09-15: **controlled contract amendment** under the work-loop's
+ `contract-amendment` transition, taken from `CODE-IMPLEMENTATION` with explicit
+ scope-owner authority after T1 and T2 had completed and been pinned with
+ evidence. T3's implementation proved AC-0009 unfalsifiable as written: redirect
+ refusal lives in `git`'s HTTP client, so observing it needs a real protocol
+ exchange, while AC-0148 forbade network access outright. **The first attempt at
+ this amendment was reversed.** It widened AC-0148 to admit a hermetic loopback
+ endpoint; two independent pre-EXECUTE reviews and both adjudications then
+ returned the same owner-choice stop, and a probe settled it: `GIT_ALLOW_PROTOCOL=https`
+ refuses an http loopback target outright, and an https one against a
+ test-started endpoint fails on a self-signed certificate unless
+ `http.sslVerify=false` or an equivalent CA trust term is supplied — a term the
+ pinned `git` configuration does not carry and which AC-0022, AC-0023 and AC-0024
+ forbid adding. The loopback route was therefore unreachable under the contract
+ it was meant to serve. **What landed instead:** AC-0148 is restored verbatim, so
+ no network surface is admitted and the two secure-design concerns about listener
+ binding and environment binding are deleted by construction rather than patched;
+ and **AC-0009 was narrowed** to claim only what can be observed — the pinned
+ configuration present on both argument vectors, falsifiable by dropping the key
+ — while stating explicitly that it claims no automated observation of client
+ behaviour, which moves to T13's manual smoke against the real remote. Both
+ Testing Strategy groups and T3's bullet and Approach were restated in the same
+ action; T3's Approach had still named the local-remote stand-in the transport
+ pin refuses. The cost is recorded rather than hidden: no automated regression
+ guard on real client redirect behaviour. Nothing was widened — no credential
+ path, no network, and no change to the permitted executables, environment
+ allowlist, pinned `git` configuration, or resource bounds. Criteria count
+ unchanged at 157; none added, cut or renumbered. T1 and T2 stay pinned complete
+ with their sections unedited; T3 returns as an unfinished task.
+- 2026-09-14: amended a fourth time after two pre-EXECUTE rounds of **plan
+ executability** review — the first passes to ask whether the plan can be
+ executed rather than whether the spec is correct. Three blockers sustained
+ through adjudication, all of them the same defect class: a task gating a
+ criterion its own observation level cannot falsify. **T2 lost AC-0008 and
+ AC-0009 to T3**, which already carried both tests, the red stub and the real
+ transport, while T2's approach is a pure module with no I/O. **T6 lost AC-0138
+ to T10 and AC-0146 to T11**, because AC-0138 observes a verdict, routing
+ decision and state that do not exist until T9 and T10, and AC-0146 observes
+ storage that does not exist until T11. **AC-0147 moved with them to T11**, not
+ as a separate finding but because it ranges over AC-0133 through AC-0146 and
+ cannot be discharged before the last of them — the sibling walk that the two
+ relocations forced. T1's fixture rule was corrected in the same action:
+ AC-0149 previously directed cases git cannot represent to be built on disk
+ after checkout, which would have bypassed the checkout event AC-0136's proof
+ observes, so a checkout-observable case is now built into the source object
+ database by plumbing beforehand. Thirteen further findings from the same
+ review were **refuted** as unenumerated test bullets, which the governing
+ standard classes as build-time guidance that cannot prevent Clean; two
+ findings the prior session had recorded as verified blockers were also refuted
+ on adjudication. Criteria count unchanged at 157; no criterion was added, cut
+ or renumbered. Deferred deliberately, not overlooked: the renderer and
+ result-composition taxonomy (three sustained advisories on the Non-originated
+ value row and AC-0115/AC-0116) and AC-0104's undefined breach behaviour on the
+ persisted repository-derived content bound, whose *Resource bounds* row is
+ still missing its Enforced-by and Tolerance cells.
 - 2026-09-14: amended a third time after pre-EXECUTE round 3 sustained thirteen
  findings through adjudication. **The live-orphan criterion added in round 2 was cut
  rather than repaired, and its number — the one now deliberately unused between
