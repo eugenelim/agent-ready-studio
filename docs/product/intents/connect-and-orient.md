@@ -317,9 +317,44 @@ one here would not change the source intent that owns it.
 
 ## Decomposition
 
-Deferred. Decomposition is not performed by this pass, and no child intent,
-delivery brief, specification, plan, or implementation task is created here.
-The next authorized transformation after ratification is `de-risk-intent`.
+Performed 2026-09-13 by `decompose-intent`, after the de-risk verdict. One
+level only: this is the feature leaf, so it produces a delivery projection, not
+child intents.
+
+**The cut.** One coordinating delivery brief,
+[`docs/product/briefs/connect-and-orient.md`](../briefs/connect-and-orient.md),
+carrying one delivery slice — *Connect and Orient public-repository inspection*
+— plus the governance references and the deferred upstream half.
+
+**Why a brief and not a direct spec.** Two installed contracts agree. The
+`decompose-intent` contract projects an `app`-Scale feature leaf onto a single
+`core` brief under `docs/product/briefs/<slug>.md`. The
+`author-delivery-brief` contract admits a brief for "a coherent multi-slice or
+cross-repository outcome" and refuses one only for a single direct-light
+change; the de-risk verdict above already reframed this thread as paired Studio
+and Agent-Ready Repo work, which is the cross-repository case. The brief is
+also the only durable home for four facts that outlive a spec body that freezes
+at ship: the deferred upstream slice, the governance reference set, the trial
+Runtime time box, and the Stage 2 evidence obligation. `receive-brief` is not
+used — its installed skill declares itself a deprecated alias for
+`author-delivery-brief continue`.
+
+**Why one vertical slice and not several.** Only one independently shippable,
+independently testable unit exists today. The upstream half — initiative naming,
+capability inventory, and unsupported-version reporting — is owned by
+`agent-ready-repo` maintainers who have not seen it, and paired artifacts are
+RFC-0001 follow-on item 9, unlocked only after the Stage 2 gate. It is recorded
+as deferred scope in the brief, not as a slice.
+
+**Rejected cuts.** Runtime process, Studio Service work, desktop UI,
+persistence, protocol, and tests were each considered and rejected as delivery
+slices. They are implementation layers of one outcome: none ships or is
+testable as user value on its own, and cutting there would let repository
+layering rather than shippability decide the tree.
+
+**What this record does not do.** It confers no delivery authority, moves no
+source capability intent, and does not touch the Stage 2 gate. The brief's own
+Ready gate and the slice-confirmation gate are separate human decisions.
 
 ## Ratification
 
