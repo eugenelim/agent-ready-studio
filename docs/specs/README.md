@@ -20,6 +20,7 @@ docs/specs/<feature>/
 | Spec | Status | Constrained by | Notes |
 | --- | --- | --- | --- |
 | [Product Development walking skeleton](product-development-walking-skeleton/spec.md) | Draft | ADRs 0001–0004; normative architecture reference | Reviewed Clean; awaiting separate `work-loop` scope and plan approvals |
+| [Connect and Orient — connect and see the verdict](connect-and-orient/spec.md) | Approved | RFC-0001, RFC-0002, ADRs 0005–0007 | Slice 1 of two. Six review rounds; spec and plan approved 2026-09-14. Carries the provisional trial Runtime |
 
 ## Shipped specs (archived)
 

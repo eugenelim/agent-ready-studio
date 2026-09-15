@@ -24,6 +24,7 @@ open = [
   { path = "docs/product/intents/agent-ready-studio-product-vision.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Move product teams from strategic uncertainty to learning through connected, reviewable work", needs = [] },
   { path = "docs/product/intents/make-product-work-visible-before-automating-it.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make product work visible and reviewable before adding governed automation over it", needs = [] },
   { path = "docs/product/research/recorded-policy-acceptance-charter-alignment.md", kind = "research", source = { mode = "repo-origin" }, summary = "Reconcile recorded-policy acceptance semantics across ARS-CORE-005 and ARS-SHAPE-005 with the accepted charter before either intent advances", needs = [] },
+  { slug = "connect-orient-trial-runtime-removal", source = "connect-and-orient/2026-09-14" },
 ]
 closed = []
 
@@ -90,6 +91,16 @@ backlog = [
 name      = "Repository Workspace Pane"
 status    = "active"
 milestone = "M1 · Read-only repository workspace status"
+
+["ini-004".brief_queue]
+ready = [
+  { path = "docs/product/briefs/connect-and-orient.md", kind = "brief", source = { mode = "repo-origin", parent = "docs/product/intents/connect-and-orient.md" }, summary = "Orient to one public repository at an exact revision through a safe, read-only Agent-Ready status projection delivered over a provisional trial Runtime", needs = [] },
+]
+
+["ini-004".work]
+queue = [
+  { path = "docs/specs/connect-and-orient/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/connect-and-orient.md" }, summary = "Connect one public GitHub repository and see the Agent-Ready verdict at an exact commit, over a provisional trial Runtime", needs = [] },
+]
 
 ["ini-004".shaping_queue]
 active  = [
