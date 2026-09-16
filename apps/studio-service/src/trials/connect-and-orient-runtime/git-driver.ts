@@ -8,6 +8,31 @@ import {
 
 export const GIT_REDIRECT_REFUSAL = "http.followRedirects=false";
 
+/**
+ * The pinned `git` configuration from the specification's *Canonical values*,
+ * complete and in the order it is written there. A command-line `-c` outranks
+ * every configuration file, so these pairs lead every argument vector.
+ */
+export const PINNED_GIT_CONFIGURATION = [
+  GIT_REDIRECT_REFUSAL,
+  "core.hooksPath=/dev/null",
+  "core.symlinks=false",
+  "core.protectHFS=true",
+  "core.protectNTFS=true",
+  "core.fsmonitor=false",
+  "protocol.version=2",
+  "submodule.recurse=false",
+  "credential.helper=",
+  "transfer.fsckObjects=true",
+  "maintenance.auto=false",
+  "gc.auto=0",
+  "advice.detachedHead=false",
+] as const;
+
+export function pinnedGitConfigurationArgs(): string[] {
+  return PINNED_GIT_CONFIGURATION.flatMap((setting) => ["-c", setting]);
+}
+
 export interface RevisionTransport {
   resolve(
     fetchUrl: string,
@@ -61,7 +86,7 @@ export type GitCommandRunner = (
 const EXACT_COMMIT_SHA = /^[0-9a-f]{40}$/;
 
 function gitArgs(command: string, ...args: readonly string[]): string[] {
-  return ["-c", GIT_REDIRECT_REFUSAL, command, ...args];
+  return [...pinnedGitConfigurationArgs(), command, ...args];
 }
 
 function parseResolutionOutput(
