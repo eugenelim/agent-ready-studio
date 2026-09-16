@@ -655,3 +655,132 @@ environment names and the resolution rule derived from the recorded exec-path, A
 normalization for two names self-injected after `execve`, AC-0025's two-leg discharge, and
 the `completedResponse` defect the listener had masked, where a terminated run could report
 success.
+
+## t5-progress-2026-09-16
+
+**T5 — materialization is confined, measured, and disposable. In progress, not complete.**
+This entry records the first increment: three modules under the trial root that discharge
+T5's confinement, ownership and reclaim obligations at module level, with 46 tests. It
+records honestly what is *not* yet done, so the next session does not mistake this for a
+closed task.
+
+**Landed.** `materialization-confinement.ts`, `per-request-state-root.ts` and `sweep.ts`,
+with `materialization-confinement.test.ts`, `per-request-state-root.test.ts` and
+`sweep.test.ts`. The change is **purely additive** — `git diff --name-only` is empty against
+`1b32570`, so no T4 surface was modified.
+
+| Criterion | State after this increment |
+| --- | --- |
+| AC-0072 | Discharged. `verifySweepDomain` fails closed on absent, link, non-directory, foreign owner and permissive mode; `lstat` not `stat`, so a link to a conforming directory is still refused |
+| AC-0073 | Discharged. Containment compares **resolved real paths** on a path-segment boundary; a sibling extending the root (`tree-evil` against `tree`) and a link inside the root whose target escapes are both refused; a link resolving back inside is admitted |
+| AC-0074 | Discharged. Directory and FIFO refused; a device file reached through a contained link is refused on containment first, which is the stronger refusal |
+| AC-0075 | Discharged. Size checked **before** the open; at-bound admitted, one byte over refused |
+| AC-0076 | Discharged. The removal walk `lstat`s at every level and **unlinks a link rather than descending it**; proven by a link planted at depth whose target directory and its contents survive the removal |
+| AC-0079 | Discharged at module level. One removal of the state root takes `tree`, `home`, `tmp` and the marker |
+| AC-0080 | Discharged at module level. Marker created exclusively (`wx`) and written once before any other child; removed last; a sibling of `tree`, never a descendant |
+| AC-0081 | Discharged. All three limbs, the entry gate, the live-process refusal, both age gates, and every decline route |
+| AC-0083 | Discharged. Declines and removal failures both surface, naming limb and input class, and carry no repository-derived payload |
+| AC-0069 | Mechanism confirmed by probe, **no T5 test yet** |
+| AC-0070 | Implemented in `createPerRequestStateRoot`, but **not yet the Runtime's actual path** |
+| AC-0071, AC-0077, AC-0078, AC-0082 | **Not started.** They need the supervisor/child wiring described below |
+
+**Two defects this increment's own tests caught, both in work written this session.**
+
+1. *Removal could leave an unmarked root holding content.* The first draft removed every
+   non-marker child, collecting failures, and then removed the marker regardless. Where a
+   child survived — the test drops write permission on a nested directory — the result was a
+   **non-empty state root with no marker**, which satisfies no limb of AC-0081 and so would
+   be retained forever rather than reclaimed. Fixed by returning early with the marker
+   intact whenever any diagnostic was collected. AC-0080's "no state root holding any
+   content is ever unmarked" is the obligation that names this defect.
+2. *The marker-encoding claim was too strong.* The first draft asserted that **no** proper
+   prefix of the single creating write parses, which is false: the prefix that drops only
+   the trailing newline parses to the complete object and yields both values. The property
+   that actually holds, and the one AC-0080's crash-window claim needs, is that every proper
+   prefix either fails to yield both values — AC-0081's second-limb input — or yields
+   **exactly the complete marker's values**, and so cannot misstate ownership. The test now
+   asserts that, and asserts that exactly one such parseable prefix exists.
+
+**Probe — `core.symlinks=false` neutralizes links, confirming AC-0069's mechanism.**
+Against a source repository carrying `escaping-link -> ../../../etc/passwd`, a clone under
+`-c core.symlinks=false` produced a **regular file** whose content is the literal string
+`../../../etc/passwd`; `test -L` reports it is not a link. The key is already in T4's pinned
+13-key configuration, so AC-0069 needs a T5 assertion rather than a new control.
+
+**Probe — process start time is readable and its three outcomes are distinguishable.**
+`ps -o lstart= -p <pid>` is stable across repeated reads at one-second resolution. An unused
+but valid pid exits 1 with **empty stdout and empty stderr**; a pid beyond `kern.maxproc`
+(8000 on this host) exits 1 with `ps: process id too large` on stderr. That distinction is
+what lets AC-0081 separate "the process is determinedly absent", which limb 1 reclaims, from
+"liveness could not be compared", which must decline. `readProcessStartTime` returns a
+string, `null` and `undefined` for the three cases respectively.
+
+**Probe — the Runtime child can import a sibling only with a `.ts` specifier.** Under Node
+v26.4.0 type stripping, a `.ts` file importing `./sib.js` fails at run time while
+`./sib.ts` resolves and executes. The project's tsconfig sets `noEmit` but not
+`allowImportingTsExtensions`, so a `.ts` specifier fails typecheck. T4's recorded constraint
+therefore holds for production code as configured, and the established pattern stands: the
+child **inlines mechanics driven by plan-supplied values** — it already rebuilds the
+environment from `plan.environmentNames` rather than importing `runtime-environment.ts`.
+The remaining wiring must follow that pattern rather than import these three modules.
+
+**Where the remaining wiring has to run, and why it is not a free choice.** AC-0079 says
+*the trial Runtime* removes its state root, AC-0081 says *a Runtime sweep*, and AC-0082 says
+the Studio Service only *invokes* the sweep. Together with the boundary that the Service
+opens no path under a materialization root, both removal paths are child-side, so the child
+must carry inlined equivalents of `removePerRequestStateRoot` and the sweep predicate, with
+the marker name, child names and reclaim age delivered in the plan. AC-0071 additionally
+wants the sweep domain as a **named argument on the argument vector**, which argues for
+`--sweep-domain <path>` in `childArgs` rather than another field inside the plan JSON. One
+ordering constraint falls out of AC-0080: the Service can `mkdtemp` the state root and
+*compute* the `tree`, `home` and `tmp` paths for the pinned environment without creating
+them, leaving the child to write the marker before it creates any of the three. The window
+that opens — an empty unmarked root between `mkdtemp` and the marker write — is the one
+AC-0080 explicitly sanctions and AC-0081's third limb reclaims.
+
+**Gates, all green except the one expected failure.** `pnpm verify` exit 0 with **332 tests
+in 31 files** (286 baseline plus 46), biome clean over **87 files** (81 baseline plus 6),
+`pnpm lint`, `pnpm typecheck`, `pnpm build` and `git diff --check` all exit 0,
+`lint-contract-item-alignment` 0 findings, `lint-spec-status` clean, and
+`spec-coupling-check` exit 1 on **exactly the one known AC-0104 row** at `spec.md:277`.
+
+**Host contention, recorded because it blocks T5's measurement.** The full suite first
+returned a **varying** failure set — three tests in two files, then AC-0023 alone, then
+AC-0025 alone when `runtime-supervisor.test.ts` ran by itself with none of this increment's
+tests in the run. Since `git diff --name-only` was empty, no T4 surface had changed and the
+variation is contention rather than defect, which two consecutive clean full runs then
+confirmed. Load averages moved between roughly 20 and 187 on a 10-core host across the
+session, driven by two other concurrent agent sessions and the resident corporate endpoint
+agents; a ten-minute poll never observed a one-minute average below 12. **AC-0023 and
+AC-0025 are not in the known-flake list and should not be added to it** — they are timing-
+sensitive `ps` observations that pass on a quiet host.
+
+## t5-measurement-deferred-2026-09-16
+
+**T5's four measurements were not taken, deliberately.** The plan requires four quantities
+over one 250 ms interval, two of which carry advance-fixed pass bars: write throughput at or
+below 128 MiB and file-creation at or below 5,000 files. Both bars exist to characterize
+**this host's** capability, because the *Materialized tree bytes* and *Materialized file
+count* rows carry the measurement as their tolerance rather than asserting one.
+
+A measurement taken on a contended host characterizes the contention, not the host, and it
+is wrong in a way that is not conservative in either direction:
+
+- Measuring **low** under load would record a throughput this host can in fact exceed, and
+  the tree-bytes and file-count tolerances derived from it would then be narrower than
+  reality — the bound would read as holding when it does not.
+- Measuring **high**, per the spec's own rule, *fails the bound rather than raising it*, so
+  a load-induced spike would record a contract failure that the host does not actually have.
+
+Across this session the one-minute load average ranged from roughly 20 to 187 on a 10-core
+host, and a ten-minute poll never observed it below 12. Two other concurrent agent sessions
+were running, alongside resident corporate endpoint agents (`dgagent`, Jamf, Defender
+`epsext`, Tanium, BeyondTrust, Nexthink) that cannot be stopped. The handover already
+recorded that the previous session's host sat at 10–56 and killed two background processes
+for memory.
+
+**What the next session needs.** A host whose one-minute load average is low — single digits
+— for the duration of the four measurements, with the load recorded alongside each
+measurement as the plan requires. Nothing else in T5 is blocked on this; the measurement is
+the last item before T5's Done-when can be satisfied, and the remaining wiring described at
+`#t5-progress-2026-09-16` can proceed under load, because none of it is timing-sensitive.
