@@ -2296,3 +2296,87 @@ items, so the condition is accepted rather than unnoticed and is not this amendm
 adversarial half carries four deferred Nits with citations and no unresolved Blocker or Concern,
 and the security half is adjudicated clean. Pre-EXECUTE rounds call no `review record` and
 consume no retry budget; all three counters remain 0 after twenty-six rounds.
+
+## amendment-addendum-2026-09-17-discovery-channel-and-inline-proof
+
+**Added to the open Package 3 amendment, before its spec gate closed.** Two mechanisms, both
+landing through the **controlled amendment path** rather than through the channel they create —
+one changes a dependency edge and the other adds verification obligations, and the channel
+forbids itself both. Stating that is the point: a channel that could have authorized its own
+creation would have no bound.
+
+**1. A bounded discovery channel, and T14 to run it.** Exact helpers, paths, fixture shapes and
+local construction details of an unstarted task may stand unresolved; T14 resolves them. The
+channel carries all six required elements — a predeclared discovery predicate with four
+conjuncts; a kill condition with bounded alternatives capped at three admissible options per
+question; a closed list of refinable tasks, T12 and T13 and no others; an append-only decision
+record at `#discovery-channel-t14`; a scoped review of the changed task and its dependants; and
+an explicit prohibition on touching completed sections, their evidence or `amendment_history`.
+
+**A task section locks when execution begins**, from the first commit that implements it.
+Completed sections are immutable outright.
+
+**2. Inline proof for risky mechanisms.** A mechanism whose failure mode is to report success
+wrongly — parser, extractor, gate, negative control, classifier, generated registry — must, in
+the task that introduces it, run a discriminating positive and a consequential negative, show a
+named case reddening when the arm is neutralised, exercise the real entry path rather than the
+helper alone, and state the condition that retires the approach. It binds T14, T12 and T13, the
+tasks unstarted when it was written. It is **not** applied retroactively to T1 through T11,
+whose sections are pinned and whose evidence is closed.
+
+**Verified, not assumed.**
+
+| Check | Result |
+| --- | --- |
+| Wave derivation, from the pure scheduler over the edited plan | `[[T14], [T12], [T13]]` — T14 precedes T12 by dependency, not by document position |
+| Criteria roster | 156 declared, 156 claimed, **0 residuals**; T14 claims none, on T8's precedent |
+| Pinned section hashes, recomputed against the edited plan | all **11 of 11** still match; none drifted |
+| `lint-contract-item-alignment` | 0 findings |
+| `spec-coupling-check` | 0 findings |
+| `lint-spec-status` | clean |
+
+**A parser hazard was avoided by grounding it first.** The cohort scheduler accepts a lettered
+task id (`T\d+[a-z]?`), so `T11a` would have scheduled correctly. The contract lint's task regex
+is `^### (T\d+)\b` with no letter suffix, so a `### T11a` heading would **not** terminate T11's
+body — T11 is completed and pinned, and every criterion named in the discovery section would have
+been credited to it, which is the mention-anywhere failure the lint's rule 5 exists to eliminate.
+`T14` parses correctly under both. The two parsers disagreeing on what a task id is would have
+been invisible until a criterion was mis-credited to a pinned task.
+
+## discovery-channel-t14
+
+**Append-only decision record for the bounded discovery channel.** One entry per question: the
+question, the enumerated options, the option taken, the evidence that decided it, and the task
+refined — or the kill and the amendment it returns to. An entry is never edited once written; a
+reversal is a new entry naming the one it supersedes.
+
+No entries yet. T14 has not started.
+
+## gate-state-2026-09-17-discovery-channel-addendum
+
+`pnpm lint` exit 0; `pnpm typecheck` exit 0; `pnpm build` exit 0; `git diff --check` clean;
+`lint-contract-item-alignment` 0 findings; `spec-coupling-check` 0 findings; `lint-spec-status`
+clean.
+
+**`pnpm test` exited 1, and the red is the host.** Twelve failures across four files, all inside
+the trial runtime, observed at **load average 172** — near the top of the 8-to-188 band this
+ledger records. The failure kinds are the documented signature exactly: six `Test timed out in
+5000ms`, five `inspection refused: already-in-flight` — the global single-in-flight guard
+cascading from a timeout rather than five independent defects — and one assertion.
+
+Judged by the two-in-isolation rule rather than by re-running once:
+
+| File | Failures in the full run | In isolation |
+| --- | --- | --- |
+| `disposal.test.ts` | 7 | 7/7 pass |
+| `materialization.test.ts` | 3 | 4/4 pass |
+| `per-request-state-root.test.ts` | 1 | 17/17 pass |
+| `runtime-supervisor.test.ts` | 1 | failed once, then **23/23 pass** on the second run |
+
+Only `runtime-supervisor.test.ts` failed in isolation at all, and it did not fail twice, which is
+the condition this ledger sets before a red suite is treated as a regression. Nothing in this
+addendum touches code: the diff is `plan.md` and this ledger.
+
+`per-request-state-root.test.ts` passing 17/17 matters beyond the count — it carries the
+exhaustive per-prefix marker test that D3's encoding property rests on, so the property the
+amendment states is still proven after the addendum.
