@@ -898,3 +898,102 @@ text in the spec, so they are the items to re-read most carefully after editing.
 requires its own contract amendment, which pins the completed tasks, clears the schedule and
 returns the run to `SPEC-PLAN-DRAFTING`, so it costs a pass back through both human approval
 gates. Nothing in T5's remaining work depends on it.
+
+## t5-measurements-2026-09-16
+
+**T5's four measurements, taken.** They supersede the deferral recorded at
+`#t5-measurement-deferred-2026-09-16`: a quiet enough window opened later the same day, with
+one-minute load averages between 8.26 and 15.9 on a 10-core host, and the load was
+unchanged across each measurement, so none is self-contended. Every figure below carries the
+load that was in effect. The harness is `tools/measure-host-bounds.mjs`, run deliberately
+rather than as a test, because two of the four carry advance-fixed pass bars that a
+contended host fails spuriously.
+
+| # | Measurement | Result | Pass bar | Verdict |
+| --- | --- | --- | --- | --- |
+| 1 | Write throughput, peak per 250 ms interval during checkout | **208–448 MiB** across eight runs; 264, 264, 336 in the final run at load 13.53 | at or below **128 MiB** | **FAILS** |
+| 2 | File creation per 250 ms interval | **874–1,437 files** | at or below **5,000** | **passes**, ~3.5× headroom |
+| 3 | Resident-memory growth per 250 ms interval | **641–1,131 MiB** | none — observation | recorded |
+| 4 | Sample duration over a tree at the 50,000-file bound | worst **349 ms**, best **211 ms** | none — observation | recorded |
+
+**Measurement 1 fails its bar, and the spec says what that means.** The *Materialized tree
+bytes* row states: "The throughput measurement must come in at or below 128 MiB; **a host
+measuring higher fails the bound rather than raising it**, so the criterion cannot supply its
+own pass bar." Every run of the realistic writer exceeded the bar by between 1.6× and 3.5×.
+This is therefore a **bound failure on this host**, not a measurement to be normalized, and
+it needs an owner decision. It is recorded here rather than acted on.
+
+**Getting measurement 1 right took three methodologies, and the first two were wrong.**
+Recorded because the wrong ones are the obvious ones, and each would have produced a
+different verdict.
+
+1. **Raw `writeSync` throughput — wrong writer.** Ordinary buffered writes as fast as one
+   process can issue them measured 204–884 MiB per interval. But the bound's row says the
+   supervisor samples "during checkout", so the writer that matters is `git`, limited by pack
+   decompression and per-file work. This figure is retained in the harness as
+   `rawWriteCeiling`, explicitly labelled as not the writer the bar applies to, only because
+   it bounds the real measurement from above.
+2. **Average over a whole checkout — hides the peak.** Timing a 512 MiB checkout and scaling
+   to 250 ms gave 80–104 MiB per interval and would have **passed** the bar. It is wrong
+   twice over: an average over a burst understates the peak the sampler actually races, and
+   the tree used 64 *identical* blobs, which git deduplicates to one object, so the checkout
+   inflated once and copied. Both errors push the number down.
+3. **Peak growth per 250 ms sample during checkout — the correct model.** Sixty-four
+   *distinct* 8 MiB blobs, sampled on the sampler's own cadence, keeping the largest
+   single-interval growth. This is what the tolerance term means, and it reproduces: peaks of
+   232/216/440, 232/208/448 and 264/264/336 MiB across three separate runs.
+
+**The structural finding behind the number.** The harness also records how many 250 ms
+samples each checkout spanned: **[3, 3, 2] for a tree at the 512 MiB bound**. A tree at the
+bound is therefore fully materialized in two to three sampling intervals. Detection costs one
+interval plus the sample itself, and measurement 4 puts the sample at 211–349 ms — so
+detection lands at roughly 460–600 ms, by which point the entire byte budget has been spent
+and substantially exceeded. The sampler cannot enforce a 512 MiB bound at a 250 ms cadence on
+this host, and shortening the interval does not obviously help, because **measurement 4 shows
+one sample already costs more than one interval** at the file-count bound.
+
+**What is not in question.** Measurement 2 passes with roughly 3.5× headroom, and its model
+is conservative by construction: it creates *empty* files with `writeFileSync`, which is the
+fastest a process can add directory entries, so `git` cannot exceed it. Measurement 3
+corroborates AC-0031's decision to claim detection latency rather than a peak — growth of
+641–1,131 MiB in a single interval exceeds the 1 GiB child resident-memory bound outright,
+which is exactly why no peak is asserted.
+
+## open-owner-decision-2026-09-16-tree-bytes-bound
+
+**A fifth owner decision, raised by T5's measurement and not decided here.** The
+*Materialized tree bytes* bound fails its own pass bar on the delivery host, as recorded at
+`#t5-measurements-2026-09-16`. The spec anticipated this case and fixed its consequence — the
+bound fails rather than the bar rising — but it does not say what to do next, and the routes
+differ in cost and in how much new machinery they add.
+
+**What the evidence constrains.** Any route has to contend with three measured facts: the
+realistic writer materializes 208–448 MiB per 250 ms interval; a tree at the 512 MiB bound is
+written in two to three such intervals; and one sample over a tree at the 50,000-file bound
+costs 211–349 ms, which is already at or above the sampling interval itself. Shortening the
+interval therefore cannot be assumed to help, because the sampler would not keep its cadence.
+
+**Routes, none recommended here.**
+
+- **Restate the bound as what sampling can actually enforce.** Keep the mechanism and raise
+  the stated bound to the bound plus its measured overshoot, so the contract claims what
+  holds. Adds no machinery; weakens the guarantee, and the *Live in-flight sweep-domain
+  occupancy* row derives from this value, so it moves too.
+- **Bound the input instead of the output.** The row already says the fetch-depth bound is
+  the primary control and that `--depth 1` "bounds neither tree bytes nor file count". A
+  pre-checkout check on pack or tree size would bound materialization before it starts,
+  rather than racing it. This is a new control, which every prior owner decision in this
+  amendment declined to add.
+- **Keep sampling and accept the overshoot as a stated tolerance.** The row's tolerance
+  language is already "the measured write throughput … plus the measured worst-case duration
+  of the sample itself", so the overshoot is computable. This route records the measurement,
+  drops the 128 MiB pass bar as unmeetable on the delivery platform, and leaves the bound
+  nominal. It is the smallest edit and the weakest guarantee.
+- **Cut the bound.** If the bound cannot be enforced at the cadence the mechanism allows, a
+  bounded known gap may beat a control that reads as enforcing something it does not.
+
+**Why this is not T5's to settle.** T5's obligation is to record the four measurements and
+carry them into the bounds tolerances, which is now done. Changing a *Resource bounds* row,
+or the criterion that cites it, is a contract amendment. It is a natural companion to
+Package 3, which already has to touch the *Persisted repository-derived content* row for
+decision 1.
