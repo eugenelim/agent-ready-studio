@@ -90,6 +90,8 @@ export interface TrialInspectionOptions {
    * the tree is being observed, and to absent otherwise.
    */
   readonly descendantHoldMs?: number;
+  /** Keeps the state root on disk so a test can read it. Production never sets it. */
+  readonly retainStateRoot?: boolean;
   /** Holds the Runtime open after its work, so the parent can signal it. */
   readonly holdMs?: number;
   readonly childEntry?: string;
@@ -286,6 +288,9 @@ export function beginTrialInspection(
       options.inspectionDeadlineMs ?? INSPECTION_DEADLINE_MS,
     ...(descendantHoldMs === undefined ? {} : { descendantHoldMs }),
     ...(options.holdMs === undefined ? {} : { holdMs: options.holdMs }),
+    ...(options.retainStateRoot === undefined
+      ? {}
+      : { retainStateRoot: options.retainStateRoot }),
   };
 
   // AC-0071: the sweep domain is a *named* argument on the vector, so it is

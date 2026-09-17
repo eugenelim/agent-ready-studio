@@ -208,7 +208,12 @@ describe("process boundary", () => {
   it("AC-0016 opens no path under the materialization root from the Studio Service process", async () => {
     const request = validRequest();
     fileSystemPathArguments.length = 0;
-    const record = await runTrialRuntime({ request });
+    // The state root is retained here only so the positive control below has a
+    // path to read. AC-0079's removal is asserted in its own tests.
+    const record = await runTrialRuntime({
+      request,
+      supervision: { retainStateRoot: true },
+    });
     const duringInspection = [...fileSystemPathArguments];
 
     expect(record.termination).toBe("completed");
