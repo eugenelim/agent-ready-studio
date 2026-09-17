@@ -1677,3 +1677,74 @@ three attempts to get right. **Done-when** is satisfied on all four limbs: `pnpm
 0 with 343 tests in 33 files; the four measurements recorded; the one surviving pass bar met
 at 874–1,437 files per interval against 5,000; and the write-throughput measurement recorded
 as the failing evidence that cut the tree-bytes bound rather than as a bar to be met.
+
+## t6-inspector-read-reach-confirmed-2026-09-17
+
+**The accepted residual at `#owner-decision-2026-09-16-inspector-read-reach` is CONFIRMED, and
+both of its open questions are answered.** The residual recorded that the pinned inspector's
+source lies outside this repository and had never been read, leaving unknown whether pack
+`core` at the pin ever opens a repository-declared path operand and whether its traversal
+follows symlinks. T6 is the point the residual named. The source has now been read.
+
+**The pin, established here as AC-0043 requires.** Pack `core`, version **2.26.0**, repo
+scope, source `git+https://github.com/eugenelim/agent-ready-repo`, reported by
+`agentbundle list-installed` (CLI 0.46.1, spec 0.18; the catalogue offers 2.26.10, so the pin
+is deliberate rather than incidental). The two inspector files are the repo-scope install
+inside this worktree at `.claude/skills/workspace-status/scripts/`, so nothing under
+`agent-ready-repo` was touched to read them.
+
+| File | SHA-256 |
+| --- | --- |
+| `workspace_status.py` | `dec939e052750af346325c9895c75bfa38bcc2795111afcb6e001e817706f1db` |
+| `workspace_status_engine.py` | `2e6b6037ea5f02fd477cd37105a9e58efef6c27681e245e7abdc6b8e9d89899b` |
+
+**Question 1 — does it open a repository-declared path operand? YES, in three shapes, and
+each is confined by the inspector itself.**
+
+1. `_confined_artifact_path(root, rel_path)` at `workspace_status_engine.py:1806` joins a
+   repository-relative path, gated first by `_is_repository_relative_path`, then
+   `resolve()` and `relative_to(root_resolved)`, returning `None` on `OSError`,
+   `RuntimeError` or `ValueError`.
+2. Spec slugs at `:3854` join `(specs_dir / slug / "spec.md").resolve()` and check
+   `relative_to(specs_dir)` — **with a pre-join rejection of absolute paths and any `..`
+   part**. The docstring states why the pre-join check is not redundant: "resolve() alone
+   normalises traversal so the relative_to check would silently accept `foo/../bar`; the
+   pre-join rejection closes that gap." That is the same segment-boundary reasoning AC-0073
+   states for Studio's own readers, reached independently by the inspector's authors.
+3. Lifecycle-record locators at `:2125` join `(root / locator).resolve()` with **no**
+   `relative_to` confinement. This is fail-safe rather than a gap: the resulting set is
+   `cooled`, which `:378` describes as the set telling the inspector "which entries it may
+   **not** open", and `:1684` consumes it as a membership test that *suppresses* reading an
+   artifact's body. An escaping locator can therefore only add an out-of-root path to a
+   do-not-open list, which no in-root artifact path will ever match. It cannot cause a read
+   outside the root.
+
+**Question 2 — does its traversal follow symlinks? NO.** `workspace_status_engine.py:4266`
+walks with `os.walk(str(specs_dir), followlinks=False)`, and the comment two lines above
+records the reason: "os.walk(followlinks=False) prevents escaping the repo via symlinked dirs
+found DURING traversal (rglob follows symlinks on Python 3.11/3.12)." The same discipline
+recurs as explicit refusals — `record_path.is_symlink() or not record_path.is_file()` at
+`:2094`, and `.is_symlink()` guards at `:2078` and `:2151` — and `RuntimeError` is caught
+around `resolve()` specifically to survive circular symlinks.
+
+**Consequence for AC-0069, which the residual said depended on this answer.** The protection
+is now **doubly held**, and the residual's framing was the more pessimistic of the two. The
+pinned `core.symlinks=false` already guarantees no symbolic link exists anywhere under the
+materialization root — probed and asserted at `#t5-progress-2026-09-16` and by
+`materialization.test.ts` — so there is nothing for the inspector to follow; and independently
+the inspector does not follow links even where they exist. The correction to the residual's
+wording recorded at `#owner-decision-2026-09-16-cut-tree-bytes-bound` therefore stands
+reinforced rather than merely asserted.
+
+**Consequence for AC-0054.** The inspector's own traversal is self-confined by
+`resolve()` plus `relative_to`, with pre-join rejection of `..` and absolute paths on the one
+operand that reaches a file body. AC-0054 continues to scope the permitted read surface to the
+Runtime's declared-value reader and routes the inspector's traversal to AC-0069 and AC-0073
+for links and to the wall-clock and memory bounds for everything else; nothing in what was
+read requires that routing to change.
+
+**This closes the residual.** It asserted no confinement and fixed only where the questions
+would be answered; both are now answered against the recorded pin, before the inspector is
+used. Decision 2's remaining half — whether T6's plan section should carry a named
+confirmation bullet so that skipping it fails a gate — is unchanged and still belongs to the
+Package 3 amendment window, since T6's section cannot be edited outside an amendment path.
