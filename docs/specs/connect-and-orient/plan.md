@@ -626,23 +626,41 @@ order, places it before T12.
 - The ΔE2000 arm proves itself inline, per *Inline proof for risky mechanisms*:
  a discriminating positive (two hues whose separation is known to clear the
  bound) and a consequential negative (two hues that must fail it); a named case
- that reddens when the comparison is neutralised; the arm exercised through the
- real entry path over `tokens.css` rather than over literals alone; and the
- stated condition that retires it.
-- No file under a completed task's section changes; `approve-plan` still
- verifies the eleven pinned section hashes after this task runs.
+ that reddens when the comparison is neutralised; and the stated condition that
+ retires it. **The real-entry-path leg reads both theme blocks of `tokens.css`**
+ — the root block and the `prefers-color-scheme: dark` block — because AC-0120
+ binds in both themes, and an arm reading only the root block would satisfy
+ every other element of the proof while observing half the hue set.
+- The pinned completed-task section hashes still verify after this task runs.
+ That is the observable form of leaving completed sections alone: a plan section
+ owns text rather than files, so the hash is what a check can compare.
 
 **Open questions this task exists to close**, each with its enumerated options:
 
-1. **The ΔE2000 comparison set does not exist as hues.** `tokens.css` carries
- fourteen distinct colour tokens and none of the five families —
- artifact, review, execution, attention, inspection — appears among them; the
- four comparison families are prose vocabulary at `docs/product/design-system.md`.
- The *Inspection-family hue separation* row states its bound against hues that
- are not yet materialized. Options: derive the four families' representative
- hues from the existing tokens and record the mapping; introduce the four
- families as tokens alongside the inspection family; or kill, if no inspection
- hue clears the bound against a defensible mapping in both themes.
+1. **The ΔE2000 comparison set is only partly materialized.** No token is named
+ for a family, but two artifact-state members already carry hues in both
+ themes — `--color-proposal-surface`, `--color-proposal-border`,
+ `--color-accepted-surface` and `--color-accepted-border` correspond to the
+ *proposed* and *accepted* artifact states the design system enumerates. The
+ review and execution families carry no hue at all, and the inspection family
+ does not exist. So the bound is stated against a hue set that is materialized
+ for one comparison family and absent for two. Options: derive representative
+ hues for review and execution from the tokens already present and record the
+ mapping; or kill, if no defensible mapping exists or no inspection hue clears
+ the bound in both themes. **Minting product colour families is not an option
+ here** — it changes a task outcome and the design-system durable output, which
+ the durable-output map assigns to T12, so it exceeds the discovery predicate
+ and returns to the owner through the kill condition.
+
+ **A contract disagreement blocks this question and is recorded rather than
+ resolved.** The *Inspection-family hue separation* row names four comparison
+ families including attention; AC-0120 names three and excludes attention
+ explicitly, on the stated ground that a state renders its attention level
+ through weight, border and placement rather than an attention hue. A criterion
+ and the row it cites disagree about what is compared. Resolving it would move
+ an acceptance criterion, so it is a **kill**: T14 records it and the question
+ returns to the owner through the controlled amendment path. T14 derives no
+ mapping against a family set the contract has not settled.
 2. **No ΔE2000 generator exists.** Nothing in the repository computes it. The
  bound's value has exactly one home and must keep it, so the generator cites
  that home rather than restating the number. Options: a small local module
@@ -763,7 +781,9 @@ section carries only what this plan adds.
  repository legitimately using a symlink for `workspace.toml` inspects
  differently than it reads on disk; accepted because the alternative leaves
  the inspector's traversal unprotected.
-- T8 blocks on a human approval gate. Only T12 depends on it.
+- T8's protocol approval is recorded at
+ `notes/verification-ledger.md#owner-approval-2026-09-17-protocol-schema`, so it blocks
+ nothing further. T14 now holds the edge to T8, and T12 depends on T14.
 - One parser dependency is admitted at an untrusted-input boundary in a
  repository with no dependency scanner. The pin is exact; the gap is a
  recorded Follow-on. `yaml` was dropped from this slice for want of a caller,
@@ -785,6 +805,19 @@ to its core schema with custom tags disabled and its alias guard set to the
 bound in *Canonical values*.
 
 ## Changelog
+
+- 2026-09-17: **amendment addendum — a bounded discovery channel and an inline-proof
+ rule.** Authority at
+ `notes/verification-ledger.md#amendment-addendum-2026-09-17-discovery-channel-and-inline-proof`.
+ Both mechanisms landed through the **controlled amendment path**, not through the
+ channel they create: one rewires a dependency edge and the other adds verification
+ obligations, and the channel's own predicate forbids itself both. This entry is what
+ distinguishes a channel created by amendment from one that authorized itself — from
+ the plan alone, nothing else would. Adds `### T14`, a criteria-free discovery task on
+ T8's precedent, and rewires T12's dependency to it; the criteria roster is unchanged at
+ 156 with no residual, and all eleven pinned completed-task section hashes recompute
+ unchanged. Reviewed scoped over T14, T12 and T13 at round 27, which sustained one
+ Blocker and five Concerns, all applied here, and two Nits.
 
 - 2026-09-17: **contract amendment — the tree-bytes bound is cut and `/bin/ps`
  is admitted.** Two owner decisions, both blocking T5, deliberately **not**
