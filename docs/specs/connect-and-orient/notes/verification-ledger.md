@@ -2016,3 +2016,32 @@ contains `incomplete`, the phase enum is exactly the four progress rows, and the
 This stayed inside the approved Ask-first scope: it corrects definitions that approval admitted,
 and widens nothing. Recorded here because a contract defect introduced and repaired inside one
 session is exactly what this ledger exists to make visible.
+
+## t10-evidence
+
+**T10 — every state is honest about itself. Complete.** All fifteen criteria carry
+implementation and tests: AC-0086 to AC-0099 and AC-0138.
+
+| Criterion | Discharge |
+| --- | --- |
+| AC-0086 | The eleven user-visible states are derived as the union of both tables minus `ok`, not retyped, and every label is proven distinct |
+| AC-0087 | Each state's attention is asserted against the value its table assigns, state by state |
+| AC-0088 | All thirteen terminating criteria carry the table's human reason, and the reasons are proven distinct from one another |
+| AC-0089 | Every degraded state states what was looked for |
+| AC-0090 | Every degraded state states what was found instead |
+| AC-0091 | The approved plan stub is materialized byte-identical and passes. Attribution for `inspection-stopped` comes from the reason: all three attributions occur among its thirteen reasons, so no single per-state answer could have been projected |
+| AC-0092 | Retryability likewise varies by reason — `file-count` is "no" where `resolution-timeout` is "yes" — and every degraded state carries one |
+| AC-0093 | Each stop reason's attribution is asserted equal to the table's, and a Studio-attributed stop is proven not to name the repository |
+| AC-0094 | The `not-agent-ready` verdict is tied to `workspace_present` false, and the state names the workspace declaration it looked for and what it found |
+| AC-0095 | Every state offers exactly the two lead actions and no repository next action, asserted across all eleven |
+| AC-0096 | The rate-limited condition turns on whether the signal was recognised, never on the failure itself |
+| AC-0097 | A reported wait window is shown; where none was reported the surface says so, rather than omitting it |
+| AC-0098 | A credential-word predicate is swept across every string every state would show, and across every stop reason's copy. The predicate is proven non-vacuous against a real credential remedy |
+| AC-0099 | A protocol identifier is a separate `secondaryDiagnostic` field, so no copy path can reach it; the test asserts it is absent from every user-visible string |
+| AC-0138 | The absence proof, reusing T1's `instruction-shaped-text` case. The instruction is injected into every repository-derived field a result has, and the verdict, the status and the projected state are all identical to the control's. It travels only as a provenance-marked value |
+
+**AC-0138 landed here, as the plan said it would**, because this is the first task at which a
+verdict, a routing decision and a state all exist to be unchanged.
+
+**Gate state.** `pnpm lint` exit 0; `pnpm typecheck` exit 0; `pnpm test` exit 0 with **516 tests
+in 39 files**; `pnpm build` exit 0.
