@@ -19,13 +19,7 @@ const sourceInspectionResultSchema = z
     kind: z.literal("source-inspection"),
     sourceId: z.string().min(1),
     phase: z
-      .enum([
-        "unconnected",
-        "url-rejected",
-        "resolving",
-        "inspecting",
-        "incomplete",
-      ])
+      .enum(["unconnected", "url-rejected", "resolving", "inspecting"])
       .nullable(),
     verdict: z
       .enum(["agent-ready", "not-agent-ready", "no-verdict"])
@@ -38,6 +32,7 @@ const sourceInspectionResultSchema = z
       "source-rate-limited",
       "inspection-stopped",
       "cancelled",
+      "incomplete",
     ]),
     versionUnverified: z.boolean(),
     owner: z.string(),

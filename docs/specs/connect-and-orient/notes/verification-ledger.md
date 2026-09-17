@@ -1992,3 +1992,27 @@ both the Zod mirror with JSON-RPC code `-32602` and the canonical schema.
 
 **Gate state.** `pnpm lint` exit 0; `pnpm typecheck` exit 0; `pnpm test` exit 0 with **487 tests
 in 38 files**; `pnpm build` exit 0; `git diff --check` clean.
+
+## defect-2026-09-17-condition-enum-undercount
+
+**A defect this delivery introduced at T8, found at T10 and repaired before anything depended
+on it.** The `sourceInspectionResult` contract encoded **seven** condition values and filed
+`incomplete` among the progress rows. The *Condition axis* table has **eight** rows — the prose
+directly above it says "the eight condition values are mutually exclusive" — and *Progress and
+surface states* has four. `incomplete` (Interrupted by restart, caution, degraded, Studio,
+retryable) is a condition, not a progress state.
+
+The arithmetic is what exposed it. *User-visible states* is stated to be the union of both
+tables minus `ok`, and gives eleven rows. Seven conditions minus `ok` plus five progress rows is
+ten, not eleven; eight minus `ok` plus four is eleven. The undercount could not have survived
+that check, and the check did not exist.
+
+**Repaired at the generator, not the instance.** Both enums were corrected in the canonical
+schema and the Zod mirror, and three assertions were added that pin them to the tables rather
+than to the values a future edit happens to write: the condition enum has eight members and
+contains `incomplete`, the phase enum is exactly the four progress rows, and their union minus
+`ok` reconciles to eleven. The last one is the one that would have caught this originally.
+
+This stayed inside the approved Ask-first scope: it corrects definitions that approval admitted,
+and widens nothing. Recorded here because a contract defect introduced and repaired inside one
+session is exactly what this ledger exists to make visible.
