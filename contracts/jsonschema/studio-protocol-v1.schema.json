@@ -447,9 +447,9 @@
       "properties": {
         "kind": { "const": "source-inspection" },
         "sourceId": { "type": "string", "minLength": 1 },
-        "phase": { "oneOf": [{ "enum": ["unconnected", "url-rejected", "resolving", "inspecting", "incomplete"] }, { "type": "null" }] },
+        "phase": { "oneOf": [{ "enum": ["unconnected", "url-rejected", "resolving", "inspecting"] }, { "type": "null" }] },
         "verdict": { "oneOf": [{ "enum": ["agent-ready", "not-agent-ready", "no-verdict"] }, { "type": "null" }] },
-        "condition": { "enum": ["ok", "malformed", "inspector-unavailable", "source-unavailable", "source-rate-limited", "inspection-stopped", "cancelled"] },
+        "condition": { "enum": ["ok", "malformed", "inspector-unavailable", "source-unavailable", "source-rate-limited", "inspection-stopped", "cancelled", "incomplete"] },
         "versionUnverified": { "type": "boolean" },
         "owner": { "type": "string" },
         "repository": { "type": "string" },

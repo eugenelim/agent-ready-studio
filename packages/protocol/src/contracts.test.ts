@@ -296,3 +296,45 @@ describe("connect-and-orient protocol methods", () => {
     );
   });
 });
+
+describe("connect-and-orient result enums match the spec's tables", () => {
+  const properties = (
+    canonicalProtocolSchema as unknown as {
+      $defs: {
+        sourceInspectionResult: {
+          properties: {
+            condition: { enum: string[] };
+            phase: { oneOf: [{ enum: string[] }, unknown] };
+          };
+        };
+      };
+    }
+  ).$defs.sourceInspectionResult.properties;
+
+  it("carries all eight condition values", () => {
+    // The Condition axis table has eight rows. An earlier encoding of this
+    // contract carried seven and filed `incomplete` as a progress state, which
+    // is what this count exists to catch.
+    expect(properties.condition.enum).toHaveLength(8);
+    expect(properties.condition.enum).toContain("incomplete");
+  });
+
+  it("carries exactly the four progress and surface rows", () => {
+    expect(properties.phase.oneOf[0].enum).toEqual([
+      "unconnected",
+      "url-rejected",
+      "resolving",
+      "inspecting",
+    ]);
+  });
+
+  it("reconciles to the eleven user-visible states", () => {
+    // The User-visible states table is the union of both, minus `ok`.
+    const union = new Set([
+      ...properties.condition.enum.filter((value) => value !== "ok"),
+      ...properties.phase.oneOf[0].enum,
+    ]);
+
+    expect(union.size).toBe(11);
+  });
+});
