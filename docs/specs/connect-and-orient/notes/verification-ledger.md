@@ -1615,3 +1615,65 @@ both contract hashes are unchanged by either edit.
 at a one-minute load average of 34.83, obtained after the round-24 deletion — so the green run
 now sits on the current tree directly rather than carrying by construction from `6f86c30`. The
 two edits above are markdown-only and post-date it.
+
+## amendment-closed-2026-09-17
+
+**The narrow amendment is approved and the run is back in EXECUTE.** The owner approved both
+gates on 2026-09-17, authorizing the sequence explicitly rather than by inference, and the
+engine walked `spec-ready` → `reviewers-clean` → `spec-approved` → `plan-approved` →
+`plan-locked`, reaching `CODE-IMPLEMENTATION` at transition sequence 51. New pins:
+`approved_spec_hash=2473869de61f…`, `approved_plan_hash=8d564e2b677f…`. `amendment_pending`
+is cleared and `amendment_history` carries three entries. All three retry counters are still
+**0** after five review rounds, because pre-EXECUTE rounds consume no budget.
+
+The schedule rebuilt to `[[T5],[T6],[T7],[T8,T9],[T10],[T11],[T12],[T13]]` with T1 through T4
+excluded as completed and pinned, so T5 is again the current wave at index 0.
+
+**A guard caught a protocol violation, and the revert was also the substantively right
+answer.** `approve-plan` refused with "completed task section changed: T4". Round 23's repair
+had edited the AC-0024 assertion bullet inside **T4's plan section**, which this amendment's
+own transition had pinned — the adjudication directed the edit at `plan.md:259` without either
+of us noticing the line sits inside a pinned task. The bullet is restored to its pinned text,
+byte-identical, and the fix lives only in AC-0024 itself, where the obligation belongs.
+
+That is not merely a procedural retreat. Round 25's secure-design review established the
+implemented assertion iterates the **merged** audit array — the Service-side probe set
+concatenated with the child's records at `runtime-supervisor.ts:512` — so it asserts over a
+**superset** of the trial tree, and "asserting over the superset discharges the narrowed
+criterion a fortiori". T4's original bullet therefore describes what T4 actually implemented
+and verified, while the narrowed wording would have described something weaker than the
+delivered assertion. The criterion is narrowed; the test is not.
+
+**The status line is excluded from the canonical contract hash**, verified directly: setting
+spec.md from `Approved` to `Implementing` leaves `sha256_canonical_contract` at
+`2473869de61ff113`. So the EXECUTE status write cannot disturb a fresh pin, which is worth
+recording because the reverse would have made the two obligations contradictory.
+
+## t5-evidence
+
+**T5 — materialization is confined, measured, and disposable. Complete.** All fifteen criteria
+carry implementation and tests: AC-0069 through AC-0083.
+
+| Criterion | Discharge |
+| --- | --- |
+| AC-0069 | Link neutralization by the pinned `core.symlinks=false`, asserted over a fixture carrying `escape -> ../../outside`: no symbolic link remains anywhere under the root, and that path is a regular file holding the literal target string |
+| AC-0070 | The state root is reserved by `mkdtemp` at `0700` inside the verified domain, its `tree` child is the materialization root, and the marker is the tree's sibling |
+| AC-0071 | The sweep domain reaches the Runtime as `--sweep-domain`, read by name, and echoed on the `started` line so the assertion is against what the Runtime read |
+| AC-0072 | Verified on every use; fails closed on absent, link, non-directory, foreign owner and permissive mode |
+| AC-0073 | Containment on resolved real paths at a path-segment boundary; a sibling extending the root and an escaping link are both refused |
+| AC-0074 | Directory and FIFO refused; a device reached through a contained link refused on containment first |
+| AC-0075 | Size checked before the open; at-bound admitted, one byte over refused |
+| AC-0076 | The removal walk `lstat`s at every level and unlinks a link rather than descending it, proven by a link planted at depth whose target survives |
+| AC-0077 | The group is gone after the response; nothing outlives it |
+| AC-0078 | Distinct unpredictable roots per request, and the first is gone before the second exists |
+| AC-0079 | Removal on success, on failure and on `SIGTERM`; the signal test requires the disposal line to name `SIGTERM`, so the signal path is proven to have run rather than merely inferred |
+| AC-0080 | Marker created exclusively and written once before any other child, removed last, kept if anything survived. The encoding property is proven over **every** prefix of the write |
+| AC-0081 | All three limbs, the entry gate, the live-process refusal, both age gates and every decline route |
+| AC-0082 | The Service invokes the sweep; the Runtime performs it, because reclaiming descends `tree`. The sweep line appears in the child's protocol stream, which is the structural proof |
+| AC-0083 | Declines and removal failures both surface, naming limb and input class, carrying no repository-derived payload |
+
+**Measurements** at `#t5-measurements-2026-09-16`, with the methodology corrections that took
+three attempts to get right. **Done-when** is satisfied on all four limbs: `pnpm verify` exit
+0 with 343 tests in 33 files; the four measurements recorded; the one surviving pass bar met
+at 874–1,437 files per interval against 5,000; and the write-throughput measurement recorded
+as the failing evidence that cut the tree-bytes bound rather than as a bar to be met.

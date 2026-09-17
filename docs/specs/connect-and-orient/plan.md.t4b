@@ -1,0 +1,51 @@
+### T4: The process tree runs under a pinned vector and environment
+
+**Depends on:** T3
+
+**Tests:**
+- Child PID differs; the service opens no materialized path.
+- Every descendant's environment equals the allowlist name-to-value, asserted
+ over every process Studio's own code starts. `GIT_CONFIG_PARAMETERS` on a
+ helper `git` re-executes is **not** asserted here: reaching a helper needs an
+ https endpoint AC-0148 forbids, so AC-0024's helper clause is T13's smoke.
+- The descendant executable set is within the permitted row on two legs — the
+ group sampled from the parent, and the exhaustive record of Studio's own
+ spawns. The interpreter probe is observed through that record rather than by
+ sampling, because one `ps` read costs longer than the probe lives. The
+ `git-remote-https` helper is not reachable without a network endpoint and is
+ T13's smoke.
+- The Studio Service admits at most one trial inspection in flight, refusing a
+ second concurrent request while one runs (AC-0154, admission limb). This is
+ what the *Live in-flight sweep-domain occupancy* row rests on; that row, not
+ this bullet, states what the bound covers.
+- Both identity probes run under the pinned environment.
+- The Studio Service signals the child's process group when the child
+ terminates without a completed response (AC-0154, first trigger).
+- The Studio Service signals the child's process group when the child neither
+ responds nor terminates within the Service-held in-flight bound (AC-0154,
+ second trigger). Distinct from AC-0029 and AC-0030, which assert that no
+ descendant survives a signal the Runtime itself sends.
+- Covers AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0154.
+
+**Red stub** (`stub: true`):
+
+```ts
+it("AC-0023 pins every descendant's environment", async () => {
+ const out = await runTrialRuntime({ request: validRequest(), echoEnvTree: true });
+ expect(out.observedEnvByPid.size).toBeGreaterThan(1);
+ for (const env of out.observedEnvByPid.values()) expect(env).toEqual(expectedEnv());
+});
+```
+
+**Approach:** child entrypoint, argv builder carrying the pinned configuration,
+process-tree observer in the parent. Observing a live group needs a descendant
+that outlives nothing else, so the Runtime starts two only when a hold is
+requested through an injected option production never sets, following T3's
+injected-transport precedent: a `git cat-file --batch` held by its stdin pipe,
+and the resolved interpreter held by a timer. The second exists because a
+pipe-held descendant dies with the Runtime, which makes "the group was
+signalled" indistinguishable from "the Runtime took its pipes with it".
+
+**Done when:** `pnpm verify` is green and AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0154 hold.
+
+### T5: Materialization is confined, measured, and disposable
