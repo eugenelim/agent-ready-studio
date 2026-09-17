@@ -2256,3 +2256,43 @@ is stated.
 
 Recorded because a review of this amendment is expected to ask whether protection narrowed, and
 the answer should rest on the diff rather than on the reviewer's or the author's account of it.
+
+## review-round-26-security-2026-09-17
+
+**The secure-design half of round 26 is adjudicated CLEAN. Five findings raised, five refuted,
+none sustained, none indeterminate.** Artifacts at
+`.context/reviews/f87c797b-8bed-46c2-96fd-e8d22fb8eb3d/26-pre-execute-security-reviewer-{raw,adjudication}.md`,
+raw `sha256:deb7e2ab…`, adjudication `sha256:eea23c3e…`. The raw report carried 0 Blockers,
+3 Concerns and 2 Nits; none survived.
+
+**The question the review was dispatched to answer is answered: the amendment weakens neither
+control.** The two refutations that carry that answer:
+
+- **The derivation clause was moved, not deleted.** Finding 1 read the *Never do* bullet losing
+  "including one Studio constructs from such a value" as a lost sink. The bullet never carried
+  the clause as contract — AC-0116 did, and the clause moved into the row AC-0116 cites, so the
+  Studio-derived commit link is still reached, now by both obligations rather than one.
+- **The new class item takes nothing out of the repository-derived scope.** Finding 2 read
+  `inspector-authored` as moving a child's mixed diagnostic text out of AC-0039 and AC-0104's
+  reach. AC-0039 defines repository-derived by **content origin** and was untouched; the
+  non-originated class is a superset, so membership in it asserts nothing about non-membership
+  in the narrower scope. The implementation agrees: `inspectorDiagnostics` — the echoed channel
+  the finding named — is still `repository-derived`; only the inspector's own output-contract
+  string takes the new marker. No single-class escape from AC-0104 is created.
+
+Both conclusions match the independent probe at `#probe-2026-09-17-class-membership-is-strictly-widened`,
+which compared the enumeration across the diff and found every prior member surviving. The probe
+was run before adjudication returned, precisely so the answer would rest on the diff rather than
+on any agent's account of it.
+
+Two refutations record a residue worth naming without acting on it. Finding 3 leaves a
+contract-completeness argument about AC-0039's scope for the transport-reported item that
+**predates this amendment** and whose remedy widens an obligation — an owner question, not a
+determined repair. Finding 5 named the absent `docs/architecture/security.md`; the *Follow-ons*
+section already records that absence and the absent dependency scanner as accepted maintainer
+items, so the condition is accepted rather than unnoticed and is not this amendment's defect.
+
+**Round 26 therefore satisfies the review exit condition on both mandatory reviewers**: the
+adversarial half carries four deferred Nits with citations and no unresolved Blocker or Concern,
+and the security half is adjudicated clean. Pre-EXECUTE rounds call no `review record` and
+consume no retry budget; all three counters remain 0 after twenty-six rounds.
