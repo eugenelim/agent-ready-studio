@@ -1,4 +1,11 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -125,5 +132,63 @@ describe("AC-0078 no data from one request is readable by a later one", () => {
     expect(second.stateRoot.materializationRoot).not.toBe(
       first.stateRoot.materializationRoot,
     );
+  });
+});
+
+describe("AC-0082 the Service invokes the sweep without performing it", () => {
+  /** An abandoned root: marked, but naming a process that is not running. */
+  function abandonedRoot(name: string): string {
+    const root = join(sweepDomain, name);
+    mkdirSync(root, { mode: 0o700 });
+    writeFileSync(
+      join(root, ".studio-ownership.json"),
+      `${JSON.stringify({
+        schema: 1,
+        pid: 99998,
+        startTime: "Wed Sep  9 08:15:07 2026",
+      })}\n`,
+    );
+    // Content under the tree child, so reclaiming it requires descending into a
+    // materialization root -- which is exactly what the Service must not do.
+    mkdirSync(join(root, "tree"), { mode: 0o700 });
+    writeFileSync(join(root, "tree", "workspace.toml"), "x=1\n");
+    chmodSync(root, 0o700);
+    return root;
+  }
+
+  it("reclaims an abandoned root, and the sweep runs in the Runtime", async () => {
+    const abandoned = abandonedRoot("abandoned-one");
+    expect(existsSync(abandoned)).toBe(true);
+
+    const record = await run("disposal-0007");
+
+    // The sweep line is in the *child's* protocol stream, which is the
+    // structural proof the Service invoked it rather than performed it: the
+    // Service only passed --sweep-domain and the flag.
+    const swept = record.protocolLines.find((line) => line.type === "sweep");
+    expect(swept).toBeDefined();
+    expect(swept?.domain).toBe(sweepDomain);
+
+    // Limb 1: a marker naming no live process, reclaimed without an age gate.
+    const outcomes = (swept?.outcomes ?? []) as Record<string, unknown>[];
+    expect(outcomes).toContainEqual(
+      expect.objectContaining({
+        name: "abandoned-one",
+        action: "reclaimed",
+        limb: 1,
+        removed: true,
+      }),
+    );
+    expect(existsSync(abandoned)).toBe(false);
+  });
+
+  it("never reclaims the root of the inspection that invoked it", async () => {
+    const record = await run("disposal-0008", { retainStateRoot: true });
+    const swept = record.protocolLines.find((line) => line.type === "sweep");
+    const outcomes = (swept?.outcomes ?? []) as Record<string, unknown>[];
+    const ownName = record.stateRoot.stateRoot.slice(sweepDomain.length + 1);
+    expect(outcomes.map((outcome) => outcome.name)).not.toContain(ownName);
+    expect(existsSync(record.stateRoot.stateRoot)).toBe(true);
+    rmSync(record.stateRoot.stateRoot, { recursive: true, force: true });
   });
 });

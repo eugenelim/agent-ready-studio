@@ -12,6 +12,7 @@ import {
 import { pinnedGitConfigurationArgs } from "./git-driver.js";
 import {
   HOME_CHILD_NAME,
+  MARKERLESS_RECLAIM_AGE_MS,
   MATERIALIZATION_CHILD_NAME,
   OWNERSHIP_MARKER_NAME,
   type PerRequestStateRoot,
@@ -92,6 +93,10 @@ export interface TrialInspectionOptions {
   readonly descendantHoldMs?: number;
   /** Keeps the state root on disk so a test can read it. Production never sets it. */
   readonly retainStateRoot?: boolean;
+  /** Invokes the Runtime sweep of the domain. Defaults to true (AC-0082). */
+  readonly sweepOnStart?: boolean;
+  /** Overrides the markerless-reclaim age, so a test need not wait an hour. */
+  readonly markerlessReclaimAgeMs?: number;
   /** Holds the Runtime open after its work, so the parent can signal it. */
   readonly holdMs?: number;
   readonly childEntry?: string;
@@ -286,6 +291,12 @@ export function beginTrialInspection(
     initializeMaterialization: options.initializeMaterialization ?? true,
     inspectionDeadlineMs:
       options.inspectionDeadlineMs ?? INSPECTION_DEADLINE_MS,
+    markerlessReclaimAgeMs:
+      options.markerlessReclaimAgeMs ?? MARKERLESS_RECLAIM_AGE_MS,
+    // AC-0082: the Service invokes the sweep. It does not perform it, because
+    // reclaiming a root means descending its `tree` child, and the Service
+    // opens no path under a materialization root.
+    sweepOnStart: options.sweepOnStart ?? true,
     ...(descendantHoldMs === undefined ? {} : { descendantHoldMs }),
     ...(options.holdMs === undefined ? {} : { holdMs: options.holdMs }),
     ...(options.retainStateRoot === undefined
