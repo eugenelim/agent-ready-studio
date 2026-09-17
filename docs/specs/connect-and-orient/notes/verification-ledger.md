@@ -1195,3 +1195,33 @@ outcomes that the previous decisions established, and the changelog should say s
 rather than let the pattern look unbroken. The justification is that the alternative routes
 all spend their cost on the spec's most perturbation-prone text, which is the more expensive
 place to spend it.
+
+## amendment-2026-09-16-bound-cut-and-ps
+
+**The owner authority for a narrow contract amendment, scoped deliberately.** It carries
+exactly two decisions, both of which block T5 and neither of which can wait for the renderer
+and result-composition amendment:
+
+- **Decision 5**, cut the materialized tree-bytes bound —
+  `#owner-decision-2026-09-16-cut-tree-bytes-bound`. Forced by the measurement at
+  `#t5-measurements-2026-09-16`, where the realistic writer exceeded the 128 MiB pass bar by
+  between 1.6× and 3.5× and the spec's own rule makes that a bound failure.
+- **Decision 6**, admit `/bin/ps` as a permitted executable —
+  `#owner-decision-2026-09-16-admit-ps`. Forced by the defect at
+  `#defect-2026-09-16-runtime-spawns-ps`, which violates AC-0025 on both its legs.
+
+**Package 3 is deliberately NOT in this amendment.** The renderer and result-composition
+taxonomy, the four decisions batched into it, and the five deferred Nits all stay in their
+planned slot before T12, which is six waves away. The owner chose the narrow scope over
+batching: the last amendment of the larger shape generated four of its own blockers across
+five review rounds, and the deferred Nits exist precisely because that kept recurring.
+Splitting costs a second pass through the human gates and touches the *Resource bounds* table
+twice, but on different rows — *Materialized tree bytes* here, *Persisted repository-derived
+content* there — so the two edits do not overlap.
+
+**What this amendment changes, in full.** The *Materialized tree bytes* row and every surface
+citing it, enumerated at `#owner-decision-2026-09-16-cut-tree-bytes-bound`; the removal of
+AC-0050, taking the criteria count from 157 to 156 and adding that identifier to the
+never-reuse list; the rebinding of the T1 corpus case that names it; and the
+*Permitted executables* row gaining `/bin/ps`. AC-0080 and AC-0081 are **not** touched by
+either decision, which was the deciding factor in decision 6.
