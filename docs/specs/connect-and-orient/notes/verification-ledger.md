@@ -1437,3 +1437,26 @@ widening the environment allowlist, which *Boundaries* routes to Ask first, and 
 of the two criteria this amendment was shaped to avoid touching. Nothing is blocked on it: the
 finding is a Nit, the amendment may proceed to its human gates carrying it, and the hazard
 needs a host zone change inside a 150-second window with two live Runtimes to reach.
+
+## t5-verification-debt-cleared-2026-09-17
+
+**The owed full run was obtained.** `pnpm verify` **exit 0** at a one-minute load average of
+40.77 on the 10-core host: **343 tests in 33 files**, biome clean over **89 files**, and
+`pnpm lint`, `pnpm typecheck` and `pnpm build` all green within it. `git diff --check` 0,
+`lint-contract-item-alignment` 0 findings, and `spec-coupling-check` exit 1 on **exactly the
+one known AC-0104 row**, which belongs to Package 3.
+
+This closes the debt recorded at `#review-round-22-2026-09-17`. Worth noting against the
+contention analysis there: the suite passed at load 41, having failed at load 23 to 24 earlier
+the same day, which confirms the failures tracked *what else the host was doing* rather than
+any threshold in the load average itself — several concurrent agent sessions with bursty
+process-spawning phases, not a steady level. The practical rule for the next session is to
+re-run rather than investigate a red suite whose failure set varies, and to judge a red run
+only when the same tests fail twice in isolation.
+
+The mutation proof that round 23's secure-design reviewer ran is recorded here because it is
+the strongest evidence in this amendment: **deleting the `recordSpawn` call in
+`runtime-child.ts` turns the AC-0025 test red** with "expected undefined to be defined",
+against a green baseline, and the worktree was left clean. Round 22's finding 6 asked for a
+leg that could fail, and the leg now fails when the obligation is removed rather than passing
+incidentally.
