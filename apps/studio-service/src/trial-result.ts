@@ -50,6 +50,14 @@ export type Condition =
 export type Provenance =
   | "repository-derived"
   | "transport-reported"
+  /**
+   * Text authored by a pinned third-party executable — the trusted inspector's
+   * own prose, and a child process's own diagnostic text. Added to the
+   * *Non-originated value* class by the Package 3 amendment, because the class
+   * head covers every value whose bytes Studio did not produce and these were
+   * left unassigned by the three-item enumeration.
+   */
+  | "inspector-authored"
   | "studio-produced";
 
 export interface Provenanced<Value> {
@@ -226,11 +234,14 @@ export function normalizeTrialResult(
         "repository-derived",
       ),
       declaredVersionMarker: provenanced(declared, "repository-derived"),
+      // The inspector reports this for its own output contract, so its bytes
+      // are the inspector's, not Studio's. It is non-originated without being
+      // repository-derived, which is the gap the amended class now closes.
       inspectorContractVersion: provenanced(
         isString(raw.inspectorContractVersion)
           ? raw.inspectorContractVersion
           : null,
-        "studio-produced",
+        "inspector-authored",
       ),
       removalOutcome: raw.removalOutcome,
       verdict: deriveVerdict(

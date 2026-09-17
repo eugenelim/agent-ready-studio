@@ -263,7 +263,7 @@ describe("AC-0104 persisted repository-derived content is bounded", () => {
       provenance: {
         diagnostics: "repository-derived",
         declaredVersionMarker: "repository-derived",
-        inspectorContractVersion: "studio-produced",
+        inspectorContractVersion: "inspector-authored",
         resolvedSha: "transport-reported",
         requestedRef: "repository-derived",
       },
