@@ -22,6 +22,7 @@ import {
   mkdirSync,
   openSync,
   readdirSync,
+  readFileSync,
   rmdirSync,
   unlinkSync,
   writeSync,
@@ -43,6 +44,10 @@ interface RuntimeChildPlan {
   readonly minimumInterpreterVersion: readonly [number, number];
   readonly initializeMaterialization: boolean;
   readonly inspectionDeadlineMs: number;
+  /** *Resource bounds*, *Markerless-reclaim age*. Delivered, not duplicated. */
+  readonly markerlessReclaimAgeMs: number;
+  /** Whether the Service is invoking the sweep on this inspection (AC-0082). */
+  readonly sweepOnStart?: boolean;
   readonly holdMs?: number;
   /**
    * Keeps the per-request state root on disk after the response, so a test can
@@ -94,17 +99,27 @@ const materializationRoot = join(plan.stateRoot, plan.materializationChildName);
  * It names *this* process, which is what ties reclaim to the request's lifetime
  * rather than the Service's.
  */
+function processStartTime(pid: number): string | null | undefined {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return undefined;
+  }
+  const read = spawnSync("/bin/ps", ["-o", "lstart=", "-p", String(pid)], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const out = (read.stdout ?? "").trim();
+  if (read.status === 0) {
+    return out === "" ? null : out;
+  }
+  // A non-zero exit with nothing on either stream is a determination that the
+  // process is absent. Anything on stderr means the comparison could not be
+  // made, which the sweep must treat as a decline rather than an absence.
+  return out === "" && (read.stderr ?? "").trim() === "" ? null : undefined;
+}
+
 function claimStateRoot(): void {
-  const started = spawnSync(
-    "/bin/ps",
-    ["-o", "lstart=", "-p", String(process.pid)],
-    {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-  const startTime = (started.stdout ?? "").trim();
-  if (started.status !== 0 || startTime === "") {
+  const startTime = processStartTime(process.pid);
+  if (typeof startTime !== "string" || startTime === "") {
     throw new Error(`the Runtime's own start time could not be read`);
   }
   const marker = { schema: 1, pid: process.pid, startTime };
@@ -144,7 +159,7 @@ function claimStateRoot(): void {
  * cannot import a sibling module, which is why the names it needs travel in the
  * plan.
  */
-function removeStateRoot(): boolean {
+function removeRoot(root: string): boolean {
   let intact = true;
   const removeEntry = (path: string): void => {
     let status: ReturnType<typeof lstatSync>;
@@ -172,11 +187,11 @@ function removeStateRoot(): boolean {
     }
   };
 
-  const markerPath = join(plan.stateRoot, plan.ownershipMarkerName);
+  const markerPath = join(root, plan.ownershipMarkerName);
   try {
-    for (const name of readdirSync(plan.stateRoot)) {
+    for (const name of readdirSync(root)) {
       if (name !== plan.ownershipMarkerName) {
-        removeEntry(join(plan.stateRoot, name));
+        removeEntry(join(root, name));
       }
     }
   } catch {
@@ -186,12 +201,155 @@ function removeStateRoot(): boolean {
     return false;
   }
   try {
-    unlinkSync(markerPath);
-    rmdirSync(plan.stateRoot);
+    if (existsSync(markerPath)) {
+      unlinkSync(markerPath);
+    }
+    rmdirSync(root);
   } catch {
     return false;
   }
   return true;
+}
+
+/**
+ * AC-0081 and AC-0083, performed here rather than in the Service.
+ *
+ * AC-0082 says the Studio Service *invokes* the sweep, and the boundary says
+ * the Service opens no path under a materialization root. Reclaiming a root
+ * means descending its `tree` child to remove it, so the sweep has to run on
+ * this side of the boundary; the Service's invocation is the `--sweep-domain`
+ * argument and the flag in the plan. This mirrors `sweep.ts` for the same
+ * reason disposal does: the child cannot import a sibling module.
+ */
+function sweep(domain: string): void {
+  let names: string[];
+  try {
+    names = readdirSync(domain);
+  } catch (cause) {
+    diagnostic(`sweep domain could not be listed: ${cause}`);
+    return;
+  }
+  const uid = process.getuid?.();
+  const now = Date.now();
+  const outcomes: Record<string, unknown>[] = [];
+
+  for (const name of names) {
+    const candidate = join(domain, name);
+    if (candidate === plan.stateRoot) {
+      continue; // our own root, held by the marker we just wrote
+    }
+    let status: ReturnType<typeof lstatSync>;
+    try {
+      status = lstatSync(candidate);
+    } catch {
+      continue;
+    }
+    // The entry gate, observed without following a link.
+    if (
+      status.isSymbolicLink() ||
+      !status.isDirectory() ||
+      (uid !== undefined && status.uid !== uid) ||
+      (status.mode & 0o777) !== 0o700
+    ) {
+      continue;
+    }
+
+    // The marker read carries the candidate's own discipline: no link, no
+    // non-regular file.
+    const markerPath = join(candidate, plan.ownershipMarkerName);
+    let marker: { pid?: unknown; startTime?: unknown } | undefined;
+    let markerPresent = false;
+    try {
+      const markerStatus = lstatSync(markerPath);
+      markerPresent = true;
+      if (!markerStatus.isSymbolicLink() && markerStatus.isFile()) {
+        marker = JSON.parse(readFileSync(markerPath, "utf8"));
+      }
+    } catch {
+      // Absent leaves `markerPresent` false; unusable leaves `marker` undefined.
+    }
+    const pid = marker?.pid;
+    const startTime = marker?.startTime;
+    const complete =
+      typeof pid === "number" &&
+      Number.isInteger(pid) &&
+      pid > 0 &&
+      typeof startTime === "string" &&
+      startTime !== "";
+
+    if (complete) {
+      // Limb 1 carries no age gate.
+      const live = processStartTime(pid as number);
+      if (live === undefined) {
+        outcomes.push({
+          name,
+          action: "declined",
+          limb: 1,
+          inputClass: "process-liveness",
+        });
+        continue;
+      }
+      if (live !== null && live === startTime) {
+        continue; // a live process owns it
+      }
+      outcomes.push({
+        name,
+        action: "reclaimed",
+        limb: 1,
+        removed: removeRoot(candidate),
+      });
+      continue;
+    }
+
+    // Limbs 2 and 3, both gated on the candidate's own modification time.
+    const limb = markerPresent ? 2 : 3;
+    const modifiedAt = status.mtimeMs;
+    if (!Number.isFinite(modifiedAt)) {
+      outcomes.push({
+        name,
+        action: "declined",
+        limb,
+        inputClass: "candidate-modification-time",
+      });
+      continue;
+    }
+    if (modifiedAt > now) {
+      outcomes.push({
+        name,
+        action: "declined",
+        limb,
+        inputClass: "clock-moved",
+      });
+      continue;
+    }
+    if (now - modifiedAt <= plan.markerlessReclaimAgeMs) {
+      continue; // younger than the reclaim age
+    }
+    if (limb === 3) {
+      try {
+        if (readdirSync(candidate).length > 0) {
+          continue; // markerless and not empty
+        }
+      } catch {
+        continue;
+      }
+    }
+    outcomes.push({
+      name,
+      action: "reclaimed",
+      limb,
+      removed: removeRoot(candidate),
+    });
+  }
+
+  protocol({ type: "sweep", domain, outcomes });
+  for (const outcome of outcomes) {
+    if (outcome.action === "declined") {
+      diagnostic(
+        `declined reclaim of ${outcome.name}: limb ${outcome.limb} could not read or compare ${outcome.inputClass}`,
+      );
+    }
+  }
 }
 
 /**
@@ -400,6 +558,10 @@ async function main(): Promise<void> {
   }, plan.inspectionDeadlineMs);
   deadline.unref();
 
+  if (plan.sweepOnStart !== false && sweepDomain !== undefined) {
+    sweep(sweepDomain);
+  }
+
   const interpreter = resolveInterpreter();
   protocol({ type: "interpreter", ...interpreter });
 
@@ -465,7 +627,7 @@ function dispose(reason: string): void {
     protocol({ type: "disposed", reason, removed: false, retained: true });
     return;
   }
-  const removed = removeStateRoot();
+  const removed = removeRoot(plan.stateRoot);
   protocol({ type: "disposed", reason, removed });
   if (!removed) {
     // AC-0083's discipline: a removal that did not complete is never silent.

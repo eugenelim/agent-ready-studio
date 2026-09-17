@@ -1062,3 +1062,75 @@ a contract amendment and cannot be made by editing the pinned bodies directly; i
 natural companion to Package 3, which already has to touch the same *Resource bounds* table
 for decision 1. Doing both in one amendment costs one cycle through the human gates rather
 than two.
+
+## defect-2026-09-16-runtime-spawns-ps
+
+**A defect this session introduced, found before T5 was declared complete, and not yet
+fixed.** The trial Runtime spawns `/bin/ps` to read a process start time — once in
+`claimStateRoot` for its own marker, and once per complete-marker candidate in the sweep's
+first limb. That violates AC-0025 on **both** of the legs the criterion names.
+
+1. **`/bin/ps` is not a permitted executable.** The *Permitted executables* row admits four
+   things: the resolved `git` binary, anything `git` re-executes from the recorded exec-path
+   directory, a Python interpreter at an enumerated search-list path, and the Runtime's own
+   Node process. `ps` is none of them, and it is started inside the trial process group.
+2. **The spawns bypass the audit.** AC-0025's second leg is "the exhaustive record of every
+   spawn Studio's own code performs". These calls use a bare `spawnSync` and never reach
+   `recordSpawn`, so the record is no longer exhaustive and the leg no longer means what it
+   claims.
+
+**The tests do not catch it, and that is the instructive part.** A `ps` invocation lives
+roughly 20 ms, well under the ~50 ms floor at which the sampler can observe a process at all,
+as recorded at `#probe-2026-09-15-process-boundary`. So the sampled leg cannot see it. The
+audit leg exists precisely to cover what sampling misses — and the defect routes around that
+leg rather than tripping it. AC-0025's two-leg construction is sound; this implementation
+defeated it.
+
+**Where it is.** `runtime-child.ts`, the `processStartTime` helper. It reached the branch in
+`b18c273` with the marker write and is already pushed; the sweep in the working tree extends
+the same dependency to one call per candidate.
+
+**Why it is not fixed here.** Every route out is a contract change, and three of the four
+touch AC-0080 or AC-0081 — the two criteria rewritten in four consecutive review rounds and
+the most perturbation-prone text in the spec. Choosing among them is an owner decision, not
+an implementation detail, so it is raised at
+`#open-owner-decision-2026-09-16-runtime-liveness-mechanism` rather than settled here.
+
+## open-owner-decision-2026-09-16-runtime-liveness-mechanism
+
+**A sixth owner decision, raised by the defect above and not decided here.** AC-0080 has the
+Runtime write a marker naming "the owning process and its start time", and AC-0081's first
+limb reclaims a candidate whose "recorded process and start time do not match a live
+process". On this platform there is no `/proc`, so a process's start time — its own or
+another's — cannot be read without an external inspector, and the only one available is not a
+permitted executable.
+
+**Routes, none recommended here.**
+
+- **Admit `ps`.** Add it to *Permitted executables* and route the calls through the spawn
+  audit. Smallest edit, and it makes the audit honest again. It widens the Runtime's spawn
+  surface, which every prior owner decision on this spec declined to do, and it lets code
+  inside the trial boundary enumerate processes outside it.
+- **Replace start time with an advisory lock.** A live Runtime holds an exclusive `flock` on
+  its own marker; the operating system releases it when the process dies, so liveness becomes
+  "can this lock be acquired". No spawn, and it defeats pid reuse without needing a start
+  time at all. It is the standard mechanism for this problem, and it rewrites AC-0080's and
+  AC-0081's stated mechanism — the most fragile text in the spec.
+- **Split the sweep across the boundary.** The child computes its *own* start time in-process
+  as `Date.now() - process.uptime() * 1000`, needing no spawn; the Service classifies
+  candidates, which it may do because a marker is a sibling of `tree` rather than under it,
+  and the child performs the removals. No new executable and no change to AC-0080's
+  substance, but the two clocks must be reconciled with a tolerance that weakens the pid-reuse
+  defence, and it strains AC-0081's "a **Runtime** sweep" and AC-0082's "the Service
+  **invokes** the sweep".
+- **Cut the first limb.** Reclaim on age alone. A live root is already protected by the
+  one-hour age gate against a 150 s maximum supervised window, so nothing in use is
+  endangered; the cost is that an abandoned root waits an hour instead of being reclaimed
+  promptly. This is the cut-a-control route the other decisions have consistently taken, and
+  it removes the liveness comparison that created the problem.
+
+**Scope note.** The fourth route interacts with decision 5: both remove machinery rather than
+add it, and both touch *Resource bounds* or the criteria that cite it, so they belong in the
+same amendment. The second and third routes would make AC-0080 and AC-0081 the subject of a
+fifth consecutive rewrite, which the round-trajectory evidence at
+`#pre-execute-review-closure-2026-09-16` argues strongly against.
