@@ -1307,3 +1307,37 @@ why the question is worth settling deliberately rather than by an incidental edi
 adversarial findings is invalid, and the rule forbids extracting its decidable findings. The
 replacement is a **complete** re-adjudication over the unchanged round-21 raw findings, filed
 as round 22, and it cannot be dispatched until this question has an answer to apply.
+
+## owner-decision-2026-09-17-environment-scope
+
+**Decision 7, decided 2026-09-17: scope both obligations to the trial tree.** The owner chose
+the first route offered at `#open-owner-decision-2026-09-17-environment-scope`, over binding
+every process Studio's own code starts, and over splitting construction from audit. It ends
+the terminal stop recorded at `#review-round-21-terminal-stop-2026-09-17`.
+
+**What it settles.** AC-0023's environment obligation and AC-0025's spawn-audit leg both bind
+**the Runtime child and every process in its descendant tree**, and nothing outside it. The
+Studio Service's own parent-side process-tree observer is therefore outside both, and its
+`ps` reads at `process-tree-observer.ts:202` and `:237` are conforming rather than
+violations.
+
+**The ground.** The narrow reading is what the *Environment allowlist* preamble at
+`spec.md:95` already states, and it matches the threat model the two criteria exist to serve:
+the trial tree is where attacker-influenced repository data is processed, and the Service's
+observer processes none of it. The universal alternative would also have bought no
+containment it does not already have — the observer's whole function is to read *other*
+processes' environments, so rebuilding its own changes nothing an attacker could reach — while
+changing T4's delivered behaviour after T4 was pinned by this amendment's own transition.
+
+**What follows, and it is a defect rather than a no-op.** AC-0023 at `spec.md:415` currently
+quantifies over "Every process Studio spawns", which this decision makes **wrong text**: the
+criterion now says more than it means, and it contradicts the preamble two sections above it.
+Narrowing that quantifier is a required repair in this amendment, not an optional
+clarification. AC-0025's second leg needs the same scoping made explicit where it says
+"every spawn Studio's own code performs".
+
+**Sequencing note.** This decision is recorded before the spec text is touched, deliberately.
+The replacement adjudication for round 21 must judge the **same tree the reviewers read**, so
+the authority is filed first and every repair — this narrowing included — lands in one pass
+after that adjudication returns. Editing the criterion first would shift the line numbers the
+round-21 findings cite and would refute findings for the wrong reason.
