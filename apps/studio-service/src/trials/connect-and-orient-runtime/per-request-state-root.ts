@@ -134,28 +134,51 @@ export function readProcessStartTime(pid: number): string | null | undefined {
 }
 
 /**
- * AC-0070 and AC-0080. `mkdtemp` inside the verified domain gives a state root
- * whose final component is unpredictable, and the ownership marker is written
- * **before any other child exists**.
+ * AC-0070, first half. `mkdtemp` inside the verified domain gives a state root
+ * whose final component is unpredictable, and the four child paths are
+ * **computed, not created**.
  *
- * The marker is created exclusively (`wx`) and written once, so no staging
- * child is ever visible under the state root and no partially-renamed file can
- * be mistaken for a complete marker. The encoding is single-line JSON with the
- * start time last, which is what makes AC-0080's crash-window claim hold: any
- * truncation of this one write leaves the JSON unterminated and therefore
- * unparseable, so no truncation can yield a process identity *and* a start
- * time. AC-0081's second limb reclaims that form by age.
+ * The split exists because the two halves belong to different processes. The
+ * Studio Service reserves the root so that it can name the per-request `HOME`
+ * and `TMPDIR` in the child's pinned environment before the child exists; the
+ * Runtime then writes its own marker and creates the children, because AC-0080
+ * requires the marker to name the *owning* process. A marker naming the Service
+ * would tie reclaim to the Service's lifetime rather than the request's.
+ *
+ * The window this opens — an empty, unmarked state root between `mkdtemp` and
+ * the marker write — is the one AC-0080 explicitly sanctions and AC-0081's
+ * third limb reclaims.
  */
-export function createPerRequestStateRoot(
-  sweepDomain: string,
-): PerRequestStateRoot {
+export function reserveStateRoot(sweepDomain: string): PerRequestStateRoot {
   verifySweepDomain(sweepDomain);
   const stateRoot = mkdtempSync(join(sweepDomain, STATE_ROOT_PREFIX));
   // POSIX `mkdtemp` creates at 0700; setting it explicitly makes the mode an
   // asserted property of this code rather than of the platform.
   chmodSync(stateRoot, 0o700);
+  return {
+    stateRoot,
+    materializationRoot: join(stateRoot, MATERIALIZATION_CHILD_NAME),
+    home: join(stateRoot, HOME_CHILD_NAME),
+    temporaryDirectory: join(stateRoot, TEMPORARY_CHILD_NAME),
+    markerPath: join(stateRoot, OWNERSHIP_MARKER_NAME),
+  };
+}
 
-  const markerPath = join(stateRoot, OWNERSHIP_MARKER_NAME);
+/**
+ * AC-0080. The ownership marker, written **before any other child exists** by a
+ * single creating write: created exclusively (`wx`) and written once, so no
+ * staging child is ever visible under the state root and no partially-renamed
+ * file can be mistaken for a complete marker.
+ *
+ * The encoding is single-line JSON with the start time last. The property that
+ * makes AC-0080's crash-window claim hold is **not** that no truncation parses
+ * — the prefix that drops only the trailing newline parses to the complete
+ * object. It is that every proper prefix of this write either fails to yield
+ * both a process identity and a start time, which is AC-0081's second-limb
+ * input, or yields *exactly* these values and so cannot misstate ownership.
+ * `per-request-state-root.test.ts` asserts that over every prefix.
+ */
+export function writeOwnershipMarker(markerPath: string): OwnershipMarker {
   const startTime = readProcessStartTime(process.pid);
   if (typeof startTime !== "string" || startTime === "") {
     // Fail closed. A marker missing our own start time is AC-0081's second-limb
@@ -165,32 +188,40 @@ export function createPerRequestStateRoot(
       `the Runtime's own start time could not be read for pid ${process.pid}`,
     );
   }
-  const marker: OwnershipMarker = {
-    schema: 1,
-    pid: process.pid,
-    startTime,
-  };
+  const marker: OwnershipMarker = { schema: 1, pid: process.pid, startTime };
   const handle = openSync(markerPath, "wx", 0o600);
   try {
     writeSync(handle, `${JSON.stringify(marker)}\n`);
   } finally {
     closeSync(handle);
   }
+  return marker;
+}
 
-  const materializationRoot = join(stateRoot, MATERIALIZATION_CHILD_NAME);
-  const home = join(stateRoot, HOME_CHILD_NAME);
-  const temporaryDirectory = join(stateRoot, TEMPORARY_CHILD_NAME);
-  for (const child of [materializationRoot, home, temporaryDirectory]) {
+/** AC-0070, second half: the three children, each at `0700`, after the marker. */
+export function createStateRootChildren(root: PerRequestStateRoot): void {
+  for (const child of [
+    root.materializationRoot,
+    root.home,
+    root.temporaryDirectory,
+  ]) {
     mkdirSync(child, { mode: 0o700 });
     chmodSync(child, 0o700);
   }
-  return {
-    stateRoot,
-    materializationRoot,
-    home,
-    temporaryDirectory,
-    markerPath,
-  };
+}
+
+/**
+ * The whole sequence in one process. Production splits it across the Service
+ * and the Runtime; tests and the sweep's own fixtures use this form, where the
+ * marker correctly names the single process that owns the root.
+ */
+export function createPerRequestStateRoot(
+  sweepDomain: string,
+): PerRequestStateRoot {
+  const root = reserveStateRoot(sweepDomain);
+  writeOwnershipMarker(root.markerPath);
+  createStateRootChildren(root);
+  return root;
 }
 
 export interface RemovalDiagnostic {

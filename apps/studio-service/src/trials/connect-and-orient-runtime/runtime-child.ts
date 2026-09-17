@@ -1,22 +1,37 @@
 /**
  * The trial Runtime child entrypoint. It is started by the Studio Service as a
  * process-group leader with an environment built from an empty object, and it
- * receives everything it needs as one JSON argument.
+ * receives everything it needs as named arguments on its vector.
  *
  * This module deliberately imports nothing but `node:` builtins. Node runs it
  * by stripping types, and type stripping does not rewrite import specifiers, so
- * a relative import of a sibling `.ts` module would not resolve at run time.
+ * a relative import of a sibling `.js` specifier does not resolve at run time,
+ * and the `.ts` specifier that would is refused by this project's tsconfig.
  * The canonical values it needs — the pinned `git` configuration, the
- * interpreter search list, the allowlist names — are therefore delivered in the
- * plan by the Service, which keeps one source of truth for each of them.
+ * interpreter search list, the allowlist names, the state-root child names —
+ * are therefore delivered in the plan by the Service, which keeps one source of
+ * truth for each of them, and the mechanics are reimplemented here rather than
+ * imported.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { isAbsolute } from "node:path";
+import {
+  chmodSync,
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  writeSync,
+} from "node:fs";
+import { isAbsolute, join } from "node:path";
 
 interface RuntimeChildPlan {
   readonly requestId: string;
-  readonly materializationRoot: string;
+  /** Reserved by the Service; its children are created here, after the marker. */
+  readonly stateRoot: string;
+  readonly ownershipMarkerName: string;
+  readonly materializationChildName: string;
+  readonly homeChildName: string;
+  readonly temporaryChildName: string;
   readonly gitExecutable: string;
   readonly gitConfigurationArgs: readonly string[];
   readonly environmentNames: readonly string[];
@@ -48,7 +63,60 @@ interface ChildSpawnAuditEntry {
   readonly pid?: number;
 }
 
-const plan = JSON.parse(process.argv[2] ?? "{}") as RuntimeChildPlan;
+/**
+ * The argument vector is read by name rather than by position. AC-0071 requires
+ * the sweep domain to arrive as a named argument, and reading the plan the same
+ * way keeps one rule for the whole vector.
+ */
+function namedArgument(name: string): string | undefined {
+  const at = process.argv.indexOf(name);
+  return at === -1 ? undefined : process.argv[at + 1];
+}
+
+const sweepDomain = namedArgument("--sweep-domain");
+const plan = JSON.parse(namedArgument("--plan") ?? "{}") as RuntimeChildPlan;
+
+const materializationRoot = join(plan.stateRoot, plan.materializationChildName);
+
+/**
+ * AC-0080, then AC-0070. The marker is the first child of the state root to
+ * exist: created exclusively and written once, before the three directories.
+ * It names *this* process, which is what ties reclaim to the request's lifetime
+ * rather than the Service's.
+ */
+function claimStateRoot(): void {
+  const started = spawnSync(
+    "/bin/ps",
+    ["-o", "lstart=", "-p", String(process.pid)],
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  const startTime = (started.stdout ?? "").trim();
+  if (started.status !== 0 || startTime === "") {
+    throw new Error(`the Runtime's own start time could not be read`);
+  }
+  const marker = { schema: 1, pid: process.pid, startTime };
+  const handle = openSync(
+    join(plan.stateRoot, plan.ownershipMarkerName),
+    "wx",
+    0o600,
+  );
+  try {
+    writeSync(handle, `${JSON.stringify(marker)}\n`);
+  } finally {
+    closeSync(handle);
+  }
+  for (const name of [
+    plan.materializationChildName,
+    plan.homeChildName,
+    plan.temporaryChildName,
+  ]) {
+    mkdirSync(join(plan.stateRoot, name), { mode: 0o700 });
+    chmodSync(join(plan.stateRoot, name), 0o700);
+  }
+}
 
 /**
  * The environment for every descendant, rebuilt from an empty object using the
@@ -232,11 +300,20 @@ function holdIndependentDescendant(
 }
 
 async function main(): Promise<void> {
+  // Before anything else writes under the root, and before any descendant can
+  // run: the marker, then the three children.
+  claimStateRoot();
+
   protocol({
     type: "started",
     requestId: plan.requestId,
     pid: process.pid,
     executable: process.execPath,
+    stateRoot: plan.stateRoot,
+    materializationRoot,
+    // Reported so the parent can assert AC-0071 against what the Runtime
+    // actually read, rather than against what the parent believes it passed.
+    sweepDomain,
   });
 
   // The Runtime owns the inspection deadline, and it signals its whole group
@@ -251,9 +328,9 @@ async function main(): Promise<void> {
   protocol({ type: "interpreter", ...interpreter });
 
   if (plan.initializeMaterialization) {
-    const args = gitVector("init", "--quiet", "--", plan.materializationRoot);
+    const args = gitVector("init", "--quiet", "--", materializationRoot);
     const initialized = run(plan.gitExecutable, args, {
-      cwd: plan.materializationRoot,
+      cwd: materializationRoot,
     });
     protocol({
       type: "git",
@@ -273,7 +350,7 @@ async function main(): Promise<void> {
     }
     const args = gitVector("cat-file", "--batch");
     const held = await runSupervised(plan.gitExecutable, args, {
-      cwd: plan.materializationRoot,
+      cwd: materializationRoot,
       holdStdinMs: plan.descendantHoldMs,
     });
     protocol({
