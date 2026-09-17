@@ -56,6 +56,80 @@ measured tolerance honest.
  writer; runtime validation at every trust boundary; stdout protocol-only.
 - **`AGENTS.md`** — `contracts/` changes require the protocol approval path.
 
+### Bounded discovery channel
+
+Exact helpers, paths, fixture shapes and local construction details of an
+**unstarted** task may stand unresolved in this plan. T14 is the declared
+discovery task that resolves them. The channel exists because forcing those
+details to be guessed at plan time is what produces a plan that is precise and
+wrong, and because a full contract amendment for a fixture shape costs a review
+cycle that decides nothing.
+
+**Discovery predicate — what the channel may touch.** A detail is in scope only
+when all four hold: it is a helper, a path, a fixture shape or a local
+construction detail; it belongs to a task named in *Refinable tasks* below; that
+task is unstarted; and resolving it changes no acceptance criterion, no task
+outcome, no dependency edge and no verification obligation. A detail failing any
+conjunct is out of scope, and the channel must not resolve it.
+
+**Refinable tasks.** T12 and T13, by name, and no others. A task not named here
+is outside the channel whatever its state.
+
+**A task section locks when execution begins.** From the first commit that
+implements a task, its section is immutable to this channel. Completed sections
+are immutable outright: T1 through T11 carry pinned section hashes that
+`approve-plan` verifies, and the channel may not touch them, their evidence, or
+`amendment_history`. The channel adds records; it removes none.
+
+**Kill condition.** The channel is killed for a question the moment discovery
+shows that resolving it would change an acceptance criterion, a task outcome, a
+dependency edge or a verification obligation — or that no admissible option
+satisfies a bound this contract already states. On a kill the question returns
+to the owner through the controlled amendment path, and T14 records the kill
+rather than choosing.
+
+**Bounded alternatives.** For each question T14 opens, it enumerates at most
+three admissible options and picks one, or it kills. It may not invent a fourth
+at execution time; a question whose admissible set is not closed at the moment
+of choosing is a kill.
+
+**Decision record.** Append-only, at
+`notes/verification-ledger.md#discovery-channel-t14`. One entry per question:
+the question, the enumerated options, the option taken, the evidence that
+decided it, and the task refined. An entry is never edited once written; a
+reversal is a new entry naming the one it supersedes.
+
+**Scoped review.** Every refinement is reviewed before it is relied on, over the
+changed task section and its dependants — T13 depends on T12, so a T12
+refinement reviews both. The review is scoped to what changed; it does not
+reopen the contract.
+
+### Inline proof for risky mechanisms
+
+A mechanism has a **consequential false-pass direction** when its failure mode
+is to report success wrongly: parsers, extractors, gates, negative controls,
+classifiers, generated registries and machinery of that kind. A test that only
+ever sees passing input cannot distinguish such a mechanism from one that
+returns success unconditionally.
+
+A task that introduces such an arm must, in the same task:
+
+1. **Run a discriminating positive and a consequential negative case.** The
+   negative is one that would matter if admitted, not a trivially malformed
+   input.
+2. **Demonstrate that removing or neutralising the arm reddens a named case.**
+   The case is named in the evidence, so a later reader can re-run exactly it.
+3. **Exercise the real entry path, not only the helper.** A helper proven in
+   isolation says nothing about whether production reaches it.
+4. **State the condition that retires the approach.** The circumstance under
+   which the mechanism stops being the right one, so it is re-examined on a
+   trigger rather than on someone noticing.
+
+This binds the tasks unstarted when it was written — T14, T12 and T13. It is
+not applied retroactively to T1 through T11, whose sections are pinned and whose
+evidence is closed. Where those tasks already meet it, `#t6-evidence` and
+`#t11-evidence` record the mutation proofs that show it.
+
 ## Construction tests
 
 **Integration:** full inspection against every fixture, driving the real child
@@ -536,9 +610,67 @@ it("AC-0102 reads the verdict back after a reopen", async () => {
 
 **Done when:** `pnpm verify` is green and AC-0084, AC-0085, AC-0100, AC-0101, AC-0102, AC-0103, AC-0104, AC-0146, AC-0147 hold.
 
-### T12: A lead connects a repository and sees the verdict
+### T14: Renderer discovery resolves what the plan left open
 
 **Depends on:** T11, T8
+
+**Carries no acceptance criterion**, on the precedent T8 sets: it discharges
+construction detail, not an obligation. Its number is later than its position
+because identifiers are never reused; the `Depends on:` graph, not document
+order, places it before T12.
+
+**Tests:**
+- Each question closes with an entry at `notes/verification-ledger.md#discovery-channel-t14`
+ naming the enumerated options, the one taken and the evidence that decided it,
+ or naming the kill.
+- The ΔE2000 arm proves itself inline, per *Inline proof for risky mechanisms*:
+ a discriminating positive (two hues whose separation is known to clear the
+ bound) and a consequential negative (two hues that must fail it); a named case
+ that reddens when the comparison is neutralised; the arm exercised through the
+ real entry path over `tokens.css` rather than over literals alone; and the
+ stated condition that retires it.
+- No file under a completed task's section changes; `approve-plan` still
+ verifies the eleven pinned section hashes after this task runs.
+
+**Open questions this task exists to close**, each with its enumerated options:
+
+1. **The ΔE2000 comparison set does not exist as hues.** `tokens.css` carries
+ fourteen distinct colour tokens and none of the five families —
+ artifact, review, execution, attention, inspection — appears among them; the
+ four comparison families are prose vocabulary at `docs/product/design-system.md`.
+ The *Inspection-family hue separation* row states its bound against hues that
+ are not yet materialized. Options: derive the four families' representative
+ hues from the existing tokens and record the mapping; introduce the four
+ families as tokens alongside the inspection family; or kill, if no inspection
+ hue clears the bound against a defensible mapping in both themes.
+2. **No ΔE2000 generator exists.** Nothing in the repository computes it. The
+ bound's value has exactly one home and must keep it, so the generator cites
+ that home rather than restating the number. Options: a small local module
+ under the desktop tools directory exercised by a test; or a test-only helper
+ if no second caller appears.
+3. **The capture path for the two specialist reviewers.** `frontend-reviewer`
+ was probed and is dispatchable with `Read` and `Bash`, and drives named routes
+ itself when captures are absent. `experience-reviewer` is **unprobed** and
+ advertises no `Bash`, so it cannot self-capture and must be handed rendered
+ output. `visual-evidence.mjs` reads the built renderer at
+ `apps/desktop/out/renderer`, not the source, and requires a Chromium that this
+ host has. Options: reuse `visual-evidence.mjs` as the capture source; or add a
+ narrower capture entry if its scenario set does not reach the new surfaces.
+
+**Kill condition:** any question whose resolution would move an acceptance
+criterion, a task outcome, a dependency edge or a verification obligation
+returns to the owner through the controlled amendment path, recorded as a kill.
+
+**Approach:** answer each question against the tree, record the decision, refine
+only T12 and T13.
+
+**Done when:** every question above carries an append-only decision entry or a
+recorded kill; the ΔE2000 arm carries its four inline proofs; `pnpm verify` is
+green; and the pinned section hashes still verify.
+
+### T12: A lead connects a repository and sees the verdict
+
+**Depends on:** T14
 
 **Tests:**
 - Every state renders; the form rejects with a programmatically associated
