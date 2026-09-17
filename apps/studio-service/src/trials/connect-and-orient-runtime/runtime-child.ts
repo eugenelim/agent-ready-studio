@@ -402,7 +402,11 @@ function diagnostic(text: string): void {
 }
 
 /**
- * The single process-start site in the Runtime. Descendant stdout is captured
+ * The single site for descendant *work* in the Runtime, and the only one whose
+ * output is captured and relayed. The process-status read in `processStartTime`
+ * sits outside it deliberately: it needs the raw stdout rather than a relayed
+ * diagnostic, and it carries its own absolute-path constant and its own audit
+ * entry. Descendant stdout is captured
  * on its own pipe and relayed to diagnostics, never inherited: that is why no
  * descendant can write to the Runtime's protocol stdout (AC-0019).
  */

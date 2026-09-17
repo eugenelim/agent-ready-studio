@@ -27,6 +27,7 @@ import {
   writeSync,
 } from "node:fs";
 import { join } from "node:path";
+import { PROCESS_STATUS_EXECUTABLE } from "./executable-identity.js";
 
 /** The marker is a direct child of the state root and a sibling of `tree`. */
 export const OWNERSHIP_MARKER_NAME = ".studio-ownership.json";
@@ -111,7 +112,7 @@ export function readProcessStartTime(pid: number): string | null | undefined {
   }
   try {
     const stdout = execFileSync(
-      "/bin/ps",
+      PROCESS_STATUS_EXECUTABLE,
       ["-o", "lstart=", "-p", String(pid)],
       {
         encoding: "utf8",

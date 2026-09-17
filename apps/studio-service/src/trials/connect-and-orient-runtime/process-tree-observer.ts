@@ -1,6 +1,13 @@
 import { spawn, spawnSync } from "node:child_process";
+import { PROCESS_STATUS_EXECUTABLE } from "./executable-identity.js";
 
-const PS = "/bin/ps";
+/**
+ * The admitted process-status path, taken from the single constant the permitted
+ * predicate compares against, so the launched path cannot drift from the admitted
+ * one. This observer is the Service's parent-side read and sits outside AC-0023
+ * and AC-0025's trial-tree scope per the 2026-09-17 scoping decision.
+ */
+const PS = PROCESS_STATUS_EXECUTABLE;
 /**
  * A name in the environment block. Only an upper-case name opens or continues
  * the block, which is what separates the environment from the array below it.

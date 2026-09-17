@@ -44,8 +44,8 @@ so any restated ceiling would go stale on the next machine. `--depth 1` bounds
 history only; it bounds neither tree bytes nor file count, and a blob filter is
 deliberately not used because a checkout refetches every blob at `HEAD` and
 would leave the clone a promisor. The sampler is therefore the sole enforcing
-control for file count, and its ceiling is what makes that
-honest.
+control for file count, and its advance-fixed ceiling is what makes that bound's
+measured tolerance honest.
 
 ## Constraints
 
@@ -353,7 +353,9 @@ it("AC-0069 materializes a symlink as a regular file", async () => {
 and sweep.
 
 **Done when:** `pnpm verify` is green, the four measurements are recorded with
-the two pass bars met, and
+the one surviving pass bar met — file-creation rate at or below 5,000 files —
+and the write-throughput measurement recorded as the failing evidence that cut
+the tree-bytes bound rather than as a bar to be met, and
 AC-0069, AC-0070, AC-0071, AC-0072, AC-0073, AC-0074, AC-0075, AC-0076, AC-0077, AC-0078, AC-0079, AC-0080, AC-0081, AC-0082, AC-0083 hold.
 
 ### T6: The inspector runs from outside the target under supervised bounds
@@ -364,8 +366,9 @@ AC-0069, AC-0070, AC-0071, AC-0072, AC-0073, AC-0074, AC-0075, AC-0076, AC-0077,
 - Inspector real path outside the root; one inside is refused to its stop
  reason; provenance recorded; interpreter version verified.
 - Submodules not fetched or traversed.
-- Tree-bytes and file-count killed on an observed breach within the measured
- tolerance; the two wall-clock deadlines killed exactly.
+- File count killed on an observed breach within the measured tolerance; the two
+ wall-clock deadlines killed exactly. No byte ceiling is enforced, so none is
+ tested.
 - Every absence proof whose observed surface exists by this task — AC-0133 to
  AC-0137 and AC-0139 to AC-0145 — each using the probe T1's control validated.
  **AC-0138 and AC-0146 are not provable here:** AC-0138 observes a verdict, a
