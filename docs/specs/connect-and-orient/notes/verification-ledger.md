@@ -1855,3 +1855,51 @@ proves the flake predates T6.
 
 No test in this delivery binds a listener, opens a socket, or requires a network, a credential
 or a model provider.
+
+## t7-evidence
+
+**T7 — the version marker is read, parsed safely, and never over-read. Complete.** All seven
+criteria carry implementation and tests: AC-0054 through AC-0060.
+
+| Criterion | Discharge |
+| --- | --- |
+| AC-0054 | `readDeclaredValues` admits exactly `workspace.toml` and `.agentbundle-state.toml` and refuses anything else before reading it, including a traversal whose final segment is a permitted name. Both permitted files read in one call |
+| AC-0055 | Both bounds checked before any read: the file count against the requested set, and the byte bound delegated to `readContainedFile`, which already checks size before the open. A file one byte past 1 MiB refuses with `exceeds-byte-bound` and no value; one inside it is admitted |
+| AC-0056 | JSON depth is measured **over the text, before `JSON.parse` runs**, because the parser is itself the recursion the bound guards — a guard placed after it could never run on a document deep enough to exhaust the stack. The already-parsed walk is iterative with an explicit stack and abandons past the bound, so nothing recurses. A document at the bound is still admitted |
+| AC-0057 | The approved plan stub is materialized byte-identical and passes. Inadmissible keys are dropped at every depth in both formats, every object is rebuilt with `Object.create(null)`, and `normalizeDeclared` copies only criterion-named fields onto a fresh object — a declared field outside that set reaches nothing |
+| AC-0058 | Asserted inapplicable rather than skipped: the permitted surface is TOML only, and the service manifest is read in the test to prove no `yaml` dependency exists and `smol-toml` is pinned at 1.8.0. The clause binds the slice that first parses YAML |
+| AC-0059 | Every refusal yields `value: undefined`, a distinct diagnostic, and the stop reason its subject assigns. All three AC-0059 rows are present and proven distinct, with attribution `Studio` for Studio-produced output and `repository` for both repository-derived rows. A document whose readable prefix parses contributes nothing when the rest fails |
+| AC-0060 | The declared marker is reported as an observed string and nothing more. Lifecycle-shaped keys a repository declares — `status`, `blocked`, `next-action` — reach nothing, because normalization copies only the criterion-named field |
+
+### The guard's semantics were corrected here, not at T6
+
+T6 shipped the inadmissible-key guard refusing the **whole document**. Reading T7's contract
+showed that to be stricter than what is written: AC-0057 requires that no parse *yields a value*
+under an inadmissible key **and** that every parsed document be materialized without an
+inherited prototype — so a value is still produced, with those keys absent. The approved T7 stub
+says the same thing independently, reading `out.value` and asserting a null prototype on it.
+
+The guard now drops the key and rebuilds with `Object.create(null)`, and AC-0143's T6 proofs were
+rewritten to assert the absence of a value under the key rather than a throw. **One guard, one
+semantics, used by both tasks.** Had this been left, T6 and T7 would have carried two
+contradictory readings of the same *Resource bounds* row — the disagreeing-enumeration failure
+this contract has already hit three times.
+
+### One declined seam
+
+`parseDeclared` briefly took an injectable TOML parser. It was removed before it reached a gate:
+no caller varies it, and its default threw, so the only behaviour it could add was failing closed
+when someone forgot to install one. `smol-toml` is imported directly, as in the guard module.
+
+### A biome autofix rewrote the approved stub, and was suppressed rather than accepted
+
+`lint/suspicious/noPrototypeBuiltins` rewrites the stub's
+`Object.prototype.hasOwnProperty.call(...)` to `Object.hasOwn(...)`, which would have broken
+byte-identity with `plan.md`. A `biome-ignore format` comment does not cover a lint rule, so the
+file carries a scoped `biome-ignore-all` for that one rule with the reason recorded inline. The
+stub was diffed against `plan.md:413-418` after the suppression and is byte-identical.
+
+### Gate state
+
+`pnpm lint` exit 0 over 96 files; `pnpm typecheck` exit 0; `pnpm test` exit 0 with **442 tests in
+37 files** at load 25; `pnpm build` exit 0; `git diff --check` clean.
