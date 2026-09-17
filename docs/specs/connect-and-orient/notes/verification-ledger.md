@@ -1482,7 +1482,7 @@ advance-fixed ceiling rather than a term of the tolerance a kill test meets.
 
 | Ref | Repair |
 | --- | --- |
-| adversarial 3 | AC-0024 kept an exhaustiveness quantifier over "every process Studio's own code starts" that no artifact could discharge, decision 7 having narrowed AC-0023 and AC-0025's second leg and left this third one behind. Both it and the implementing plan bullet now carry the trial-tree scope, which is the set the spawn audit records |
+| adversarial 3 | AC-0024 kept an exhaustiveness quantifier over "every process Studio's own code starts" that no artifact could discharge, decision 7 having narrowed AC-0023 and AC-0025's second leg and left this third one behind. Both it and the implementing plan bullet now carry the trial-tree scope |
 | adversarial 5 | The *Boundaries* Always-do rail demanded the complete pinned `git` configuration on **every** subprocess, which admitting a non-`git` executable made unsatisfiable. The configuration and `--` clauses are now scoped to `git` argument vectors, matching AC-0022 and AC-0021 |
 
 **Seven Nits deferred with their citations**, on the round-19 precedent: repair only what
@@ -1505,3 +1505,50 @@ manufactured by round 22's own prose repairs. None of the seven touches a criter
 Concern, which is the work-loop's condition for proceeding: a reviewer result that is clean, or
 carries only deferred Nits recorded with their citations, may go to the human gates. All seven
 should be carried into the Package 3 amendment window, which has to happen anyway.
+
+## review-round-24-2026-09-17
+
+**Round 24 was a tightly scoped pass over round 23's two repairs, and both reviewers
+independently found the same defect in one of them.** Both adjudications are valid with
+indeterminate audits of `None.` and nothing refuted.
+
+| Reviewer | Raw | Sustained | Blockers | Concerns | Nits |
+| --- | --- | --- | --- | --- | --- |
+| adversarial | 2 | 2 | **0** | 1 | 1 |
+| secure-design | 2 | 2 | **0** | 1 | 1 |
+
+The two Concerns are the **same defect**, found independently, and it was mine: round 23's
+AC-0024 repair narrowed the scope correctly and then appended a false equation. The appositive
+read "within the trial tree — the Runtime child and its descendants, the same scope AC-0023
+and AC-0025's second leg carry, **and the set the spawn audit records**". The last clause is
+untrue, which I confirmed against the tree before either adjudication returned:
+`resolveGitIdentity` is called at `runtime-supervisor.ts:254` while the child spawns at
+`:316`, and `executable-identity.ts:52-55` already records that the `/usr/bin/git` shim probe
+is "spawned once, by the Studio Service and outside the Runtime's process group". The spawn
+audit is therefore a **strict superset** of the trial tree, so one obligation carried two
+mutually exclusive scopes on a gated criterion.
+
+**Repaired by deletion.** The appositive is struck from AC-0024, from the T4 plan bullet that
+drives its assertion, and from this ledger's own round-23 row, which restated it. The
+trial-tree scope decision 7 settled is now the criterion's single stated scope. Nothing was
+added: the secure-design adjudication graded the reviewer's own proposed mechanism
+**over-broad** for additionally requiring the text to name the out-of-tree class and say what
+holds it, because AC-0028 already obliges both identity probes to run under the pinned
+environment and AC-0020 already binds every subprocess to an absolute path and an argument
+array. No out-of-tree obligation was introduced, which decision 7 declined.
+
+**One Nit deferred with its citation**, bringing the standing deferrals to nine.
+
+| Ref | Severity | Citation | Deferred finding |
+| --- | --- | --- | --- |
+| adversarial 2 / security 2 | Nit | `spec.md:322` | The rescoped Always-do rail grounds its exemption on the row admitting only "an interpreter probe, and `/bin/ps`", but the row also admits the Runtime's own Node process, whose vector does carry the pinned configuration as delivered payload. No criterion coverage is lost — AC-0021 and AC-0022 were already `git`-scoped before this amendment — so the defect is the stated ground, not the obligation |
+
+**The pattern, recorded plainly because it is the lesson of this amendment.** Three
+consecutive rounds saw a repair manufacture the next round's finding: decision 7's scoping
+repair made the *Permitted executables* row's audit sentence false and left AC-0024's
+quantifier behind; repairing AC-0024 added this false equation; and the closing-sentence
+repair created a third disagreeing enumeration. Every one of those was an **addition** to
+prose — a clause explaining or equating something. This round's repair is a **deletion**, and
+deletions have not produced findings. Severity collapsed accordingly: blockers surviving
+adjudication ran 6, then 0, then 0, and the surface narrowed from eleven findings across the
+contract to one clause.
