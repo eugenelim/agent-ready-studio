@@ -1940,3 +1940,55 @@ normalized result has no field in which that could recur.
 **Gate state.** `pnpm lint` exit 0 over 98 files; `pnpm typecheck` exit 0; `pnpm test` exit 0
 with **483 tests in 38 files**; `pnpm build` exit 0; `git diff --check` clean. The approved
 AC-0036 stub was diffed against `plan.md:468-471` after formatting and is byte-identical.
+
+## owner-approval-2026-09-17-protocol-schema
+
+**The Ask-first protocol-contract change is APPROVED, at the minimal scope.** *Boundaries*,
+*Ask first* names "any change to `contracts/jsonschema/studio-protocol-v1.schema.json`". The
+maintainer operating this session was asked before any byte was written and chose the minimal
+T8 edit. The approval covers exactly:
+
+- `contracts/jsonschema/studio-protocol-v1.schema.json` — the `method` enum, the `request`
+  `oneOf`, three per-method request `$defs`, two params `$defs`, one shared result `$def`,
+  three `x-studio.methodResults` entries, and `docs/specs/connect-and-orient/` appended to the
+  backward `x-spec` pointer.
+- `packages/protocol/src/validator.ts`, `fixtures.ts`, `contracts.test.ts` — the Zod mirror,
+  the fixtures, and the parity coverage they give.
+
+Nothing else in the schema was touched. The delivered diff is 47 insertions and 4 deletions in
+the canonical schema and is confined to those four files, which is checkable from the commit.
+
+**A first attempt was reverted before it reached a gate.** Rewriting the schema through
+`json.dumps` reformatted all 478 lines — 2,545 insertions against 341 deletions — because the
+file's own style keeps small objects inline. Reformatting an Ask-first contract would have put
+the approved change inside an unreviewable diff, so it was reverted and re-applied as anchored
+text edits that preserve the existing formatting exactly.
+
+## t8-evidence
+
+**T8 — the public protocol carries the connection methods. Complete.** The task carries no
+acceptance criteria of its own; its Done-when is parity coverage plus the recorded approval.
+
+Three methods were added: `source.connect`, `source.get` and `source.cancel`. All three share
+one result definition, `sourceInspectionResult`, asserted in the test rather than left to
+convention.
+
+**The result keeps the two axes apart, in the contract itself.** `verdict`, `condition` and
+`versionUnverified` are three independent fields, so the shape that made `agent-ready` and
+`version-unverified` simultaneously true cannot be expressed. `phase` carries the five progress
+rows of *User-visible states* and is `null` when the result carries a verdict or a condition
+instead — no vocabulary was invented for the settled case, because every name in both enums is
+a row of a table the spec already writes.
+
+**Parity is structural, not enumerated.** The existing harness iterates `validRequestFixtures`
+and `validResultFixtures`, so the three added fixtures extend Zod-mirror and canonical-schema
+coverage by construction. The result fixtures deliberately exercise three different shapes: a
+settled verdict-bearing result, a `no-verdict` with `malformed` and the qualifier set, and an
+in-flight `cancelled` result with a non-null `phase` and a null verdict.
+
+The approved plan stub is materialized byte-identical to `plan.md:437-440`. A malformed
+`source.connect` params payload — missing `url`, carrying an unexpected `token` — is refused by
+both the Zod mirror with JSON-RPC code `-32602` and the canonical schema.
+
+**Gate state.** `pnpm lint` exit 0; `pnpm typecheck` exit 0; `pnpm test` exit 0 with **487 tests
+in 38 files**; `pnpm build` exit 0; `git diff --check` clean.

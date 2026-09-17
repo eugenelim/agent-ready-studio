@@ -8,6 +8,48 @@ const workspaceIdParamsSchema = z
   .object({ workspaceId: z.string().min(1) })
   .strict();
 const idParamsSchema = z.object({ id: z.string().min(1) }).strict();
+const sourceIdParamsSchema = z.object({ sourceId: z.string().min(1) }).strict();
+/**
+ * The connect-and-orient result. The two axes stay separate fields, and
+ * `phase` is null when the result carries a verdict or a condition rather
+ * than a progress state; every name is a row of *User-visible states*.
+ */
+const sourceInspectionResultSchema = z
+  .object({
+    kind: z.literal("source-inspection"),
+    sourceId: z.string().min(1),
+    phase: z
+      .enum([
+        "unconnected",
+        "url-rejected",
+        "resolving",
+        "inspecting",
+        "incomplete",
+      ])
+      .nullable(),
+    verdict: z
+      .enum(["agent-ready", "not-agent-ready", "no-verdict"])
+      .nullable(),
+    condition: z.enum([
+      "ok",
+      "malformed",
+      "inspector-unavailable",
+      "source-unavailable",
+      "source-rate-limited",
+      "inspection-stopped",
+      "cancelled",
+    ]),
+    versionUnverified: z.boolean(),
+    owner: z.string(),
+    repository: z.string(),
+    requestedRef: z.string().nullable(),
+    resolvedSha: z.string().nullable(),
+    inspectedAt: z.string().nullable(),
+    declaredVersionMarker: z.string().nullable(),
+    inspectorContractVersion: z.string().nullable(),
+    diagnostics: z.string(),
+  })
+  .strict();
 const productIntentSchema = z
   .object({
     title: z.string().min(1),
@@ -170,6 +212,32 @@ export const requestSchemas = {
               path: ["comment"],
             });
         }),
+    })
+    .strict(),
+  "source.connect": z
+    .object({
+      jsonrpc: z.literal("2.0"),
+      id: idSchema,
+      method: z.literal("source.connect"),
+      params: z
+        .object({ url: z.string().min(1), ref: z.string().min(1).optional() })
+        .strict(),
+    })
+    .strict(),
+  "source.get": z
+    .object({
+      jsonrpc: z.literal("2.0"),
+      id: idSchema,
+      method: z.literal("source.get"),
+      params: sourceIdParamsSchema,
+    })
+    .strict(),
+  "source.cancel": z
+    .object({
+      jsonrpc: z.literal("2.0"),
+      id: idSchema,
+      method: z.literal("source.cancel"),
+      params: sourceIdParamsSchema,
     })
     .strict(),
 } as const;
@@ -492,6 +560,9 @@ export const resultSchemas = {
       status: z.enum(["accepted", "revision-needed"]),
     })
     .strict(),
+  "source.connect": sourceInspectionResultSchema,
+  "source.get": sourceInspectionResultSchema,
+  "source.cancel": sourceInspectionResultSchema,
 } as const;
 
 const eventBaseSchema = z.object({
