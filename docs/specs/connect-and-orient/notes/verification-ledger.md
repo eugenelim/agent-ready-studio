@@ -1134,3 +1134,64 @@ add it, and both touch *Resource bounds* or the criteria that cite it, so they b
 same amendment. The second and third routes would make AC-0080 and AC-0081 the subject of a
 fifth consecutive rewrite, which the round-trajectory evidence at
 `#pre-execute-review-closure-2026-09-16` argues strongly against.
+
+## owner-decision-2026-09-16-admit-ps
+
+**Decision 6, decided 2026-09-16: admit `/bin/ps` as a permitted executable.** The owner
+chose the first route offered at
+`#open-owner-decision-2026-09-16-runtime-liveness-mechanism`, over replacing the start time
+with an advisory lock, splitting the sweep across the process boundary, or age-gating every
+limb. It resolves the defect at `#defect-2026-09-16-runtime-spawns-ps`.
+
+**The deciding ground is the rewrite history, not convenience.** AC-0080 and AC-0081 were
+rewritten in four consecutive pre-EXECUTE rounds, and round 19's repair produced a flat
+self-contradiction in which the criterion stated both reclaim and decline for the one case
+the repair existed to close. Admitting `ps` is the **only** route that leaves both criteria
+untouched: it changes the *Permitted executables* row in *Canonical values* and nothing else
+in the contract. The other three would have made those two criteria the subject of a fifth
+consecutive rewrite, which the round trajectory at `#pre-execute-review-closure-2026-09-16`
+argues against more strongly than any other evidence in this spec.
+
+**One route was eliminated by probe rather than preference.** The advisory-lock route is the
+textbook mechanism — the operating system releases a `flock` when the holder dies, which
+defeats pid reuse without recording a start time at all — but **Node v26.4.0 exposes no
+`flock`**: `fs.flock` and `fs.flockSync` are undefined and `fs.constants` carries no `LOCK_*`
+flag. It would require a new native dependency, which the delivery constraints forbid without
+a separate decision. Recorded so the route is not re-proposed in review.
+
+**Why admitting `ps` is a smaller security change than it reads as.** A permitted-executables
+entry sounds like widening the trial sandbox, but **nothing sourced from the inspected
+repository is executed, imported or evaluated** — a non-negotiable boundary of this delivery.
+The trial process group therefore contains only Studio's own Runtime, `git`, and a Python
+interpreter started by the version probe. There is no attacker-controlled code inside that
+group for `ps` to benefit, and Studio invokes it itself with a fixed argument vector and no
+attacker-influenced operand. The Studio Service has also always run `ps` for its parent-side
+process-tree observation, so this declares an existing dependency honestly rather than
+introducing a capability.
+
+**What the amendment must carry, and what the code must do after it.** The two halves are
+separable and must land in that order, because the contract admits the executable before the
+code may rely on it.
+
+1. **Contract.** The *Permitted executables* row in *Canonical values* gains `/bin/ps`,
+   invoked by Studio's own code with a fixed argument vector. The row is the only surface
+   that changes; AC-0025 already reads the list rather than enumerating it, so the criterion
+   needs no edit, and AC-0080 and AC-0081 are untouched.
+2. **Code.** The `processStartTime` helper in `runtime-child.ts` must route its spawns
+   through `recordSpawn`, which is the half that actually repairs the defect. AC-0025's
+   second leg is "the exhaustive record of every spawn Studio's own code performs", and it
+   is the leg the defect defeated — the sampled leg never could have caught a process living
+   about 20 ms, under the ~50 ms observation floor. Admitting the executable without
+   restoring the audit would fix the lesser half and leave the record still inexhaustive.
+
+**An adversarial reviewer will ask why a sandboxed Runtime may enumerate host processes.**
+The answer is the two paragraphs above — no repository-sourced code runs in the group, the
+argument vector is fixed and carries no attacker-influenced operand, and the Service already
+depends on `ps`. That reasoning belongs in the amendment's own text rather than being
+discovered during a review round.
+
+**A note for whoever writes the amendment.** This decision breaks the run of no-new-permission
+outcomes that the previous decisions established, and the changelog should say so plainly
+rather than let the pattern look unbroken. The justification is that the alternative routes
+all spend their cost on the spec's most perturbation-prone text, which is the more expensive
+place to spend it.
