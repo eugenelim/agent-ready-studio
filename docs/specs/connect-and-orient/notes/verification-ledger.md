@@ -2045,3 +2045,40 @@ verdict, a routing decision and a state all exist to be unchanged.
 
 **Gate state.** `pnpm lint` exit 0; `pnpm typecheck` exit 0; `pnpm test` exit 0 with **516 tests
 in 39 files**; `pnpm build` exit 0.
+
+## t11-evidence
+
+**T11 — the verdict survives restart and cancellation. Complete.** All nine criteria carry
+implementation and tests: AC-0084, AC-0085, AC-0100 to AC-0104, AC-0146 and AC-0147.
+
+| Criterion | Discharge |
+| --- | --- |
+| AC-0084 | The Service terminates the in-flight Runtime and records `cancelled`; the termination callback is observed to have run, so the record is not written without the kill |
+| AC-0085 | A restart moves an in-flight inspection to `incomplete`, and the two are proven distinct: a restart does not relabel an existing `cancelled`, and leaves a settled inspection alone |
+| AC-0100 | The canonical identity reads back across a close and reopen |
+| AC-0101 | The requested ref, resolved SHA and inspection time read back |
+| AC-0102 | The approved plan stub is materialized byte-identical and passes; the verdict and its diagnostics read back |
+| AC-0103 | The verdict cannot be restored without its time, because both are columns of the same row — asserted on the restored record |
+| AC-0104 | The bound is computed from the **provenance markers the record carries**, not from a named field list, so it covers every repository-derived value and not one class. A newly marked field is counted with no edit, asserted directly. On breach the write is rejected per owner decision 1 — nothing is written, and a prior record is proven untouched. A record at the bound is admitted |
+| AC-0146 | A planted `repository-token` reaches neither storage — every persisted column, read back and searched as one string — nor a diagnostic: the refusal message reports sizes and a bound and never the bytes it refused |
+| AC-0147 | All fourteen controls, AC-0133 through AC-0146, run as a set and each reproduces its effect. This is the earliest point the range is complete, as the plan said |
+
+**Provenance drives the bound.** AC-0104's earlier reading — the one Package 3 exists to repair
+in the spec — is that a bound over "one class of them" is not enough. The implementation answers
+it structurally: `repositoryDerivedValues` filters on the marker, so the class is whatever is
+marked rather than whatever was remembered.
+
+### Two anchor tests were found by the suite, not by the sweep
+
+Migration 3 broke two contract-anchor tests that pin exact content:
+`storage.integration.test.ts` pins the table list, and `apps/desktop/src/main/index.test.ts`
+pins the applied migration versions. Both were updated to include the deliberate addition, with
+a comment at each site recording that the list is the anchor.
+
+**This is the step-8a anchor sweep not having been run before the edit.** The suite caught both,
+so nothing shipped wrong, but the sweep exists precisely so these are known before EXECUTE
+rather than discovered as false gate failures. Recorded as a process miss, not a code defect. A
+repeat grep for `schema_migrations` and `sqlite_master` afterwards found no third anchor.
+
+**Gate state.** `pnpm lint` exit 0; `pnpm typecheck` exit 0; `pnpm test` exit 0 with **552 tests
+in 40 files**; `pnpm build` exit 0; `git diff --check` clean.

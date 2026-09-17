@@ -352,6 +352,9 @@ describe("SQLite storage integration", () => {
         "artifact_revision_states",
         "artifact_revisions",
         "artifacts",
+        // Added by migration 3, for Connect and Orient. This list is the
+        // anchor that makes a table appearing here a deliberate change.
+        "connected_sources",
         "decisions",
         "execution_events",
         "executions",
