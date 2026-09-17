@@ -11,6 +11,14 @@ import {
 } from "./executable-identity.js";
 import { pinnedGitConfigurationArgs } from "./git-driver.js";
 import {
+  HOME_CHILD_NAME,
+  MATERIALIZATION_CHILD_NAME,
+  OWNERSHIP_MARKER_NAME,
+  type PerRequestStateRoot,
+  reserveStateRoot,
+  TEMPORARY_CHILD_NAME,
+} from "./per-request-state-root.js";
+import {
   type GroupSample,
   type ObservedProcess,
   processGroupExists,
@@ -53,11 +61,14 @@ const OBSERVED_DESCENDANT_HOLD_MS = 600;
 export interface TrialRequest {
   readonly requestId: string;
   readonly identity: CanonicalSourceIdentity;
-  /** The per-request state root. Created and reclaimed by its owner, not here. */
-  readonly requestRoot: string;
-  readonly home: string;
-  readonly temporaryDirectory: string;
-  readonly materializationRoot: string;
+  /**
+   * The fixed parent every per-request state root is created inside. AC-0071:
+   * it reaches the Runtime as a **named argument on the argument vector**, not
+   * inferred from `TMPDIR` or any other variable. The per-request state root
+   * itself is reserved here per request and is never supplied by the caller,
+   * so no component below this parent is predictable (AC-0070).
+   */
+  readonly sweepDomain: string;
 }
 
 export interface TrialInspectionOptions {
@@ -106,6 +117,12 @@ export interface ResidentMemoryBreach {
 export interface TrialInspectionRecord {
   readonly admitted: true;
   readonly requestId: string;
+  /**
+   * The per-request state root this inspection reserved, and the three children
+   * the Runtime creates inside it. Reported because the caller supplies only
+   * the sweep domain — the root's final component is unpredictable by design.
+   */
+  readonly stateRoot: PerRequestStateRoot;
   readonly servicePid: number;
   readonly childPid: number;
   readonly childPgid?: number;
@@ -221,7 +238,11 @@ export function beginTrialInspection(
     return { admitted: false, code: "already-in-flight" };
   }
 
-  const environment = buildPinnedEnvironment(request);
+  // Reserved before the environment is built, because the pinned `HOME` and
+  // `TMPDIR` name children of this root. The Runtime creates them, and writes
+  // its own marker first.
+  const stateRoot = reserveStateRoot(request.sweepDomain);
+  const environment = buildPinnedEnvironment(stateRoot);
   const spawnAudit: SpawnAuditEntry[] = [];
   const identity = resolveGitIdentity(environment, spawnAudit);
   if (!identity.ok) {
@@ -247,7 +268,14 @@ export function beginTrialInspection(
 
   const plan = {
     requestId: request.requestId,
-    materializationRoot: request.materializationRoot,
+    stateRoot: stateRoot.stateRoot,
+    // Canonical names, delivered rather than duplicated: the child cannot
+    // import a sibling module, so these keep one source of truth for the
+    // layout AC-0070 and AC-0080 describe.
+    ownershipMarkerName: OWNERSHIP_MARKER_NAME,
+    materializationChildName: MATERIALIZATION_CHILD_NAME,
+    homeChildName: HOME_CHILD_NAME,
+    temporaryChildName: TEMPORARY_CHILD_NAME,
     gitExecutable: gitIdentity.executable,
     gitConfigurationArgs: pinnedGitConfigurationArgs(),
     environmentNames: [...ENVIRONMENT_ALLOWLIST_NAMES],
@@ -260,12 +288,17 @@ export function beginTrialInspection(
     ...(options.holdMs === undefined ? {} : { holdMs: options.holdMs }),
   };
 
+  // AC-0071: the sweep domain is a *named* argument on the vector, so it is
+  // read from a flag the audit can show rather than inferred from any variable.
   const childArgs = [
     options.childEntry ?? defaultChildEntry(),
+    "--sweep-domain",
+    request.sweepDomain,
+    "--plan",
     JSON.stringify(plan),
   ];
   const child = spawn(process.execPath, childArgs, {
-    cwd: request.requestRoot,
+    cwd: stateRoot.stateRoot,
     env: environment,
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
@@ -452,6 +485,7 @@ export function beginTrialInspection(
     return {
       admitted: true,
       requestId: request.requestId,
+      stateRoot,
       servicePid: process.pid,
       childPid,
       ...(childPgid === undefined ? {} : { childPgid }),

@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -76,14 +82,15 @@ import {
 } from "./runtime-supervisor.js";
 
 let fixtureRoot: string;
-let requestRoot: string;
+let sweepDomain: string;
 
 beforeAll(() => {
   fixtureRoot = mkdtempSync(join(tmpdir(), "connect-orient-t4-"));
-  requestRoot = join(fixtureRoot, "request");
-  for (const child of ["home", "tmp", "tree"]) {
-    mkdirSync(join(requestRoot, child), { recursive: true, mode: 0o700 });
-  }
+  // The caller supplies only the sweep domain. Every per-request state root
+  // below it is reserved by the supervisor and is unpredictable by design.
+  sweepDomain = join(fixtureRoot, "sweep");
+  mkdirSync(sweepDomain, { recursive: true, mode: 0o700 });
+  chmodSync(sweepDomain, 0o700);
 });
 
 afterAll(() => {
@@ -94,18 +101,18 @@ function validRequest(): TrialRequest {
   return {
     requestId: "t4-request-0001",
     identity: { owner: "owner", repository: "repository" },
-    requestRoot,
-    home: join(requestRoot, "home"),
-    temporaryDirectory: join(requestRoot, "tmp"),
-    materializationRoot: join(requestRoot, "tree"),
+    sweepDomain,
   };
 }
 
-function expectedEnv(): Record<string, string> {
+function expectedEnv(
+  home = "",
+  temporaryDirectory = "",
+): Record<string, string> {
   return {
     PATH: PINNED_PATH,
-    HOME: join(requestRoot, "home"),
-    TMPDIR: join(requestRoot, "tmp"),
+    HOME: home,
+    TMPDIR: temporaryDirectory,
     LANG: "C",
     LC_ALL: "C",
     GIT_TERMINAL_PROMPT: "0",
@@ -175,7 +182,9 @@ function gitVectors(record: TrialInspectionRecord): readonly SpawnAuditEntry[] {
 it("AC-0023 pins every descendant's environment", async () => {
  const out = await runTrialRuntime({ request: validRequest(), echoEnvTree: true });
  expect(out.observedEnvByPid.size).toBeGreaterThan(1);
- for (const env of out.observedEnvByPid.values()) expect(env).toEqual(expectedEnv());
+ for (const env of out.observedEnvByPid.values()) expect(env).toEqual(
+      expectedEnv(out.stateRoot.home, out.stateRoot.temporaryDirectory),
+    );
 });
 
 describe("process boundary", () => {
@@ -205,16 +214,19 @@ describe("process boundary", () => {
     expect(record.termination).toBe("completed");
     expect(
       duringInspection.filter((path) =>
-        path.startsWith(request.materializationRoot),
+        path.startsWith(record.stateRoot.materializationRoot),
       ),
     ).toEqual([]);
 
     // Positive control: a read under the root from this same module graph is
     // recorded, so the empty result above is an observation, not a blind spot.
-    readFileSync(join(request.materializationRoot, ".git", "HEAD"), "utf8");
+    readFileSync(
+      join(record.stateRoot.materializationRoot, ".git", "HEAD"),
+      "utf8",
+    );
     expect(
       fileSystemPathArguments.some((path) =>
-        path.startsWith(request.materializationRoot),
+        path.startsWith(record.stateRoot.materializationRoot),
       ),
     ).toBe(true);
   });
@@ -355,7 +367,7 @@ describe("argument vector", () => {
     const args = initialization?.args ?? [];
     expect(args.indexOf("--")).toBeGreaterThan(-1);
     expect(args.slice(args.indexOf("--") + 1)).toEqual([
-      validRequest().materializationRoot,
+      record.stateRoot.materializationRoot,
     ]);
     for (const entry of gitVectors(record)) {
       const marker = entry.args.indexOf("--");
