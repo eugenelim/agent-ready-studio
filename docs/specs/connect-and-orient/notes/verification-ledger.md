@@ -1537,7 +1537,7 @@ holds it, because AC-0028 already obliges both identity probes to run under the 
 environment and AC-0020 already binds every subprocess to an absolute path and an argument
 array. No out-of-tree obligation was introduced, which decision 7 declined.
 
-**One Nit deferred with its citation**, bringing the standing deferrals to nine.
+**One Nit deferred with its citation**, bringing the standing deferrals to eight — seven in round 23's table and this one. Round 21's byte-bound residual Nit is not among them: repair 5 closed it by adding the *Follow-ons* entry.
 
 | Ref | Severity | Citation | Deferred finding |
 | --- | --- | --- | --- |
@@ -1580,3 +1580,38 @@ row, which belongs to Package 3.
 host whose one-minute load is in single digits and record it against `HEAD`. Judge a red suite
 only when the same tests fail twice in isolation; every isolated run of every affected file
 has passed, most recently at load 112.
+
+## pre-execute-review-closure-2026-09-17
+
+**The pre-EXECUTE review requirement for this amendment is satisfied at round 25.** The
+secure-design reviewer returned the **clean sentinel**, classified `clean` with zero findings,
+so no adjudicator was dispatched — the gateway rule fast-paths only a report whose bytes are
+the sentinel, and this one's were. The adversarial reviewer returned **two Nits and nothing
+else**. Under the work-loop's rule a result that is clean, or carries only deferred Nits
+recorded with their citations, may proceed to the human gates.
+
+**Round trajectory across the amendment.** Sustained findings: 11, 9, 4, 2. Blockers surviving
+adjudication: **6, 0, 0, 0**. Concerns: 3, 2, 2, **0**. The surface narrowed from eleven
+findings spread across the contract to two items on non-gated surfaces.
+
+**Both round-25 Nits were applied rather than deferred, because neither is a contract repair.**
+
+| Ref | Applied |
+| --- | --- |
+| adversarial 1 | The round-24 entry said the standing deferrals numbered nine; the cited tables hold eight. Corrected, and the reason for the discrepancy recorded: round 21's byte-bound residual Nit was closed by repair 5, which added the *Follow-ons* entry, so it is no longer standing. This was my arithmetic error in a record, and it had been repeated to the owner |
+| adversarial 2 | Striking the false clause left a 96-column continuation line in T4's tests bullet where its neighbours sit at 71 to 79. Reflowed. Presentation only; the obligation and its referent were already confirmed intact |
+
+**No round 26 is run, and the reason is recorded rather than left implicit.** Applying a
+sustained finding ordinarily obliges re-running the reviewer that produced it. That rule is
+not invoked here because the review's exit condition was **already met before these two edits**
+— secure-design clean, adversarial Nits-only — and neither edit can move a result that has no
+Blocker and no Concern. One corrects an arithmetic error in this ledger, which is explicitly
+not hash-pinned and carries no obligation; the other changes a line's wrap width. Neither
+touches a criterion, a bound, a boundary rail or any code. Running a further round over a
+count and a line break is the non-convergence this contract's own history warns against, and
+both contract hashes are unchanged by either edit.
+
+**Verification at closure.** `pnpm verify` **exit 0** with **343 tests in 33 files** on `HEAD`
+at a one-minute load average of 34.83, obtained after the round-24 deletion — so the green run
+now sits on the current tree directly rather than carrying by construction from `6f86c30`. The
+two edits above are markdown-only and post-date it.
