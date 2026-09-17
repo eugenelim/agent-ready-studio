@@ -1387,3 +1387,53 @@ contention the parallel suite times out with a varying failure set that includes
 is the host rather than this change. Two consecutive clean full runs of 343 tests were
 obtained earlier the same day at load 12 to 19. The owed artifact is one full `pnpm verify`
 on a quiet host before the amendment's human gates close.
+
+## deferred-nit-2026-09-17-liveness-token-zone
+
+**One sustained finding deferred with its citation, because its fix is an owner choice.**
+Secure-design finding 2 of round 21, sustained and graded **Nit** at
+`21-pre-execute-security-reviewer-adjudication.md`. The adjudicator declined to prescribe a
+remedy and said so explicitly: "the route is an owner choice and this entry prescribes none."
+
+| Ref | Severity | Citation | Deferred finding |
+| --- | --- | --- | --- |
+| security finding 2 | Nit | `apps/studio-service/src/trials/connect-and-orient-runtime/runtime-child.ts:311` | The liveness token is the wall-clock string `ps -o lstart=` prints, compared for byte equality in AC-0081's first limb, while the pinned environment sets `LANG` and `LC_ALL` to `C` and pins **no** `TZ`. A rendering that moves for an unchanged process falls through to a reclaim rather than to the `declined` outcome every other uncomparable input takes |
+
+**Independently confirmed, not taken on the reviewer's word.** The same live process renders
+`Wed Sep 16 21:23:12 2026` by default, `Thu Sep 17 11:23:12 2026` under `TZ=Asia/Tokyo` and
+`Thu Sep 17 02:23:12 2026` under `TZ=UTC`; `TZ` appears nowhere in `runtime-environment.ts`.
+
+**Why it is a Nit rather than a Concern.** Reachability is narrow: the child's sweep skips its
+own root, so harm needs a *second* live Runtime — which the *Follow-ons* residual and
+AC-0081's own two-Runtime clause admit — plus a host zone change inside that Runtime's 150 s
+window. It is a host event, not an attacker capability.
+
+**Why it is deferred rather than repaired.** Every route is an owner decision, and two of the
+three touch the text this amendment was specifically shaped to leave alone:
+
+- **Pin `TZ` in the allowlist.** Smallest code change, and it makes the rendering stable. But
+  widening the *Environment allowlist* is Ask-first under *Boundaries*, so it is not mine.
+- **Fail closed on any mismatch the comparison cannot vouch for.** Routes the case into the
+  existing `declined` outcome, which is AC-0081's own fail-closed direction — but AC-0081
+  currently says a mismatch *reclaims*, so this rewrites the first limb.
+- **Change the token to something whose rendering cannot move.** Rewrites AC-0080's recorded
+  start time.
+
+The second and third would make AC-0080 or AC-0081 the subject of a fifth consecutive
+rewrite. Decision 6 was taken specifically because it was the one route that left both
+untouched, so spending that cost here would undo the reasoning behind it.
+
+**Status: deferred, not resolved.** It is a Nit, so under the work-loop's rule a reviewer
+result carrying only deferred Nits recorded with their citations may proceed to the human
+gates. It is raised for the owner at
+`#open-owner-decision-2026-09-17-liveness-token-zone` and should be closed in the Package 3
+amendment window at the latest, which has to happen anyway.
+
+## open-owner-decision-2026-09-17-liveness-token-zone
+
+**An eighth owner decision, raised and deliberately not decided.** The three routes are
+enumerated at `#deferred-nit-2026-09-17-liveness-token-zone` above. The choice is between
+widening the environment allowlist, which *Boundaries* routes to Ask first, and rewriting one
+of the two criteria this amendment was shaped to avoid touching. Nothing is blocked on it: the
+finding is a Nit, the amendment may proceed to its human gates carrying it, and the hazard
+needs a host zone change inside a 150-second window with two live Runtimes to reach.
