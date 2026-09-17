@@ -1,7 +1,7 @@
 # Plan: Connect and Orient — connect and see the verdict
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `docs/architecture/reference.md`;
  `apps/desktop/src/main/index.ts` (argv-array child spawn, NDJSON transport,
  SIGTERM shutdown — the supervision precedent this plan reuses);
@@ -257,9 +257,8 @@ observation is T13's manual smoke rather than an automated test.
 **Tests:**
 - Child PID differs; the service opens no materialized path.
 - Every descendant's environment equals the allowlist name-to-value, asserted
- over every process Studio's own code starts within the trial tree.
- `GIT_CONFIG_PARAMETERS` on a helper `git` re-executes is **not** asserted
- here: reaching a helper needs an
+ over every process Studio's own code starts. `GIT_CONFIG_PARAMETERS` on a
+ helper `git` re-executes is **not** asserted here: reaching a helper needs an
  https endpoint AC-0148 forbids, so AC-0024's helper clause is T13's smoke.
 - The descendant executable set is within the permitted row on two legs — the
  group sampled from the parent, and the exhaustive record of Studio's own
