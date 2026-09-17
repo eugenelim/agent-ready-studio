@@ -1552,3 +1552,31 @@ prose — a clause explaining or equating something. This round's repair is a **
 deletions have not produced findings. Severity collapsed accordingly: blockers surviving
 adjudication ran 6, then 0, then 0, and the surface narrowed from eleven findings across the
 contract to one clause.
+
+## t5-gate-state-2026-09-17
+
+**The gate state at the close of round 24, stated precisely rather than optimistically.**
+
+`pnpm verify` returned **exit 0** with **343 tests in 33 files** and biome clean over 89 files
+on commit `6f86c30`. The only commit after it, `c56b626`, changes **three markdown files and
+no code** — `git diff --name-only 6f86c30..HEAD` lists the spec, the plan and this ledger, and
+matching `\.(ts|tsx|mjs|js|json)$` against that diff returns nothing. The compiled and tested
+surface is therefore byte-identical to a green-verified state, so the recorded pass carries to
+`HEAD` by construction rather than by assumption.
+
+Re-running `pnpm verify` on `HEAD` was attempted four times and returned a **varying** failure
+set — 1 test, then 16, then 1, then 2 — at one-minute load averages of 188, 52, 48 and 38 on
+the ten-core host. A varying set under contention is the signature this ledger already records
+at `#t5-verification-debt-cleared-2026-09-17`, and the same suite passed earlier the same day
+at loads 41 and 52, so the failures track what else the host is running rather than any load
+threshold or any property of this change.
+
+**The gates that do not depend on process spawning all pass on `HEAD` directly**: `pnpm lint`
+0, `pnpm typecheck` 0, `git diff --check` 0, `lint-contract-item-alignment` 0 findings,
+`lint-spec-status` clean, and `spec-coupling-check` exit 1 on exactly the one known AC-0104
+row, which belongs to Package 3.
+
+**What the next session should do rather than re-litigate this.** Run one `pnpm verify` on a
+host whose one-minute load is in single digits and record it against `HEAD`. Judge a red suite
+only when the same tests fail twice in isolation; every isolated run of every affected file
+has passed, most recently at load 112.
