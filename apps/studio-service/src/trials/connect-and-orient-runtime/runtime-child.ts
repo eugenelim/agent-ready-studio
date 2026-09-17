@@ -18,8 +18,12 @@ import {
   chmodSync,
   closeSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   openSync,
+  readdirSync,
+  rmdirSync,
+  unlinkSync,
   writeSync,
 } from "node:fs";
 import { isAbsolute, join } from "node:path";
@@ -40,6 +44,12 @@ interface RuntimeChildPlan {
   readonly initializeMaterialization: boolean;
   readonly inspectionDeadlineMs: number;
   readonly holdMs?: number;
+  /**
+   * Keeps the per-request state root on disk after the response, so a test can
+   * read what was materialized. Production never sets it: AC-0079 requires the
+   * root to be removed on success, on failure and on a termination signal.
+   */
+  readonly retainStateRoot?: boolean;
   /**
    * Starts one further `git` process from the pinned vector, in the
    * materialization root, and holds it open for this many milliseconds. Two
@@ -116,6 +126,72 @@ function claimStateRoot(): void {
     mkdirSync(join(plan.stateRoot, name), { mode: 0o700 });
     chmodSync(join(plan.stateRoot, name), 0o700);
   }
+}
+
+/**
+ * AC-0079, with AC-0076's discipline. One removal of the state root takes the
+ * materialization, the per-request `HOME`, the per-request `TMPDIR` and the
+ * marker with it, and it runs on success, on failure and on a termination
+ * signal alike.
+ *
+ * At every level the walk `lstat`s before it acts, so a link is unlinked rather
+ * than descended and nothing outside the root is reachable. The marker is
+ * removed last, and is kept if anything under the root survived, because an
+ * unmarked root still holding content satisfies no limb of the sweep and would
+ * never be reclaimed.
+ *
+ * This mirrors `per-request-state-root.ts` rather than importing it: the child
+ * cannot import a sibling module, which is why the names it needs travel in the
+ * plan.
+ */
+function removeStateRoot(): boolean {
+  let intact = true;
+  const removeEntry = (path: string): void => {
+    let status: ReturnType<typeof lstatSync>;
+    try {
+      status = lstatSync(path);
+    } catch {
+      intact = false;
+      return;
+    }
+    try {
+      if (status.isSymbolicLink()) {
+        unlinkSync(path);
+        return;
+      }
+      if (status.isDirectory()) {
+        for (const name of readdirSync(path)) {
+          removeEntry(join(path, name));
+        }
+        rmdirSync(path);
+        return;
+      }
+      unlinkSync(path);
+    } catch {
+      intact = false;
+    }
+  };
+
+  const markerPath = join(plan.stateRoot, plan.ownershipMarkerName);
+  try {
+    for (const name of readdirSync(plan.stateRoot)) {
+      if (name !== plan.ownershipMarkerName) {
+        removeEntry(join(plan.stateRoot, name));
+      }
+    }
+  } catch {
+    return false;
+  }
+  if (!intact) {
+    return false;
+  }
+  try {
+    unlinkSync(markerPath);
+    rmdirSync(plan.stateRoot);
+  } catch {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -372,7 +448,46 @@ async function main(): Promise<void> {
   // signal that a normal completion does not send.
   independent?.kill("SIGKILL");
   clearTimeout(deadline);
+  // AC-0079, the success path. Removal is reported before the completed line,
+  // so a reader of the protocol sees the disposal that the response implies.
+  dispose("completed");
   protocol({ type: "completed", requestId: plan.requestId });
 }
 
-await main();
+/** Runs at most once, whichever of the three paths reaches it first. */
+let disposed = false;
+function dispose(reason: string): void {
+  if (disposed) {
+    return;
+  }
+  disposed = true;
+  if (plan.retainStateRoot === true) {
+    protocol({ type: "disposed", reason, removed: false, retained: true });
+    return;
+  }
+  const removed = removeStateRoot();
+  protocol({ type: "disposed", reason, removed });
+  if (!removed) {
+    // AC-0083's discipline: a removal that did not complete is never silent.
+    diagnostic(`state root was not fully removed on ${reason}`);
+  }
+}
+
+// AC-0079, the signal path. `SIGKILL` cannot be handled, which is why the
+// Service sends `SIGTERM` first; a root left by a `SIGKILL` is the sweep's
+// business, not this handler's.
+for (const signal of ["SIGTERM", "SIGINT", "SIGHUP"]) {
+  process.on(signal, () => {
+    dispose(signal);
+    process.exit(0);
+  });
+}
+
+try {
+  await main();
+} catch (cause) {
+  // AC-0079, the failure path.
+  diagnostic(`runtime failed: ${cause}`);
+  dispose("failed");
+  process.exitCode = 1;
+}
