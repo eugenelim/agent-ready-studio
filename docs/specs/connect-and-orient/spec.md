@@ -315,9 +315,13 @@ the next Runtime-dependent initiative. **On expiry:** deleted or rewritten.
   show that SHA wherever the answer is shown.
 - Construct the URL handed to `git` from the canonical identity, never from the
   submitted string.
-- Launch every subprocess with an absolute executable path, an argument array,
-  the complete pinned `git` configuration, and attacker-influenced operands
-  after `--`.
+- Launch every subprocess with an absolute executable path and an argument
+  array. On a `git` argument vector, and only there, also carry the complete
+  pinned `git` configuration and place attacker-influenced operands after `--`,
+  matching the scope AC-0022 and AC-0021 state: the *Permitted executables* row
+  admits non-`git` executables — an interpreter probe, and `/bin/ps` — whose
+  vectors have no such configuration to carry and no attacker-influenced
+  operand to place.
 - Run inspection in a child process of the Studio Service, never in-process.
 - Treat every byte originating from the inspected repository as data, and carry
   its provenance in the protocol and persisted representations.
@@ -415,7 +419,7 @@ assisted authoring and has known false negatives.
 - [ ] **AC-0021.** Every attacker-influenced operand on a `git` argument vector is preceded by an end-of-options `--` marker.
 - [ ] **AC-0022.** Every `git` argument vector carries the complete pinned `git` configuration in *Canonical values*.
 - [ ] **AC-0023.** **The Runtime child and every process in its descendant tree** carries exactly the unconditional names in the *Environment allowlist* at their stated values, and no `GIT_CONFIG_PARAMETERS`. The scope is the trial tree, matching the *Environment allowlist* preamble: it is where repository-influenced data is processed, and the Studio Service's own parent-side process-tree observer, which processes none of it, is outside this obligation.
-- [ ] **AC-0024.** Every process `git` spawns carries those same names plus `GIT_CONFIG_PARAMETERS`, whose parsed key/value set equals the pinned `git` configuration; wherever that set is compared, the comparison is over the parsed set, never the literal encoding. **The automated obligation is that Studio constructs no other environment**, asserted exhaustively over every process Studio's own code starts. Observing a helper's own environment requires an https transport — `GIT_ALLOW_PROTOCOL=https` refuses the `file` transport, so `git` re-executes a helper only over a transport, and such an endpoint is a network surface AC-0148 forbids. That observation is therefore recorded by the manual smoke in *Testing Strategy*, and this criterion claims no automated observation of a helper's environment.
+- [ ] **AC-0024.** Every process `git` spawns carries those same names plus `GIT_CONFIG_PARAMETERS`, whose parsed key/value set equals the pinned `git` configuration; wherever that set is compared, the comparison is over the parsed set, never the literal encoding. **The automated obligation is that Studio constructs no other environment**, asserted exhaustively over every process Studio's own code starts **within the trial tree** — the Runtime child and its descendants, the same scope AC-0023 and AC-0025's second leg carry, and the set the spawn audit records. The Studio Service's own parent-side process-tree observation is outside it, for the reason AC-0023 states. Observing a helper's own environment requires an https transport — `GIT_ALLOW_PROTOCOL=https` refuses the `file` transport, so `git` re-executes a helper only over a transport, and such an endpoint is a network surface AC-0148 forbids. That observation is therefore recorded by the manual smoke in *Testing Strategy*, and this criterion claims no automated observation of a helper's environment.
 - [ ] **AC-0025.** Every executable started anywhere in the spawned process tree is one the *Permitted executables* row admits, asserted on two legs: the descendant set sampled from the parent over the live group, **and** the exhaustive record of every spawn Studio's own code performs **within that tree**, on the same trial-tree scope AC-0023 carries. The sampled leg cannot prove that nothing ran between two samples, and it does not reach a transport helper, because producing one requires an https endpoint AC-0148 forbids; the helper's admission is recorded by the manual smoke in *Testing Strategy*.
 - [ ] **AC-0026.** `git` is resolved by absolute path, verified by the identity check in *Canonical values*, and its exec-path directory recorded once and not re-read at a later spawn.
 - [ ] **AC-0027.** The Python interpreter is resolved by walking the enumerated search list in *Canonical values* in order, never through `PATH`.
