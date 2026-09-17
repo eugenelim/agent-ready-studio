@@ -2380,3 +2380,62 @@ addendum touches code: the diff is `plan.md` and this ledger.
 `per-request-state-root.test.ts` passing 17/17 matters beyond the count — it carries the
 exhaustive per-prefix marker test that D3's encoding property rests on, so the property the
 amendment states is still proven after the addendum.
+
+## review-round-27-2026-09-17
+
+**Round 27, the scoped review the discovery channel requires of itself. Fourteen findings raised,
+eight sustained, six refuted, none indeterminate.** Artifacts at
+`.context/reviews/f87c797b-8bed-46c2-96fd-e8d22fb8eb3d/27-pre-execute-adversarial-reviewer-{raw,adjudication}.md`,
+raw `sha256:36ffa30f…`. Scope was the changed task and its dependants — T14, T12, T13 — and the
+spec was not reopened.
+
+**One Blocker sustained, and it was a real escape.** T14's question 1 offered "introduce the four
+families as tokens" as an admissible option. That mints product colour surface and extends the
+design-system durable output, which the durable-output map assigns to T12 — so the channel would
+have landed, at execution, precisely the kind of change its own predicate forbids and its kill
+condition exists to route away. T14 is wave 1 in the derived order, so the option was reachable.
+The option is removed; minting a family is now named explicitly as a kill.
+
+**A live contract disagreement was found, and is recorded rather than resolved.** The
+*Inspection-family hue separation* row names **four** comparison families including attention.
+AC-0120 names **three** and excludes attention explicitly, on the stated ground that a state
+renders its attention level through weight, border and placement rather than an attention hue. A
+criterion and the row it cites disagree about what is compared. Verified directly at `spec.md:67`
+and `spec.md:552`. Resolving it moves an acceptance criterion, so it is a **kill**: it returns to
+the owner through the amendment path, and T14 derives no mapping against an unsettled family set.
+
+**A grounding claim of mine was falsified, and the correction matters.** I reported that none of
+the five families exists as a token. Two artifact-state members already carry hues in both
+themes — `--color-proposal-surface`, `--color-proposal-border`, `--color-accepted-surface` and
+`--color-accepted-border`, corresponding to the *proposed* and *accepted* artifact states the
+design system enumerates at `docs/product/design-system.md:50`.
+
+The error was in the oracle, not the transcription: I grepped for `--color-<family-name>` and
+reported the absence of family-**named** tokens as the absence of family **hues**. The comparison
+the check performed was narrower than the claim I drew from it — which is exactly the failure the
+"state what the oracle actually compares" discipline exists to catch, arriving this time in my own
+work. The review and execution families do genuinely carry no hue; the artifact family does.
+
+**Sustained and applied**: the Blocker above; the family-count kill; binding the ΔE2000 arm's
+real-entry-path leg to **both** theme blocks of `tokens.css`, since AC-0120 binds in both themes
+and the dark values live in the `prefers-color-scheme` block, so an arm reading only the root
+block would satisfy every other proof element while observing half the hue set; correcting the
+token claim; restating the Risks bullet that still asserted T8 blocks and only T12 depends on it,
+which the rewire falsified; and adding a Changelog entry citing this addendum's authority, without
+which nothing in the plan alone distinguishes a channel created by amendment from one that
+authorized itself.
+
+**One Nit deferred with its citation.** The plan contract note says both documents are pinned
+after approval, while the channel makes T12 and T13 refinable until their first implementing
+commit. The two can be reconciled by carving the refinable sections out of the note or by
+confining refinements to the ledger record; the adjudication records it as advisory because
+resolving it is a choice between defensible framings. Standing deferrals now number thirteen.
+
+**Six refutations worth keeping.** The claim that the inline-proof rule can be satisfied vacuously
+was refuted against its own conjunctive structure — element 1 already demands a consequential
+negative and element 2 carries a separate mutation burden. The claim that T14 is gated behind an
+unreached human approval was refuted against the recorded protocol approval and T8's evidence.
+
+**Structure re-verified after the repairs**: waves still derive `[[T14], [T12], [T13]]`; the
+roster is still 156 declared, 156 claimed, no residual; all **11 of 11** pinned section hashes
+still match; all three contract lints clean.
