@@ -1341,3 +1341,49 @@ The replacement adjudication for round 21 must judge the **same tree the reviewe
 the authority is filed first and every repair — this narrowing included — lands in one pass
 after that adjudication returns. Editing the criterion first would shift the line numbers the
 round-21 findings cite and would refute findings for the wrong reason.
+
+## review-round-22-2026-09-17
+
+**Round 22 is the replacement adjudication decision 7 unblocked, and it is valid.** Filed as
+`22-pre-execute-adversarial-reviewer-adjudication.md` over round 21's **unchanged** raw
+findings; `review classify` returned `findings` with 11 fingerprints and an indeterminate
+audit of `None.`, ending the terminal stop. No verdict was inherited from the refused round-21
+artifact, and no finding was cherry-picked out of it.
+
+**Eleven sustained, two refuted.** Six Blockers, three Concerns, two Nits.
+
+| Ref | Grade | Repair applied |
+| --- | --- | --- |
+| 1 | Blocker | T5's Done-when demanded "the two pass bars met" while the same task recorded one as failed, so T5 was unsatisfiable. Now states the one surviving bar and the throughput measurement as the failing evidence for the cut |
+| 2 | Blocker | T6's test bullet still named the tree-bytes kill. Reduced to the file-count kill and the two wall-clock deadlines, noting no byte ceiling is tested because none is enforced |
+| 3 | Blocker | AC-0051's "within the same recorded tolerance" lost its antecedent when the criterion above it was retired. It now names the *Materialized file count* row's tolerance directly |
+| 4 | Blocker | The closing *Resource bounds* sentence claimed fetch depth was the only control bounding what a repository can bring, contradicting the file-count row beneath it. Restricted to **bytes** |
+| 5 | Blocker | The cut had no *Follow-ons* residual, which decision 5's own terms required. Added, owner-named, carrying its ledger anchor, the "for now" framing and the four surviving constraints. Per the adjudication this needs no additional `workspace.toml` entry |
+| 6 | Blocker | The row's claim that every ps spawn is audited had no artifact that could fail — deleting `recordSpawn` left the suite green. The AC-0025 test now **requires** an audit entry naming the admitted path and carrying `lstart=` |
+| 7 | Concern | The measurement harness still documented two pass bars, the cut bound, and a conclusion measurement 1 disproved. Header and docstring corrected |
+| 8 | Concern | Four copies of the ps literal. Both importable sites now take it from `PROCESS_STATUS_EXECUTABLE`, the constant the permitted predicate reads |
+| 9 | Concern | AC-0023's universal quantifier, per decision 7. Narrowed to the Runtime child and its descendant tree, with AC-0025's second leg given the same scope explicitly |
+| 11 | Nit | The `run` comment claimed the single process-start site. Corrected, naming why the process-status read sits outside it |
+| 12 | Nit | The dangling referent left by the plan edit. Named and reflowed |
+
+Both Nits were repaired rather than deferred, because applying any sustained finding already
+obliges re-running the reviewer, so the two prose fixes cost nothing beyond a round that was
+happening regardless — the opposite of the round-19 calculus, where the Blocker and Concern
+were the only repairs and deferring kept the footprint off perturbation-prone criteria.
+Neither Nit touches a criterion.
+
+**Refuted:** finding 10, which demanded a stated magnitude decision 5's ground rules out and
+rested on the false premise that no secure-design pass covers this amendment; and finding 13,
+whose requested note already exists in the predicate's own comment.
+
+**Verification debt, stated rather than papered over.** Every affected test file passes in
+isolation — per-request-state-root 17, sweep 18, materialization-confinement 11,
+materialization 4, disposal 7, runtime-supervisor 23, git-driver 20, hostile-fixture 41, so
+**141 tests across the trial runtime** — and `pnpm lint` and `pnpm typecheck` both exit 0.
+**A green full parallel run is owed and was not obtained**: the host reached one-minute load
+averages of 107 to 117 on 10 cores while these repairs were verified, and under that
+contention the parallel suite times out with a varying failure set that includes
+`materialization.test.ts` cases which spawn no Runtime child and run no sweep, so the cause
+is the host rather than this change. Two consecutive clean full runs of 343 tests were
+obtained earlier the same day at load 12 to 19. The owed artifact is one full `pnpm verify`
+on a quiet host before the amendment's human gates close.

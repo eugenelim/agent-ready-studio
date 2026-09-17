@@ -3,21 +3,27 @@
  * T5's four host measurements, over one 250 ms interval each.
  *
  * These characterize what a hostile repository can do to this host inside one
- * sampling interval. They are deliberately NOT a test: two of them carry
- * advance-fixed pass bars that a contended host fails spuriously, so they are
- * run deliberately on a quiet host and recorded in the verification ledger with
- * the load average that was in effect.
+ * sampling interval. They are deliberately NOT a test: the surviving pass bar
+ * is one a contended host fails spuriously, so they are run deliberately on a
+ * quiet host and recorded in the verification ledger with the load average that
+ * was in effect.
  *
- *   1. Write throughput over 250 ms      pass bar: at or below 128 MiB
+ *   1. Write throughput over 250 ms      bar RETIRED -- see below
  *   2. File creation over 250 ms         pass bar: at or below 5,000 files
  *   3. Resident-memory growth over 250 ms   observation, no pass bar
  *   4. Sample duration over a tree at the
  *      file-count bound (50,000 files)      observation, no pass bar
  *
- * Measurements 1 and 2 bound the *adversary*: a host that writes more than the
- * bar inside one interval can overshoot the tree-bytes and file-count bounds
- * before the sampler observes the breach. Per the spec, a host measuring higher
- * fails the bound rather than raising it.
+ * Measurement 2 bounds the *adversary*: a host creating more files than the bar
+ * inside one interval could overshoot the file-count bound before the sampler
+ * observes the breach.
+ *
+ * Measurement 1 carried the same kind of bar, at or below 128 MiB, AND FAILED
+ * IT: the realistic writer recorded 208-448 MiB per interval on this host. Under
+ * the spec's own rule a host measuring higher fails the bound rather than raising
+ * it, so the tree-bytes bound was CUT on 2026-09-16 and no byte ceiling is
+ * enforced. The measurement is still taken, because it is the standing evidence
+ * for that cut rather than a bar anything must now meet.
  */
 import { execFileSync, spawn } from "node:child_process";
 import {
@@ -50,12 +56,13 @@ function loadAverage() {
  * The host's raw ceiling: ordinary buffered writes, as fast as one process can
  * issue them.
  *
- * **This is not the measurement the tree-bytes bound's pass bar applies to**,
- * and it is retained only to bound the other one from above. The bound's row
- * says the supervisor samples "during checkout", so the writer that matters is
- * `git`, which is limited by pack decompression and per-file work. Measuring
- * this instead reports roughly 200-430 MiB per interval on this host and would
- * record a bound failure that the actual writer does not produce.
+ * **This is not the writer the retired pass bar applied to**, and it is retained
+ * only to bound the real measurement from above. The bound's row said the
+ * supervisor samples "during checkout", so the writer that mattered is `git`,
+ * limited by pack decompression and per-file work. This ceiling reports roughly
+ * 200-880 MiB per interval on this host; the realistic writer reports 208-448
+ * and failed the bar too, so the difference between them is the margin of
+ * overstatement, not the difference between failing and passing.
  */
 function measureRawWriteCeiling(root) {
   const chunk = Buffer.alloc(4 * MIB, 0x61);

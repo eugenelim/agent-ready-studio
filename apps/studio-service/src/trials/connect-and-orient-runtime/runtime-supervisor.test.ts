@@ -54,6 +54,7 @@ vi.mock("node:fs/promises", async (importOriginal) =>
 import {
   isPermittedExecutable,
   MINIMUM_INTERPRETER_VERSION,
+  PROCESS_STATUS_EXECUTABLE,
   PYTHON_INTERPRETER_SEARCH_LIST,
   type SpawnAuditEntry,
 } from "./executable-identity.js";
@@ -561,6 +562,20 @@ describe("permitted executables and identity", () => {
     );
     expect(
       isPermittedExecutable(interpreterProbe?.executable ?? "", permitted),
+    ).toBe(true);
+
+    // The admitted process-status read must be PRESENT in the audit, not merely
+    // admitted if present. The sampled leg cannot reach it -- a `ps` lives about
+    // 20 ms, under the observation floor -- so this record is the only leg that
+    // can account for it, and without a presence assertion deleting the
+    // `recordSpawn` call would leave the suite green.
+    const processStatusRead = record.spawnAudit.find(
+      (entry) => entry.executable === PROCESS_STATUS_EXECUTABLE,
+    );
+    expect(processStatusRead).toBeDefined();
+    expect(processStatusRead?.args).toContain("lstart=");
+    expect(
+      isPermittedExecutable(processStatusRead?.executable ?? "", permitted),
     ).toBe(true);
 
     // The exhaustive leg: no spawn site in Studio's own code names anything
