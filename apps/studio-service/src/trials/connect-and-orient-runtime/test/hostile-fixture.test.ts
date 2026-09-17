@@ -70,7 +70,6 @@ describe("AC-0149 hostile fixture corpus", () => {
       "AC-0144": "materialized-module",
       "AC-0145": "authorization-header",
       "AC-0146": "credential-sink",
-      "AC-0050": "tree-bytes-bound",
       "AC-0051": "file-count-bound",
       "AC-0075": "single-file-bound",
       "AC-0037": "result-bytes-bound",

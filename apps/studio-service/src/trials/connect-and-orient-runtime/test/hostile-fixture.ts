@@ -39,6 +39,12 @@ export const HOSTILE_CASES = [
 
 export type HostileCase = (typeof HOSTILE_CASES)[number];
 
+/**
+ * `tree-bytes-bound` is deliberately present in `HOSTILE_CASES` but bound to no
+ * criterion: the materialized tree-bytes bound was cut on 2026-09-16, and that
+ * decision was taken "for now". The fixture is retained so a restored byte
+ * ceiling has its corpus case ready rather than rebuilt.
+ */
 export const HOSTILE_CASE_BY_CRITERION = {
   "AC-0133": "repository-hook",
   "AC-0134": "package-script",
@@ -54,7 +60,6 @@ export const HOSTILE_CASE_BY_CRITERION = {
   "AC-0144": "materialized-module",
   "AC-0145": "authorization-header",
   "AC-0146": "credential-sink",
-  "AC-0050": "tree-bytes-bound",
   "AC-0051": "file-count-bound",
   "AC-0075": "single-file-bound",
   "AC-0037": "result-bytes-bound",

@@ -1,7 +1,7 @@
 # Plan: Connect and Orient — connect and see the verdict
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `docs/architecture/reference.md`;
  `apps/desktop/src/main/index.ts` (argv-array child spawn, NDJSON transport,
  SIGTERM shutdown — the supervision precedent this plan reuses);
@@ -35,13 +35,16 @@ red stubs are materialized inside the task that makes them pass.
 
 Two measurements are taken during the build rather than asserted in the
 contract. T5 records the delivery host's write throughput and file-creation
-rate over one 250 ms sampling interval, and those become the tolerances the
-tree-bytes and file-count bounds cite — **against ceilings the spec fixes in
-advance, so a fast host fails the bound rather than raising it.** `--depth 1`
-bounds history only; it bounds neither tree bytes nor file count, and a blob
-filter is deliberately not used because a checkout refetches every blob at
-`HEAD` and would leave the clone a promisor. The sampler is therefore the sole
-enforcing control for both dimensions, and the ceilings are what make that
+rate over one 250 ms sampling interval, **against ceilings the spec fixes in
+advance, so a fast host fails the bound rather than raising it.** The
+file-creation measurement passed and became the tolerance the file-count bound
+cites. **The throughput measurement failed its ceiling, and the tree-bytes
+bound was cut rather than restated** — the quantity is a property of the host,
+so any restated ceiling would go stale on the next machine. `--depth 1` bounds
+history only; it bounds neither tree bytes nor file count, and a blob filter is
+deliberately not used because a checkout refetches every blob at `HEAD` and
+would leave the clone a promisor. The sampler is therefore the sole enforcing
+control for file count, and its ceiling is what makes that
 honest.
 
 ## Constraints
@@ -108,13 +111,15 @@ behaviours it transports are owned by criteria in T9 through T12.
  temp directory together, and single-in-flight admission bounds only what the
  *Live in-flight sweep-domain occupancy* row states, which is live in-flight
  occupancy and not aggregate on-disk occupancy.
-- **Bound the input, then sample.** Traces to AC-0050, AC-0051. `git` exposes
+- **Bound the input, then sample.** Traces to AC-0051. `git` exposes
  no per-write hook, so `--depth 1` does the primary bounding of history and the
- 250 ms sampler is the sole enforcing control for tree bytes and file count. A
+ 250 ms sampler is the sole enforcing control for file count. A
  blob filter is deliberately **not** used: a checkout refetches every blob at
  `HEAD`, and it would leave the clone a promisor able to initiate an
- unsupervised later fetch. The advance-fixed ceilings are what make the small
- measured tolerances honest.
+ unsupervised later fetch. The advance-fixed ceiling is what makes the small
+ measured tolerance honest. **No byte ceiling is enforced**: T5's measurement
+ showed the former tree-bytes bound spent inside two to three samples, so it
+ was cut rather than restated at a number the next host would invalidate.
 - **Symlinks materialize as regular files holding their target string.** Traces
  to AC-0069. The inspector walks the tree independently and no Studio-side
  check reaches it; AC-0140 keeps the reader's own refusal proven separately so
@@ -322,14 +327,16 @@ signalled" indistinguishable from "the Runtime took its pipes with it".
  the second limb's input, not a declined liveness comparison, so the test
  asserts reclaim on its age gate rather than a decline.
 - **Measurement:** four quantities over one 250 ms interval, recorded in the
- verification ledger and carried into the bounds tolerances. Two carry
- advance-fixed pass bars: write throughput (at or below 128 MiB) and
- file-creation rate (at or below 5,000 files). Two are observations with no
- pass bar, because each quantifies a gap the spec admits rather than a property
- Studio designs: resident-memory growth per interval, which is why AC-0031
- claims detection latency rather than a peak, and the worst-case duration of
- the sample itself against a tree at the file-count bound, which is the second
- term in the tree-bytes and file-count tolerances.
+ verification ledger and carried into the bounds tolerances. One carries an
+ advance-fixed pass bar: file-creation rate (at or below 5,000 files). **Write
+ throughput carried one too and failed it**, at 208–448 MiB per interval
+ against 128 MiB, which is why the tree-bytes bound is cut rather than
+ restated; the measurement is still recorded, because it is the evidence for
+ that cut. Two are observations with no pass bar, because each quantifies a gap
+ the spec admits rather than a property Studio designs: resident-memory growth
+ per interval, which is why AC-0031 claims detection latency rather than a
+ peak, and the worst-case duration of the sample itself against a tree at the
+ file-count bound, which is the second term in the file-count tolerance.
 - Covers AC-0069, AC-0070, AC-0071, AC-0072, AC-0073, AC-0074, AC-0075, AC-0076, AC-0077, AC-0078, AC-0079, AC-0080, AC-0081, AC-0082, AC-0083.
 
 **Red stub** (`stub: true`):
@@ -367,20 +374,20 @@ AC-0069, AC-0070, AC-0071, AC-0072, AC-0073, AC-0074, AC-0075, AC-0076, AC-0077,
  T11 and reuse this task's harness, so probe identity stays pinned across all
  three. AC-0147 is gated at T11 for the same reason — it ranges over AC-0133
  through AC-0146, so it cannot be discharged until the last of them is.
-- Covers AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0133, AC-0134, AC-0135, AC-0136, AC-0137, AC-0139, AC-0140, AC-0141, AC-0142, AC-0143, AC-0144, AC-0145.
+- Covers AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0049, AC-0051, AC-0052, AC-0053, AC-0133, AC-0134, AC-0135, AC-0136, AC-0137, AC-0139, AC-0140, AC-0141, AC-0142, AC-0143, AC-0144, AC-0145.
 
 **Red stub** (`stub: true`):
 
 ```ts
-it("AC-0050 kills materialization on an observed tree-bytes breach", async () => {
+it("AC-0051 kills materialization on an observed file-count breach", async () => {
  const out = await materialize(oversizedFixture);
- expect(out).toMatchObject({ ok: false, stopReason: "tree-bytes" });
+ expect(out).toMatchObject({ ok: false, stopReason: "file-count" });
 });
 ```
 
 **Approach:** inspector locator, supervisor sampling at the stated interval.
 
-**Done when:** `pnpm verify` is green and AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0133, AC-0134, AC-0135, AC-0136, AC-0137, AC-0139, AC-0140, AC-0141, AC-0142, AC-0143, AC-0144, AC-0145 hold.
+**Done when:** `pnpm verify` is green and AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0049, AC-0051, AC-0052, AC-0053, AC-0133, AC-0134, AC-0135, AC-0136, AC-0137, AC-0139, AC-0140, AC-0141, AC-0142, AC-0143, AC-0144, AC-0145 hold.
 
 ### T7: The version marker is read, parsed safely, and never over-read
 
@@ -486,7 +493,7 @@ it("AC-0036 refuses a well-named result whose body does not conform", () => {
 ```ts
 it("AC-0091 attributes a stop reason per reason, not per state", () => {
  expect(project({ state: "inspection-stopped", reason: "resolution-timeout" }).attribution).toBe("network");
- expect(project({ state: "inspection-stopped", reason: "tree-bytes" }).attribution).toBe("repository");
+ expect(project({ state: "inspection-stopped", reason: "file-count" }).attribution).toBe("repository");
 });
 ```
 
@@ -643,6 +650,42 @@ to its core schema with custom tags disabled and its alias guard set to the
 bound in *Canonical values*.
 
 ## Changelog
+
+- 2026-09-17: **contract amendment — the tree-bytes bound is cut and `/bin/ps`
+ is admitted.** Two owner decisions, both blocking T5, deliberately **not**
+ batched with the renderer and result-composition amendment: that one keeps its
+ slot before T12, because the last amendment of the larger shape generated four
+ of its own blockers across five review rounds. Authority at
+ `notes/verification-ledger.md#amendment-2026-09-16-bound-cut-and-ps`.
+ **Decision 5 cuts the *Materialized tree bytes* bound.** T5's measurement found
+ the realistic writer — `git checkout` inflating a maximally compressible pack —
+ materializing 208–448 MiB per 250 ms interval against a 128 MiB pass bar, and a
+ tree at the former 512 MiB ceiling written inside two to three samples, so
+ detection landed after the whole budget was spent. Shortening the interval does
+ not help: one sample over a tree at the file-count bound already costs 211–349
+ ms, more than the interval itself. The row's own rule made a higher measurement
+ a bound failure rather than grounds to raise the bar, and the quantity is a
+ property of the host, so a restated ceiling would go stale on the next machine.
+ **The criterion between AC-0049 and AC-0051 is removed**, taking the count from
+ 157 to **156** and adding that number to the never-reuse list beside the one
+ between AC-0155 and AC-0157. Neither is written in its retired form, which is
+ the convention that keeps a retired identifier from resolving to a criterion.
+ The file-count bound is untouched and AC-0051 stands: it passed its bar with
+ roughly 3.5× headroom, so cutting only the unenforceable half is the precise
+ change, and the sampler survives to enforce it and to serve AC-0031.
+ Materialization size is still held by the fetch, by `--depth 1` and by the
+ 120 s inspection deadline — what is removed is a *stated* byte ceiling.
+ **Decision 6 admits `/bin/ps`** to *Permitted executables*, repairing a defect
+ this delivery introduced: the Runtime spawned it to read a process start time,
+ which the platform exposes no other way, violating AC-0025 on both legs — `ps`
+ was not permitted, and the spawns bypassed the audit that is the second leg.
+ The route was chosen because it is the **only** one that leaves AC-0080 and
+ AC-0081 untouched; the advisory-lock alternative was eliminated by probe, Node
+ v26.4.0 exposing no `flock`. **This breaks the run of no-new-permission
+ outcomes the previous decisions established**, and the ground is that every
+ alternative spends its cost on the spec's most perturbation-prone text instead.
+ No repository-sourced code executes inside the trial process group, so nothing
+ there benefits from `ps`. Criteria count 157 → 156.
 
 - 2026-09-16: **pre-EXECUTE round 20 — the review requirement is satisfied.**
  The secure-design adjudication classified `clean`; the adversarial
@@ -818,7 +861,8 @@ bound in *Canonical values*.
  AC-0129 and AC-0057 already oblige; completing them states that obligation and
  adds none, and takes the coupling checker from four findings to one. The
  fourth is a genuine drift: all three sampled bounds share one 250 ms sampler,
- but only tree-bytes and file-count acknowledged the sample's own duration,
+ but only tree-bytes and file-count acknowledged the sample's own duration
+ (the tree-bytes bound was later cut; see the entry for this amendment),
  while *Child resident memory* and AC-0031 claimed detection "within one
  sampling interval". A sampler cannot detect a breach faster than it can
  complete the read that observes it, measured at roughly twenty milliseconds
