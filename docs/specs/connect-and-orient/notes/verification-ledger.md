@@ -1903,3 +1903,40 @@ stub was diffed against `plan.md:413-418` after the suppression and is byte-iden
 
 `pnpm lint` exit 0 over 96 files; `pnpm typecheck` exit 0; `pnpm test` exit 0 with **442 tests in
 37 files** at load 25; `pnpm build` exit 0; `git diff --check` clean.
+
+## t9-evidence
+
+**T9 — a trial result is validated in full, and the verdict is decided. Complete.** All twenty
+criteria carry implementation and tests: AC-0032 to AC-0042, AC-0061 to AC-0068, and AC-0155.
+
+| Criterion | Discharge |
+| --- | --- |
+| AC-0032 | The contract name is the one *Canonical values* states; any other name refuses with `contract-mismatch`, and the matching name is admitted |
+| AC-0033 | `mintRequestIdentifier` mints inside the charset, proven distinct over fifty draws. The request builder has no parameter an identifier could arrive through, which is the structural form of "never taken from client input" |
+| AC-0034 | A result whose identifier is not the request's refuses; a matching one is admitted |
+| AC-0035 | The whole shape is checked before a single field is copied |
+| AC-0036 | The approved plan stub is materialized byte-identical and passes. The refusal object carries exactly `ok` and `stopReason`, asserted by key, so nothing of the result reached the outcome — that is "not partially consumed", observed rather than asserted. Six malformed fields refuse individually, and the four refusal classes are proven to carry four distinct reasons |
+| AC-0037 | `BoundedResultReader` counts each chunk as it arrives and refuses the moment the running total passes the bound; the retained text is empty afterwards, so no full buffer of an oversized result ever exists |
+| AC-0038 | All five elements reported, with an absent version marker reported as an explicit `null` rather than a missing field |
+| AC-0039 | Provenance on every non-originated value: repository-derived for both the value the inspector echoed and the value Studio extracted itself, transport-reported for the resolved revision |
+| AC-0040 | Each marker travels with its value into the persisted representation rather than being recomputed from a field name at the far end |
+| AC-0041 | `trial-enrichment-seam.ts` is the one named module, and a source walk over the whole service tree proves its only importer is its own test. Removing the seam means deleting the module and that test, and editing nothing else |
+| AC-0042 | No northbound field carries a path-shaped value, the field set is exactly four names with no root, domain or inspector path among them, and the path predicate is proven non-vacuous against five real path shapes |
+| AC-0061 | `deriveVerdict` is exercised over the whole `workspace_present` × `invalid_workspace` product plus the incomplete case, so no completed inspection falls through every row |
+| AC-0062 | Moving the declared marker — Studio's own read — changes no verdict |
+| AC-0063 | `malformed` comes from the `invalid_workspace` finding and from nothing else, read whether the finding is a bare string or an object with a `code` |
+| AC-0064 | No marker declared yields no qualifier |
+| AC-0065 | The qualifier is carried whatever the verdict, proven against both `agent-ready` and `not-agent-ready` |
+| AC-0066 | The qualifier and the condition are both present and independent in the same result |
+| AC-0067 | The target's declared marker and the inspector's own contract version are reported as two separate observed values |
+| AC-0068 | Wildly disagreeing versions produce no judgement, because neither party declared a version set to judge against |
+| AC-0155 | Diagnostics are bounded while reading, the leading and trailing halves are retained, the elision marker names the discarded byte count, and a result normalizes identically whatever the child wrote to stderr — truncated, never refused, so a repository cannot suppress its own verdict by emitting warnings |
+
+**The two axes stay separate in the type.** `verdict`, `condition` and `versionUnverified` are
+three independent fields. Flattening them is what the spec records as having made `agent-ready`
+and `version-unverified` simultaneously true and left `not-agent-ready` unreachable, so the
+normalized result has no field in which that could recur.
+
+**Gate state.** `pnpm lint` exit 0 over 98 files; `pnpm typecheck` exit 0; `pnpm test` exit 0
+with **483 tests in 38 files**; `pnpm build` exit 0; `git diff --check` clean. The approved
+AC-0036 stub was diffed against `plan.md:468-471` after formatting and is byte-identical.
