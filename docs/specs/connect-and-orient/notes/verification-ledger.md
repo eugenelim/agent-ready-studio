@@ -2183,3 +2183,76 @@ this run of a contract amendment invalidating already-shipped code. The lesson g
 class extension in *Canonical values* reaches every enumeration that implements that class, and
 those live in code as often as in prose. The walk instruments the ledger names — literal sweep,
 then semantic walk — have to cross the prose/code boundary, not stop at it.
+
+## review-round-26-2026-09-17
+
+**Round 26, the pre-EXECUTE review of the Package 3 amendment. Eight findings raised, four
+sustained, four refuted, none indeterminate.** Artifacts at
+`.context/reviews/f87c797b-8bed-46c2-96fd-e8d22fb8eb3d/26-pre-execute-adversarial-reviewer-{raw,adjudication}.md`,
+raw `sha256:16458feb…`, adjudication `sha256:4d2af768…`.
+
+**The severity distribution is the headline.** The raw report carried 1 Blocker, 4 Concerns and
+3 Nits. Adjudication sustained **four Nits and nothing above Nit** — the Blocker and all four
+Concerns were either refuted outright or graded down. That is the fifth time on this run that
+adjudication has moved a Blocker off the top of a report, and it is why findings are routed
+through it rather than acted on as written.
+
+| # | Sustained finding | Surface |
+| --- | --- | --- |
+| 1 | AC-0080 enumerates two crash outcomes while its own encoding property admits three | `spec.md:498` |
+| 2 | The extended non-originated item is named more narrowly than its own gloss | `spec.md:65` |
+| 3 | The class head admits user-submitted input that no enumerated item assigns | `spec.md:65` |
+| 4 | The missing-start-time crash form is unreachable under the encoding AC-0080 names | `spec.md:498` |
+
+**Three of the four are defects in text this amendment itself added** — findings 1 and 4 in D3's
+encoding property, finding 2 in D4's enumeration item. That is the pattern this ledger has
+recorded three rounds running: an addition to prose manufactures the next round's finding, where
+a deletion produces none. D1, D3 and D4 were flagged as the highest-risk edits in this batch
+before the round ran, at `#amendment-2026-09-17-package-3-taxonomy`, and two of the three earned it.
+
+**All four are deferred rather than repaired, and the ground is the adjudication's own.** Each
+sustained entry records that its resolution is a choice among defensible rewordings with
+*nothing external deciding among them* — finding 1 names three admissible resolutions, finding 2
+three, finding 3 two, finding 4 two. A choice no evidence settles is an owner question, and this
+ledger's standing rule is to hand those back rather than pick one inside a review loop. Findings
+1 and 4 additionally land on AC-0080 and AC-0081, the text rewritten in four consecutive rounds
+where each repair generated the next round's finding; decision 6 was taken specifically because
+it was the only route leaving both untouched.
+
+Repairing any of the four would reopen the frontier and require round 27, against advisory
+wording items that the work-loop's own exit condition does not require closing: no unresolved
+Blocker or Concern remains, and deferred Nits carrying citations may proceed.
+
+**Four refutations worth keeping.** Finding 4's claim that T12's widened plan bullet violated the
+no-mirroring rule was refuted on authority — that rule binds copying the clause onto AC-0115, not
+a plan bullet stating what a test asserts. Finding 5's claim that the filled AC-0104 row obliges
+nothing was refuted against `spec.md:18`, which states that a criterion naming a *Canonical
+values* row carries the obligation. Finding 7 anchored the *Markerless-reclaim age* row one line
+late, at the *Live in-flight sweep-domain occupancy* row.
+
+**Standing deferrals now number twelve**: the eight carried into this amendment, plus these four.
+Decision 8 remains open and separate from all of them.
+
+## probe-2026-09-17-class-membership-is-strictly-widened
+
+**Independently verified before adjudicating any finding that claims the amendment weakened a
+control.** The *Non-originated value* row's enumeration was extracted from both sides of the
+diff and compared item by item:
+
+| | Items |
+| --- | --- |
+| Pre-amendment | a repository-derived value as AC-0039 defines it; the remote-resolved revision; any value a transport reported |
+| Post-amendment | the same three, unchanged, plus text authored by a pinned third-party executable, glossed as the trusted inspector's own prose and a child process's own diagnostic text |
+
+**Removed from the class: none.** Every prior member survives verbatim. The amendment is a
+strict widening, so no value that was inside the class before it is outside the class now, and
+neither AC-0115's literal-rendering obligation nor AC-0116's sink prohibition can have lost
+reach by exclusion.
+
+AC-0116's own text did lose the derivation clause, but the clause moved into the row that
+AC-0116 cites and is now phrased over *both* obligations, so AC-0116 keeps that reach by
+reference and AC-0115 gains it. What changed is which surface states the reach, not whether it
+is stated.
+
+Recorded because a review of this amendment is expected to ask whether protection narrowed, and
+the answer should rest on the diff rather than on the reviewer's or the author's account of it.
