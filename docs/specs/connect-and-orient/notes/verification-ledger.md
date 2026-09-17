@@ -997,3 +997,68 @@ carry them into the bounds tolerances, which is now done. Changing a *Resource b
 or the criterion that cites it, is a contract amendment. It is a natural companion to
 Package 3, which already has to touch the *Persisted repository-derived content* row for
 decision 1.
+
+## owner-decision-2026-09-16-cut-tree-bytes-bound
+
+**Decision 5, decided 2026-09-16: cut the materialized tree-bytes bound.** The owner chose
+the fourth route offered at `#open-owner-decision-2026-09-16-tree-bytes-bound` — remove the
+limit and state the gap plainly — over restating the number, bounding the input before
+checkout, or keeping the sampler with the pass bar dropped.
+
+**The owner's ground, recorded because it is the reason the route is right rather than
+merely cheapest: the quantity is machine-dependent.** Any stated ceiling is a property of
+the host that measured it, so a restated number would be wrong on the next machine and would
+need remeasuring on every delivery platform. Stating no ceiling is the only form that does
+not go stale. The decision was explicitly taken **"for now"**, so it is a deliberate,
+revisitable gap rather than a settled design position, and it belongs in *Follow-ons* on
+those terms.
+
+**The file-count bound is not cut.** It passes its bar with roughly 3.5× headroom — 874 to
+1,437 files per interval against 5,000 — so it is genuinely enforceable and AC-0051 stands.
+Cutting only the unenforceable half is the precise change. The 250 ms sampler therefore
+survives: it still enforces the file-count bound and still serves AC-0031's resident-memory
+detection.
+
+**The gap is not unbounded in practice, and the amendment should say so.** With no byte
+ceiling, materialization is still held by three things the slice keeps: the repository must
+first be fetched over the network, `--depth 1` bounds history, and the 120 s inspection
+wall-clock deadline ends the attempt. What is removed is a *stated* byte ceiling Studio
+enforces, not every constraint on size. Saying that plainly is what makes this a documented
+gap a reader can plan around rather than a silent hole.
+
+**Two consequences the owner should see, because they are larger than editing one row.**
+
+1. **A criterion is removed, and the criteria count changes.** AC-0050 asserts that
+   materialization "is killed by the Runtime supervisor when a sample observes the
+   **tree-bytes bound** crossed". With no such bound, the criterion has no referent and goes.
+   That takes the count from **157 to 156**, and AC-0050 joins the number between AC-0155 and
+   AC-0157 on the list of identifiers that are **never to be reused**. AC-0051, the
+   file-count twin, is unaffected.
+2. **A T1 hostile-corpus case is orphaned and must be rebound or retired.**
+   `HOSTILE_CASE_BY_CRITERION` binds `"AC-0050": "tree-bytes-bound"` in
+   `test/hostile-fixture.ts`. T1's *plan section* is pinned and immutable, but it covers
+   AC-0149 rather than AC-0050, and the corpus *code* is not pinned, so the binding can be
+   removed without touching pinned text. The amendment must still walk it, or
+   `lint-contract-item-alignment` will see a case bound to a criterion that no longer exists.
+
+**Every surface the cut has to walk, in one action.** In `spec.md`: the *Materialized tree
+bytes* row itself (`:268`); the threat-table row `AC-0050 tree-bytes bound` (`:224`); the
+*Fetch depth and filter* tolerance, which says `--depth 1` "bounds neither tree bytes nor
+file count, which the sampler alone enforces" (`:267`); the *Child resident memory*
+tolerance, which rests "on the same terms as the tree-bytes and file-count rows" (`:273`);
+the *Live in-flight sweep-domain occupancy* row, whose value term is "the tree-bytes and
+file-count bounds the sampler enforces over the `tree` child" (`:282`); AC-0031, which cites
+the same terms (`:422`); AC-0050 itself (`:451`); and the closing sentence that the
+fetch-depth bound is why "the sampled tolerances can be small enough to state honestly"
+(`:285`). In `plan.md`: the approach and design paragraphs at `:39`, `:41` and `:113`; T5's
+measurement bullet at `:332`, which carries the 128 MiB pass bar that this decision retires;
+the AC-0050 red stub at `:375`; the attribution example at `:489`; and the changelog note at
+`:821`.
+
+**What this unblocks, and what it still costs.** T5's Done-when requires "the four
+measurements recorded **with the two pass bars met**". Cutting the tree-bytes bound retires
+the bar that cannot be met, so T5 can close on the remaining one, which passes. The change is
+a contract amendment and cannot be made by editing the pinned bodies directly; it is a
+natural companion to Package 3, which already has to touch the same *Resource bounds* table
+for decision 1. Doing both in one amendment costs one cycle through the human gates rather
+than two.
