@@ -784,3 +784,117 @@ for memory.
 measurement as the plan requires. Nothing else in T5 is blocked on this; the measurement is
 the last item before T5's Done-when can be satisfied, and the remaining wiring described at
 `#t5-progress-2026-09-16` can proceed under load, because none of it is timing-sensitive.
+
+## owner-decision-2026-09-16-package-3-taxonomy
+
+**Four open owner decisions, all decided 2026-09-16.** These are the decisions the
+pre-EXECUTE rounds deferred because each needed an owner choice rather than evidence. They
+are batched here because Package 3 — the renderer and result-composition taxonomy amendment
+that blocks T12 — has to happen anyway, and a deferred Nit costs a full review round if it
+is carried alone.
+
+| # | Question | **Decision** | Route not taken |
+| --- | --- | --- | --- |
+| 1 | AC-0104's breach behaviour | **Reject the write that would breach**, with an explicit diagnostic | Truncate; evict |
+| 2 | T6 schedules no confirmation for the inspector read-reach residual that names it | **Add the named T6 confirmation**, scoped to read reach against the recorded pack name, version and file digests | Weaken the Follow-on's claim |
+| 3 | AC-0080's partial-form enumeration rests on an unstated marker-encoding premise | **State the encoding property** | Add a completeness obligation; age-gate AC-0081's first limb |
+| 4 | The *Non-originated value* row head is broader than its three-item enumeration | **Extend the enumeration** | Narrow the head |
+
+**Decision 1 — reject.** The *Persisted repository-derived content* row at `spec.md:277` is
+deliberately two-cell and is the single expected `spec-coupling-check` finding; the two
+missing cells are exactly *who enforces the bound* and *what happens at the boundary*. The
+row becomes `Enforced by: the persistence layer checks before the write` and
+`Tolerance: none — exact`. Eviction was refused because a retention order is a primitive the
+contract has nowhere else, and every prior owner decision in this amendment took the
+no-new-control route. Truncation was refused because a truncated repository-derived value
+still carries AC-0039's provenance marker, so it reads as a complete attributed value when
+it is not. The silently-incomplete record that rejection leaves is answered by the pattern
+AC-0083 already sets for a declined reclaim: a control whose failure mode emits nothing is
+unobservable exactly when it matters. This decision pairs with the Package 3 item on the
+lifetime bound for persisted repository-derived content; they are the same row.
+
+**Decision 2 — add the confirmation.** The residual at `spec.md:594` names T6 as the
+confirmation point for the pinned inspector's read reach, but T6's Tests, Approach and
+Done-when schedule no such confirmation, so nothing fails if it is skipped
+(`#deferred-nits-2026-09-16-round-19`, adversarial item-4). The deciding factor is marginal
+cost: T6 must already open the pack to record its version and the SHA-256 of
+`workspace_status.py` and `workspace_status_engine.py`, so confirming read reach at that
+same moment is not new work. T6 gains a named Tests bullet and a Done-when clause.
+
+**The symlink half of that residual is now overstated and should be corrected with it.**
+The residual asserts that AC-0069's protection depends on whether the inspector's traversal
+follows symlinks. It does not. `core.symlinks=false` is already in T4's pinned thirteen-key
+configuration, and the probe at `#t5-progress-2026-09-16` confirms it materializes an
+escaping link as a **regular file holding the literal target string** — so there is no
+symlink under the materialization root for the inspector to follow. AC-0069's protection is
+held by materialization, not by the inspector's traversal. The read-reach question — whether
+pack `core` at the pin ever opens a repository-declared path operand — is separate, bears on
+AC-0054's permitted read surface, and is what T6 now confirms.
+
+**Decision 3 — state the encoding property.** Chosen as the cheapest route that touches
+neither AC-0081 nor the reclaim semantics: AC-0080 and AC-0081 were rewritten in four
+consecutive rounds and each repair generated the next round's finding, so age-gating the
+first limb was refused as the highest-risk edit available. A completeness obligation was
+refused as an added obligation where a statement of fact suffices.
+
+**The property must be stated in its disjunctive form; the obvious phrasing is false.**
+"No truncation of the single creating write parses" is **wrong** — the prefix that drops
+only the trailing newline parses to the complete object and yields both values. The property
+that holds, implemented and proven by an exhaustive per-prefix test in
+`per-request-state-root.test.ts`, is:
+
+> Every proper prefix of the marker's single creating write either fails to yield both a
+> process identity and a start time, or yields exactly the complete marker's values.
+
+The first disjunct is AC-0081's second-limb input; the second cannot misstate ownership.
+The encoding that realizes it is single-line JSON with the start time last. Recorded at
+`#t5-progress-2026-09-16` as the second of two defects this increment's own tests caught.
+
+**Decision 4 — extend the enumeration.** The head — "any value whose bytes Studio did not
+produce" — is broader than its three items, leaving child-process diagnostic output and
+inspector-authored text unassigned. Narrowing was refused because it would leave the class
+named for values Studio did not produce while excluding values Studio did not produce, which
+is precisely the drift the row exists to prevent and which the row's own rationale names.
+
+The gap is narrower than it first reads, and the two unassigned things are one coherent
+class. The *repository-derived portion* of child stderr is already covered by item 1, since
+AC-0039 reaches any value "whose content originates in the inspected repository, whether
+Studio extracted it or the inspector echoed it". What remains unassigned is text **authored
+by a pinned third-party executable** — the inspector's own prose, and a child process's own
+diagnostic text. Extending the enumeration by that one item is cheap because the obligations
+are cheap to extend to it: rendering trusted text as literal text and never using it as a
+URL, resource reference or navigation target costs nothing.
+
+**What Package 3 must carry, now that all four are decided.** The amendment batches these
+four decisions, the nine triaged taxonomy items, and the five deferred Nits from rounds 19
+and 20, and it walks every sibling sharing the taxonomy **in the same action**: AC-0115,
+AC-0116, the *Non-originated value* row, the Never-do bullet on non-originated values,
+AC-0110, AC-0117, AC-0099, the Desktop-surface Testing Strategy group, and T12's test
+bullets.
+
+**One correction to the handover's own citation.** The *Non-originated value* class
+definition is at **`spec.md:65`**, not `spec.md:63`; line 63 is the *Ref charset* row. The
+next session should target that row by name rather than by line number, because the
+amendment itself will move it again.
+
+**The AC-0115 / AC-0116 repair is repair-the-generator and must not be done by mirroring.**
+The derivation clause — "including a link Studio itself constructs from one, such as a
+commit link built from the resolved revision" — currently sits on AC-0116 alone. It is
+**not** to be copied onto AC-0115: a prior repair did exactly that and created the identical
+drift in reverse. It moves into the *Non-originated value* row, which both criteria already
+cite, where it cannot re-drift.
+
+**The five deferred Nits ride in this amendment**, each already carrying its citation at
+`#deferred-nits-2026-09-16-round-19` and `#deferred-nit-2026-09-16-round-20`. Two of them
+are decisions 2 and 3 above and close with them. The remaining three are prose and
+working-material repairs with their obligations intact: the *Markerless-reclaim age* row at
+`spec.md:281` paraphrases AC-0081's second limb too narrowly; AC-0081's replacement-safety
+sentence at `spec.md:494` attributes safety to the first limb alone though limbs 2 and 3
+classify without a liveness determination; and AC-0081's fail-closed rationale sentence at
+`spec.md:494` lacks a main verb. The last two touch AC-0081, the most perturbation-prone
+text in the spec, so they are the items to re-read most carefully after editing.
+
+**Sequencing.** Package 3 blocks T12 only, so it is not required before T5 through T11. It
+requires its own contract amendment, which pins the completed tasks, clears the schedule and
+returns the run to `SPEC-PLAN-DRAFTING`, so it costs a pass back through both human approval
+gates. Nothing in T5's remaining work depends on it.
