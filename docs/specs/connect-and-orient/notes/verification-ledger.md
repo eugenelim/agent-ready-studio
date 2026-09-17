@@ -2439,3 +2439,29 @@ unreached human approval was refuted against the recorded protocol approval and 
 **Structure re-verified after the repairs**: waves still derive `[[T14], [T12], [T13]]`; the
 roster is still 156 declared, 156 claimed, no residual; all **11 of 11** pinned section hashes
 still match; all three contract lints clean.
+
+## owner-decision-2026-09-17-package-3-gates-and-family-kill
+
+**Two owner decisions, taken 2026-09-17 by the maintainer operating this session.**
+
+**1. The family-count kill is accepted.** The *Inspection-family hue separation* row names four
+comparison families including attention; AC-0120 names three and excludes attention explicitly.
+The owner accepts that this returns to them as a **kill** rather than being resolved inside the
+discovery channel. T14 records the disagreement and derives no hue mapping against an unsettled
+family set. **The disagreement itself remains open** — accepting the kill route is not choosing
+three or four, and nothing in this entry decides it. It is carried exactly as decision 8 is.
+
+**2. Both approval gates are given.** The spec gate and the plan gate for the Package 3
+amendment, including the discovery-channel addendum and round 27's applied repairs.
+
+What the approval covers, so its scope is checkable later:
+
+| | |
+| --- | --- |
+| Spec body | The nine decided Package 3 items, criteria count unchanged at 156, no obligation added |
+| Plan body | The bounded discovery channel, the inline-proof rule, `### T14`, T12's rewired dependency, the corrected Risks bullet and the addendum Changelog entry |
+| Review evidence | Round 26 — adversarial four deferred Nits with citations, security adjudicated clean. Round 27 — eight sustained, six refuted, one Blocker and five Concerns applied, one Nit deferred |
+| Carried unresolved | Decision 8 (liveness-token timezone); the three-versus-four family disagreement; thirteen standing deferred Nits |
+
+**Not covered by this approval**, and named so no later reader treats it as settled: the
+three-versus-four family question, which needs its own amendment when the owner decides it.
