@@ -1748,3 +1748,110 @@ would be answered; both are now answered against the recorded pin, before the in
 used. Decision 2's remaining half — whether T6's plan section should carry a named
 confirmation bullet so that skipping it fails a gate — is unchanged and still belongs to the
 Package 3 amendment window, since T6's section cannot be edited outside an amendment path.
+
+## t6-evidence
+
+**T6 — the inspector runs from outside the target under supervised bounds. Complete.** All
+twenty-two criteria carry implementation and tests: AC-0043 through AC-0049, AC-0051 to
+AC-0053, and AC-0133 to AC-0145 except AC-0138.
+
+| Criterion | Discharge |
+| --- | --- |
+| AC-0043 | `locateTrustedInspector` records the resolved real path, pack name, pack version and both SHA-256 digests. Each field is read from the inspector actually resolved rather than copied from the pin, asserted by re-hashing the resolved files and comparing |
+| AC-0044 | Three named mismatches — pack name, pack version, file digest — each yielding `inspector-unavailable` with the disagreeing values in the message. A fourth test admits a fully matching inspector, so the refusals are not blanket |
+| AC-0045 | An inspector resolving inside the materialization root is refused before its files are read, reusing `containsOnSegmentBoundary`. A sibling merely extending the root's name is admitted, which is the segment-boundary distinction AC-0073 states |
+| AC-0046 | `selectConformingInterpreter` takes the first probe reporting 3.11 or later, and skips a non-conforming interpreter that precedes a conforming one |
+| AC-0047 | An absent inspector refuses with `inspector-absent`. The no-fallback proof plants T1's projected-skill shape under `.agents/skills/` and asserts the refusal is unchanged and never names that path |
+| AC-0048 | No conforming interpreter yields `inspector-unavailable` naming the requirement — the version required, not merely the versions seen — including when the search list found nothing at all |
+| AC-0049 | `submodule.recurse=false` is pinned in the canonical configuration and asserted present on every `git` vector the Runtime builds, read back from the child's own spawn audit rather than from the constant alone |
+| AC-0051 | The Runtime's file-count sampler walks the materialization root on the bound's interval, and on the first sample observing the bound crossed it stops the writer, reports both instants, and signals the group. Four tests: the breach fires; the tolerance holds against the sampler's own reported interval and sample duration; the tree ends far short of what an unkilled writer would have written; and a tree inside the bound does not fire it |
+| AC-0052 | The resolution subprocess is killed at its exact deadline with its own diagnostic, which names resolution and not the inspection deadline. A resolution finishing inside the deadline completes untouched |
+| AC-0053 | The inspection deadline kills the group and names itself in the diagnostic; an inspection finishing inside it completes. Both directions asserted |
+| AC-0133 | No hook runs during materialization, read from the probe log the parent owns; the same probe fires when `core.hooksPath` is unpinned |
+| AC-0134 | No package script runs, same channel. The declaration and the script are both asserted present, so the absence is of a repository that genuinely carries the thing that did not run |
+| AC-0135 | No projected skill executable runs, same channel, with the executable asserted materialized |
+| AC-0136 | The guard refuses the whole checkout — `invalid path '.GIT'` under `core.protectHFS` — so nothing is overwritten because nothing is written. The refusal itself is asserted, the real `.git` is proven intact after it, and no `.GIT`-named entry reaches the tree |
+| AC-0137 | No filter command runs, same channel, with the `filter=probe` declaration present and `filtered.txt` still at its committed bytes |
+| AC-0139 | The escaping link materializes as a regular file holding `../../outside` as content, and no symbolic link remains anywhere under the root |
+| AC-0140 | The reader refuses a sibling extending the root and a parent-traversing path, independently of materialization, while admitting an ordinary contained file |
+| AC-0141 | A `.gitmodules` entry fetches nothing: no `outside/` in the tree, no `.git/modules`, with the declaration materialized as inert data |
+| AC-0142 | An option-shaped reported ref is refused by canonicalization, so no argument vector is built from it; an ordinary ref is admitted |
+| AC-0143 | The parse guard refuses `__proto__`, `constructor` and `prototype` at any depth in both TOML and JSON, yielding no value at all rather than a sanitized one, with `Object.prototype` proven unmutated and ordinary documents still admitted |
+| AC-0144 | A module-resolution hook observes that reading the materialized module's bytes resolves no specifier under the root, the import marker stays unset, and the Runtime child is audited to import `node:` builtins only with no dynamic import |
+| AC-0145 | No HTTP request leaves Studio's own process during materialization, the pinned environment carries no credential-bearing name, and `credential.helper=` is pinned on every `git` vector |
+
+**AC-0138, AC-0146 and AC-0147 are deliberately not discharged here**, exactly as the T6 plan
+section states. AC-0138 observes a verdict, a routing decision and a state, none of which exist
+until T9 and T10; AC-0146 observes storage, which does not exist until T11; AC-0147 ranges over
+AC-0133 to AC-0146 and so cannot close until the last of them does. All three reuse this
+harness, so probe identity stays pinned across the three tasks.
+
+### Where the file-count sampler lives, and why
+
+**The sampler runs in the Runtime child, not in the Service-side supervisor.** AC-0051 names
+"the Runtime supervisor" and the *Materialized file count* row says it "samples the tree", but
+sampling a tree means opening paths under the materialization root, and the boundary is
+explicit that the Studio Service process opens none. This is the same fork AC-0082 already
+resolved for the sweep, with the same answer and for the same reason: the Service *invokes*,
+the Runtime *performs*, because the work requires descending `tree`. The resident-memory
+sampler stays on the Service side because it reads `ps`, not paths. No contract text needed to
+change for this; the boundary decides it.
+
+### Two mechanisms probed before they were authorized
+
+- **`module.registerHooks` observes resolution synchronously in-process** on Node v26.4.0, which
+  is what lets AC-0144 assert an absence over *any* specifier rather than only over the one
+  fixture module.
+- **`JSON.parse`'s reviver fires for `__proto__`** and for a nested `constructor`, confirmed
+  before the guard was written. That is why the JSON arm refuses during the parse while the
+  TOML arm refuses immediately after it — `smol-toml` exposes no reviver. The asymmetry is
+  recorded in the module rather than smoothed over.
+
+### `smol-toml` is admitted here, with a call site
+
+The plan's *Parser dependencies* note authorizes `smol-toml` exact-pinned and argues a parser
+should not be admitted before it has a caller. T6 supplies one: AC-0043 requires recording the
+inspector's pack **name and version**, which are declared in `.agentbundle-state.toml`, and
+line-pattern grepping structured configuration is the anti-pattern the work-loop names. Pinned
+at **1.8.0**. T7's reader builds on the same guard rather than introducing a second parse path.
+
+### A correction to T1's corpus, required by AC-0147's same-level clause
+
+The `package-script` and `projected-skill-executable` probes wrote their markers to stdout only.
+An absence cannot be read from stdout, so a proof observing the process tree while its control
+observed stdout would have been observing at two different levels — which AC-0147 forbids.
+Both probes now append to `$STUDIO_PROBE_LOG` as well, and their controls read that log, so
+each pair shares one channel. `PROBE_LOG_MARKER` holds the markers once so neither half can
+drift onto a spelling the other does not read. The `HOSTILE_CASES` list and
+`HOSTILE_CASE_BY_CRITERION` are untouched, and all 41 corpus tests still pass.
+
+### Mutation proof
+
+Deleting `writer?.kill("SIGKILL")` from the file-count sampler turns exactly one test red —
+"leaves the tree far short of what an unkilled writer would have written" — against a green
+baseline, and the other twelve in that file stay green. The kill is therefore load-bearing
+rather than incidental, and the assertion that proves it is the one that would have to be
+deleted to hide a regression.
+
+### Gate state
+
+Each gate run separately: `pnpm lint` exit 0 over 94 files; `pnpm typecheck` exit 0;
+`pnpm test` exit 0 with **412 tests in 36 files** at load 48 (baseline 343 in 33, so T6 adds
+69 tests in 3 files); `pnpm build` exit 0; `git diff --check` clean;
+`lint-contract-item-alignment` 0 findings; `lint-spec-status` clean. `spec-coupling-check`
+exits 1 on the single known two-cell row at `spec.md:276`, which is AC-0104's and belongs to
+Package 3 — unchanged by this task.
+
+**`pnpm verify` has not been observed exit 0 on this host, and that is recorded rather than
+smoothed over.** Both of its runs this session ended exit 1 inside `disposal.test.ts` and
+nowhere else: on arrival, *before any T6 change*, three failures led by a 5,005 ms timeout
+cascading through the global single-in-flight guard; after T6, a single different failure in
+the same file. A varying failure set confined to that file is the documented contention
+signature. `disposal.test.ts` passed 7/7 in isolation immediately after the arrival run, and
+7/7 twice more in isolation after the post-T6 run, which is the two-in-isolation rule this
+ledger judges a red suite by. The four gates `verify` chains each pass individually, so the
+exit-1 observations are the host's scheduling, not this delivery's code — and the arrival run
+proves the flake predates T6.
+
+No test in this delivery binds a listener, opens a socket, or requires a network, a credential
+or a model provider.

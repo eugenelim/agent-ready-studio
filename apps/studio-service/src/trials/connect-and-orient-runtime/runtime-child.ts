@@ -44,6 +44,29 @@ interface RuntimeChildPlan {
   readonly minimumInterpreterVersion: readonly [number, number];
   readonly initializeMaterialization: boolean;
   readonly inspectionDeadlineMs: number;
+  /** *Resource bounds*, *Resolution wall-clock*. Owned by the Runtime. */
+  readonly resolutionDeadlineMs: number;
+  /** *Resource bounds*, *Materialized file count*. */
+  readonly fileCountBound: number;
+  /** The interval the file-count bound is enforced on, from the same row. */
+  readonly fileCountSamplingIntervalMs: number;
+  /**
+   * Holds the resolution subprocess open for this long, so the resolution
+   * deadline can be observed firing against a subprocess that is still alive.
+   * Production never sets it: a real `ls-remote` ends when the remote answers.
+   */
+  readonly resolutionHoldMs?: number;
+  /**
+   * Starts a descendant that writes files into the materialization root, so
+   * the file-count sampler has a writer to race. Production never sets it —
+   * the writer there is `git checkout`, which this host cannot reach without a
+   * network, and the sampler observes the tree rather than the writer, so what
+   * writes the files does not change what the bound observes.
+   */
+  readonly materializationWriter?: {
+    readonly files: number;
+    readonly intervalMs: number;
+  };
   /** *Resource bounds*, *Markerless-reclaim age*. Delivered, not duplicated. */
   readonly markerlessReclaimAgeMs: number;
   /** Whether the Service is invoking the sweep on this inspection (AC-0082). */
@@ -556,6 +579,177 @@ function holdIndependentDescendant(
   return held;
 }
 
+/**
+ * Counts entries under the materialization root without following a link. A
+ * `Dirent` for a symbolic link reports `isDirectory()` false, so a link is
+ * counted as one entry and never descended — the walk cannot be led outside
+ * the root by the tree it is measuring.
+ */
+function countMaterializedFiles(root: string): number {
+  let count = 0;
+  const visit = (path: string): void => {
+    let entries: { name: string; isDirectory(): boolean }[];
+    try {
+      entries = readdirSync(path, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        visit(join(path, entry.name));
+        continue;
+      }
+      count += 1;
+    }
+  };
+  visit(root);
+  return count;
+}
+
+/**
+ * Starts the descendant that writes into the materialization root, standing in
+ * for `git checkout`. The interpreter is used because it is the one permitted
+ * executable that can write on a pace; the sampler observes the tree either
+ * way, so the writer's identity does not change what the bound measures.
+ */
+function startMaterializationWriter(
+  interpreter: string,
+  files: number,
+  intervalMs: number,
+): ReturnType<typeof spawn> {
+  const script =
+    "import os,sys,time\n" +
+    "root,count,gap=sys.argv[1],int(sys.argv[2]),float(sys.argv[3])\n" +
+    "d=os.path.join(root,'written')\n" +
+    "os.makedirs(d,exist_ok=True)\n" +
+    "for i in range(count):\n" +
+    "    open(os.path.join(d,str(i)),'w').close()\n" +
+    "    if gap>0: time.sleep(gap)\n";
+  const args = [
+    "-c",
+    script,
+    materializationRoot,
+    String(files),
+    String(intervalMs / 1000),
+  ];
+  const writer = spawn(interpreter, args, {
+    env: descendantEnvironment,
+    shell: false,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  recordSpawn({
+    executable: interpreter,
+    args,
+    environmentNames: Object.keys(descendantEnvironment),
+    shell: false,
+    ...(typeof writer.pid === "number" ? { pid: writer.pid } : {}),
+  });
+  for (const stream of [writer.stdout, writer.stderr]) {
+    stream?.setEncoding("utf8");
+    stream?.on("data", (chunk: string) => {
+      diagnostic(chunk);
+    });
+  }
+  return writer;
+}
+
+/**
+ * AC-0051. The sampler walks the materialization root on the bound's interval
+ * and, on the first sample that observes the bound crossed, stops the writer
+ * and signals the group.
+ *
+ * Both instants are reported. The bound's tolerance is stated as the files
+ * written in one interval **plus the duration of the sample itself**, so a
+ * reader needs to know when the walk started as well as when it finished; a
+ * single timestamp would make the second term unverifiable.
+ *
+ * The writer is stopped before the group is signalled, and the group signal is
+ * deferred by one short delay, because the protocol line reporting the breach
+ * travels a pipe. Killing the group in the same tick can discard it, which
+ * would leave the strongest evidence of the bound firing unobservable from the
+ * parent. Materialization has already stopped by then, so the delay bounds
+ * nothing but when the group clears.
+ */
+function startFileCountSampler(
+  writer: ReturnType<typeof spawn> | undefined,
+): ReturnType<typeof setInterval> {
+  const sampler = setInterval(() => {
+    const observedAt = Date.now();
+    const observed = countMaterializedFiles(materializationRoot);
+    const detectedAt = Date.now();
+    if (observed <= plan.fileCountBound) {
+      return;
+    }
+    clearInterval(sampler);
+    writer?.kill("SIGKILL");
+    protocol({
+      type: "bound",
+      bound: "file-count",
+      observed,
+      boundValue: plan.fileCountBound,
+      observedAt,
+      detectedAt,
+      sampleDurationMs: detectedAt - observedAt,
+      intervalMs: plan.fileCountSamplingIntervalMs,
+    });
+    diagnostic(
+      `materialized file count bound of ${plan.fileCountBound} crossed at ${observed} files`,
+    );
+    setTimeout(() => {
+      process.kill(-process.pid, "SIGKILL");
+    }, 50);
+  }, plan.fileCountSamplingIntervalMs);
+  return sampler;
+}
+
+/**
+ * AC-0052. The resolution subprocess is killed at the Runtime's own deadline,
+ * and the diagnostic names resolution rather than the inspection deadline that
+ * bounds the whole run. The subprocess is killed, not the group: resolution is
+ * one phase, and ending it is not ending the inspection.
+ */
+async function runResolutionPhase(interpreter: string): Promise<void> {
+  if (plan.resolutionHoldMs === undefined) {
+    return;
+  }
+  const args = [
+    "-c",
+    `import time;time.sleep(${plan.resolutionHoldMs / 1000})`,
+  ];
+  const started = Date.now();
+  const subprocess = spawn(interpreter, args, {
+    env: descendantEnvironment,
+    shell: false,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  recordSpawn({
+    executable: interpreter,
+    args,
+    environmentNames: Object.keys(descendantEnvironment),
+    shell: false,
+    ...(typeof subprocess.pid === "number" ? { pid: subprocess.pid } : {}),
+  });
+  let killedAtDeadline = false;
+  const deadline = setTimeout(() => {
+    killedAtDeadline = true;
+    diagnostic(`resolution deadline of ${plan.resolutionDeadlineMs}ms reached`);
+    subprocess.kill("SIGKILL");
+  }, plan.resolutionDeadlineMs);
+  const exit = await new Promise<{ signal: string | null }>((settle) => {
+    subprocess.on("exit", (_code, signal) => {
+      settle({ signal });
+    });
+  });
+  clearTimeout(deadline);
+  protocol({
+    type: "resolution",
+    outcome: killedAtDeadline ? "deadline" : "completed",
+    deadlineMs: plan.resolutionDeadlineMs,
+    elapsedMs: Date.now() - started,
+    signal: exit.signal,
+  });
+}
+
 async function main(): Promise<void> {
   // Before anything else writes under the root, and before any descendant can
   // run: the marker, then the three children.
@@ -598,6 +792,37 @@ async function main(): Promise<void> {
       phase: "initialize",
       status: initialized.status,
       args,
+    });
+  }
+
+  if (interpreter.executable !== undefined) {
+    await runResolutionPhase(interpreter.executable);
+  }
+
+  // AC-0051. The sampler runs for the whole materialization phase, which is
+  // the window during which the tree grows.
+  let writer: ReturnType<typeof spawn> | undefined;
+  let fileCountSampler: ReturnType<typeof setInterval> | undefined;
+  if (
+    plan.materializationWriter !== undefined &&
+    interpreter.executable !== undefined
+  ) {
+    writer = startMaterializationWriter(
+      interpreter.executable,
+      plan.materializationWriter.files,
+      plan.materializationWriter.intervalMs,
+    );
+    fileCountSampler = startFileCountSampler(writer);
+    await new Promise<void>((settle) => {
+      writer?.on("exit", () => {
+        settle();
+      });
+    });
+    clearInterval(fileCountSampler);
+    protocol({
+      type: "materialization",
+      files: countMaterializedFiles(materializationRoot),
+      boundValue: plan.fileCountBound,
     });
   }
 

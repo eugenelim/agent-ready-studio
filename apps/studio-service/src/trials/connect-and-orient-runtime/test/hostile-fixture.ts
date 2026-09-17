@@ -66,6 +66,19 @@ export const HOSTILE_CASE_BY_CRITERION = {
   "AC-0104": "persisted-content-bound",
 } as const satisfies Record<string, HostileCase>;
 
+/**
+ * What each executable-shaped case appends to the probe log when it runs. One
+ * table serves both halves: a control asserts the marker appears, and an
+ * absence proof asserts it does not, so neither can drift onto a channel or a
+ * spelling the other does not read.
+ */
+export const PROBE_LOG_MARKER = {
+  "repository-hook": "post-checkout",
+  "package-script": "package-script",
+  "projected-skill-executable": "projected-skill",
+  "attribute-filter": "attribute-filter",
+} as const satisfies Partial<Record<HostileCase, string>>;
+
 export interface HostileFixture {
   root: string;
   source: string;
@@ -159,17 +172,23 @@ function populateCase(
         "package.json",
         '{"scripts":{"postinstall":"node .probe/package-script.mjs"}}\n',
       );
+      // The marker goes to the probe log as well as to stdout, so that "this
+      // ran" is observable through the same channel whether it ran or not. An
+      // absence can only be read from a channel that survives the process; a
+      // control that read stdout and a proof that read the process tree would
+      // be observing at two different levels, which AC-0147 forbids.
       write(
         source,
         ".probe/package-script.mjs",
-        "process.stdout.write('package-script\\n');\n",
+        "import { appendFileSync } from 'node:fs';\nconst log = process.env.STUDIO_PROBE_LOG;\nif (log) { appendFileSync(log, 'package-script\\n'); }\nprocess.stdout.write('package-script\\n');\n",
       );
       break;
     case "projected-skill-executable":
       write(
         source,
         ".agents/skills/hostile/run",
-        "#!/bin/sh\nprintf 'projected-skill\\n'\n",
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: POSIX shell parameter expansion, not a JavaScript template placeholder.
+        "#!/bin/sh\nprintf 'projected-skill\\n'\nprintf 'projected-skill\\n' >> \"${STUDIO_PROBE_LOG:-/dev/null}\"\n",
         true,
       );
       break;
@@ -358,8 +377,23 @@ export function disposeHostileFixtures(): void {
   fixtureRoots.clear();
 }
 
-function spawnFixtureExecutable(executable: string): string {
-  const result = spawnSync(executable, [], { encoding: "utf8" });
+/**
+ * Runs a fixture executable with the probe log in its environment, so that a
+ * control observes the run through the same channel an absence proof observes
+ * the lack of one. Without the log in scope the marker would reach stdout only,
+ * which no absence can be read from.
+ */
+function spawnFixtureExecutable(
+  executable: string,
+  args: readonly string[] = [],
+): string {
+  const result = spawnSync(executable, [...args], {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      STUDIO_PROBE_LOG: activeProbeLog ?? "/dev/null",
+    },
+  });
   if (result.status !== 0) {
     throw new Error(`positive-control executable failed: ${result.stderr}`);
   }
@@ -382,23 +416,34 @@ export async function runPositiveControl(
   }
 
   await materialize(fixture);
+
+  // These three are observed over the process tree, the same channel their
+  // absence proofs read, rather than over the stdout of a direct spawn.
+  if (
+    caseId === "package-script" ||
+    caseId === "projected-skill-executable" ||
+    caseId === "attribute-filter"
+  ) {
+    const executable = {
+      "package-script": process.execPath,
+      "projected-skill-executable": join(
+        fixture.worktree,
+        ".agents/skills/hostile/run",
+      ),
+      "attribute-filter": join(fixture.worktree, ".probe/filter"),
+    }[caseId];
+    const args =
+      caseId === "package-script"
+        ? [join(fixture.worktree, ".probe/package-script.mjs")]
+        : [];
+    const marker = PROBE_LOG_MARKER[caseId];
+    const seen = await observeProcessTree(() => {
+      spawnFixtureExecutable(executable, args);
+    });
+    return seen.some(({ argv0 }) => argv0 === marker);
+  }
+
   switch (caseId) {
-    case "package-script": {
-      const result = spawnSync(
-        process.execPath,
-        [join(fixture.worktree, ".probe/package-script.mjs")],
-        { encoding: "utf8" },
-      );
-      return result.status === 0 && result.stdout.includes("package-script");
-    }
-    case "projected-skill-executable":
-      return spawnFixtureExecutable(
-        join(fixture.worktree, ".agents/skills/hostile/run"),
-      ).includes("projected-skill");
-    case "attribute-filter":
-      return spawnFixtureExecutable(
-        join(fixture.worktree, ".probe/filter"),
-      ).includes("filter-me");
     case "instruction-shaped-text":
       return readFileSync(
         join(fixture.worktree, "workspace.toml"),
