@@ -1,7 +1,7 @@
 # Plan: Connect and Orient — connect and see the verdict
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `docs/architecture/reference.md`;
  `apps/desktop/src/main/index.ts` (argv-array child spawn, NDJSON transport,
  SIGTERM shutdown — the supervision precedent this plan reuses);
@@ -544,9 +544,9 @@ it("AC-0102 reads the verdict back after a reopen", async () => {
 - Every state renders; the form rejects with a programmatically associated
  message and returns focus; disabled-in-flight states why and points at cancel.
 - `resolving` and `inspecting` separately rendered; SHA shown and announced.
-- Verdict outranks revision identity by role; repository strings literal; no
- repository value in a URL or navigation sink; window refuses foreign
- navigation.
+- Verdict outranks revision identity by role; every non-originated value
+ literal; no non-originated value in a URL or navigation sink, including one
+ Studio derived from such a value; window refuses foreign navigation.
 - The verdict renders its own human label, distinct from every other verdict
  independently of hue (AC-0157), and each transition into a result produces
  exactly one polite announcement carrying the label of whichever element holds

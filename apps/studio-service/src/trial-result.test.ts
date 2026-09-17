@@ -256,6 +256,22 @@ describe("AC-0039 and AC-0040 provenance is carried and survives", () => {
     );
   });
 
+  it("marks inspector-authored text as non-originated but not repository-derived", () => {
+    // The amended *Non-originated value* class covers text a pinned
+    // third-party executable authored. It is not repository-derived, so it is
+    // outside AC-0104's bound while still inside AC-0115 and AC-0116.
+    const outcome = normalizeTrialResult(conformingResult());
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) {
+      return;
+    }
+
+    expect(outcome.result.inspectorContractVersion.provenance).toBe(
+      "inspector-authored",
+    );
+    expect(isNonOriginated(outcome.result.inspectorContractVersion)).toBe(true);
+  });
+
   it("marks the transport-reported revision as non-originated", () => {
     const outcome = normalizeTrialResult(conformingResult());
     expect(outcome.ok).toBe(true);

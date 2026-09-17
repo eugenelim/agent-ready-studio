@@ -2082,3 +2082,104 @@ repeat grep for `schema_migrations` and `sqlite_master` afterwards found no thir
 
 **Gate state.** `pnpm lint` exit 0; `pnpm typecheck` exit 0; `pnpm test` exit 0 with **552 tests
 in 40 files**; `pnpm build` exit 0; `git diff --check` clean.
+
+## amendment-2026-09-17-package-3-taxonomy
+
+**Package 3 — the renderer and result-composition taxonomy amendment. Opened 2026-09-17.**
+This is the amendment the four owner decisions of 2026-09-16 were batched for, and the one
+that blocks T12 and nothing else.
+
+**Owner authority.** `#owner-decision-2026-09-16-package-3-taxonomy` for decisions 1 to 4, and
+the maintainer operating this session, who was asked before the amendment was opened and chose
+to start it and to attend the two approval gates. The amendment is opened only after T6 through
+T11 were complete, gated and pushed, so nothing in flight is interrupted by the schedule clear.
+
+**What it carries.**
+
+| id | Target | Change |
+| --- | --- | --- |
+| D1 | *Persisted repository-derived content* row | Fill the two missing cells. The write that would breach is rejected with an explicit diagnostic |
+| D2 | T6's plan section | A named read-reach Tests bullet and Done-when clause; correct the residual's overstated symlink half |
+| D3 | AC-0080 | State the marker-encoding property, in its disjunctive form |
+| D4 | *Non-originated value* row | Extend the enumeration by one item: text authored by a pinned third-party executable |
+| D5 | AC-0116 → the row | **Move** the derivation clause into the row both criteria cite |
+| D6 | Nine sibling sites | Walk them in one action so none is left restating a narrower class |
+| D7 | *Markerless-reclaim age* row | Match AC-0081's second limb, which is not only an unparseable marker |
+| D8 | AC-0081 | Drop the replacement-safety attribution that limbs 2 and 3 do not support |
+| D9 | AC-0081 | Restore the missing main verb in the fail-closed rationale |
+
+**D5 is a move, not a mirror.** The clause sits on AC-0116 alone, verified against the tree at
+`spec.md:544`; AC-0115 does not carry it and must not be given it. A prior repair mirrored it and
+created the identical drift in reverse. Moving it into the *Non-originated value* row, which both
+criteria cite, repairs the generator rather than either instance.
+
+**The risk this amendment carries into its review.** D1, D3 and D4 are additions to prose, and an
+addition to prose generated the next round's finding three rounds running, where the one round
+whose repair was a deletion produced none. They are taken because each states a fact a reader
+cannot otherwise derive, not because a control was missing — no new obligation is created by any
+of the nine.
+
+**Open, and deliberately not decided here.** Decision 8, the liveness-token timezone zone, at
+`#open-owner-decision-2026-09-17-liveness-token-zone`. It is carried through this amendment
+unresolved. It blocks nothing, and two of its three routes would make AC-0080 and AC-0081 the
+subject of a fifth consecutive rewrite, which is why it is not batched with D3, D8 and D9.
+
+**Standing deferrals remain eight**, not nine. Round 25 corrected that arithmetic; round 21's
+byte-bound residual Nit closed when the *Follow-ons* entry landed and no longer stands.
+
+## package-3-scope-change-2026-09-17-d2-plan-half
+
+**D2's plan-section half is dropped; its spec half is applied.** The decision recorded at
+`#owner-decision-2026-09-16-package-3-taxonomy` gave T6 "a named Tests bullet and a Done-when
+clause" confirming the inspector's read reach. That half cannot and should not be applied now,
+for two independent reasons, and both were checked against the tree rather than assumed.
+
+**It is mechanically refused.** Opening this amendment pinned T1 through T11 as completed tasks,
+so T6's plan section now carries a section hash. `approve-plan` guards those hashes, and
+`#amendment-closed-2026-09-17` records it refusing with "completed task section changed: T4" for
+exactly this. The consolidation for this amendment assumed T6's section would still be editable;
+that was true before the amendment transition and false after it.
+
+**It is also moot.** The decision's own ground was that "nothing fails if it is skipped" — T6
+scheduled no confirmation, so the residual naming T6 had no enforcement. T6 has since been
+implemented: `locateTrustedInspector` reads the pack name, the version and both file digests and
+refuses on any mismatch, with the read reach answered and recorded at
+`#t6-inspector-read-reach-confirmed-2026-09-17` and discharged in `#t6-evidence`. Adding a Tests
+bullet scheduling work that is done, to a section that is pinned, would fail the gate in order to
+schedule nothing.
+
+**What was applied instead.** The spec half, which is the part that was still wrong: the
+*Follow-ons* residual asserted that AC-0069's protection depends on whether the inspector's
+traversal follows symlinks. It does not — `core.symlinks=false` materializes an escaping link as
+a regular file holding its target string, so no symlink exists under the materialization root for
+any traversal to follow. The false dependency is deleted and the residual now records itself as
+answered, citing both its acceptance and its confirmation.
+
+This is a deletion of a false claim rather than an addition, which is the route this ledger
+records as the one that has never generated a following round's finding.
+
+## package-3-walk-2026-09-17-provenance-enumeration
+
+**D4's walk reached the implementation, and found a disagreement it had just created.**
+
+Extending the *Non-originated value* class to cover "text authored by a pinned third-party
+executable" made the contract disagree with code already committed at T9. `trial-result.ts`
+marked `inspectorContractVersion` — the version the trusted inspector reports for its **own**
+output contract — as `studio-produced`. Those bytes are the inspector's, not Studio's, so under
+the amended class that marker was wrong the moment D4 landed.
+
+This was found by walking the amendment's surfaces rather than by a gate: every gate was green
+with the wrong marker in place, because no test asserted what that field's provenance should be.
+
+**Repaired at both ends.** The `Provenance` union gains `inspector-authored`, the field carries
+it, and a new assertion states the property the walk established: inspector-authored text is
+non-originated — so AC-0115 and AC-0116 reach it — while **not** being repository-derived, so it
+stays outside AC-0104's persisted bound. `repositoryDerivedValues` filters on
+`repository-derived` and therefore needed no change, which is the payoff of having written that
+bound over the marker rather than over a field list.
+
+**Why this is recorded rather than folded into the amendment entry.** It is the first instance in
+this run of a contract amendment invalidating already-shipped code. The lesson generalizes: a
+class extension in *Canonical values* reaches every enumeration that implements that class, and
+those live in code as often as in prose. The walk instruments the ledger names — literal sweep,
+then semantic walk — have to cross the prose/code boundary, not stop at it.
