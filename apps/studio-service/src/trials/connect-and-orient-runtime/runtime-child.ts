@@ -91,6 +91,9 @@ function namedArgument(name: string): string | undefined {
 const sweepDomain = namedArgument("--sweep-domain");
 const plan = JSON.parse(namedArgument("--plan") ?? "{}") as RuntimeChildPlan;
 
+/** Admitted by *Permitted executables* as of the 2026-09-17 amendment. */
+const PS_EXECUTABLE = "/bin/ps";
+
 const materializationRoot = join(plan.stateRoot, plan.materializationChildName);
 
 /**
@@ -103,9 +106,25 @@ function processStartTime(pid: number): string | null | undefined {
   if (!Number.isInteger(pid) || pid <= 0) {
     return undefined;
   }
-  const read = spawnSync("/bin/ps", ["-o", "lstart=", "-p", String(pid)], {
+  const args = ["-o", "lstart=", "-p", String(pid)];
+  const read = spawnSync(PS_EXECUTABLE, args, {
     encoding: "utf8",
+    // AC-0023: every descendant's environment is the rebuilt allowlist, not
+    // whatever this process happens to carry.
+    env: descendantEnvironment,
+    shell: false,
     stdio: ["ignore", "pipe", "pipe"],
+  });
+  // AC-0025's second leg is the exhaustive record of every spawn Studio's own
+  // code performs. `ps` lives about 20 ms, under the floor at which the
+  // parent's sampler can see a process at all, so this record is the only leg
+  // that can account for it.
+  recordSpawn({
+    executable: PS_EXECUTABLE,
+    args,
+    environmentNames: Object.keys(descendantEnvironment),
+    shell: false,
+    ...(typeof read.pid === "number" ? { pid: read.pid } : {}),
   });
   const out = (read.stdout ?? "").trim();
   if (read.status === 0) {

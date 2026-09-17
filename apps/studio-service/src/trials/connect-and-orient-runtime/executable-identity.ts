@@ -132,6 +132,15 @@ export interface PermittedExecutables {
 }
 
 /**
+ * `/bin/ps`, admitted by the *Permitted executables* row as of the 2026-09-17
+ * amendment. The Runtime starts it with a fixed argument vector to read a
+ * process start time, which this platform exposes no other way; it is admitted
+ * rather than avoided because no repository-sourced code executes inside the
+ * trial process group, so nothing there benefits from it.
+ */
+export const PROCESS_STATUS_EXECUTABLE = "/bin/ps";
+
+/**
  * The *Permitted executables* row, as a predicate over one observed image path.
  * A process that re-executed itself in place keeps its own process start, so
  * callers pair this with the spawn audit rather than widening the row.
@@ -143,6 +152,7 @@ export function isPermittedExecutable(
   return (
     path === permitted.runtimeNodeExecutable ||
     path === permitted.gitExecutable ||
+    path === PROCESS_STATUS_EXECUTABLE ||
     dirname(path) === permitted.gitExecPath ||
     permitted.interpreterSearchList.includes(path)
   );
