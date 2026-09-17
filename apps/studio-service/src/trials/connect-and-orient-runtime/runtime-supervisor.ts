@@ -35,6 +35,10 @@ import {
 export const CHILD_RESIDENT_MEMORY_BOUND_BYTES = 1024 * 1024 * 1024;
 /** The Runtime's own inspection wall-clock bound. */
 export const INSPECTION_DEADLINE_MS = 120_000;
+/** The Runtime's own resolution wall-clock bound, from *Resource bounds*. */
+export const RESOLUTION_DEADLINE_MS = 30_000;
+/** The *Materialized file count* bound the Runtime's sampler enforces. */
+export const MATERIALIZED_FILE_COUNT_BOUND = 50_000;
 /** The sampling interval the resident-memory bound is enforced on. */
 export const SAMPLING_INTERVAL_MS = 250;
 /**
@@ -100,6 +104,23 @@ export interface TrialInspectionOptions {
   /** Holds the Runtime open after its work, so the parent can signal it. */
   readonly holdMs?: number;
   readonly childEntry?: string;
+  readonly resolutionDeadlineMs?: number;
+  readonly fileCountBound?: number;
+  readonly fileCountSamplingIntervalMs?: number;
+  /**
+   * Holds the resolution subprocess open, so AC-0052's deadline can be
+   * observed firing. Production never sets it, on the precedent T4 and T5 set
+   * for `descendantHoldMs` and `retainStateRoot`.
+   */
+  readonly resolutionHoldMs?: number;
+  /**
+   * Gives the file-count sampler a writer to race. Production never sets it;
+   * the writer there is `git checkout`.
+   */
+  readonly materializationWriter?: {
+    readonly files: number;
+    readonly intervalMs: number;
+  };
 }
 
 export type TerminationReason =
@@ -291,6 +312,17 @@ export function beginTrialInspection(
     initializeMaterialization: options.initializeMaterialization ?? true,
     inspectionDeadlineMs:
       options.inspectionDeadlineMs ?? INSPECTION_DEADLINE_MS,
+    resolutionDeadlineMs:
+      options.resolutionDeadlineMs ?? RESOLUTION_DEADLINE_MS,
+    fileCountBound: options.fileCountBound ?? MATERIALIZED_FILE_COUNT_BOUND,
+    fileCountSamplingIntervalMs:
+      options.fileCountSamplingIntervalMs ?? SAMPLING_INTERVAL_MS,
+    ...(options.resolutionHoldMs === undefined
+      ? {}
+      : { resolutionHoldMs: options.resolutionHoldMs }),
+    ...(options.materializationWriter === undefined
+      ? {}
+      : { materializationWriter: options.materializationWriter }),
     markerlessReclaimAgeMs:
       options.markerlessReclaimAgeMs ?? MARKERLESS_RECLAIM_AGE_MS,
     // AC-0082: the Service invokes the sweep. It does not perform it, because
