@@ -25,11 +25,7 @@ import {
   PINNED_GIT_CONFIGURATION,
   pinnedGitConfigurationArgs,
 } from "./git-driver.js";
-import {
-  InadmissibleKeyError,
-  parseGuardedJson,
-  parseGuardedToml,
-} from "./inadmissible-keys.js";
+import { parseGuardedJson, parseGuardedToml } from "./inadmissible-keys.js";
 import {
   ConfinementError,
   readContainedFile,
@@ -377,15 +373,19 @@ describe("AC-0142 an option-shaped remote ref is refused before any vector", () 
 });
 
 describe("AC-0143 a prototype-mutating key yields no value under that key", () => {
-  it("refuses the key in TOML", async () => {
+  it("yields no value under the key in TOML", async () => {
     const fixture = await buildHostileFixture({ caseId: "prototype-key" });
     await materialize(fixture);
     const text = readFileSync(join(fixture.worktree, "workspace.toml"), "utf8");
 
-    expect(() => parseGuardedToml(text)).toThrow(InadmissibleKeyError);
+    const parsed = parseGuardedToml(text) as Record<string, unknown>;
+
+    expect(Object.hasOwn(parsed, "__proto__")).toBe(false);
+    expect(Object.keys(parsed)).not.toContain("__proto__");
+    expect(Object.getPrototypeOf(parsed)).toBeNull();
   });
 
-  it("refuses the key in JSON", async () => {
+  it("yields no value under the key in JSON", async () => {
     const fixture = await buildHostileFixture({ caseId: "prototype-key" });
     await materialize(fixture);
     const text = readFileSync(
@@ -393,19 +393,37 @@ describe("AC-0143 a prototype-mutating key yields no value under that key", () =
       "utf8",
     );
 
-    expect(() => parseGuardedJson(text)).toThrow(InadmissibleKeyError);
+    const parsed = parseGuardedJson(text) as Record<string, unknown>;
+
+    expect(Object.hasOwn(parsed, "__proto__")).toBe(false);
+    expect(Object.getPrototypeOf(parsed)).toBeNull();
   });
 
-  it("refuses the key at depth, not only at the root", () => {
-    expect(() => parseGuardedToml("[a.b.__proto__]\nx = 1\n")).toThrow(
-      InadmissibleKeyError,
-    );
-    expect(() => parseGuardedJson('{"a":{"b":{"constructor":1}}}')).toThrow(
-      InadmissibleKeyError,
-    );
-    expect(() => parseGuardedJson('{"a":[{"prototype":1}]}')).toThrow(
-      InadmissibleKeyError,
-    );
+  it("drops the key at depth, not only at the root", () => {
+    const toml = parseGuardedToml("[a.b.__proto__]\nx = 1\n") as {
+      a: { b: Record<string, unknown> };
+    };
+    expect(Object.hasOwn(toml.a.b, "__proto__")).toBe(false);
+
+    const json = parseGuardedJson('{"a":{"b":{"constructor":1}}}') as {
+      a: { b: Record<string, unknown> };
+    };
+    expect(Object.hasOwn(json.a.b, "constructor")).toBe(false);
+
+    const inArray = parseGuardedJson('{"a":[{"prototype":1}]}') as {
+      a: Record<string, unknown>[];
+    };
+    expect(Object.hasOwn(inArray.a[0] as object, "prototype")).toBe(false);
+  });
+
+  it("materializes every nested object without an inherited prototype", () => {
+    const parsed = parseGuardedToml("[a.b]\nx = 1\n") as {
+      a: { b: unknown };
+    };
+
+    expect(Object.getPrototypeOf(parsed)).toBeNull();
+    expect(Object.getPrototypeOf(parsed.a)).toBeNull();
+    expect(Object.getPrototypeOf(parsed.a.b as object)).toBeNull();
   });
 
   it("leaves Object.prototype unmutated either way", async () => {
@@ -416,16 +434,18 @@ describe("AC-0143 a prototype-mutating key yields no value under that key", () =
       ["workspace.toml", parseGuardedToml],
       ["projection.json", parseGuardedJson],
     ] as const) {
-      expect(() =>
-        parse(readFileSync(join(fixture.worktree, file), "utf8")),
-      ).toThrow();
+      parse(readFileSync(join(fixture.worktree, file), "utf8"));
     }
     expect((Object.prototype as { ready?: unknown }).ready).toBeUndefined();
   });
 
-  it("admits an ordinary document, so the refusal is not blanket", () => {
-    expect(parseGuardedToml("ready = true\n")).toEqual({ ready: true });
-    expect(parseGuardedJson('{"ready":true}')).toEqual({ ready: true });
+  it("keeps the admissible keys, so the guard is not blanket", () => {
+    expect({ ...(parseGuardedToml("ready = true\n") as object) }).toEqual({
+      ready: true,
+    });
+    expect({ ...(parseGuardedJson('{"ready":true}') as object) }).toEqual({
+      ready: true,
+    });
   });
 
   it("fires the same probe when the guard is removed", async () => {
