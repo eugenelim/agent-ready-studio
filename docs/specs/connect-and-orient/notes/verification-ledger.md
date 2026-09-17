@@ -1225,3 +1225,85 @@ AC-0050, taking the criteria count from 157 to 156 and adding that identifier to
 never-reuse list; the rebinding of the T1 corpus case that names it; and the
 *Permitted executables* row gaining `/bin/ps`. AC-0080 and AC-0081 are **not** touched by
 either decision, which was the deciding factor in decision 6.
+
+## review-round-21-terminal-stop-2026-09-17
+
+**Round 21 ended in a terminal owner-decision stop.** The adversarial adjudication returned
+`ADJUDICATION-INDETERMINATE` with a non-`None.` indeterminate audit, and
+`review classify` refused the artifact as `invalid` / `indeterminate-present`. Under the
+work-loop's rule the bounded evidence retry does not apply, because the missing fact is an
+owner choice rather than something measurable here, and **the decidable findings may not be
+cherry-picked out of an invalid artifact**. Nothing from that adjudication has been acted on.
+
+| Artifact | Classification |
+| --- | --- |
+| `21-pre-execute-security-reviewer-raw.md` | `findings`, 6 parsed, footer present |
+| `21-pre-execute-security-reviewer-adjudication.md` | `findings`, 2 fingerprints — **valid** |
+| `21-pre-execute-adversarial-reviewer-raw.md` | `findings`, 13 parsed, footer present |
+| `21-pre-execute-adversarial-reviewer-adjudication.md` | **`invalid` / `indeterminate-present`** |
+
+Both reviewers' self-reported counts agreed with the strict parser this round, so no
+enumeration dispute arose. Both adjudications were persisted by the orchestrator because
+`finding-adjudicator` carries no write capability; neither envelope was reshaped.
+
+**The secure-design adjudication is valid and stands: two sustained findings, both graded
+down to Nit, four refuted, indeterminate audit `None.`** Both sustained Nits are recorded
+below rather than repaired, because one of them is itself an owner choice.
+
+| Ref | Grade | Sustained finding |
+| --- | --- | --- |
+| security finding 1 | Nit | The cut byte bound leaves a residual no *Follow-ons* entry records, though decision 5's own terms require one. Measured magnitude: the only surviving byte limb is the 120 s wall-clock, which bounds materialization at roughly 100–210 GiB, reachable inside the 50,000-file bound at about 2 MiB per file |
+| security finding 2 | Nit | The liveness token is timezone-rendered while the pinned environment pins no zone, so a first-limb comparison can reclaim rather than decline. Independently probed and confirmed: the same live process renders `Wed Sep 16 21:23:12 2026` by default, `Thu Sep 17 11:23:12 2026` under `TZ=Asia/Tokyo`, and `TZ` appears nowhere in `runtime-environment.ts` |
+
+The four refuted secure-design findings established one fact worth carrying forward:
+`createPerRequestStateRoot`, `writeOwnershipMarker`, `readProcessStartTime` and all of
+`sweep.ts` are imported **only by their own tests**. Production's supervisor calls
+`reserveStateRoot` alone, and the Runtime child inlines its own marker write and sweep. Those
+modules are therefore a tested reference implementation rather than a production path, which
+is why three findings resting on their reachability were refuted.
+
+## open-owner-decision-2026-09-17-environment-scope
+
+**A seventh owner decision, and the one the terminal stop is waiting on.** It is a scoping
+question about two criteria's domain, and the contract currently answers it both ways.
+
+**The conflict, verified directly against the tree rather than taken from the finding.**
+
+- **AC-0023** at `spec.md:415` quantifies universally: "**Every process Studio spawns**
+  carries exactly the unconditional names in the *Environment allowlist* at their stated
+  values, and no `GIT_CONFIG_PARAMETERS`."
+- The **Environment allowlist preamble** at `spec.md:95` scopes narrowly: "The environment
+  **of the Runtime child and of every process in its descendant tree** is constructed from
+  an empty object."
+- The *Permitted executables* row, as this amendment rewrote it at `spec.md:55`, admits
+  `/bin/ps` partly on the ground that **the Studio Service already depends on it for
+  parent-side process-tree observation** — which is what put a spotlight on the ambiguity.
+
+**What actually sits in the gap.** `process-tree-observer.ts:202` and `:237` call
+`spawnSync(PS, …)` with `{ encoding: "utf8" }` and **no `env`**, so they inherit the Service's
+ambient environment, and they reach no spawn audit. Under AC-0023's universal reading those
+are violations; under the preamble's scoping they are outside it entirely. **This predates
+the amendment** — the observer is T4's, landed in `e171a0a` — and T4 is now pinned, which is
+why the question is worth settling deliberately rather than by an incidental edit.
+
+**Routes, none recommended here.**
+
+- **Scope both criteria to the trial tree.** Narrow AC-0023's "Every process Studio spawns"
+  to the Runtime child and its descendant tree, matching the preamble that already says so
+  and the threat model the criteria exist for: the trial tree is where attacker-influenced
+  data is processed, and the Service's own observer processes none. Smallest edit, changes no
+  code, and makes the two surfaces agree. It narrows a criterion, which is a weakening.
+- **Bind every process Studio starts.** Keep AC-0023 universal and make the Service's
+  observer rebuild its environment from the allowlist and route through an audit. Strongest
+  reading, no criterion weakened — but it changes T4's delivered behaviour after T4 was
+  pinned, and the observer's `ps` reads the environment of *other* processes, so a rebuilt
+  environment for the reader buys no containment it does not already have.
+- **Split the obligation explicitly.** State that environment construction binds the trial
+  tree while the audit binds every spawn Studio's own code performs, so the observer joins
+  the audit without joining the allowlist. Matches what the code already does most closely,
+  at the cost of one more distinction in a criterion pair that already carries two legs.
+
+**Why nothing can proceed until this is settled.** The adjudication that carries round 21's
+adversarial findings is invalid, and the rule forbids extracting its decidable findings. The
+replacement is a **complete** re-adjudication over the unchanged round-21 raw findings, filed
+as round 22, and it cannot be dispatched until this question has an answer to apply.
