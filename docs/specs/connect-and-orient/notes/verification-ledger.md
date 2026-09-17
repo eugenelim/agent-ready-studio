@@ -1460,3 +1460,48 @@ the strongest evidence in this amendment: **deleting the `recordSpawn` call in
 against a green baseline, and the worktree was left clean. Round 22's finding 6 asked for a
 leg that could fail, and the leg now fails when the obligation is removed rather than passing
 incidentally.
+
+## review-round-23-2026-09-17
+
+**Round 23 re-reviewed the repairs, and the trajectory turned.** Both adjudications are valid
+with an indeterminate audit of `None.`
+
+| Reviewer | Raw | Sustained | Blockers | Concerns | Nits | Refuted |
+| --- | --- | --- | --- | --- | --- | --- |
+| adversarial | 8 | 7 | **0** | 2 | 5 | 1 |
+| secure-design | 4 | 2 | **0** | 0 | 2 | 2 |
+
+Sustained findings across the amendment now run **11, then 9**; blockers surviving
+adjudication run **6, then 0**. Round 22's repairs held: the one finding alleging a repair
+introduced a factual error — that AC-0051's restatement added a duration to a file count and
+dropped the row's pass bar — was **refuted**, the adjudicator showing the row's own tolerance
+column composes the same two terms and that "at or below 5,000" is the measurement's
+advance-fixed ceiling rather than a term of the tolerance a kill test meets.
+
+**Two Concerns repaired, both contract surfaces a completion gate reads.**
+
+| Ref | Repair |
+| --- | --- |
+| adversarial 3 | AC-0024 kept an exhaustiveness quantifier over "every process Studio's own code starts" that no artifact could discharge, decision 7 having narrowed AC-0023 and AC-0025's second leg and left this third one behind. Both it and the implementing plan bullet now carry the trial-tree scope, which is the set the spawn audit records |
+| adversarial 5 | The *Boundaries* Always-do rail demanded the complete pinned `git` configuration on **every** subprocess, which admitting a non-`git` executable made unsatisfiable. The configuration and `--` clauses are now scoped to `git` argument vectors, matching AC-0022 and AC-0021 |
+
+**Seven Nits deferred with their citations**, on the round-19 precedent: repair only what
+severity requires when the repairs themselves are generating the findings. Round 23 is direct
+evidence of that — repair 9's scoping made the row's audit sentence false, and repair 4's
+correction created a third disagreeing enumeration, so both of this round's headline Nits were
+manufactured by round 22's own prose repairs. None of the seven touches a criterion.
+
+| Ref | Severity | Citation | Deferred finding |
+| --- | --- | --- | --- |
+| adversarial 1 / security 1 | Nit | `spec.md:55` | The *Permitted executables* row still asserts every process-status spawn is recorded in the audit, which the narrowed AC-0025 no longer carries for Service-side reads. AC-0025 itself states the scope correctly, so no gate reads the false sentence |
+| adversarial 2 | Nit | `spec.md:284` | Three enumerations of what bounds materialization after the cut disagree — the closing prose says "only", the row says three things, the residual says four |
+| adversarial 4 | Nit | `runtime-child.ts:95` | The in-tree process-status path is a literal, though the module's own header says canonical values arrive in the plan. Drift would redden the audit loop rather than pass silently |
+| adversarial 6 | Nit | `plan.md:46` | The repaired sentence attributes the advance-fixed ceiling to the sampler; the ceiling is the 5,000-per-interval pass bar |
+| adversarial 7 | Nit | `executable-identity.ts:135` | The shared constant's docstring names only the Runtime, though it is now also the parent-side observer's launch path |
+| security 2 | Nit | `spec.md:417` | AC-0023's justification says the observer "processes none of" the influenced data, but it parses `ps` command columns carrying owner, repository, ref and the resolved revision. Containment holds by charset — the revision is 40 lowercase hex, the ref charset excludes control characters — so the defect is the stated ground, not an exposure |
+| security 2 (round 21) | Nit | `runtime-child.ts:311` | The timezone-rendered liveness token, already deferred at `#deferred-nit-2026-09-17-liveness-token-zone` and raised as owner decision 8 |
+
+**Status: deferred, not resolved.** Each stands against its citation. None is a Blocker or a
+Concern, which is the work-loop's condition for proceeding: a reviewer result that is clean, or
+carries only deferred Nits recorded with their citations, may go to the human gates. All seven
+should be carried into the Package 3 amendment window, which has to happen anyway.
