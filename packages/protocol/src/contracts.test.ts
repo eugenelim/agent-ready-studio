@@ -252,3 +252,47 @@ function expectCanonicalValid(
     true,
   );
 }
+
+describe("connect-and-orient protocol methods", () => {
+  // biome-ignore format: approved plan stub must remain byte-identical
+  it("validates the source.connect fixture against both schemas", () => {
+ expect(validateRequest(validRequestFixtures["source.connect"]).ok).toBe(true);
+ expect(canonicalAjv.validate(canonicalProtocolSchema, validRequestFixtures["source.connect"])).toBe(true);
+});
+
+  it("refuses a malformed source.connect params payload with a JSON-RPC error", () => {
+    const malformed = {
+      jsonrpc: "2.0",
+      id: "1",
+      method: "source.connect",
+      // `url` is required and `token` is not a member of the params object.
+      params: { token: "ghp_secret" },
+    };
+
+    const mirrored = validateRequest(malformed);
+
+    expect(mirrored.ok).toBe(false);
+    if (!mirrored.ok) {
+      expect(mirrored.error.code).toBe(-32602);
+    }
+    expect(canonicalAjv.validate(canonicalProtocolSchema, malformed)).toBe(
+      false,
+    );
+  });
+
+  it("carries the same result definition for all three methods", () => {
+    const results = canonicalProtocolSchema["x-studio"].methodResults;
+
+    for (const method of ["source.connect", "source.get", "source.cancel"]) {
+      expect(results[method as StudioMethod]).toBe(
+        "#/$defs/sourceInspectionResult",
+      );
+    }
+  });
+
+  it("points the canonical schema at this spec", () => {
+    expect(canonicalProtocolSchema["x-spec"]).toContain(
+      "docs/specs/connect-and-orient/",
+    );
+  });
+});
