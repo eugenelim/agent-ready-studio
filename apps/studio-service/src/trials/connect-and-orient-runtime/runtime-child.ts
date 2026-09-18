@@ -12,6 +12,13 @@
  * are therefore delivered in the plan by the Service, which keeps one source of
  * truth for each of them, and the mechanics are reimplemented here rather than
  * imported.
+ *
+ * One canonical value is held here as a literal instead: `PS_EXECUTABLE`. It is
+ * an exception rather than an oversight, and it is safe for a specific reason —
+ * every spawn this module performs is recorded in the audit AC-0025's second leg
+ * reads, so a literal that drifted from the *Permitted executables* row would
+ * redden that leg rather than pass silently. A value with no such check must go
+ * in the plan.
  */
 import { spawn, spawnSync } from "node:child_process";
 import {

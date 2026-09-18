@@ -116,6 +116,7 @@ function expectedEnv(
     TMPDIR: temporaryDirectory,
     LANG: "C",
     LC_ALL: "C",
+    TZ: "UTC",
     GIT_TERMINAL_PROMPT: "0",
     GIT_CONFIG_GLOBAL: "/dev/null",
     GIT_CONFIG_SYSTEM: "/dev/null",

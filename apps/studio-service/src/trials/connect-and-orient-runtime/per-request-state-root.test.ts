@@ -133,7 +133,8 @@ describe("AC-0070 and AC-0080 the per-request state root and its marker", () => 
 
   it("encodes the marker so no truncation can misrepresent ownership", () => {
     // AC-0080's crash-window claim rests on a property of this encoding, which
-    // the contract leaves to implementation. The property that actually holds
+    // the criterion now states explicitly rather than leaving to implementation;
+    // this case is what verifies it. The property that holds
     // — and the one the claim needs — is that every proper prefix of the single
     // write either fails to yield both values, and so is AC-0081's second-limb
     // input, or yields *exactly* the complete marker's values.

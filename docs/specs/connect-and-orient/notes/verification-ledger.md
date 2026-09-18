@@ -3229,3 +3229,51 @@ enumeration omits a reachable form and names an unreachable one, and the prefix 
 decision, or closed as already-resolved. Package 4 carries no deferred Nit forward; if a repair
 proves non-determinate on contact, it returns as an owner question inside this window rather than
 being deferred past it.
+
+## amendment-2026-09-17-package-4-applied
+
+**Package 4's edits, and a correction to its own scope record.** The amendment entry above
+promised a disposition for all sixteen deferred entries. Executing it found that **four were
+already repaired by later rounds and had simply never been struck off**, which is the same defect
+class as the "thirteen" undercount: a list nobody re-read against the text it cites.
+
+**Verified stale, closed as already-resolved rather than repaired.**
+
+| Entry | Why it is closed |
+| --- | --- |
+| r19 item-4 — a Follow-on names T6 as its confirmation point which T6 schedules nowhere | The confirmation **was performed and recorded**, at `#t6-inspector-read-reach-confirmed-2026-09-17`, and `spec.md`'s residual already cites that anchor. It was recorded outside `#t6-evidence`, which is why a reader checking only T6's evidence table would still think it open |
+| r19 item-5 — AC-0081's replacement-safety sentence attributes safety to the first limb | The sentence now reads that reclaim is safe "because `mkdtemp` names are never reused and the marker pins start time as well as process identity". It no longer attributes safety to a liveness refusal |
+| r19 security-1 — the encoding property is left to implementation | Closed by owner decision 4: AC-0080 states the property and names its encoding, and `per-request-state-root.test.ts` verifies it over every proper prefix |
+| r20 Nits-1 — the fail-closed rationale sentence lacks a main verb | It reads "Declining **is** the fail-closed direction…". The predicate is present |
+
+**Closed by owner decision**: r21 security-2, the liveness-token zone, by pinning `TZ=UTC`.
+
+**Repaired here — eleven edits.**
+
+| Entry | Repair |
+| --- | --- |
+| r19 item-2 | The *Markerless-reclaim age* row now matches AC-0081's second limb in both halves. It had been repaired once already and was left mismatched the **other** way, naming only "does not yield both" and dropping "cannot be parsed" |
+| r23 adv1/sec1 | The *Permitted executables* row said "every such spawn" is in the audit; AC-0025's second leg is scoped to spawns Studio performs **within the trial tree**, so the Service's own parent-side `ps` reads are not. The row now says so and names what does cover them |
+| r23 adv2 | The *Materialized tree bytes* row said three things still bound materialization while its own second column says the sampler still enforces the file-count bound. Now four, matching the accepted residual it had been disagreeing with |
+| r23 adv4 | `runtime-child.ts`'s header claimed every canonical value arrives in the plan; `PS_EXECUTABLE` is a literal. Named as an exception, with the reason it is safe — a drifted literal reddens AC-0025's audit leg rather than passing |
+| r23 adv6 | `plan.md` attributed the advance-fixed bar to the sampler. The sampler enforces the bound; the **pass bar fixed in advance**, 5,000 files per 250 ms interval, is what makes the tolerance honest |
+| r23 adv7 | `executable-identity.ts`'s docstring named only the Runtime as starting `/bin/ps`. Two callers start it, which is why the constant is shared |
+| r23 sec2 | AC-0023 said the parent-side observer "processes none of" the influenced data; it parses `ps` columns carrying owner, repository, ref and revision. The ground is now the true one — it **executes** none of it, and its inputs are charset-confined |
+| r26-1, r26-4 | AC-0080's crash enumeration was wrong in both directions at once. It named a form that cannot occur and omitted one that can. Now: two outcomes are reachable — unparseable, or the single prefix that drops only the trailing newline and yields the complete values — and the missing-start-time form is stated as unreachable under this encoding, **with the test that establishes it cited by path** |
+| r26-2 | The extended item said "third-party executable" while its gloss includes the Runtime child, which is Studio's own Node process. What puts both in the class is that Studio did not author the bytes, not who supplied the binary |
+| r26-3 | **Owner decision, taken in this window rather than deferred**: operator-supplied input is outside the class. The head admitted it and no item assigned it, and the deciding observation is that AC-0116's sink prohibition would otherwise forbid building the permitted URL from the owner and repository — the operation it exists to protect. The exclusion rests on the boundary charset validation, and the row says so |
+
+**The contract edits.** AC-0120's exclusion of attention is deleted, so the comparison matches the
+*Inspection-family hue separation* row at four families; the removal states the ground rather than
+just dropping the clause, because the clause's own reason was a claim about the design-system
+durable output that the output does not make. `TZ=UTC` joins the *Environment allowlist*, with the
+determinism argument stated where the allowlist is read: `LC_ALL=C` fixes the format a command
+renders and leaves the zone to the host, which is what let a liveness comparison become a reclaim.
+
+**Nothing is carried forward.** Sixteen entries: eleven repaired, four closed as already-resolved,
+one closed by the `TZ` decision. Package 4 defers no Nit.
+
+**Gates at the close of drafting**: `pnpm lint` exit 0 over 105 files; `pnpm typecheck` exit 0;
+`pnpm test` **41 files, 567 of 567 passed** at load average 25.45, including the 240 trial-runtime
+tests that carry the `TZ` change; `spec-coupling-check` 0 findings; `lint-contract-item-alignment`
+0 findings; `lint-spec-status` clean.
