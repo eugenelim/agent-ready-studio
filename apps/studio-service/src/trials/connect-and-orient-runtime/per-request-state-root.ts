@@ -97,6 +97,29 @@ export function verifySweepDomain(sweepDomain: string): void {
 }
 
 /**
+ * The environment every rendering of the liveness token is produced under.
+ *
+ * AC-0081's first limb compares two renderings of `ps -o lstart=` for **byte
+ * equality**: the one the Runtime wrote into its ownership marker, and the one
+ * a sweep reads from the live process. `lstart` renders a wall-clock string, so
+ * the comparison is only meaningful if both sides render under the same zone
+ * and locale — `LC_ALL` fixes the format and `TZ` fixes the value.
+ *
+ * The Runtime child pins these through the *Environment allowlist* it rebuilds
+ * for its descendants. This module is Service-side and deliberately outside
+ * AC-0023's trial-tree scope, so it pins them here instead, at the only seam
+ * that renders the token on this side. **The two must agree**: pinning one side
+ * alone is worse than pinning neither, because it turns a comparison that
+ * matched on every host into one that fails on every host whose zone is not
+ * UTC — and a failed liveness comparison reclaims a live state root.
+ */
+const LIVENESS_RENDERING_ENVIRONMENT = {
+  ...process.env,
+  LC_ALL: "C",
+  TZ: "UTC",
+};
+
+/**
  * The start time of a live process, read from `ps`, at the one-second
  * resolution `lstart` reports.
  *
@@ -117,6 +140,7 @@ export function readProcessStartTime(pid: number): string | null | undefined {
       {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
+        env: LIVENESS_RENDERING_ENVIRONMENT,
       },
     );
     const text = stdout.trim();
@@ -177,7 +201,11 @@ export function reserveStateRoot(sweepDomain: string): PerRequestStateRoot {
  * object. It is that every proper prefix of this write either fails to yield
  * both a process identity and a start time, which is AC-0081's second-limb
  * input, or yields *exactly* these values and so cannot misstate ownership.
- * `per-request-state-root.test.ts` asserts that over every prefix.
+ * `per-request-state-root.test.ts` classifies every proper prefix and **fails**
+ * if one parses without yielding both values, which is what makes AC-0080's
+ * unreachability claim falsifiable rather than asserted. Until round 28 that
+ * case skipped such a prefix instead, so the claim rested on an assertion that
+ * could not fail for it.
  */
 export function writeOwnershipMarker(markerPath: string): OwnershipMarker {
   const startTime = readProcessStartTime(process.pid);

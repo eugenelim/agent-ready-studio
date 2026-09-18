@@ -14,8 +14,12 @@
  unproven; the honest failure mode is AC-0047.
 
 > **Plan contract:** the implementation strategy. Substantive change only while
-> `Drafting`. After approval both documents are pinned; execution observations
-> go to `notes/verification-ledger.md`.
+> `Drafting`. After approval both documents are pinned, **with one carve-out the
+> *Bounded discovery channel* below defines**: the sections of tasks that channel
+> names as refinable stay open to it until each task's first implementing commit,
+> and every such refinement is recorded in the channel's append-only decision
+> record. Everything else is pinned, and execution observations go to
+> `notes/verification-ledger.md`.
 
 > Every value this plan needs is owned by the spec's **Canonical values** and
 > its two state tables. This document cites them and never restates them. The
@@ -654,15 +658,18 @@ order, places it before T12.
  the durable-output map assigns to T12, so it exceeds the discovery predicate
  and returns to the owner through the kill condition.
 
- **A contract disagreement blocks this question and is recorded rather than
- resolved.** The *Inspection-family hue separation* row names four comparison
- families including attention; AC-0120 names three and excludes attention
- explicitly, on the stated ground that a state renders its attention level
- through weight, border and placement rather than an attention hue. A criterion
- and the row it cites disagree about what is compared. Resolving it would move
- an acceptance criterion, so it is a **kill**: T14 records it and the question
- returns to the owner through the controlled amendment path. T14 derives no
- mapping against a family set the contract has not settled.
+ **A contract disagreement blocked this question. T14 recorded it; Package 4
+ settled it.** The *Inspection-family hue separation* row named four comparison
+ families including attention while AC-0120 named three, and resolving that
+ would move an acceptance criterion — so T14 killed the question and returned it
+ to the owner rather than choosing. The owner amended AC-0120 on 2026-09-17:
+ **the comparison is four families, attention included**, authority at
+ `notes/verification-ledger.md#owner-decision-2026-09-17-package-4-family-set-and-zone`.
+
+ **The other half of the kill is still open**, and T12 owns it: no hue mapping
+ exists. T14 derived none and was right not to — the design-system durable output
+ enumerates four state families and records a hue for none of them, and
+ `tokens.css` materializes hues for two artifact-state members only.
 2. **No ΔE2000 generator exists.** Nothing in the repository computes it. The
  bound's value has exactly one home and must keep it, so the generator cites
  that home rather than restating the number. Options: a small local module
@@ -726,13 +733,23 @@ at `notes/verification-ledger.md#discovery-channel-t14`.
  source together. **It contains no bound.** The *Inspection-family hue
  separation* row remains the value's one home, and this task's AC-0120
  assertion is what reads it and applies it.
-- **The comparison set is still unsettled**, and the kill recorded at
- `#discovery-channel-t14` says why: the design-system durable output enumerates
- four state families and no hue for any of them, `tokens.css` materializes hues
- for two artifact-state members only, and the row and AC-0120 disagree on
- whether attention is compared. AC-0120's assertion therefore waits on the
- owner's family-set amendment. T14 derived no mapping and removed no
- obligation.
+- **The family set is settled at four, and the hue mapping is not.** Package 4
+ amended AC-0120 on 2026-09-17 so the comparison covers artifact, review,
+ execution **and attention**, matching the *Inspection-family hue separation*
+ row; authority at
+ `notes/verification-ledger.md#owner-decision-2026-09-17-package-4-family-set-and-zone`.
+ What T14's kill left open is the other half: the design-system durable output
+ enumerates those four families and records **a hue for none of them**, and
+ `tokens.css` materializes hues for two artifact-state members only. **T12 mints
+ the family and is what makes AC-0120 measurable.**
+- **The owner accepted a feasibility risk on this task, and it is recorded here
+ rather than only in the ledger.** T14 measured `--color-proposal-surface`
+ against `--color-accepted-surface` at **21.866** in the light theme — two
+ members of the *same* family, barely clear of the bound. The palette's natural
+ spacing sits at the bound, so clearing it against four families in both themes
+ may prove tight or infeasible. If it does, that is evidence to revisit the bound
+ through an amendment, not a T12 choice: the bound keeps its single home in the
+ *Inspection-family hue separation* row.
 - **Rendered evidence comes from `apps/desktop/tools/visual-evidence.mjs`**, not
  from a new capture entry. Its scenario matrix already carries `desktop-light`
  and `desktop-dark`, which is the both-themes reach AC-0120 needs; a new
@@ -871,6 +888,18 @@ bound in *Canonical values*.
 
 ## Changelog
 
+- 2026-09-17: **Package 4 — the family set, the liveness-token zone, and every
+ standing deferred Nit.** Authority at
+ `notes/verification-ledger.md#amendment-2026-09-17-package-4-family-set-and-zone`,
+ owner decisions at
+ `notes/verification-ledger.md#owner-decision-2026-09-17-package-4-family-set-and-zone`.
+ Landed through the **controlled amendment path**: AC-0120's exclusion of
+ attention is deleted so the comparison matches the *Inspection-family hue
+ separation* row at four families, and `TZ=UTC` joins the *Environment
+ allowlist*, binding both sides of AC-0081's liveness comparison to one
+ rendering. Eighteen standing deferred entries are disposed and none is carried
+ forward. Criteria count unchanged at 156; T1 through T11 stay pinned and
+ untouched.
 - 2026-09-17: **amendment addendum — a bounded discovery channel and an inline-proof
  rule.** Authority at
  `notes/verification-ledger.md#amendment-addendum-2026-09-17-discovery-channel-and-inline-proof`.

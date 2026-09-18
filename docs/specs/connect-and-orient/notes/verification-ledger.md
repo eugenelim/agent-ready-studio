@@ -2675,6 +2675,11 @@ What the approval covers, so its scope is checkable later:
 **Not covered by this approval**, and named so no later reader treats it as settled: the
 three-versus-four family question, which needs its own amendment when the owner decides it.
 
+**Settled later, and this paragraph is left as the record of what was true on 2026-09-17 rather
+than rewritten.** The owner decided four families on 2026-09-18 and Package 4 amended AC-0120;
+see `#owner-decision-2026-09-17-package-4-family-set-and-zone`. Everything above describes the
+state before that amendment.
+
 ## t14-evidence
 
 **T14 carries no acceptance criterion**, on T8's precedent: it discharges construction detail.
@@ -3194,12 +3199,23 @@ whose predicate excludes both.
 | Deferred Nits | Every determinate one repaired; see the enumeration below |
 | Not in scope | The 20-unit bound itself; AC-0080 and AC-0081's first-limb behaviour; any T12 durable output |
 
-**The carried figure was wrong, and this amendment corrects it rather than inheriting it.** The
-ledger has recorded "thirteen standing deferred Nits" since Package 3. Enumerating the five tables
-that hold them gives **sixteen distinct entries** — round 19 (4), round 20 (1), round 21 (1, which
-is decision 8 and is also listed in round 23's table), round 23 (6 further), and round 26 (4).
-Thirteen was an undercount by three. The figure is corrected here because a count no one checked is
-exactly the defect class T14's five rounds kept surfacing.
+**The carried figure was right, and the correction this entry first made was wrong.** An earlier
+draft claimed "thirteen standing deferred Nits" undercounted, and put the figure at sixteen from
+five tables. Round 28 found two errors in that, pulling in opposite directions: the roster **missed
+two whole tables** — round 24 (1) and round 27 (1) — and it counted **table rows rather than live
+entries**, including four already repaired by later rounds. The arithmetic across all seven tables:
+
+| | |
+| --- | --- |
+| Rows across seven tables — r19 (4), r20 (1), r21 (1), r23 (6), r24 (1), r26 (4), r27 (1) | **18** |
+| Already repaired by a later round before Package 4 opened | −4 |
+| Closed by the owner's `TZ` decision — r21 security-2 | −1 |
+| **Live at the start of Package 4** | **13** |
+
+So the ledger's thirteen was accurate and the "undercount by three" claim was not. It is retracted
+here rather than quietly amended. The lesson is narrower than the one the earlier draft drew: the
+defect was never that nobody checked the count — it is that checking it by counting rows in the
+tables you happen to find is not checking it.
 
 **Disposition of all sixteen.**
 
@@ -3257,7 +3273,7 @@ class as the "thirteen" undercount: a list nobody re-read against the text it ci
 | r23 adv2 | The *Materialized tree bytes* row said three things still bound materialization while its own second column says the sampler still enforces the file-count bound. Now four, matching the accepted residual it had been disagreeing with |
 | r23 adv4 | `runtime-child.ts`'s header claimed every canonical value arrives in the plan; `PS_EXECUTABLE` is a literal. Named as an exception, with the reason it is safe — a drifted literal reddens AC-0025's audit leg rather than passing |
 | r23 adv6 | `plan.md` attributed the advance-fixed bar to the sampler. The sampler enforces the bound; the **pass bar fixed in advance**, 5,000 files per 250 ms interval, is what makes the tolerance honest |
-| r23 adv7 | `executable-identity.ts`'s docstring named only the Runtime as starting `/bin/ps`. Two callers start it, which is why the constant is shared |
+| r23 adv7 | `executable-identity.ts`'s docstring named only the Runtime as starting `/bin/ps`. **The first repair replaced one inaccuracy with another** — it named the Runtime as a sharer, and the Runtime does not import the constant; round 28 caught it. The docstring now names the two modules that do import it, and identifies the child's separate literal as the documented no-import exception |
 | r23 sec2 | AC-0023 said the parent-side observer "processes none of" the influenced data; it parses `ps` columns carrying owner, repository, ref and revision. The ground is now the true one — it **executes** none of it, and its inputs are charset-confined |
 | r26-1, r26-4 | AC-0080's crash enumeration was wrong in both directions at once. It named a form that cannot occur and omitted one that can. Now: two outcomes are reachable — unparseable, or the single prefix that drops only the trailing newline and yields the complete values — and the missing-start-time form is stated as unreachable under this encoding, **with the test that establishes it cited by path** |
 | r26-2 | The extended item said "third-party executable" while its gloss includes the Runtime child, which is Studio's own Node process. What puts both in the class is that Studio did not author the bytes, not who supplied the binary |
@@ -3270,10 +3286,106 @@ durable output that the output does not make. `TZ=UTC` joins the *Environment al
 determinism argument stated where the allowlist is read: `LC_ALL=C` fixes the format a command
 renders and leaves the zone to the host, which is what let a liveness comparison become a reclaim.
 
-**Nothing is carried forward.** Sixteen entries: eleven repaired, four closed as already-resolved,
+**Nothing is carried forward.** Eighteen rows across seven tables: **thirteen were live**, and all
+thirteen are disposed — eleven repaired in the first pass, two more (round 24's and round 27's)
+repaired after round 28 found the roster short. Four were already repaired before this window and
 one closed by the `TZ` decision. Package 4 defers no Nit.
+
+- **Round 24's**, at `#review-round-24-2026-09-17`: the Always-do rail grounded its exemption on
+ the *Permitted executables* row admitting "an interpreter probe, and `/bin/ps`" while the row also
+ admits the Runtime's own Node process. The rail now enumerates all three.
+- **Round 27's**, at `#review-round-27-2026-09-17`: the plan-contract note said both documents are
+ pinned after approval while the channel makes T12 and T13 refinable until their first implementing
+ commit. The note now carries the carve-out explicitly and points at the channel that defines it.
 
 **Gates at the close of drafting**: `pnpm lint` exit 0 over 105 files; `pnpm typecheck` exit 0;
 `pnpm test` **41 files, 567 of 567 passed** at load average 25.45, including the 240 trial-runtime
 tests that carry the `TZ` change; `spec-coupling-check` 0 findings; `lint-contract-item-alignment`
 0 findings; `lint-spec-status` clean.
+
+## review-round-28-2026-09-18
+
+**Package 4's pre-EXECUTE review, both mandatory reviewers, both adjudications valid with an
+indeterminate audit of `None.`** The adversarial half raised 13 and the security half 5; the two
+adjudications sustained **13 between them** and refuted 5. Three adversarial findings were refuted
+as duplicates of security findings over the same sentences, so each defect received **one** repair
+rather than two competing ones.
+
+| Reviewer | Raised | Sustained | Blockers | Concerns | Advisory/Nit | Refuted |
+| --- | --- | --- | --- | --- | --- | --- |
+| adversarial | 13 | 9 | 4 | 2 | 3 | 4 |
+| security | 5 | 4 | 1 | 2 | 1 | 1 |
+
+**The Blocker was a regression this amendment introduced.** Pinning `TZ=UTC` in the *Environment
+allowlist* bound the Runtime's rendering of the liveness token but not the Service's: the child
+renders `ps -o lstart=` under the rebuilt allowlist, while `readProcessStartTime` passed no `env`
+and inherited the host zone. AC-0081's first limb compares those two renderings for byte equality.
+Before Package 4 both rendered in the host zone and matched; after it they differ on **every**
+host whose zone is not UTC — and a failed liveness comparison reclaims a state root whose Runtime
+is live. **That is worse than the hazard decision 8 set out to remove**, which needed a host zone
+change inside a 150-second window with two live Runtimes. It was latent only because `sweep.ts` has
+no production caller yet, and `sweep.test.ts` built its live marker with the same unpinned reader,
+so the suite could not have caught it.
+
+Repaired at the seam the adjudication named rather than by the new criterion the reviewer proposed:
+`readProcessStartTime` now renders under a pinned `LC_ALL`/`TZ`, and a case in
+`per-request-state-root.test.ts` renders the token the way the child does — explicitly pinned,
+independently of the module's own constant — and asserts the reader matches. **Removing the pin
+reddens exactly that case**, verified, module restored byte-identical.
+
+**The second Blocker is the sharper one, because it was a proof that could not fail.** AC-0080
+cited the prefix test as establishing that no crash leaves a marker parsing without a start time.
+The test's loop `continue`d past exactly that form without counting or asserting it, so
+`expect(parseablePrefixes).toBe(1)` would have passed if one existed. The criterion rested on an
+assertion that could not fail for the claim it was cited for — **the same false-pass shape the
+inline-proof rule exists to close**, in the artifact that rule had already been applied to. The
+branch now fails instead of skipping.
+
+### The traversal walk, run deliberately this round
+
+Three of the four adversarial Blockers were one failure repeated: a claim repaired at its cited
+location while another surface kept the old wording. The owner directed that the DECIDE ladder's
+traversal be applied to the whole sustained set, so it was run **mechanically** — a literal sweep
+per claim across `spec.md`, `plan.md`, the ledger and all source — rather than from recall.
+
+It changed the outcome three times:
+
+- **It found a surface neither reviewer cited.** `per-request-state-root.ts`'s own docstring
+ repeated both the encoding property and the false test citation. Repairing only AC-0080 and the
+ test would have left the production module asserting it.
+- **It found the repository already contradicting the repair.** The claim that AC-0025's sampled
+ leg covers Service-side `ps` spawns is denied twice in this tree — at `#t4-evidence`'s analysis
+ and in `runtime-supervisor.test.ts`'s own comment, both stating the sampled leg cannot see a
+ process living about 20 ms. The correct wording was already written; the repair had only to stop
+ contradicting it.
+- **It caught an error in a correction made earlier in this same window.** See the retraction in
+ `#amendment-2026-09-17-package-4-applied`: the "thirteen is an undercount" claim was wrong, and
+ wrong in two directions at once.
+
+The walk also forced a distinction worth keeping: **a live instruction is repaired, a historical
+record is not.** The family-set claim had five surfaces — two live plan sections, which now state
+the settled set, and three round records, which remain accurate as descriptions of what was true
+when written. One of those carries a dated forward pointer rather than a rewrite, so a reader
+landing there is not misled without the audit trail being falsified.
+
+Every repaired claim was re-swept afterwards and its frontier confirmed empty.
+
+### Gate state
+
+| Gate | Result |
+| --- | --- |
+| `pnpm lint` | exit 0, 105 files |
+| `pnpm typecheck` | exit 0 |
+| `spec-coupling-check` | 0 findings |
+| `lint-contract-item-alignment` | 0 findings |
+| `pnpm test` | **not green, and not judged red** — see below |
+
+**The suite's red is contention, established by the two-in-isolation rule rather than asserted.**
+Two full runs produced **different** failure sets — six failures, then two — and the only file
+common to both, `disposal.test.ts`, then passed **7 of 7 twice** in isolation after failing with
+**different tests** in each of its two earlier isolated runs. No test failed twice in isolation, so
+none is deterministic. `runtime-supervisor.test.ts`, the file this amendment edits, passed **23 of
+23 in both** isolated runs, which is the check that matters for the `TZ` change. Load average
+during the reds was **60 to 69** on a host carrying 28 other sessions — the top of the band this
+ledger tracks. Signature and judging rule are recorded at `pre-existing-trial-runtime-load-flake`
+in `[backlog].open`.
