@@ -25,7 +25,7 @@ repository integration.
 | `pnpm dev` | Builds the Studio Service, then starts the Electron desktop development process. |
 | `pnpm lint` | Biome's configured format and lint checks. |
 | `pnpm typecheck` | The strict TypeScript project check. |
-| `pnpm governance` | Ordinal, index, and shape checks over the decision records in `docs/adr` and `docs/rfc`. |
+| `pnpm governance` | Decision-record checks: ordinals, generated index, and record shape over `docs/adr`; ordinals over `docs/rfc`. |
 | `pnpm test` | Builds the service and desktop test targets, then runs the Vitest suite. |
 | `pnpm build` | Builds the service, Electron desktop, and TypeScript workspace projects. |
 | `pnpm verify` | Lint, typecheck, governance, test, and build in that order. |

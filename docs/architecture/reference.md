@@ -251,7 +251,8 @@ Orient Stage 2 assessment, its northbound contract belongs in
 - Renderer tests exercise decision-oriented status changes through the typed
   host boundary.
 - One end-to-end proof covers workspace creation through persisted approval or
-  revision request. `pnpm verify` runs lint, typecheck, tests, and build.
+  revision request. `pnpm verify` runs the repository's full gate set; its
+  composition is defined by `package.json` and listed in `README.md`.
 
 ## Decisions
 

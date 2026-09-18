@@ -83,20 +83,17 @@ decision was made without discussion, write an ADR.
 
 ### What an accepted ADR freezes
 
-Acceptance freezes an ADR's **prose**, not its metadata: `Status`, the four
-supersession fields, and `Areas` stay writable, so recording a supersession
-changes a declared field rather than editing a frozen record. A supersession
-pointer never goes in `Status`, and each pointer is written on both records so
-either can be read alone. A partial supersession cites a `D-ID`, the permanent
-address of one binding constraint in the superseded record's `## Decision`
-section — which is why every record numbers its constraints `D1..Dn`, dense from
-`D1` and starting with the headline decision, whether or not anything cites them
-yet. A `Rejected` ADR is kept as a record, never deleted.
+Acceptance freezes an ADR's **prose**, not its metadata — which is what lets a
+supersession be recorded without editing a frozen record. Reversing a decision
+means writing a new ADR and pointing the two at each other, never rewriting the
+old one; a `Rejected` ADR is kept as a record, never deleted.
 
-The field-by-field contract — which fields exist, the mutability zone each sits
-in, and the exact supersession pairings — is owned by the `new-adr` skill's
-template at `assets/adr.md`, which arrives with the `governance-extras` pack.
-Read it there rather than restating it here; `pnpm governance` enforces it.
+Which fields exist, which mutability zone each sits in, and how the supersession
+pairings are written is owned by the `new-adr` skill's template at
+`assets/adr.md`, which arrives with the `governance-extras` pack. Read it there;
+`pnpm governance` enforces it. The one convention this repository adds: every
+record numbers its `## Decision` constraints `D1..Dn`, dense from `D1`, with the
+headline decision at `D1`, so a partial supersession has an address for it.
 
 ### The ADR index is generated
 
@@ -133,7 +130,10 @@ ADR index, and runs the ADR shape lint over every record.
 
 ## The living layer
 
-`docs/architecture/` and `docs/product/` are the living layer. They describe
-what *is*, not what was decided or what is proposed: architecture for
-contributors, product for maintainers. Governance and frozen records sit outside
-that layer.
+The map above assigns every area its lifecycle class; this is what the `living`
+rows have in common. They describe what *is*, not what was decided or what is
+proposed, and each serves a different reader: `architecture/` for contributors,
+`product/` for maintainers, `knowledge/` for whoever hits the same trap next,
+`CHARTER.md` for anyone asking what the project is for. A record that fixes a
+decision or proposes one sits outside that layer, which is why `adr/`, `rfc/`,
+and a shipped `specs/` directory are classed frozen or governance instead.
