@@ -190,6 +190,20 @@ function claimStateRoot(): void {
   ) {
     throw new Error(`the plan delivered no liveness token convention`);
   }
+  // The age bound gates every destructive limb, and it fails open rather than
+  // closed if it is missing: `now - modifiedAt <= undefined` is `false`, so an
+  // absent bound does not retain a young candidate, it reclaims it on sight --
+  // including a root another request reserved seconds ago, in the window
+  // between `mkdtemp` and its marker, which that gate is the only protection
+  // for. The Service-side reader defaults this value; the child has no default,
+  // so it refuses instead.
+  if (
+    typeof plan.markerlessReclaimAgeMs !== "number" ||
+    !Number.isFinite(plan.markerlessReclaimAgeMs) ||
+    plan.markerlessReclaimAgeMs < 0
+  ) {
+    throw new Error(`the plan delivered no markerless reclaim age`);
+  }
   const marker = {
     schema: 2,
     pid: process.pid,
@@ -372,19 +386,29 @@ function sweep(domain: string): void {
         });
         continue;
       }
-      // Absence is established without comparing token bytes, so an
-      // incomparable token only matters while the named process runs.
-      if (live !== null && !comparable) {
-        // Live process, incomparable token: whether this root is in use cannot
-        // be decided, which AC-0081 routes to a decline. Falling through to
-        // the age-gated limb would reclaim a live Runtime's root once it aged.
-        outcomes.push({
-          name,
-          action: "declined",
-          limb: 1,
-          inputClass: "liveness-token-convention",
-        });
-        continue;
+      // An incomparable token cannot be checked against the live rendering, so
+      // a non-null read says only that some process holds the recorded pid,
+      // not that it is the one the marker names -- start time is what
+      // separates those, and it is what cannot be compared. A recycled pid
+      // would otherwise hold this root forever, so the decline is also bounded
+      // by the candidate's age. No Runtime can legitimately outlive it: the
+      // timer armed below SIGKILLs this whole group at the inspection
+      // deadline, and the reclaim age is far longer than that.
+      if (!comparable) {
+        const modifiedAt = status.mtimeMs;
+        const young =
+          Number.isFinite(modifiedAt) &&
+          modifiedAt <= now &&
+          now - modifiedAt <= plan.markerlessReclaimAgeMs;
+        if (live !== null && young) {
+          outcomes.push({
+            name,
+            action: "declined",
+            limb: 1,
+            inputClass: "liveness-token-convention",
+          });
+          continue;
+        }
       }
       if (comparable && live !== null && live === startTime) {
         continue; // a live process owns it
@@ -398,8 +422,9 @@ function sweep(domain: string): void {
         });
         continue;
       }
-      // Incomparable token, absent process: nothing is in use and the marker
-      // parsed, so this is the second limb's input.
+      // Incomparable token whose process is absent, or whose candidate has
+      // outlived the reclaim age: nothing this marker names can be in use, and
+      // the marker parsed, so this is the second limb's input.
     }
 
     // Limbs 2 and 3, both gated on the candidate's own modification time.

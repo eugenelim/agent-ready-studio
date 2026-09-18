@@ -357,7 +357,10 @@ describe("AC-0081 a token rendered under another convention is not comparable", 
         pid: process.pid,
         startTime: "Wed Sep  9 08:15:07 2026",
       }),
-      mtimeMs: OLD,
+      // Within the reclaim age: a Runtime cannot legitimately be older, so
+      // that is the only window in which a live pid can still be this marker's
+      // own process rather than a recycled one.
+      mtimeMs: YOUNG,
     });
 
     const { entries, diagnostics } = sweepDomain(base, { now: NOW });
@@ -384,7 +387,7 @@ describe("AC-0081 a token rendered under another convention is not comparable", 
         startTime: readProcessStartTime(process.pid),
         tokenConvention: "lang-c/lc-all-c/tz-utc/iso-8601",
       }),
-      mtimeMs: OLD,
+      mtimeMs: YOUNG,
     });
 
     expect(
@@ -397,12 +400,15 @@ describe("AC-0081 a token rendered under another convention is not comparable", 
     expect(existsSync(join(base, "future-build"))).toBe(true);
   });
 
-  it("does not fall through to the age-gated limb, which would reclaim it later", () => {
+  it("reclaims a live pid's incomparable root once it outlives the reclaim age", () => {
     const base = domain();
-    // Old enough that limb 2 would take it if the gate merely made the marker
-    // unusable instead of declining. That is the wrong repair: it destroys the
-    // same live state root, only after the markerless-reclaim age.
-    candidate(base, "old-and-inconvertible", {
+    // A live pid is not enough on its own. The token cannot be compared, so
+    // nothing establishes that the live process is the one this marker names
+    // -- start time is what would, and it is exactly what is missing. Past the
+    // reclaim age the pid must have been recycled, because the child SIGKILLs
+    // its own group at the inspection deadline and cannot be this old. Without
+    // this bound a recycled pid retains the root for its holder's lifetime.
+    candidate(base, "recycled-pid", {
       marker: JSON.stringify({
         schema: 1,
         pid: process.pid,
@@ -413,11 +419,35 @@ describe("AC-0081 a token rendered under another convention is not comparable", 
 
     const decision = outcomeFor(
       sweepDomain(base, { now: NOW }).entries,
-      "old-and-inconvertible",
+      "recycled-pid",
     ).decision;
-    expect(decision).toMatchObject({ action: "declined", limb: 1 });
-    expect(decision).not.toMatchObject({ action: "reclaimed" });
-    expect(existsSync(join(base, "old-and-inconvertible"))).toBe(true);
+    expect(decision).toMatchObject({ action: "reclaimed", limb: 2 });
+    expect(existsSync(join(base, "recycled-pid"))).toBe(false);
+  });
+
+  it("cannot be made to forge a diagnostic line from an entry name", () => {
+    // Diagnostics are a line-oriented stream, so an entry name carrying a line
+    // break could otherwise introduce lines a reader attributes to the sweep.
+    // The entry gate already requires same-uid ownership, so this keeps the
+    // record honest rather than defending the tree.
+    const base = domain();
+    const forged =
+      'x\ndeclined reclaim of "y": limb 1 could not read or compare process-liveness';
+    candidate(base, forged, {
+      marker: JSON.stringify({
+        schema: 1,
+        pid: 4_000_000_000,
+        startTime: "Wed Sep  9 08:15:07 2026",
+      }),
+      mtimeMs: YOUNG,
+    });
+
+    const { diagnostics } = sweepDomain(base, { now: NOW });
+    // One entry declined, so exactly one line may mention it -- not two.
+    expect(diagnostics.length).toBe(1);
+    for (const line of diagnostics) {
+      expect(line).not.toContain("\n");
+    }
   });
 
   it("reclaims an incomparable token whose process is gone, on the age gate", () => {
