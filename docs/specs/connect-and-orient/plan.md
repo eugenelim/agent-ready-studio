@@ -894,367 +894,46 @@ bound in *Canonical values*.
 
 ## Changelog
 
-- 2026-09-17: **Package 4 — the family set, the liveness-token zone, and every
- standing deferred Nit.** Authority at
- `notes/verification-ledger.md#amendment-2026-09-17-package-4-family-set-and-zone`,
- owner decisions at
+Approval decisions only. Review rounds, their findings, and the reasoning behind
+each change are recorded in `notes/verification-ledger.md`.
+
+- 2026-09-17: **Package 4.** Authority
  `notes/verification-ledger.md#owner-decision-2026-09-17-package-4-family-set-and-zone`.
- Landed through the **controlled amendment path**: AC-0120's exclusion of
- attention is deleted so the comparison matches the *Inspection-family hue
- separation* row at four families, and `TZ=UTC` joins the *Environment
- allowlist*, binding both sides of AC-0081's liveness comparison to one
- rendering. Eighteen standing deferred entries are disposed and none is carried
- forward. Criteria count moves 156 → 157 with AC-0159; T1 through T11 stay pinned and
- untouched.
-- 2026-09-17: **amendment addendum — a bounded discovery channel and an inline-proof
- rule.** Authority at
+ AC-0120 now compares four state families including attention, matching the
+ *Inspection-family hue separation* row. `TZ=UTC` joins the *Environment
+ allowlist*. AC-0159 binds both renderings of the liveness token to the same
+ determinism values. Thirteen standing deferred entries are disposed.
+ Criteria count 156 → 157.
+- 2026-09-17: **Bounded discovery channel and inline-proof rule.** Authority
  `notes/verification-ledger.md#amendment-addendum-2026-09-17-discovery-channel-and-inline-proof`.
- Both mechanisms landed through the **controlled amendment path**, not through the
- channel they create: one rewires a dependency edge and the other adds verification
- obligations, and the channel's own predicate forbids itself both. This entry is what
- distinguishes a channel created by amendment from one that authorized itself — from
- the plan alone, nothing else would. Adds `### T14`, a criteria-free discovery task on
- T8's precedent, and rewires T12's dependency to it; the criteria roster is unchanged at
- 156 with no residual, and all eleven pinned completed-task section hashes recompute
- unchanged. Reviewed scoped over T14, T12 and T13 at round 27, which sustained one
- Blocker and five Concerns, all applied here, and two Nits.
-
-- 2026-09-17: **contract amendment — the tree-bytes bound is cut and `/bin/ps`
- is admitted.** Two owner decisions, both blocking T5, deliberately **not**
- batched with the renderer and result-composition amendment: that one keeps its
- slot before T12, because the last amendment of the larger shape generated four
- of its own blockers across five review rounds. Authority at
- `notes/verification-ledger.md#amendment-2026-09-16-bound-cut-and-ps`.
- **Decision 5 cuts the *Materialized tree bytes* bound.** T5's measurement found
- the realistic writer — `git checkout` inflating a maximally compressible pack —
- materializing 208–448 MiB per 250 ms interval against a 128 MiB pass bar, and a
- tree at the former 512 MiB ceiling written inside two to three samples, so
- detection landed after the whole budget was spent. Shortening the interval does
- not help: one sample over a tree at the file-count bound already costs 211–349
- ms, more than the interval itself. The row's own rule made a higher measurement
- a bound failure rather than grounds to raise the bar, and the quantity is a
- property of the host, so a restated ceiling would go stale on the next machine.
- **The criterion between AC-0049 and AC-0051 is removed**, taking the count from
- 157 to **156** and adding that number to the never-reuse list beside the one
- between AC-0155 and AC-0157. Neither is written in its retired form, which is
- the convention that keeps a retired identifier from resolving to a criterion.
- The file-count bound is untouched and AC-0051 stands: it passed its bar with
- roughly 3.5× headroom, so cutting only the unenforceable half is the precise
- change, and the sampler survives to enforce it and to serve AC-0031.
- Materialization size is still held by the fetch, by `--depth 1` and by the
- 120 s inspection deadline — what is removed is a *stated* byte ceiling.
- **Decision 6 admits `/bin/ps`** to *Permitted executables*, repairing a defect
- this delivery introduced: the Runtime spawned it to read a process start time,
- which the platform exposes no other way, violating AC-0025 on both legs — `ps`
- was not permitted, and the spawns bypassed the audit that is the second leg.
- The route was chosen because it is the **only** one that leaves AC-0080 and
- AC-0081 untouched; the advisory-lock alternative was eliminated by probe, Node
- v26.4.0 exposing no `flock`. **This breaks the run of no-new-permission
- outcomes the previous decisions established**, and the ground is that every
- alternative spends its cost on the spec's most perturbation-prone text instead.
- No repository-sourced code executes inside the trial process group, so nothing
- there benefits from `ps`. Criteria count 157 → 156.
-
-- 2026-09-16: **pre-EXECUTE round 20 — the review requirement is satisfied.**
- The secure-design adjudication classified `clean`; the adversarial
- adjudication sustained one Nit, a missing main verb in AC-0081's fail-closed
- rationale left by round 19's clause split, deferred with its citation at
- `notes/verification-ledger.md#deferred-nit-2026-09-16-round-20`. No unresolved
- Blocker or Concern remains from either mandatory reviewer, which is the
- work-loop's condition for proceeding to the human gates. The adversarial
- reviewer additionally reviewed the four round-19 deferrals, agreed each is a
- Nit, and did not re-raise them. Sustained findings across the amendment ran
- seventeen, eight, four, six and one, with blockers surviving adjudication at
- four, zero, zero, one and zero; the round-19 rise was a contradiction created
- by round 18's own repair rather than noise, and it is why only what severity
- required was repaired thereafter. **Five deferrals stand with citations**, two
- of which need an owner choice before they can close. This entry records the
- round that concluded the review and is therefore the one entry no subsequent
- pre-EXECUTE round reviews. Criteria count unchanged at 157.
-- 2026-09-16: **pre-EXECUTE round 19**, six findings sustained and none refuted.
- One Blocker, and it was a flat self-contradiction created by round 18's own
- repair: widening AC-0081's second limb to reclaim a marker that "does not
- yield both a process identity and a start time" left the fail-closed clause
- declining to reclaim where "a liveness comparison cannot be made", which is
- exactly that input — so the criterion stated both reclaim and decline for the
- one case the widening existed to close, and this changelog's own round-18
- entry was cited as evidence that the decline reading was the operative one.
- The clause now binds to the inputs the limb under evaluation actually needs
- and states explicitly that a marker missing a start time is the second limb's
- input. One Concern rode with it: T5's sweep bullet still enumerated the
- pre-round-18 limb set and closed it with "and nothing else", which would have
- produced a test asserting non-reclaim for a case the criterion reclaims; it
- now tracks AC-0081's current limbs and carries the same narrowing.
- **Four Nits were deferred with their citations by owner decision**, recorded
- at `notes/verification-ledger.md#deferred-nits-2026-09-16-round-19`. The ground
- for deferring rather than repairing is the pattern itself: sustained findings
- ran seventeen, then eight, then four, then six with a Blocker returning, and
- every round-19 finding traced to AC-0080 and AC-0081 — criteria rewritten in
- three consecutive rounds in which each repair generated the next round's
- finding. Repairing only what severity requires keeps the smallest footprint on
- the two criteria that have proven perturbation-prone, and the work-loop's own
- rule is that a Nit is never repaired automatically and may be deferred with
- its citation. Two of the four need an owner choice before they can close: T6
- schedules no confirmation for the read-reach residual that names it, and
- AC-0080's partial-form enumeration rests on an unstated marker-encoding
- premise. Criteria count unchanged at 157.
-- 2026-09-16: **pre-EXECUTE round 18**, two independent reviews and two
- adjudications, four findings sustained and three refuted, **no blocker raised
- by either reviewer**. The round first ended in a **terminal stop**: the
- secure-design adjudication returned `ADJUDICATION-INDETERMINATE` and the strict
- classifier refused the artifact as `indeterminate-present`, because a finding
- asked whether pack `core` at the T6 pin ever opens a repository-declared path
- operand — a fact this repository cannot supply, since the pinned inspector's
- source lies outside it and has never been read — and because the remedy was an
- owner choice. The bounded evidence retry was unavailable on both counts.
- **The owner recorded the inspector's read reach, and the related
- symlink-traversal question on which AC-0069 depends, as an unconfirmed residual
- against the pin, confirmed at T6**, which is where the pin is established and
- so the first point with evidence to work with; that route mints no criterion
- and no fixture and changes no read-surface criterion. A replacement
- adjudication over the unchanged source findings then refuted the finding on
- that authority, ending the stop.
- Two Concerns were sustained, **both against round 17's own repairs.**
- AC-0080's crash-window claim was not total over AC-0081's limbs: a
- truncated-but-*parseable* marker yielding a process but no start time satisfied
- no limb, and the fail-closed clause routed it to decline, retaining one marked
- non-empty root per crash. AC-0081's second limb now covers a marker that cannot
- be parsed **or that does not yield both a process identity and a start time**,
- which makes AC-0080's claim total at an existing seam rather than by fixing a
- marker form in the contract. And AC-0081's replacement-safety condition rested
- on single-in-flight admission, which the accepted residual contradicts — an
- abnormal Service death leaves two live writers in the sweep domain — so it now
- rests on the property that actually holds it: the first limb refuses any
- candidate whose recorded process is live, which holds however many Runtimes
- exist. Two Nits landed with them, both third surfaces the earlier repairs
- missed: the layout Follow-on still asserted the unqualified aggregate bound,
- and definition-of-done item 7 was listed in both slices. Criteria count
- unchanged at 157.
-- 2026-09-16: **pre-EXECUTE round 17**, two independent reviews and two
- adjudications, eight findings sustained and eight refuted. **No blocker
- survived adjudication** — both reviews raised blockers claiming AC-0076's
- state-root confinement and AC-0081's sweep are mutually unsatisfiable, and both
- adjudications refuted the claim independently on the same ground: *Canonical
- values* defines the per-request state root as "the unit of reclaim" rather than
- the current request's root, and AC-0081 is the more specific authority for the
- sweep. Every sustained finding was drift created by round 16's own repairs,
- which is this contract's dominant failure mode and the reason round 17 ran at
- all. **The sharpest was against a repair rather than the original text:**
- round 16 required the marker "written atomically, before any other child", but
- an atomic write is conventionally write-then-rename and the staging file is
- itself another child, so a crash inside that window reopened the very
- markerless-non-empty hole the clause was added to close. On owner decision
- AC-0080 now requires a **single creating write** — created exclusively, written
- once, no staging child — which leaves a partial marker rather than an unmarked
- root and so gives AC-0081's second limb a real purpose instead of a vestigial
- one. Seven corrections landed with it: AC-0083 now records a **declined
- reclaim** as its own diagnostic, because the fail-closed direction round 16
- added had no observable and a control whose failure mode emits nothing is
- unobservable exactly when it matters; AC-0154 no longer claims to bound
- *aggregate* occupancy, matching the row it cites; the occupancy row states that
- the per-request `HOME` and `TMPDIR` carry no byte or file bound and sit outside
- it; the *Ownership marker* row cites AC-0080 rather than paraphrasing it more
- weakly; AC-0054 cites AC-0069 and AC-0073 for the inspector's link exposure,
- since round 16 left AC-0076 governing removal only; AC-0081 states the slice-1
- condition under which AC-0076's per-level link refusal is safe against
- replacement between classification and traversal, so a later slice that runs
- anything inside the sweep domain must revisit it; and the plan's two
- restatements of the aggregate bound were deleted in favour of citing the row.
- T5's marker and sweep bullets were restated to track the amended clauses.
- Criteria count unchanged at 157.
-- 2026-09-16: **pre-EXECUTE round 16 on the amendment below**, two independent
- reviews and two adjudications, seventeen findings sustained and ten refuted.
- Four sustained blockers were all the same class — a surface the layout change
- moved past and the amendment did not walk. **AC-0076 and the Boundaries
- removal bullet still bound removal at the materialization root** while AC-0079
- removes its parent, so two contract sections were mutually unsatisfiable; both
- now bound removal at the per-request state root and AC-0076 refuses a link at
- every level it traverses, not only at the candidate it begins from.
- **AC-0073 forbade the very marker read AC-0081 requires**; it is now scoped to
- repository-content reads and, on the security pass's finding, compares the
- file's resolved real path rather than admitting a lexical match. **AC-0080's
- marker ordering left AC-0081's limbs non-exhaustive** — a markerless non-empty
- root matched none and was retained indefinitely, the exact failure class the
- ownership decision was taken to close — so the marker is now written
- atomically, before any other child, and removed last. **Three narrowed
- criteria routed their observation to a smoke that scheduled none of them**, so
- the process-boundary group gains the manual-QA clause AC-0009's group carries
- and T13 names all three in its bullet, `Covers` and `Done when`. Four owner
- decisions, all taken on the route that adds no control: AC-0081 states its
- reliance on the write boundary rather than a new criterion minting one; every
- limb fails closed and declines to reclaim when an input cannot be read, with
- the marker written atomically; AC-0154's refusal is a protocol-level error
- carrying no user-visible state, leaving the eleven-row state table untouched;
- and the occupancy row drops the sweep-schedule term no criterion obliged,
- resting on AC-0154 alone and stating that it bounds live in-flight occupancy
- only, with the unreclaimed residue pointed at the accepted residual. Two
- advisories were repaired in the same pass: the markerless-reclaim age row now
- covers both age-gated limbs, and the accepted residual cites AC-0081's third
- limb rather than its pre-amendment second. Ten findings were refuted, among
- them the slice-1-of-two framing for the seventh consecutive round. Criteria
- count unchanged at 157.
-- 2026-09-15: **controlled contract amendment, taken a second time on this
- date** from `CODE-IMPLEMENTATION` after T4's implementation, with explicit
- scope-owner authority recorded at
+ T14 resolves helpers, paths and fixture shapes for T12 and T13 under a
+ four-conjunct predicate and a kill condition. A mechanism whose failure mode is
+ reporting success wrongly must prove itself in the task that introduces it.
+ Criteria count unchanged at 156.
+- 2026-09-16: **Tree-bytes bound cut; `/bin/ps` admitted.** Authority
+ `notes/verification-ledger.md#amendment-2026-09-16-bound-cut-and-ps`. The
+ *Materialized tree bytes* ceiling is removed and the criterion carrying it is
+ retired, its number never reused. `/bin/ps` joins *Permitted executables* so
+ the Runtime can read a process start time the platform exposes no other way.
+ Criteria count 157 → 156.
+- 2026-09-15: **Per-request state ownership; test network surface cut.**
+ Authority
  `notes/verification-ledger.md#owner-decision-2026-09-15-per-request-state-ownership`
- and `#owner-decision-2026-09-15-cut-test-network-surface`. T1, T2 and T3 stay
- pinned complete with their sections unedited; **T4 returns as an unfinished
- task** rather than being pinned, because three of its criteria are restated
- here and pinning it would have frozen its section against them. It carries
- three groups of change. **One: per-request on-disk state ownership**, the
- blocking design question the Follow-ons had carried since round 3, answered as
- one layout decision — the per-request state root owns the request and the
- materialization root becomes its `tree` child, so the ownership marker is the
- tree's sibling and repository content cannot forge it. That single change
- answers all five symptoms the reviews recorded, adds no primitive, and was
- verified by probe rather than asserted: `transfer.fsckObjects=true` rejects a
- `..`-bearing tree at fetch and checkout independently refuses `invalid path`.
- AC-0070, AC-0079, AC-0080 and AC-0081 are restated, AC-0081 gaining a third
- limb for an unparseable marker, and AC-0154 gains single-in-flight admission
- so aggregate sweep-domain occupancy is bounded by arithmetic rather than by a
- new sampler. **Two: the test network surface is cut.** T4's first
- implementation made `git`'s transport helper observable by binding a loopback
- listener, which is the surface the 2026-09-15 AC-0009 decision had already
- removed and which AC-0148 forbids. Twelve tests were rebuilt on a local held
- `git` process; **AC-0024's helper-environment observation, AC-0025's
- transport-helper leg and AC-0030's transport-helper instance are narrowed and
- moved to T13's manual smoke**, the same route the owner chose for AC-0009 and
- for the same reason — the contract should claim only evidence that exists. The
- cut also exposed a live defect the listener had masked: the Service could
- accept a `completed` line the Runtime wrote during its own group teardown, so a
- terminated run could report success. Fixed and pinned by a mutation. **Three:
- four *Resource bounds* rows are corrected.** Three of them — the process
- group, the progress-text cadence and the inadmissible parse keys — were
- two-cell rows in a four-column table whose enforcement AC-0029/AC-0030,
- AC-0129 and AC-0057 already oblige; completing them states that obligation and
- adds none, and takes the coupling checker from four findings to one. The
- fourth is a genuine drift: all three sampled bounds share one 250 ms sampler,
- but only tree-bytes and file-count acknowledged the sample's own duration
- (the tree-bytes bound was later cut; see the entry for this amendment),
- while *Child resident memory* and AC-0031 claimed detection "within one
- sampling interval". A sampler cannot detect a breach faster than it can
- complete the read that observes it, measured at roughly twenty milliseconds
- per `ps` read, so both now carry the sample-duration term their siblings
- already had. **AC-0104's row is deliberately untouched** — whether a breach
- rejects, truncates or evicts is an owner decision and remains the one
- outstanding coupling finding. Criteria count unchanged at 157; none added, cut
- or renumbered, and the number between AC-0155 and AC-0157 stays unused.
-- 2026-09-15: **controlled contract amendment** under the work-loop's
- `contract-amendment` transition, taken from `CODE-IMPLEMENTATION` with explicit
- scope-owner authority after T1 and T2 had completed and been pinned with
- evidence. T3's implementation proved AC-0009 unfalsifiable as written: redirect
- refusal lives in `git`'s HTTP client, so observing it needs a real protocol
- exchange, while AC-0148 forbade network access outright. **The first attempt at
- this amendment was reversed.** It widened AC-0148 to admit a hermetic loopback
- endpoint; two independent pre-EXECUTE reviews and both adjudications then
- returned the same owner-choice stop, and a probe settled it: `GIT_ALLOW_PROTOCOL=https`
- refuses an http loopback target outright, and an https one against a
- test-started endpoint fails on a self-signed certificate unless
- `http.sslVerify=false` or an equivalent CA trust term is supplied — a term the
- pinned `git` configuration does not carry and which AC-0022, AC-0023 and AC-0024
- forbid adding. The loopback route was therefore unreachable under the contract
- it was meant to serve. **What landed instead:** AC-0148 is restored verbatim, so
- no network surface is admitted and the two secure-design concerns about listener
- binding and environment binding are deleted by construction rather than patched;
- and **AC-0009 was narrowed** to claim only what can be observed — the pinned
- configuration present on both argument vectors, falsifiable by dropping the key
- — while stating explicitly that it claims no automated observation of client
- behaviour, which moves to T13's manual smoke against the real remote. Both
- Testing Strategy groups and T3's bullet and Approach were restated in the same
- action; T3's Approach had still named the local-remote stand-in the transport
- pin refuses. The cost is recorded rather than hidden: no automated regression
- guard on real client redirect behaviour. Nothing was widened — no credential
- path, no network, and no change to the permitted executables, environment
- allowlist, pinned `git` configuration, or resource bounds. Criteria count
- unchanged at 157; none added, cut or renumbered. T1 and T2 stay pinned complete
- with their sections unedited; T3 returns as an unfinished task.
-- 2026-09-14: amended a fourth time after two pre-EXECUTE rounds of **plan
- executability** review — the first passes to ask whether the plan can be
- executed rather than whether the spec is correct. Three blockers sustained
- through adjudication, all of them the same defect class: a task gating a
- criterion its own observation level cannot falsify. **T2 lost AC-0008 and
- AC-0009 to T3**, which already carried both tests, the red stub and the real
- transport, while T2's approach is a pure module with no I/O. **T6 lost AC-0138
- to T10 and AC-0146 to T11**, because AC-0138 observes a verdict, routing
- decision and state that do not exist until T9 and T10, and AC-0146 observes
- storage that does not exist until T11. **AC-0147 moved with them to T11**, not
- as a separate finding but because it ranges over AC-0133 through AC-0146 and
- cannot be discharged before the last of them — the sibling walk that the two
- relocations forced. T1's fixture rule was corrected in the same action:
- AC-0149 previously directed cases git cannot represent to be built on disk
- after checkout, which would have bypassed the checkout event AC-0136's proof
- observes, so a checkout-observable case is now built into the source object
- database by plumbing beforehand. Thirteen further findings from the same
- review were **refuted** as unenumerated test bullets, which the governing
- standard classes as build-time guidance that cannot prevent Clean; two
- findings the prior session had recorded as verified blockers were also refuted
- on adjudication. Criteria count unchanged at 157; no criterion was added, cut
- or renumbered. Deferred deliberately, not overlooked: the renderer and
- result-composition taxonomy (three sustained advisories on the Non-originated
- value row and AC-0115/AC-0116) and AC-0104's undefined breach behaviour on the
- persisted repository-derived content bound, whose *Resource bounds* row is
- still missing its Enforced-by and Tolerance cells.
-- 2026-09-14: amended a third time after pre-EXECUTE round 3 sustained thirteen
- findings through adjudication. **The live-orphan criterion added in round 2 was cut
- rather than repaired, and its number — the one now deliberately unused between
- AC-0155 and AC-0157 — is not reused.** It had been added to close a
- live-orphan gap, but it consumed an ownership marker that repository content can forge, which gave
- an inspected repository influence over which of the user's process groups
- Studio signals — a worse exposure than the bounded leak it closed. Cutting it
- restores a known gap in place of an unbounded one. `version-unverified` was
- split out of the condition axis into an orthogonal qualifier, because it
- collided with `malformed` on a constructible fixture; this is the same
- correction the verdict/condition split already made for the same reason, and
- it removes the need for any precedence rule over the now mutually exclusive
- eight conditions. AC-0157 and AC-0158 bind the verdict's human label and its
- single polite announcement, which removing `ok` from the state set had left
- cited by no criterion. T4 gained one named test per AC-0154 trigger, AC-0066's
- rendered-role clause moved to AC-0114's sole ownership, and the smoke-coverage
- claim was restated on the axis it is true of. Five further findings were
- recorded as one open design question in the spec's Follow-ons rather than
- patched: how per-request on-disk state is owned, identified and reclaimed.
- Criteria count 156 to 157, numbered to AC-0158.
-- 2026-09-14: amended a second time after pre-EXECUTE round 2 sustained ten
- findings through adjudication — one blocker, eight concerns and one nit, a
- majority of them consequences of round 1's own repairs. AC-0059's
- repository-file branch gained its own stop-reason row with a repository
- attribution, because the single existing row attributed it to Studio and
- AC-0093 forbids that. Five owner decisions: `ok` leaves the user-visible
- state set, which is now eleven rows, because its meaning is the absence of
- condition chrome and it can carry no label, icon or announcement; T5 gains
- resident-memory growth as a third measurement so the admitted peak-RSS gap is
- quantified rather than merely conceded; AC-0130 moves to Visual / manual QA
- because jsdom computes no geometry; the sampler's own walk duration becomes a
- fourth T5 observation and the second term in both sampled tolerances, making
- worst-case overshoot computable; and AC-0081 gains a second limb reclaiming
- an empty markerless root older than a new markerless-reclaim age. Four
- determined repairs scoped AC-0114 to results where a verdict was reached,
- extended AC-0154 to a wedged child and not only a dead one, added a
- live-orphan criterion for an orphan surviving an abnormal Service death (cut
- in round 3 — see the entry above), and corrected the stale two-parser count. Criteria count 155 to 156.
-- 2026-09-14: amended in `SPEC-PLAN-DRAFTING` after the pre-EXECUTE adversarial
- and secure-design reviews sustained thirteen findings through adjudication.
- Six owner decisions: the malformed case carries `no-verdict`, making the
- verdict mapping total; the *User-visible states* set is the union of the
- condition and progress/surface tables, thirteen rows; the resident-memory
- tolerance is restated as detection latency with peak RSS explicitly
- unbounded, and the bound made aggregate; AC-0154 gives the Studio Service an
- outer liveness obligation; AC-0155 bounds child stderr at 256 KiB, truncated
- head-and-tail rather than refused; and `yaml` is deferred to the slice that
- first parses YAML. Seven determined repairs closed the read-surface
- contradiction in T7, the forbidden blob filter in the LLD, nine criteria that
- no task gated, T1's unsatisfiable gate, two inverted verification modes, the
- overstated configuration-file rationale, and the unordered ownership-marker
- write. Criteria count 153 to 155.
-- 2026-09-14: authored as slice 1 of two, after five review rounds on a
- single-slice contract converged on 165 criteria with a rising rate of
- repair-induced defects. The cut is vertical, not by layer: slice 1 delivers a
- lead pasting a URL and learning the verdict at an exact commit, carrying every
- trust boundary; slice 2 takes artifact viewing, the full projection,
- capabilities, shaping availability, refresh and staleness. Sustained blockers
- from rounds 4 and 5 are applied at the source rather than inherited — the
- `GIT_CONFIG_PARAMETERS` admission, the per-user sweep domain, input-bounded
- fetch with measured sampling tolerances, `core.protectHFS`, target
- construction from canonical identity, prototype-key inadmissibility, URL-sink
- refusal, per-reason attribution, and one focus-management path as the
- exhaustiveness mechanism.
+ and `#owner-decision-2026-09-15-cut-test-network-surface`. The per-request
+ state root owns the request and the materialization root becomes its `tree`
+ child, placing the ownership marker outside every path repository content
+ reaches. AC-0070, AC-0079, AC-0080, AC-0081 and AC-0154 are restated.
+ AC-0024's helper environment, AC-0025's transport-helper leg and AC-0030's
+ transport-helper instance move to T13's manual smoke. Four *Resource bounds*
+ rows are completed. Criteria count unchanged at 157.
+- 2026-09-15: **AC-0009 restated against `git`'s own refusal.** Taken from
+ `CODE-IMPLEMENTATION` after T3 proved the criterion unfalsifiable as written:
+ redirect refusal lives in `git`'s HTTP client, which needs a protocol exchange
+ AC-0148 forbids. No network, credential path, permitted executable, environment
+ name or resource bound was widened. The cost is stated in *Follow-ons*: no
+ automated guard on real client redirect behaviour. Criteria count unchanged
+ at 157.
+- 2026-09-14: **Authored as slice 1 of two.** Slice 1 delivers a lead pasting a
+ URL and learning the verdict at an exact commit, and carries every trust
+ boundary. Artifact viewing, the full work-state projection, capability
+ inventory, shaping availability, refresh and staleness are slice 2.
