@@ -48,10 +48,34 @@ export interface PerRequestStateRoot {
   readonly markerPath: string;
 }
 
+/**
+ * Identifies the environment a persisted liveness token was rendered under.
+ *
+ * AC-0081's first limb compares two renderings of `ps -o lstart=` for byte
+ * equality. `lstart` is a wall-clock string, so the bytes depend on the zone
+ * and locale of the process that rendered them. Pinning that environment (see
+ * LIVENESS_RENDERING_ENVIRONMENT) makes every rendering *this* build produces
+ * comparable, but says nothing about a marker some other build persisted: a
+ * Runtime predating the pin recorded local-zone bytes, and on a non-UTC host a
+ * reader that renders in UTC sees inequality for a process that is alive.
+ *
+ * Limb 1 carries no age gate, so that inequality would delete a live Runtime's
+ * state root. The convention travels with the token so a reader can tell "these
+ * two renderings disagree" from "these two renderings are not comparable" --
+ * the second is a liveness comparison that cannot be made, which AC-0081
+ * already routes to a decline.
+ *
+ * Bump this whenever LIVENESS_RENDERING_ENVIRONMENT changes what `lstart`
+ * renders. Markers carrying any other value, and markers carrying none, are
+ * declined rather than compared.
+ */
+export const LIVENESS_TOKEN_CONVENTION = "lang-c/lc-all-c/tz-utc";
+
 export interface OwnershipMarker {
   readonly schema: 1;
   readonly pid: number;
   readonly startTime: string;
+  readonly tokenConvention: string;
 }
 
 export class SweepDomainError extends Error {
@@ -227,7 +251,12 @@ export function writeOwnershipMarker(markerPath: string): OwnershipMarker {
       `the Runtime's own start time could not be read for pid ${process.pid}`,
     );
   }
-  const marker: OwnershipMarker = { schema: 1, pid: process.pid, startTime };
+  const marker: OwnershipMarker = {
+    schema: 1,
+    pid: process.pid,
+    startTime,
+    tokenConvention: LIVENESS_TOKEN_CONVENTION,
+  };
   const handle = openSync(markerPath, "wx", 0o600);
   try {
     writeSync(handle, `${JSON.stringify(marker)}\n`);

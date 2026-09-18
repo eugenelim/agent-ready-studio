@@ -3308,6 +3308,46 @@ one closed by the `TZ` decision. Package 4 defers no Nit.
 tests that carry the `TZ` change; `spec-coupling-check` 0 findings; `lint-contract-item-alignment`
 0 findings; `lint-spec-status` clean.
 
+## owner-decision-2026-09-18-ac-0116-sink-scope-and-liveness-token-versioning
+
+**Two owner decisions, taken 2026-09-18**, both arising from round 34.
+
+**1. AC-0116 stays over rendering and navigation sinks; the non-rendering-sink question routes to
+the backlog.** Round 33 widened AC-0116 by owner decision to reach the operands of a spawned
+transport command, with a carve-out for a shape-validated class member. Round 34 sustained four
+findings against that widening at Blocker and Concern: the widened limb sits in the *Desktop
+surface and rendering* Testing Strategy group, whose declared mode is renderer tests through the
+typed host boundary, and no task test reaches the `git fetch` operand; the carve-out cited an
+"exact-commit-SHA rule" by a name that resolves nowhere in the spec; and the rule it meant is
+enforced in `resolveRevision` but not on the path `materializeRevision` takes to the spawn.
+
+The owner declined to widen the amendment further. **The ground**: closing the finding properly
+means adding a verification at a boundary this slice does not otherwise touch, and the module it
+would guard has no production caller — `resolveRevision` and `materializeRevision` are composed
+only by tests. AC-0116 now states the scope its verification reaches and names the open question.
+The question is recorded at `connect-orient-transport-operand-sink-scope` in `[backlog].open` with
+its full evidence. The *Non-originated value* row's exclusion of the derived owner and repository
+rests on AC-0011's exact 40-character commit SHA rule, which is stated in the spec and gated in
+code, rather than on AC-0116.
+
+**2. The liveness token carries its rendering convention, and a mismatch declines.** Round 34's
+secure-design review found that this amendment changed what bytes `ps -o lstart=` renders — the
+reader's environment is now the closed set carrying `TZ=UTC` — while the persisted ownership
+marker is unchanged and `readMarker` never reads its `schema` field. A marker written by a
+pre-amendment Runtime on a non-UTC host therefore carries local-zone bytes that a post-amendment
+reader renders in UTC, and AC-0081's first limb answers the inequality by reclaiming immediately,
+with no age gate. On an upgrade or rollback with a live other-build Runtime, that deletes a live
+Runtime's materialization root, home and temp.
+
+The owner chose to close it in this amendment rather than route it out. **The ground**: unlike the
+fail-open routed out at decision 1 above, this hazard is **introduced by this amendment** rather
+than pre-existing, and it falsifies a property AC-0081 states at `spec.md:551` — that uncertainty
+costs bounded retention and never destroys state still in use — together with the accepted
+residual that limb 1 "cannot reclaim it while its process is live". Shipping the pin without the
+gate would make both statements false. A token whose convention cannot be established is a
+liveness comparison that cannot be made, which AC-0081 already routes to a decline, so the repair
+states an existing rule over a new case rather than adding a new kind of control.
+
 ## review-round-28-2026-09-18
 
 **Package 4's pre-EXECUTE review, both mandatory reviewers, both adjudications valid with an
@@ -3341,8 +3381,8 @@ on a UTC host — the usual CI default — deleting the reader's pin changed not
 stayed green; it also hardcoded the child's expected rendering, so removing the allowlist's `TZ`
 could not redden it at all. The mutation recorded above reddened only because this host is UTC-5.
 **A mutation that reddens on one machine is not a proof that the guard guards.** The case was
-replaced in round 29 and the replacement is proven across both dimensions at
-`#review-round-29-2026-09-18`.
+replaced in round 29. **That replacement's proof is retracted — see round 34 below**: its
+two-host table was one run reported twice, and round 30 found the replacement inert.
 
 **The second Blocker is the sharper one, because it was a proof that could not fail.** AC-0080
 cited the prefix test as establishing that no crash leaves a marker parsing without a start time.
@@ -3442,20 +3482,23 @@ pinned to UTC itself. On a UTC host — the usual CI default — deleting the re
 green. It also hardcoded the child's expected rendering, so removing the allowlist's `TZ` could not
 redden it at all. The mutation recorded in round 28 reddened only because this host is UTC-5.
 
-**The replacement is proven across both dimensions rather than asserted.** It forces the ambient
-zone to `Pacific/Kiritimati`, which is never the pin, derives the Runtime's side from
-`buildPinnedEnvironment` rather than restating it, and reads the Service's side through its own
-seam:
+**This proof is retracted in round 34. It was one run reported twice, and round 30 found the
+replacement inert.** What the case does is force the ambient zone to `Pacific/Kiritimati`, which is
+never the pin, derive the Runtime's side from `buildPinnedEnvironment` rather than restating it,
+and read the Service's side through its own seam. The table below is left as written, with its
+second column marked, because this ledger corrects history in place rather than deleting it:
 
-| Mutation | Host `TZ=UTC` | Host `TZ=America/New_York` |
+| Mutation | Host `TZ=UTC` — **not a second run; retracted in round 34** | Host `TZ=America/New_York` |
 | --- | --- | --- |
 | none — baseline | 18 of 18 pass | 18 of 18 pass |
 | reader's pin deleted | **1 failed** | **1 failed** |
 | allowlist's `TZ` deleted — the child side | **1 failed** | **1 failed** |
 
-Both modules were restored byte-identical afterwards. **This is what round 28's proof should have
-looked like**: the earlier one varied one factor on one host and generalised; this one varies the
-factor the earlier proof held fixed.
+Both modules were restored byte-identical afterwards. This entry claimed the replacement varied
+the factor round 28's proof held fixed. **It did not.** Setting `TZ` on the vitest process does
+not change `/etc/localtime`, so both columns recorded the same America/New_York run — the ground
+round 30 states in full — and round 30 then found the replacement inert on both modes. Retracted
+in round 34.
 
 **AC-0159 is new, and the criteria count moves 156 → 157.** It binds every rendering of the
 liveness token, on both sides, to the same closed set — `LANG=C`, `LC_ALL=C`, `TZ=UTC` — and is
@@ -3628,7 +3671,10 @@ judging rule at `pre-existing-trial-runtime-load-flake` in `[backlog].open`.
 indeterminate on an owner decision.** Three adversarial findings were marked as covering their
 security counterparts so each defect took one repair.
 
-**The detector needed both techniques, and four rounds failed because each attempt used one.**
+**The detector needed both techniques, and three earlier attempts failed.** Round 28's was
+vacuous on a UTC host and hardcoded the child's rendering, so it caught neither mode; round 29's
+was inert, catching neither; round 30's caught the contents mode only. **Corrected in round 34**,
+which found this sentence claiming four attempts that each caught one.
 The pin breaks in two ways. The pinned set's contents can change — caught by asserting each
 environment whole, on any host. The **Service-side** call site can stop using the pinned set — caught by
 forcing a non-UTC zone into the rendering process, on any host whose zone database resolves that
@@ -3637,7 +3683,9 @@ The Runtime-side call site is not bound by either case. **Both qualifications we
 33**, which found this passage still carrying the unscoped form. Round 29 forced a zone but both sides were
 closed environments, which cannot observe an ambient, so it was inert. Round 30 asserted contents
 but nothing bound the call site to them: replacing `env: LIVENESS_RENDERING_ENVIRONMENT` with
-`{ ...process.env }` left the file green on a UTC host. **The two cases are complementary, not
+`{ ...process.env }` leaves the file green on a UTC host. **That is derived, not observed** — no
+case in the pre-round-31 set read the call site, and no run was made with `/etc/localtime` at UTC.
+Marked as derived in round 34. **The two cases are complementary, not
 alternatives**, and round 29's failure is the reason the forcing works now: the mutation being
 detected is precisely a call site that *starts* inheriting from the process the test controls.
 
@@ -3762,19 +3810,27 @@ not otherwise see that AC-0081's decline path is unimplemented.
 `lint-contract-item-alignment` 0 findings; roster 157 declared, 157 claimed, 0 residual; eleven
 pinned completed-task section hashes verify.
 
-**`pnpm test` exit 0 — 41 files, 570 of 570 passed, at load average 8.79.** This is the first
-fully green full-suite run since the trial-runtime contention began, and it came at the lowest
-load this session has seen. Taken with the reds at 36 to 55 and the repeated two-in-isolation
-passes, the band now reads: green at 8.8 and 15, one failure at 40, three to four at 44 to 55,
-twelve at 172. That is a load curve, not a defect curve, and it is the strongest evidence yet for
-the diagnosis recorded at `pre-existing-trial-runtime-load-flake` in `[backlog].open`.
+**`pnpm test` exit 0 — 41 files, 570 of 570 passed, at load average 8.79.** This entry called it
+"the first fully green full-suite run since the trial-runtime contention began". **That was false
+when written and is retracted in round 34**: the round-27 gate record above logs 41 files, 567 of
+567 green at load average 25.45 on 2026-09-17, after the contention signature this ledger records
+at load 172. This run is the lowest-load green, not the first.
+
+The band this paragraph then built — green at 8.8 and 15, one failure at 40, three to four at 44
+to 55, twelve at 172 — was read as "a load curve, not a defect curve". **Round 34 narrowed that
+too.** The 25.45 green sits between the band's green at 15 and its failure at 40 without
+contradicting it, but round 33 recorded a green at 23.2 above a red at 14.4, which does
+contradict a monotone reading. The runs on record support a correlation on a noisy proxy; they do
+not support a curve.
 
 ## review-round-33-2026-09-18
 
 **Both mandatory reviewers; 12 findings raised — 7 adversarial and 5 security.** All seven
 adversarial findings were sustained; two security findings restated sustained adversarial ones
 (the forcing case's title, the Runtime-side audit ground), two were refuted, and one returned
-indeterminate on an owner decision. Seven distinct defects, one repair each.
+indeterminate on an owner decision. Seven distinct defects, one repair each, plus one owner-route
+change from the indeterminate finding — eight applied edits in total, carried as a row below in
+the form round 29 uses.
 
 **Every sustained finding this round is a false or unsupported claim about the detector, not a
 defect in it.** The mechanism has been stable since round 31: two complementary cases, five
@@ -3792,9 +3848,11 @@ round 30 went on to find vacuous. Both are corrected in place and marked as roun
 
 **The wrong-distance defect recurred.** Round 33 removed "sixty lines earlier" from round 31's
 entry as an invented measurement attributing the contradiction to the wrong entry. The sweep found
-"Sixty lines later" in round 32's narrative, and the applied row at `:3077` shows a third instance
-already recorded and repaired in an earlier round. Positional references to other entries are now
-replaced by naming the entry.
+"Sixty lines later" in round 32's narrative — the second cross-entry instance. The round-27 entry
+carries a related but distinct one, a Nit on "Sixty lines of arithmetic" that named no span; that
+is a code-span measurement, not a cross-entry distance, so it is not a third instance of this
+class. **Scoped in round 34**, which also found this sentence citing that row by line number.
+Positional references to other entries are now replaced by naming the entry.
 
 **The owner decision on the indeterminate finding.** AC-0116's prohibition reaches non-rendering
 sinks, including the operands of a spawned transport command, with one carve-out conditional on a
@@ -3813,16 +3871,20 @@ the exact-commit-SHA rule.
 | The spec's ground for leaving the Runtime-side call site unbound misdescribed the audit | Concern | The audit leg is recorded as carrying names only, never values |
 | The round-32 finding tally did not reconcile | Concern | Restated from that round's own records: 10 raised, 7 adversarial and 3 security, 6 distinct defects sustained |
 | The self-contradiction was attributed to the wrong entry and an invented distance | Nit | Names the round-30 entry; the distance is dropped |
+| AC-0116's scope over non-rendering sinks | Owner route | Widened to reach spawned transport operands, with a carve-out for a shape-validated class member. **Round 34 found this change unverifiable as written** — see that entry |
 
 **Found by the claim sweep, not by a reviewer.** Round 30's table lead-in and round 29's applied
 row, both carrying the retired "both host zones" claim; round 32's "Sixty lines later". Corrected
 in place with their retractions marked.
 
 **Applied-check result.** All thirteen assertions passed — eleven presence claims across the three
-edited files and two absence claims ("both host zones", "9 findings raised") confirming the
-retired wording survives nowhere in the spec, plan, ledger or runtime tests. The check compares
-text against text; it does not verify that any claim is licensed by its evidence, which is where
-this round's findings and the four before them landed.
+edited files and two absence claims establishing that the exact strings "both host zones" and "9
+findings raised" appear nowhere in the spec, plan, ledger or runtime tests. **That is all they
+establish.** This entry went on to claim the retired wording survived nowhere, and round 34 found
+the retracted round-29 proof still standing in other words in three places. The check compares
+text against text; it does not find a retired claim restated, and it does not verify that any
+claim is licensed by its evidence, which is where this round's findings and the four before them
+landed.
 
 ### Round 33 gate state
 
@@ -3842,7 +3904,98 @@ passed twice in isolation, 7 of 7 each time, so the failure is non-deterministic
 in the known family. But a green run at 23.2 above a red run at 14.4 does not fit the load curve
 recorded in round 32, which read green at 8.8 and 15 and reds from 40 up. **Load average is at
 best a proxy here** — it says nothing about which processes were contending for the same
-filesystem and signal paths this suite uses. The contention diagnosis at
-`pre-existing-trial-runtime-load-flake` still fits the two-in-isolation evidence; the monotone
-reading of the load numbers does not, and round 32's band should be read as correlation on a
-noisy proxy rather than a curve.
+filesystem and signal paths this suite uses. What the isolation evidence establishes is
+non-determinism and membership in the known family — it cannot discriminate between causes, so it
+does not carry the contention attribution. **Contention remains an unverified hypothesis** until
+something observes the processes actually contending; the diagnosis at
+`pre-existing-trial-runtime-load-flake` should be read that way. The monotone reading of the load
+numbers is withdrawn, and round 32's band is correlation on a noisy proxy, not a curve.
+
+## review-round-34-2026-09-18
+
+**Both mandatory reviewers; 15 findings raised — 13 adversarial and 2 security. All 15 sustained,
+none refuted, none indeterminate.** Two severities were reduced in adjudication under the
+fix-determinacy test: adversarial-11 and security-2, both Concern to Nit. Two security findings
+stood on their own rather than restating adversarial ones, so fifteen distinct defects.
+
+**This round found a defect in the mechanism, and it was introduced by this amendment.** Every
+round since 29 had been record-only. Pinning the environment `ps -o lstart=` renders under changed
+what bytes the liveness token carries, while the persisted ownership marker was left unchanged and
+`readMarker` never read its `schema` field. A marker written by a pre-amendment Runtime on a
+non-UTC host carries local-zone bytes; a post-amendment reader renders UTC, compares unequal
+against a process that is alive, and AC-0081's first limb — which has no age gate — deletes that
+Runtime's materialization root, home and temp. The window is an upgrade or rollback with a live
+other-build Runtime. No attacker is required.
+
+**The reviewer reached it through `sweep.ts`, which has no production caller; adjudication found
+the reachable one.** `runtime-child.ts:273-345` carries the identical ungated limb 1 and runs on
+every inspection. Both paths are now gated, and both are covered — the Service-side reader by unit
+cases in `sweep.test.ts`, the child by an integration case in `disposal.test.ts` that asserts the
+decline in the child's own protocol stream.
+
+**Two owner decisions, recorded at
+`#owner-decision-2026-09-18-ac-0116-sink-scope-and-liveness-token-versioning`.** AC-0116 is
+narrowed back to the rendering and navigation sinks its verification reaches, and the
+non-rendering-sink question routes to `connect-orient-transport-operand-sink-scope` in
+`[backlog].open`. The liveness token now records the convention it was rendered under, and a
+marker recording any other — or none — declines on the first limb.
+
+**Why declining, and not the age-gated limb.** Falling through to limb 2 looks safer and is not:
+that limb reclaims on age, so the same live state root is destroyed, only later. AC-0081 already
+routes a liveness comparison that cannot be made to a decline, so the amendment states an existing
+rule over a new case rather than adding a new kind of control. A mutation case holds that
+distinction open — see M2 below.
+
+### Sustained and applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The round-29 narrative still asserted a two-dimension proof its own applied row retracts | Blocker | Narrative, table header and closing claim marked as round-34 retractions in place; the round-28 back-reference too |
+| Round 32's gate paragraph claimed a first the ledger's own record contradicts | Blocker | Retracted against the round-27 record of 567 of 567 green at load 25.45; the band narrowed to what the runs license |
+| The structural case's comment stated the second breakage mode unqualified | Blocker | Qualified to the Service-side call site, with the Runtime-side limit stated |
+| AC-0116's spawn-operand limb had no verification and sat in a renderer-only group | Blocker | Criterion narrowed to the sinks its verification reaches; the open question routed to the backlog with its evidence |
+| The applied-check result generalised two literal absences into a claim about retired wording | Concern | Scoped to the two exact strings, with the round-34 counter-example named |
+| The spec's ground for the Runtime-side limit asserted an unsupported counterfactual | Concern | States what this audit records, not what any audit could observe |
+| AC-0116's carve-out cited a rule by an unresolvable name | Concern | Carve-out removed with the widening; the derived-value exclusion now rests on AC-0011, which states the rule |
+| The AC-0116 decision had no owner-decision anchor and no Changelog entry | Concern | Dated owner-decision section added and cited from a Package 4 Changelog entry |
+| The earlier-attempt count was one too many and misdescribed what they caught | Concern | Three attempts at both sites: rounds 28 and 29 caught neither mode, round 30 the contents mode only |
+| A derived conclusion about a UTC host was written as an observed run | Concern | Marked derived at both sites, with the ground stated |
+| The contention attribution rested on evidence that cannot discriminate cause | Nit | Isolation evidence now carries only non-determinism and known-family membership; contention is an unverified hypothesis |
+| The paragraph retiring positional references cited a line number and miscounted the class | Nit | Names the round-27 entry; the claim is scoped to the two cross-entry cases |
+| The round-33 tally omitted the change the owner decision produced | Nit | Owner route row added in the round-29 form; the count reconciles at eight edits |
+| The liveness token's convention change had no gate on the persisted marker | Concern | Closed in code and criterion — see above. **This is the one behavioural defect of the round** |
+| AC-0116's carve-out named a check not enforced on the operand's path | Nit | Moot with the narrowing; recorded in the backlog entry as one of two things to settle |
+
+### Round 34 mutation proof
+
+Five mutations on one host — `/etc/localtime` at America/Chicago, `TZ` unset — all modules
+restored byte-identical. The first three run `sweep.test.ts` and `disposal.test.ts` together,
+30 cases; the last two run `disposal.test.ts` alone, 8 cases.
+
+| Mutation | Result |
+| --- | --- |
+| baseline | 30 of 30 pass |
+| M1 — the Service-side reader's convention gate removed | **3 failed** |
+| M2 — the gate returns `unusable`, falling through to the age-gated limb | **3 failed** |
+| M3 — the Service-side writer stops recording the convention | **2 failed** |
+| baseline, child path only | 8 of 8 pass |
+| M4 — the child sweep's convention gate removed | **1 failed** |
+| M5 — the child writer hardcodes the convention instead of reading the plan | **0 failed — not caught** |
+
+**M5 is stated because it did not redden.** `runtime-child.ts` imports nothing but `node:`
+builtins, so canonical values reach it through the plan; the convention is delivered that way. A
+literal substituted for `plan.livenessTokenConvention` passes every case, because the literal
+currently equals the constant. No test binds the child's value to the Service's, and the audit-leg
+argument that makes `PS_EXECUTABLE` a safe literal does not apply here — no audit reads this
+value. The drift would surface only when `LIVENESS_TOKEN_CONVENTION` is next bumped, which is
+exactly when it would matter. **Uncovered, named rather than implied covered.**
+
+### Round 34 gate state
+
+`pnpm lint` exit 0 over 105 files; `pnpm typecheck` exit 0; `spec-coupling-check` 0 findings;
+`lint-contract-item-alignment` 0 findings, with its stale-assertion rule again lacking a `--since`
+input; `lint-spec-status --all` clean; roster 157 list items, 157 unique, no duplicates.
+
+**`pnpm test` exit 0 — 41 files, 576 of 576 passed, at load average 7.60.** Six cases added this
+round: five in `sweep.test.ts` and one in `disposal.test.ts`. No flake appeared in this run, which
+is consistent with the low load and establishes nothing further about the cause.

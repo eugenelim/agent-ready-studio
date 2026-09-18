@@ -902,6 +902,13 @@ bound in *Canonical values*.
 Approval decisions only. Review rounds, their findings, and the reasoning behind
 each change are recorded in `notes/verification-ledger.md`.
 
+- 2026-09-18: **Package 4, AC-0116 scope and liveness-token versioning.** Authority
+ `notes/verification-ledger.md#owner-decision-2026-09-18-ac-0116-sink-scope-and-liveness-token-versioning`.
+ AC-0116 stays over rendering and navigation sinks; whether it reaches the
+ operands of a spawned transport command is open and tracked at
+ `connect-orient-transport-operand-sink-scope` in `[backlog].open`. AC-0081
+ gains the rule that a liveness token whose rendering convention cannot be
+ established is a comparison that cannot be made, and declines.
 - 2026-09-17: **Package 4.** Authority
  `notes/verification-ledger.md#owner-decision-2026-09-17-package-4-family-set-and-zone`.
  AC-0120 now compares four state families including attention, matching the

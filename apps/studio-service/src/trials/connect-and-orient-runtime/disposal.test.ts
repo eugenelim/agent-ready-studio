@@ -9,6 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { LIVENESS_TOKEN_CONVENTION } from "./per-request-state-root.js";
 import {
   beginTrialInspection,
   startTrialInspection,
@@ -146,6 +147,7 @@ describe("AC-0082 the Service invokes the sweep without performing it", () => {
         schema: 1,
         pid: 99998,
         startTime: "Wed Sep  9 08:15:07 2026",
+        tokenConvention: LIVENESS_TOKEN_CONVENTION,
       })}\n`,
     );
     // Content under the tree child, so reclaiming it requires descending into a
@@ -180,6 +182,45 @@ describe("AC-0082 the Service invokes the sweep without performing it", () => {
       }),
     );
     expect(existsSync(abandoned)).toBe(false);
+  });
+
+  it("declines a root whose token predates the rendering convention", async () => {
+    // The sweep that matters is the one inside the Runtime child, which is a
+    // separate code path from `sweep.ts` and the one that actually runs on
+    // every inspection. This case covers it at the same boundary the unit
+    // tests cover the Service-side reader.
+    //
+    // The marker names a process that IS alive -- this test process -- and
+    // records no convention, which is what a marker written before this
+    // amendment's pin carries. Comparing its bytes against a rendering from
+    // the pinned environment yields inequality on a non-UTC host, and limb 1
+    // has no age gate, so without the convention check the child would delete
+    // a live Runtime's state root.
+    const root = join(sweepDomain, "live-old-convention");
+    mkdirSync(root, { mode: 0o700 });
+    writeFileSync(
+      join(root, ".studio-ownership.json"),
+      `${JSON.stringify({
+        schema: 1,
+        pid: process.pid,
+        startTime: "Wed Sep  9 08:15:07 2026",
+      })}\n`,
+    );
+    chmodSync(root, 0o700);
+
+    const record = await run("disposal-0009");
+    const swept = record.protocolLines.find((line) => line.type === "sweep");
+    const outcomes = (swept?.outcomes ?? []) as Record<string, unknown>[];
+    expect(outcomes).toContainEqual(
+      expect.objectContaining({
+        name: "live-old-convention",
+        action: "declined",
+        limb: 1,
+        inputClass: "liveness-token-convention",
+      }),
+    );
+    expect(existsSync(root)).toBe(true);
+    rmSync(root, { recursive: true, force: true });
   });
 
   it("never reclaims the root of the inspection that invoked it", async () => {
