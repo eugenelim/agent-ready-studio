@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
+- **Areas:** data-model, governance
+- **Reversibility:** low
 - **Decision-makers:** Agent-Ready Studio maintainers
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** `docs/architecture/reference.md`
 
 ## Context
@@ -19,16 +24,21 @@ outstanding proposals to remain distinguishable and durable across restarts.
 > IDs, and acceptance or workflow advancement requires an attributable human
 > decision or a future recorded policy.
 
-Revision status is Draft, Proposed, Accepted, Rejected, or Superseded. Editing
-creates another revision. Each artifact separately points to its current
-accepted revision. Reviews and comments lead to persisted decisions; approval
-updates accepted state, while a revision request preserves the proposal and
-leaves it unaccepted.
-
-Immutability applies to revision content and provenance. Lifecycle changes are
-append-only state records projected as the revision's current status; accepting
-or superseding work never rewrites the revision row. The lifecycle records,
-decision, review resolution, and accepted-revision pointer change atomically.
+- **D1:** Artifacts have immutable revisions, proposals identify exact input
+  revision IDs, and acceptance or workflow advancement requires an attributable
+  human decision or a future recorded policy.
+- **D2:** Revision status is Draft, Proposed, Accepted, Rejected, or Superseded.
+- **D3:** Editing creates another revision.
+- **D4:** Each artifact separately points to its current accepted revision.
+- **D5:** Reviews and comments lead to persisted decisions; approval updates
+  accepted state, while a revision request preserves the proposal and leaves it
+  unaccepted.
+- **D6:** Immutability applies to revision content and provenance.
+- **D7:** Lifecycle changes are append-only state records projected as the
+  revision's current status; accepting or superseding work never rewrites the
+  revision row.
+- **D8:** The lifecycle records, decision, review resolution, and
+  accepted-revision pointer change atomically.
 
 ## Decision drivers
 
