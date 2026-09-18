@@ -106,18 +106,28 @@ export function verifySweepDomain(sweepDomain: string): void {
  * and locale — `LC_ALL` fixes the format and `TZ` fixes the value.
  *
  * The Runtime child pins these through the *Environment allowlist* it rebuilds
- * for its descendants. This module is Service-side and deliberately outside
- * AC-0023's trial-tree scope, so it pins them here instead, at the only seam
- * that renders the token on this side. **The two must agree**: pinning one side
- * alone is worse than pinning neither, because it turns a comparison that
- * matched on every host into one that fails on every host whose zone is not
- * UTC — and a failed liveness comparison reclaims a live state root.
+ * for its descendants, from an empty object. This module is Service-side and
+ * deliberately outside AC-0023's trial-tree scope, so it pins them here instead,
+ * at the only seam that renders the token on this side.
+ *
+ * **The set is closed rather than inherited**, and deliberately mirrors the
+ * allowlist's determinism triple. Spreading `process.env` and overriding two
+ * names would leave the byte equality resting on whatever else the Service
+ * happens to carry, while the side it must match is built from nothing — so the
+ * comparison would depend on an unenumerated set. `ps` is launched by absolute
+ * path and needs no `PATH`.
+ *
+ * **The two sides must agree**: pinning one alone is worse than pinning neither,
+ * because it turns a comparison that matched on every host into one that fails
+ * on every host whose zone is not UTC — and a failed liveness comparison
+ * reclaims a live state root. AC-0159 is what makes that a contract obligation
+ * rather than a convention this module happens to keep.
  */
 const LIVENESS_RENDERING_ENVIRONMENT = {
-  ...process.env,
+  LANG: "C",
   LC_ALL: "C",
   TZ: "UTC",
-};
+} as const;
 
 /**
  * The start time of a live process, read from `ps`, at the one-second

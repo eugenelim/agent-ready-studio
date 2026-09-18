@@ -812,7 +812,7 @@ and the ΔE2000 value are written and reviewed before a component consumes them.
  (AC-0030). These four are Visual / manual QA because each needs an https
  endpoint AC-0148 forbids; T4 gates the automated legs of AC-0024, AC-0025 and
  AC-0030 and this task gates only the observations it cannot.
-- Covers AC-0114, AC-0129, AC-0130, AC-0131, AC-0132, AC-0148, AC-0150, AC-0151, AC-0152, AC-0153, and the manual-QA observations of AC-0024, AC-0025 and AC-0030.
+- Covers AC-0114, AC-0129, AC-0130, AC-0131, AC-0132, AC-0148, AC-0150, AC-0151, AC-0152, AC-0153, AC-0159, and the manual-QA observations of AC-0024, AC-0025 and AC-0030.
 
 **Discovery refinements (T14).** Construction details only; the entry is at
 `notes/verification-ledger.md#discovery-channel-t14`.
@@ -837,6 +837,12 @@ and the ΔE2000 value are written and reviewed before a component consumes them.
 needed-versus-inherited classification and the statement that the no-local-path
 property was mandated rather than discovered; update the overview and
 changelog.
+
+**AC-0159 rides here because its work is already done and only its verification
+belongs to a task.** Package 4 added the criterion and the pinned rendering it
+requires, and `per-request-state-root.test.ts` carries the case that fails when
+either side loses its pin, on any host zone. T13 confirms it holds at delivery
+rather than re-implementing it.
 
 **Done when:** `pnpm verify` is green, the ledger carries each recorded
 gesture, the smoke result is recorded with its exact SHA and projection, and

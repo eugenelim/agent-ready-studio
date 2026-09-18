@@ -14,6 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { PROCESS_STATUS_EXECUTABLE } from "./executable-identity.js";
 import {
   createPerRequestStateRoot,
   HOME_CHILD_NAME,
@@ -25,6 +26,7 @@ import {
   TEMPORARY_CHILD_NAME,
   verifySweepDomain,
 } from "./per-request-state-root.js";
+import { buildPinnedEnvironment } from "./runtime-environment.js";
 
 const roots: string[] = [];
 
@@ -147,7 +149,11 @@ describe("AC-0070 and AC-0080 the per-request state root and its marker", () => 
     const complete = readFileSync(created.markerPath, "utf8");
     const truth = JSON.parse(complete) as Record<string, unknown>;
     let parseablePrefixes = 0;
-    for (let length = 1; length < complete.length; length += 1) {
+    // From 0, not 1: the empty prefix is reachable — the marker is created
+    // exclusively and written by a later call, so a crash between them leaves
+    // a zero-byte file — and AC-0080 calls this enumeration every proper
+    // prefix. It classifies as unparseable, which is the second limb's input.
+    for (let length = 0; length < complete.length; length += 1) {
       let parsed: unknown;
       try {
         parsed = JSON.parse(complete.slice(0, length));
@@ -180,37 +186,56 @@ describe("AC-0070 and AC-0080 the per-request state root and its marker", () => 
 });
 
 describe("AC-0076 and AC-0079 one removal takes the whole state root", () => {
-  it("renders the liveness token identically to the Runtime's own pinning", () => {
-    // AC-0081's first limb compares the marker's start time against a live read
-    // for byte equality, and the two are produced on different sides: the
-    // Runtime renders under the rebuilt allowlist it gives its descendants, the
-    // sweep renders here. This asserts they agree by rendering the token the
-    // way the child does — explicitly pinned, independently of this module's
-    // own constant — and comparing it to what the reader returns.
+  it("AC-0081 renders the liveness token identically on both sides of the comparison, whatever the host zone", () => {
+    // AC-0081's first limb compares two renderings of the token for byte
+    // equality: the Runtime's, written into the marker under the rebuilt
+    // allowlist, and the sweep's, read here. If either side loses its pin it
+    // picks up the host zone, the comparison fails for a process that is alive,
+    // and a live state root is reclaimed.
     //
-    // It is the regression detector for a defect that shipped once: pinning the
-    // writer alone made the two disagree on every host whose zone is not UTC,
-    // which reclaims a live state root. Unpin either side and this reddens.
-    const asTheChildRenders = execFileSync(
-      "/bin/ps",
-      ["-o", "lstart=", "-p", String(process.pid)],
-      {
-        encoding: "utf8",
-        env: { ...process.env, LC_ALL: "C", TZ: "UTC" },
-      },
-    ).trim();
+    // Round 28's first attempt at this case was vacuous: it compared the reader
+    // against a rendering it pinned to UTC itself, so on a UTC host — the usual
+    // CI default — deleting the reader's pin changed nothing and the case stayed
+    // green. It also hardcoded the child's expected rendering, so removing the
+    // allowlist's TZ could not redden it at all.
+    //
+    // This version fixes the host out of the picture by forcing the ambient zone
+    // to one that is never UTC, and derives the child's side from
+    // `buildPinnedEnvironment` rather than restating it. Unpin either side and
+    // that side falls back to the forced ambient and the two disagree.
+    const restore = process.env.TZ;
+    process.env.TZ = "Pacific/Kiritimati"; // UTC+14 — never equal to the pin
+    try {
+      const root = sweepDomain();
+      const asTheRuntimeRenders = execFileSync(
+        PROCESS_STATUS_EXECUTABLE,
+        ["-o", "lstart=", "-p", String(process.pid)],
+        {
+          encoding: "utf8",
+          env: buildPinnedEnvironment({
+            home: join(root, "home"),
+            temporaryDirectory: join(root, "tmp"),
+          }),
+        },
+      ).trim();
 
-    expect(readProcessStartTime(process.pid)).toBe(asTheChildRenders);
+      expect(readProcessStartTime(process.pid)).toBe(asTheRuntimeRenders);
 
-    // And the pin is load-bearing rather than incidental: on a host already in
-    // UTC the two would agree either way, so the case also shows the host is
-    // one where an unpinned reader would differ.
-    const unpinned = execFileSync(
-      "/bin/ps",
-      ["-o", "lstart=", "-p", String(process.pid)],
-      { encoding: "utf8", env: { ...process.env, TZ: "America/New_York" } },
-    ).trim();
-    expect(unpinned).not.toBe(asTheChildRenders);
+      // And the forced ambient really does differ from the pin, so the equality
+      // above is a result rather than a coincidence of this host's own zone.
+      const ambient = execFileSync(
+        PROCESS_STATUS_EXECUTABLE,
+        ["-o", "lstart=", "-p", String(process.pid)],
+        { encoding: "utf8" },
+      ).trim();
+      expect(ambient).not.toBe(asTheRuntimeRenders);
+    } finally {
+      if (restore === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = restore;
+      }
+    }
   });
 
   it("removes the tree, the home, the temp and the marker together", () => {
