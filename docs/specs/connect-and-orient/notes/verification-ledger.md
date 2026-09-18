@@ -3091,3 +3091,141 @@ new control opens a new surface, and a surface added mid-review gets reviewed by
 with no prior art to steady it.** When a reviewer offers "add a control" and "state a constraint"
 as equally defensible routes, those two are not equally cheap, and the cost shows up a round
 later.
+
+## owner-decision-2026-09-17-package-4-family-set-and-zone
+
+**Four owner decisions, taken 2026-09-17 by the maintainer operating this session**, in a
+question-by-question walk-through after T14 committed. They open Package 4. Three are decisions;
+the fourth dissolved on evidence and needed none.
+
+### 1. The family set is **four**. AC-0120 is amended; the row stands.
+
+The *Inspection-family hue separation* row names artifact, review, execution **and attention**.
+AC-0120 named three and excluded attention on the stated ground that "a state renders its
+attention level through weight, border and placement rather than an attention hue."
+
+**That ground is contradicted by the document AC-0120 itself cites.** AC-0120 measures "against
+the hue set the design-system durable output enumerates", and `docs/product/design-system.md`
+lists **Attention state: informative, caution, and critical** beside the other three families and
+then states: "Each state combines a label, icon or shape, and color." Attention states have colour
+there. The exclusion was not a competing judgement about what to compare; it rested on a claim
+about the design system the design system does not make.
+
+The practical case points the same way: "critical" is conventionally red or amber, and an
+inspection identity hue landing near it would make an inspection state read as an alarm — the
+failure the design system's own opening guards when it separates operational from semantic state
+"so activity never looks like approval".
+
+**Recorded against the decision, because it is the strongest argument the other way.** T14
+measured `--color-proposal-surface` against `--color-accepted-surface` at **21.866** in the light
+theme — two members of the *same* family, barely clear of the 20 bound. The palette's natural
+spacing sits right at the bound, so requiring a new family to clear 20 against four families in
+both themes may prove tight or infeasible. **That risk is accepted and lands on T12**, which
+mints the family and runs the measurement; if it proves infeasible, the evidence to revisit the
+bound will exist for the first time, and revisiting it is a further amendment rather than a T12
+choice.
+
+### 2. Decision 8 closes by **pinning `TZ` in the environment allowlist**.
+
+`runtime-child.ts:311` uses the wall-clock string `ps -o lstart=` prints as a liveness token,
+compared byte-for-byte in AC-0081's first limb, while the pinned environment sets `LANG` and
+`LC_ALL` to `C` and pins no `TZ`. A rendering that moves for an unchanged process reclaims rather
+than declining.
+
+**The route was chosen because it completes an existing control rather than adding one.** `LANG=C`
+and `LC_ALL=C` are already pinned to make command output deterministic; they fix the **format**
+`ps` renders and leave the **zone** free, so the determinism pin set is incomplete for its own
+stated purpose. `TZ=UTC` closes that gap. It touches no acceptance-criterion text beyond the
+*Environment allowlist* row AC-0023 cites, and it avoids a fifth consecutive rewrite of AC-0080 or
+AC-0081 — the cost decision 6 was taken specifically to avoid.
+
+**What this route does not do, stated so it is not mistaken for more.** It removes the known
+trigger; it does not make the comparison fail-safe. The rejected alternative — routing any
+uncomparable comparison into the existing `declined` outcome — was the more robust fix, and it was
+declined for its contract cost, not on its merits. If a second perturbation of the token ever
+appears, that alternative is the answer and this entry is where to start.
+
+### 3. The standing deferred Nits: **repair the determinate ones in this window.**
+
+Every Nit whose fix has a single right answer is carried into Package 4. The ones needing an owner
+route are decided here or dissolved below; none is carried forward again.
+
+**The grounds are this spec's own review evidence.** These Nits are corrections of false or stale
+sentences, not new controls, and T14's five review rounds showed corrections closing cleanly while
+the one added control generated two defects. More directly: T14's **only sustained Blocker in five
+rounds** was a stale false sentence left in `plan.md` contradicting the ledger — the
+higher-precedence document the next task executes from. Several of these Nits are that same shape,
+already known, sitting in the documents T12 and T13 will read.
+
+### 4. Round 19's security finding 1 **dissolved on evidence** and needed no decision.
+
+It held that AC-0080's partial-form enumeration rests on a marker-encoding property "the contract
+leaves to implementation", and offered three routes. Both substantive routes are already
+satisfied:
+
+- **Stating the property.** AC-0080 now states it explicitly and disjunctively — "every proper
+ prefix of the single creating write either fails to yield both a process identity and a start
+ time, or yields exactly the complete marker's values" — and names the encoding that realizes it,
+ single-line JSON with the start time written last. `writeOwnershipMarker` constructs
+ `{ schema, pid, startTime }` in that order.
+- **A completeness obligation.** `per-request-state-root.test.ts:134` enumerates **every** proper
+ prefix of the real marker write, classifies each, and asserts that exactly one is parseable, that
+ it yields both values, and that both equal the complete marker's. The property is verified, not
+ asserted.
+
+The third route, age-gating AC-0081's first limb, is unnecessary. **The finding closes as
+already-resolved rather than repaired**, and one consequence follows: that test's own comment still
+says the property is one "the contract leaves to implementation", which is now false and is a
+determinate repair in this window.
+
+## amendment-2026-09-17-package-4-family-set-and-zone
+
+**Package 4, opened against a clean tree with T14 committed at `a718c02`.** It lands through the
+**controlled amendment path**, because item 1 moves an acceptance criterion and item 2 moves a
+*Canonical values* row that AC-0023 binds to — neither is available to the discovery channel,
+whose predicate excludes both.
+
+**Scope.**
+
+| | |
+| --- | --- |
+| AC-0120 | Exclusion clause deleted; the comparison becomes four families, matching row 67 |
+| *Environment allowlist* | `TZ=UTC` added; `runtime-environment.ts` and its tests follow |
+| Deferred Nits | Every determinate one repaired; see the enumeration below |
+| Not in scope | The 20-unit bound itself; AC-0080 and AC-0081's first-limb behaviour; any T12 durable output |
+
+**The carried figure was wrong, and this amendment corrects it rather than inheriting it.** The
+ledger has recorded "thirteen standing deferred Nits" since Package 3. Enumerating the five tables
+that hold them gives **sixteen distinct entries** — round 19 (4), round 20 (1), round 21 (1, which
+is decision 8 and is also listed in round 23's table), round 23 (6 further), and round 26 (4).
+Thirteen was an undercount by three. The figure is corrected here because a count no one checked is
+exactly the defect class T14's five rounds kept surfacing.
+
+**Disposition of all sixteen.**
+
+| Source | Entry | Disposition |
+| --- | --- | --- |
+| r19 | item-2 — the *Markerless-reclaim age* row paraphrases AC-0081's second limb as unparseable-only | Repair the row |
+| r19 | item-4 — a Follow-on names T6 as its confirmation point, which T6 schedules nowhere | Weaken the Follow-on's claim. The other enumerated route, adding a T6 control, is **no longer available**: T6 is completed and its section pinned |
+| r19 | item-5 — AC-0081's replacement-safety sentence attributes safety to the first limb, though limbs two and three reclaim with no liveness determination | Repair the justification |
+| r19 | security-1 — the encoding property "left to implementation" | **Closed as already-resolved**; see owner decision 4 |
+| r20 | Nits-1 — AC-0081's fail-closed rationale sentence lacks a main verb | Repair |
+| r21 | security-2 — the timezone-rendered liveness token | **Closed by owner decision 2**, pinning `TZ` |
+| r23 | adv1/sec1 — the *Permitted executables* row asserts an audit scope the narrowed AC-0025 no longer carries | Repair the row |
+| r23 | adv2 — three enumerations of what bounds materialization after the cut disagree | Reconcile to one; if the correct enumeration is not determinate on reading, it returns as an owner question rather than being guessed |
+| r23 | adv4 — the in-tree process-status path is a literal though the module header says canonical values arrive in the plan | Repair |
+| r23 | adv6 — the advance-fixed ceiling is attributed to the sampler; it is the 5,000-per-interval pass bar | Repair |
+| r23 | adv7 — a shared constant's docstring names only the Runtime, though the parent-side observer also uses it | Repair |
+| r23 | sec2 — AC-0023's justification says the observer "processes none of" data it in fact parses | Repair the stated ground; containment holds by charset, so the defect is the justification |
+| r26 | 1 — AC-0080 enumerates two crash outcomes while its own encoding property admits three | Repair |
+| r26 | 2 — the extended non-originated item is named more narrowly than its own gloss | Repair |
+| r26 | 3 — the class head admits user-submitted input no enumerated item assigns | Repair |
+| r26 | 4 — the missing-start-time crash form is unreachable under the encoding AC-0080 names | Repair. **Confirmed by test, not by reading**: `per-request-state-root.test.ts:134` finds exactly one parseable prefix and it yields both values, so no crash leaves a parseable marker missing the start time |
+
+Entries r26-1 and r26-4 are the same sentence wrong in both directions: AC-0080's crash
+enumeration omits a reachable form and names an unreachable one, and the prefix test settles both.
+
+**Not repaired, and why.** Nothing. Every entry above is either repaired here, closed by an owner
+decision, or closed as already-resolved. Package 4 carries no deferred Nit forward; if a repair
+proves non-determinate on contact, it returns as an owner question inside this window rather than
+being deferred past it.
