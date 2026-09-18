@@ -1,7 +1,7 @@
 # Plan: Connect and Orient — connect and see the verdict
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `docs/architecture/reference.md`;
  `apps/desktop/src/main/index.ts` (argv-array child spawn, NDJSON transport,
  SIGTERM shutdown — the supervision precedent this plan reuses);
@@ -44,8 +44,10 @@ so any restated ceiling would go stale on the next machine. `--depth 1` bounds
 history only; it bounds neither tree bytes nor file count, and a blob filter is
 deliberately not used because a checkout refetches every blob at `HEAD` and
 would leave the clone a promisor. The sampler is therefore the sole enforcing
-control for file count, and its advance-fixed ceiling is what makes that bound's
-measured tolerance honest.
+control for file count. What makes that bound's measured tolerance honest is not
+the sampler but the **pass bar fixed in advance** — at or below 5,000 files
+written in one 250 ms interval — because a bar chosen before the measurement
+cannot be moved to fit it.
 
 ## Constraints
 

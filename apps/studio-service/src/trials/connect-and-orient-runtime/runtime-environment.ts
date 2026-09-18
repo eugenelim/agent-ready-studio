@@ -11,6 +11,7 @@ export const ENVIRONMENT_ALLOWLIST_NAMES = [
   "TMPDIR",
   "LANG",
   "LC_ALL",
+  "TZ",
   "GIT_TERMINAL_PROMPT",
   "GIT_CONFIG_GLOBAL",
   "GIT_CONFIG_SYSTEM",
@@ -45,6 +46,11 @@ export function buildPinnedEnvironment(
   environment.TMPDIR = directories.temporaryDirectory;
   environment.LANG = "C";
   environment.LC_ALL = "C";
+  // `LC_ALL` fixes the format a command renders and leaves the zone to the host,
+  // so `ps -o lstart=` moves for an unchanged process when the host zone changes.
+  // AC-0080's marker records that string and AC-0081's first limb compares it for
+  // byte equality, so an unpinned zone turns a liveness comparison into a reclaim.
+  environment.TZ = "UTC";
   environment.GIT_TERMINAL_PROMPT = "0";
   environment.GIT_CONFIG_GLOBAL = "/dev/null";
   environment.GIT_CONFIG_SYSTEM = "/dev/null";
