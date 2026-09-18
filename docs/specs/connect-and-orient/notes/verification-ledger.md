@@ -3564,8 +3564,13 @@ binding detector is now structural, and proven against four mutations on both ho
 
 **One host, not two.** An earlier version of this table carried a second column
 headed "Host UTC". It was not a second configuration: setting `TZ` on the vitest
-process does not change `/etc/localtime`, which is what an unpinned side falls
-back to, so both columns recorded the same America/Chicago run. Round 31 caught
+process does not change `/etc/localtime`. **That matters for a side built from a
+closed set**, which carries no `TZ` at all when the pin is removed and so falls
+back to the system zone — both columns therefore recorded the same
+America/Chicago run. It does **not** hold for a side that inherits
+`process.env`: such a side reads `process.env.TZ` first, which is exactly why
+round 31's forcing reaches the call-site mutation. Stated narrowly because the
+general form would reject a technique that works. Round 31 caught
 it — the same inert-variable defect as round 29, in the record certifying its
 repair. The column is dropped rather than re-derived, because this session cannot
 change the host's system zone.
@@ -3635,19 +3640,30 @@ detected is precisely a call site that *starts* inheriting from the process the 
 
 Five mutations, both host zones, modules restored byte-identical:
 
-| Mutation | Host UTC | Host America/Chicago |
-| --- | --- | --- |
-| baseline | 20 of 20 pass | 20 of 20 pass |
-| the call site stops using the pin | **1 failed** | **2 failed** |
-| `TZ` removed from the pinned set | **3 failed** | **3 failed** |
-| the builder stops setting `TZ` | **2 failed** | **2 failed** |
-| `TZ` removed from the allowlist names | **1 failed** | **1 failed** |
-| `...process.env` spread restored | **1 failed** | **1 failed** |
+| Mutation | Result |
+| --- | --- |
+| baseline | 20 of 20 pass |
+| the call site stops using the pin | **2 failed** |
+| `TZ` removed from the pinned set | **3 failed** |
+| the builder stops setting `TZ` | **2 failed** |
+| `TZ` removed from the allowlist names | **1 failed** |
+| `...process.env` spread restored | **1 failed** |
 
-**These two columns are two real configurations**, unlike round 30's. The zone knob reaches the
-call-site mutation because that mutation makes the reader inherit from the process the test sets
-`TZ` on; it does not reach the other four, which is why their counts match across columns. That
-asymmetry is the evidence the columns differ.
+**One host, and this entry said so sixty lines earlier before contradicting
+itself.** An earlier version of this table carried a second column headed "Host
+UTC", produced by `TZ=UTC npx vitest run` — the technique the round-30
+correction above rules out by name. **No run was made with `/etc/localtime`
+pointing at UTC**, and this session cannot change it. Round 32 caught the
+contradiction. The counts above are the America/Chicago host, `TZ` unset.
+
+**What the two cases each catch, since one table cannot show it.** The structural case catches the
+pinned set's contents changing, and does so without reference to any host. The forcing case
+catches a call site that stops using the pinned set: it writes `Pacific/Kiritimati` into this
+process, so an inheriting call site reads that and a pinned one does not, and both compared values
+are explicit. An earlier version of this passage argued the two columns differed because the zone
+knob reached the call-site mutation alone. That was wrong about mechanism: the forcing case pins
+the zone itself and behaves identically either way, so the row that moved with the vitest `TZ` was
+the corroboration case — which is host-dependent by design and is not the detector.
 
 ### Sustained and applied
 
@@ -3689,3 +3705,59 @@ average 36 to 47 on a host carrying 29 sessions. Both files then passed twice in
 7 and 23 of 23 — so no test failed twice and none is deterministic. `per-request-state-root.test.ts`,
 which carries this round's repairs, is 20 of 20 in every run including both mutation sweeps.
 Signature and judging rule at `pre-existing-trial-runtime-load-flake` in `[backlog].open`.
+
+## review-round-32-2026-09-18
+
+**Both mandatory reviewers; 9 findings raised, 6 sustained, none refuted, one returned
+indeterminate on an owner decision.** The adversarial adjudication covered all three security
+findings, so one repair was applied per defect and no second adjudication was needed.
+
+**Sustained findings by round: 13, 13, 10, 11, 6.** The composition changed as well as the count.
+Neither Blocker this round is a defect in the mechanism — the two detector cases work, and the
+five-mutation sweep stands. Both are **false claims about them**, and three of the four remaining
+findings are the same shape: a general statement where only the specific one was verified.
+
+**The worst finding is a self-contradiction inside one entry.** Round 31 dropped round 30's
+two-column mutation table and stated the ground — this session cannot change the host's system
+zone. Sixty lines later it presented a new two-column table produced by `TZ=UTC npx vitest run`,
+the technique that sentence rules out by name. The asymmetry argument offered as proof named the
+wrong case: the forcing case pins `Pacific/Kiritimati` into the process itself and behaves the
+same either way, so the row that moved was the corroboration case, which is host-dependent by
+design and is not the detector.
+
+**The pattern, stated because it has now produced findings in five consecutive rounds.** Each
+repair binds the hole the last round named, and the record then claims the general property:
+"reddens on any host" from one zone tested; "a call site stops using it" from one side bound;
+"two real configurations" from one knob varied. The narrow statement was true every time. The
+instruments built this session compare text against text — a claim sweep for surviving wording, an
+applied-check for repairs that never landed. **Neither checks a claim against the evidence that
+licenses it**, which is where these keep landing.
+
+### Sustained and applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| Round 31's table reinstated the mislabelled two-host configuration | Blocker | Single column, with the technique named and "no run was made with `/etc/localtime` at UTC" stated; the asymmetry sentence replaced with what each case actually catches |
+| The precedence rule's antecedent reached a transport-reported ref | Blocker | Antecedent narrowed to **operator-derived** values; the remote-resolved ref stays in the class, with AC-0008 named as the reason the broader wording failed |
+| Three artifacts claimed host-independence unconditionally | Concern | Qualified to hosts whose zone database resolves the forced zone, stated at each of the three |
+| The spec and plan claimed call-site binding generally | Concern | Narrowed to the Service side, with the Runtime side named as unbound and the audit-leg reason given |
+| The round-30 correction's ground was true only of a closed-set side | Concern | Scoped to a closed-set or `TZ`-unset side, with the inheriting case stated as why round 31's forcing works |
+| The sorted-key comparison's detection rested on an unrecorded independence | Nit | The comment records that a loop over `ENVIRONMENT_ALLOWLIST_NAMES` would make it tautological |
+
+**Owner decision.** Both routed-out defects are now recorded in the spec's *Follow-ons* as well as
+in `[backlog].open`. The section was reduced this session to unverified residuals and open gaps,
+and an accepted state where the code contradicts a criterion is exactly that: a spec reader could
+not otherwise see that AC-0081's decline path is unimplemented.
+
+### Round 32 gate state
+
+`pnpm lint` exit 0 over 105 files; `pnpm typecheck` exit 0; `spec-coupling-check` 0 findings;
+`lint-contract-item-alignment` 0 findings; roster 157 declared, 157 claimed, 0 residual; eleven
+pinned completed-task section hashes verify.
+
+**`pnpm test` exit 0 — 41 files, 570 of 570 passed, at load average 8.79.** This is the first
+fully green full-suite run since the trial-runtime contention began, and it came at the lowest
+load this session has seen. Taken with the reds at 36 to 55 and the repeated two-in-isolation
+passes, the band now reads: green at 8.8 and 15, one failure at 40, three to four at 44 to 55,
+twelve at 172. That is a load curve, not a defect curve, and it is the strongest evidence yet for
+the diagnosis recorded at `pre-existing-trial-runtime-load-flake` in `[backlog].open`.

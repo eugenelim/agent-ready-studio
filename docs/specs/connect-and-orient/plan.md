@@ -843,8 +843,10 @@ belongs to a task.** Package 4 added the criterion and the pinned rendering it
 requires. `per-request-state-root.test.ts` carries two cases: one asserts the
 contents of both rendering environments, the other forces a non-UTC zone into the
 rendering process and compares the reader against an explicitly pinned rendering.
-Together they fail when either side loses its pin and when a call site stops using
-it, on any host zone. T13 confirms they hold at delivery rather than
+Together they fail when either side loses the pinned values, and when the
+**Service-side** call site stops using the pinned set. Neither binds the
+Runtime-side call site, and the forcing case needs a host whose zone database
+resolves the forced zone. T13 confirms they hold at delivery rather than
 re-implementing them.
 
 **Done when:** `pnpm verify` is green, the ledger carries each recorded
