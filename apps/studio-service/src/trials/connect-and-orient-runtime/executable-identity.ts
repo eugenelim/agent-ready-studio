@@ -133,9 +133,12 @@ export interface PermittedExecutables {
 
 /**
  * `/bin/ps`, admitted by the *Permitted executables* row as of the 2026-09-17
- * amendment. **Two callers start it**, which is why the constant is shared: the
- * Runtime, to read a process start time that this platform exposes no other way,
- * and the Studio Service's own parent-side process-tree observer. Both use a
+ * amendment. **Two modules import this constant**, which is why it is shared:
+ * `per-request-state-root.ts`, which reads a process start time that this
+ * platform exposes no other way, and `process-tree-observer.ts`. The Runtime
+ * child also starts `/bin/ps` but does **not** import this constant — it carries
+ * its own literal, the documented consequence of its no-import rule, pinned by
+ * the supervisor's audit assertion rather than by sharing. Every caller uses a
  * fixed argument vector carrying no attacker-influenced operand. It is admitted
  * rather than avoided because no repository-sourced code executes inside the
  * trial process group, so nothing there benefits from it.

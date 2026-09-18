@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -159,7 +160,15 @@ describe("AC-0070 and AC-0080 the per-request state root and its marker", () => 
         typeof record?.startTime === "string" &&
         record.startTime !== "";
       if (!yieldsBoth) {
-        continue; // partial — also the second limb's input
+        // AC-0080 states this form is *unreachable* under this encoding, and
+        // cites this case as what establishes it. Skipping such a prefix would
+        // make that citation unfalsifiable: the count below would still be 1
+        // and the criterion would rest on an assertion that cannot fail for the
+        // claim it is cited for. So reaching here is a failure, not a `continue`.
+        expect.unreachable(
+          `a prefix of length ${length} parsed but yielded no start time, ` +
+            "which AC-0080 declares unreachable under this encoding",
+        );
       }
       parseablePrefixes += 1;
       expect(record.pid).toBe(truth.pid);
@@ -171,6 +180,39 @@ describe("AC-0070 and AC-0080 the per-request state root and its marker", () => 
 });
 
 describe("AC-0076 and AC-0079 one removal takes the whole state root", () => {
+  it("renders the liveness token identically to the Runtime's own pinning", () => {
+    // AC-0081's first limb compares the marker's start time against a live read
+    // for byte equality, and the two are produced on different sides: the
+    // Runtime renders under the rebuilt allowlist it gives its descendants, the
+    // sweep renders here. This asserts they agree by rendering the token the
+    // way the child does — explicitly pinned, independently of this module's
+    // own constant — and comparing it to what the reader returns.
+    //
+    // It is the regression detector for a defect that shipped once: pinning the
+    // writer alone made the two disagree on every host whose zone is not UTC,
+    // which reclaims a live state root. Unpin either side and this reddens.
+    const asTheChildRenders = execFileSync(
+      "/bin/ps",
+      ["-o", "lstart=", "-p", String(process.pid)],
+      {
+        encoding: "utf8",
+        env: { ...process.env, LC_ALL: "C", TZ: "UTC" },
+      },
+    ).trim();
+
+    expect(readProcessStartTime(process.pid)).toBe(asTheChildRenders);
+
+    // And the pin is load-bearing rather than incidental: on a host already in
+    // UTC the two would agree either way, so the case also shows the host is
+    // one where an unpinned reader would differ.
+    const unpinned = execFileSync(
+      "/bin/ps",
+      ["-o", "lstart=", "-p", String(process.pid)],
+      { encoding: "utf8", env: { ...process.env, TZ: "America/New_York" } },
+    ).trim();
+    expect(unpinned).not.toBe(asTheChildRenders);
+  });
+
   it("removes the tree, the home, the temp and the marker together", () => {
     const created = createPerRequestStateRoot(sweepDomain());
     writeFileSync(join(created.materializationRoot, "workspace.toml"), "x=1\n");
