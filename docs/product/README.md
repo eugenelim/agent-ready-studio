@@ -48,4 +48,4 @@ different home for them:
 
 Unlike ADRs and shipped specs (which are frozen records), files here must
 match current reality. Drift is a bug. The maintenance rules are in
-[`../CONVENTIONS.md`](../CONVENTIONS.md#document-lifecycle).
+[`../README.md`](../README.md#the-three-lifecycle-classes).

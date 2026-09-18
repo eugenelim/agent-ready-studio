@@ -231,7 +231,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 2. **Select light or full mode** (see [Select: light or full mode](#select-light-or-full-mode)). With an existing spec, retain its spec/plan lifecycle, workspace reconciliation, and governing authority. Without one, select direct-light only after its decision record establishes every eligibility conjunct; otherwise invoke `new-spec`. Full mode requires complete ACs and Testing Strategy. Do not recreate or replace an adequate existing spec.
 3. Use the existing plan's task list when a plan exists. For direct-light, use the bounded active-session task and verification plan; do not create a sibling plan.
 4. Use extended thinking for architecturally significant work.
-5. Write the **assumption trio** — which files you'll touch, what tests demonstrate "done", what you are *not* changing. Below the trio, **name what you were tempted to add and declined** (one line each: temptation + reason). Non-trivial tasks always have something to name; common patterns: new abstractions, structural choices, new dependencies, defensive scaffolding, hypothetical configurability.
+5. Write the **assumption trio** — which files you'll touch, what tests demonstrate "done", what you are *not* changing. Below the trio, **name what you were tempted to add and declined** (one line each: temptation + the `Cut before adding` rung in `AGENTS.md` that killed it + reason). Naming the rung is what grades the declination against the ladder rather than against an ad-hoc reason; where no rung covers the decline — an explicit requirement or a trust-boundary control forbids it — state that reason in the rung's place rather than fitting a rung to it. Non-trivial tasks always have something to name; common patterns: new abstractions, structural choices, new dependencies, defensive scaffolding, hypothetical configurability.
 
    - **Size the tail.** For a plan task predicted above 2,000 reviewable
      behavior and test lines, declare its expected review shape and act on it:
@@ -240,7 +240,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
      DEEP work is decomposed into dependency-ordered layers, each independently
      reviewable and leaving the repository working. Ambiguous shape is DEEP.
      Use the task graph to name the boundaries; do not invent tasks to make PRs.
-6. **Run self-coverage net-new checks**: conditional domain-grounding (when the build rests on an ungrounded domain claim) and open the resolve-vs-surface disposition record (see [Work-loop contract](#work-loop-contract)).
+6. **Run self-coverage net-new checks**: conditional domain-grounding (when the build rests on an ungrounded domain claim) and open the resolve-vs-surface disposition record (see [Work-loop contract](#work-loop-contract)). The `new-spec` assumptions step owns claim routing, under the anchor `load-bearing-claim-routing`.
 7. **Pick the verification mode for each task** before writing code:
    - **TDD** — compressible invariant (pure functions, state machines, protocols). When a spec and plan exist, record ACs + Testing Strategy and exact stub code in `plan.md` under `Tests:` before `Approach:`. Default for testable logic.
    - **Goal-based check** — build config, scaffolding, generated-code consumption, smoke entries. `Done when:` one-liner (build command, grep, typecheck). No test file; don't write a test that just asserts what the compiler already proves.
@@ -298,11 +298,16 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     **`code` mode** (implementation work):
     ```bash
-    # 1. Spec approver writes Status: Approved in spec.md.
+    # 1. Spec approver writes Status: Approved in spec.md, and adds the
+    #    spec-approval entry to plan.md's Changelog (form: the plan
+    #    template's Changelog note).
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-approved
     # → PLAN-HUMAN-GATE; pending_human_wait: true
 
-    # 2. Plan approver writes Status: Approved in plan.md.
+    # 2. Plan approver writes Status: Approved in plan.md, and adds the
+    #    plan-approval entry to its Changelog in the SAME edit — step 3
+    #    pins plan content and splices out only the status token, so an
+    #    entry written after it invalidates the baseline hash.
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-approved
     # → SPEC-PLAN-APPROVED; pending_human_wait: false
 
@@ -322,11 +327,16 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     **`spec-plan` mode** (spec/plan-only work — no implementation tasks):
     ```bash
-    # 1. Spec approver writes Status: Approved in spec.md.
+    # 1. Spec approver writes Status: Approved in spec.md, and adds the
+    #    spec-approval entry to plan.md's Changelog (form: the plan
+    #    template's Changelog note).
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-approved
     # → PLAN-HUMAN-GATE
 
-    # 2. Plan approver writes Status: Approved in plan.md.
+    # 2. Plan approver writes Status: Approved in plan.md, and adds the
+    #    plan-approval entry to its Changelog in the SAME edit — step 3
+    #    pins plan content and splices out only the status token, so an
+    #    entry written after it invalidates the baseline hash.
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-approved
     # → SPEC-PLAN-APPROVED
 
@@ -529,7 +539,7 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 
 - **`experience-reviewer`** — diff changes what a reader or adopter sees (full-mode only). Pass rendered output + grounded aesthetic reference and constraints — not the code diff. Its confirm-before-reviewing gate requires the grounded reference. For web: run the build, describe key pages from output. Fallback absent: named skip.
 
-- **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state + **the rendered-page capture set and its recorded observations**, plus the adopter-named routes. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance + Target Size, CWV regression signals, reader-visible layout failure read from the page. Withholding the captures leaves it reviewing a diff, and no diff shows one element covering another. Fallback absent: named skip.
+- **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state + **the rendered-page capture set and its recorded observations**, plus the adopter-named routes. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 AA Target Size, AAA Focus Appearance, CWV regression signals, reader-visible layout failure read from the page. Withholding the captures leaves it reviewing a diff, and no diff shows one element covering another. Fallback absent: named skip.
 
 - **`design-reviewer`** — only when an architect-pack integration explicitly
   activates it for an architecture artifact inside this work-loop. Pass the
@@ -781,6 +791,11 @@ Refuse to declare done until every item is true. Light mode's checklist deltas a
   the owner explicitly requested capture through `work-intake`.
 - [ ] `git status` shows no uncommitted or untracked files (except gitignored scratch).
 - [ ] **When a persisted spec exists, doc-drift invariants hold**: spec `**Status:**` set to `Shipped` (code mode) or `Approved` (spec-plan mode, which ends after plan approval without proceeding to EXECUTE); **full mode:** also `plan.md` `**Status:**` `Done` — in `spec.md` use spec vocabulary only (`Draft | Approved | Implementing | Shipped | Archived`; plan vocabulary `Drafting/Executing/Done` there is invalid and will fail `lint-spec-status.py`); every final accepted AC is `[x]`; any separable follow-on is outside the AC list with its own owner/artifact reference; historical `(deferred: <slug>)` anchors still resolve in `[backlog].open`; intra-repo references the change touches resolve. Run `python '<skill-dir>/scripts/lint-spec-status.py' --root .` where Python is available. Per-spec invariants cover the specs changed against the base ref; the dangling-reference and deferral-anchor invariants always cover every spec. Add `--all` for the exhaustive per-spec sweep — use it when a base ref will not resolve, or in a gate. Add `--verbose` to list the warn-only findings the clean summary only counts. When no spec exists, do not run the spec-status lint.
+- [ ] **A shipped feature's user-facing documentation is updated.** A spec is the
+  team's permanent record of the contract; its user-facing description belongs in
+  the guides — reference for authoritative description, how-to if users need a
+  recipe, explanation if it introduces a concept. The spec workflow is not done
+  until those are updated.
 - [ ] Conventional commit format used; no force-push to shared branches.
 - [ ] Learnings captured per [Capture learnings](#capture-learnings).
 - [ ] **Tail-triage check completed.** Inspect raw diff lines, material volume,

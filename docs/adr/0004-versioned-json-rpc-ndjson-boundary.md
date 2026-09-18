@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
+- **Areas:** protocol, boundary
+- **Reversibility:** low
 - **Decision-makers:** Agent-Ready Studio maintainers
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** `docs/architecture/reference.md`
 
 ## Context
@@ -19,11 +24,17 @@ leaving domain methods independent of a future socket, named pipe, or WebSocket.
 > domain-oriented JSON-RPC 2.0-style protocol using newline-delimited JSON over
 > child-process stdio.
 
-Canonical JSON-Schema-compatible runtime definitions live in a shared protocol
-package. Both sides validate requests, responses, notifications, and the
-protocol handshake. Service stdout carries protocol messages only; logs and
-diagnostics use stderr. Electron main exposes a smaller host API to preload and
-the renderer.
+- **D1:** Electron main and the Studio Service communicate through a versioned,
+  domain-oriented JSON-RPC 2.0-style protocol using newline-delimited JSON over
+  child-process stdio.
+- **D2:** Canonical JSON-Schema-compatible runtime definitions live in a shared
+  protocol package.
+- **D3:** Both sides validate requests, responses, notifications, and the
+  protocol handshake.
+- **D4:** Service stdout carries protocol messages only; logs and diagnostics
+  use stderr.
+- **D5:** Electron main exposes a smaller host API to preload and the
+  renderer.
 
 ## Decision drivers
 

@@ -52,8 +52,7 @@ skill for repository changes when installed; it owns planning, verification,
 review, and recovery.
 
 Follow [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor procedure and
-[`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) for repository documentation
-conventions.
+[`docs/README.md`](docs/README.md) for repository documentation conventions.
 
 ## Build and test commands
 
@@ -62,6 +61,7 @@ corepack enable
 pnpm install
 pnpm lint
 pnpm typecheck
+pnpm governance
 pnpm test
 pnpm build
 pnpm verify
@@ -70,8 +70,11 @@ pnpm dev
 
 `pnpm dev` builds the Studio Service and starts the
 `@agent-ready/studio-desktop` development process. It is long-running; the
-finite gate set is `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and
-`pnpm verify`. Verify runs lint, typecheck, test, and build in that order.
+finite gate set is `pnpm lint`, `pnpm typecheck`, `pnpm governance`, `pnpm test`,
+`pnpm build`, and `pnpm verify`. Verify runs lint, typecheck, governance, test,
+and build in that order. `pnpm governance` checks the decision records under
+`docs/adr` and `docs/rfc`; it runs before `test` so a sub-second content gate
+fails ahead of the `pretest` build.
 
 Component test files opt into jsdom with a per-file
 `// @vitest-environment jsdom` docblock. Node-side test files must not carry the
@@ -131,6 +134,56 @@ assumption or a condition to discover during the work.
 Lead with the useful outcome and omit routine tool narration. Preserve required
 interactive updates, and end a completion receipt with changed state,
 verification, and remaining work.
+
+## Commits and pull requests
+
+Commits are [Conventional Commits](https://www.conventionalcommits.org/) —
+`<type>(<scope>): <subject>`, `type` one of `feat`, `fix`, `docs`, `refactor`,
+`test`, `perf`, `build`, `ci`, `chore`, `scope` the package or area touched
+(`packages/foo`, `docs`, `ci`).
+
+If a commit implements a spec, end it with `Spec: docs/specs/<feature>/spec.md`.
+Cite a governing ADR or RFC the same way.
+
+A pull-request description answers four questions in order: what does this
+change, why, how do I verify it, and what did you not change that you
+considered? The last catches more than the rest.
+
+## Privacy
+
+**Never commit personal information to any file in this repo.** This includes:
+
+- Real names, email addresses, usernames, or account identifiers.
+- Org-specific domains, subdomains, or employer hostnames.
+- AAD/UUID identifiers tied to real people.
+- Device names, profile paths, or user-specific filesystem paths.
+- Names of personal service providers or platforms that identify account
+  relationships.
+
+Use generic placeholders everywhere: `user@example.com`,
+`colleague@example.com`, `Example User`, `https://mail.yourorg.com/`,
+`aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee`, `example-service`, and
+`[service type]`.
+
+**This rule covers all git artifacts** — code, comments, fixtures, tests, docs,
+specs, commit messages, PR titles, PR bodies, and PR comments are permanent
+record. Never use a real service or vendor name as an example; write
+`example-service` or `[service type]` instead.
+
+**Do not infer any of the above from session context.** A working directory, a
+home path, a git identity, or an environment variable is not a licence to write
+what it reveals into a repository artifact.
+
+When authoring governance docs (ADRs, RFCs, specs), GitHub handles used for
+author and decider fields — an ADR's `Decision-makers`, a spec's `Owner` — are
+not PII. They are public project identifiers and belong there.
+
+## Security
+
+Follow the repository's own security workflow for a change that crosses a trust
+boundary: `docs/architecture/reference.md` carries the dependency and
+trust-boundary rules, and the `work-loop` skill dispatches the security reviewer
+with the matching boundary checklists.
 
 ## Repository structure
 
