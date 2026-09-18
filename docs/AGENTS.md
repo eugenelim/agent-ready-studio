@@ -18,6 +18,18 @@ Higher-priority instructions, security and privacy rules, active-skill safety co
 - Before you add text, merge rules, notes, history, and links that say the same thing. Keep one source in charge.
 - Use a table, tree, flow, or other view only when it makes a link much more clear.
 
+## Decision records
+
+- Do not hand-write a row into `adr/README.md`. It is generated; regenerate it
+  with the `new-adr` skill's `scripts/index-records.py` after adding or
+  restatusing a record.
+- Do **not** regenerate `rfc/README.md`. The `new-rfc` skill's authoring
+  sequence includes an index-regeneration step; skip it here. This index is
+  hand-written by decision, and regenerating it would replace the Opened/Closed
+  table and delete the "Adding a new RFC" section.
+- `pnpm governance` gates both: ADR and RFC ordinals, the ADR index, and the ADR
+  shape lint. Run it before handing work over.
+
 ## Backlog and governance
 
 - Shape each backlog item for a choice: outcome, proof, blocked work, and next step.

@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
+- **Areas:** platform, runtime
+- **Reversibility:** low
 - **Decision-makers:** Agent-Ready Studio maintainers
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** `docs/architecture/reference.md`
 
 ## Context
@@ -24,11 +29,17 @@ Node and Electron versions.
 > client, and one standalone Node.js Studio Service implemented as a modular
 > monolith.
 
-Electron main owns the service process and transport. The sandboxed renderer
-receives a narrow typed preload API. The service owns domain behavior and is
-the only SQLite writer. SQLite is accessed through explicit storage interfaces
-with pinned `better-sqlite3` 13.0.3, chosen for its mature synchronous API, transaction
-support, and established Node and Electron packaging ecosystem.
+- **D1:** Studio is strict TypeScript in a pnpm workspace, an Electron and React
+  desktop client, and one standalone Node.js Studio Service implemented as a
+  modular monolith.
+- **D2:** Electron main owns the service process and transport.
+- **D3:** The sandboxed renderer receives a narrow typed preload API.
+- **D4:** The service owns domain behavior and is the only SQLite writer.
+- **D5:** SQLite is accessed through explicit storage interfaces with pinned
+  `better-sqlite3` 13.0.3.
+
+`better-sqlite3` was chosen for its mature synchronous API, transaction support,
+and established Node and Electron packaging ecosystem.
 
 ## Decision drivers
 

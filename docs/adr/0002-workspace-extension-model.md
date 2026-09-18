@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
+- **Areas:** extensibility, platform
+- **Reversibility:** low
 - **Decision-makers:** Agent-Ready Studio maintainers
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** `docs/architecture/reference.md`
 
 ## Context
@@ -21,10 +26,16 @@ third-party code into a privileged process.
 > Capability Packs extend them, and executor-independent Transformations name
 > eligible Executor Adapters.
 
-Blueprint and pack manifests are closed, versioned, runtime-validated data.
-Renderer and editor identifiers resolve only to host-known implementations.
-Humans are valid executors from the first release. The Agent-Ready Pack is a
-future optional capability, not a core dependency or implemented feature.
+- **D1:** Workspace Blueprints define versioned workspace semantics, declarative
+  Capability Packs extend them, and executor-independent Transformations name
+  eligible Executor Adapters.
+- **D2:** Blueprint and pack manifests are closed, versioned, runtime-validated
+  data.
+- **D3:** Renderer and editor identifiers resolve only to host-known
+  implementations.
+- **D4:** Humans are valid executors from the first release.
+- **D5:** The Agent-Ready Pack is a future optional capability, not a core
+  dependency or implemented feature.
 
 ## Decision drivers
 
