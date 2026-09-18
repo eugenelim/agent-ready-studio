@@ -3251,7 +3251,9 @@ being deferred past it.
 ## amendment-2026-09-17-package-4-applied
 
 **Package 4's edits, and a correction to its own scope record.** The amendment entry above
-promised a disposition for all sixteen deferred entries. Executing it found that **four were
+promised a disposition for all sixteen deferred entries — **the pre-r24/r27 figure, superseded by
+eighteen rows across seven tables once round 30 found the roster two tables short**. Executing it
+found that **four were
 already repaired by later rounds and had simply never been struck off**, which is the same defect
 class as the "thirteen" undercount: a list nobody re-read against the text it cites.
 
@@ -3507,3 +3509,100 @@ rounds, and the eleven pinned section hashes and five amendments are untouched.
 Naming it because this ledger's convention is that a slip caught by a guard is still a slip, and a
 reader reconstructing the sequence from timestamps would otherwise find the edits preceding the
 transition that authorizes them.
+
+## review-round-30-2026-09-18
+
+**Both mandatory reviewers; 22 findings raised, 10 sustained between the two adjudications, 10
+refuted, 2 absorbed as duplicates.** Three adversarial findings were deliberately refuted as
+covered by the security half so each defect took one repair, and the security half returned one
+refutation that corrected a worry rather than confirming it.
+
+**The finding that matters most is not about the code.** Round 29's table recorded a repair as
+applied that was never made: the *Non-originated value* head still carried the open predicate,
+and `sed -n 65p spec.md | shasum` was byte-identical at `c7c9f61` and `HEAD`. **Wrong work is
+recoverable, because review finds it. Absent work described as done is not**, because every later
+check trusts the record and nothing in the artifact reveals the gap. The head is now closed to the
+*Owner / repository charset* and *Ref charset* rows by name, which is what makes the round-29 row
+true.
+
+**A second instance of the same class**: AC-0159 was added and three prose statements of the
+criteria count stayed at 156. The roster check counted list items and compared them to `Covers`;
+it never read the sentences that state the count. The check was built and then trusted past its
+reach — the same shape as round 28's one-host mutation and round 29's inert variable.
+
+**Two instruments now exist, and they answer different questions.** A literal claim sweep answers
+*where else does this claim live*; an applied-claim check answers *did the repair happen at all*.
+Neither would have caught the other's defect. Round 30's repairs were verified with the second
+before this entry was written: ten claims, each confirmed both as a file that changed and as text
+present at head. The check itself had a bug on its first run — a malformed rev range reported every
+file untouched — which is a false alarm in exactly the shape it exists to catch, so it now names
+the working-tree case explicitly and warns when nothing differs.
+
+### The detector, third attempt, and why this one is structural
+
+Round 28's guard was vacuous on a UTC host. Round 29's replacement forced the ambient zone — which
+a **closed** child environment cannot observe, so it was inert, and its recorded two-host table was
+one run reported twice. The production chain is
+`supervisor → buildPinnedEnvironment → child → descendantEnvironment[name] = process.env[name] ?? "" → ps`,
+and probing it showed the three ways the pin can be lost do not behave alike: dropping `TZ` from
+the builder leaves the descendant with `TZ=""`, which POSIX renders as **UTC**, so production stays
+fail-safe by accident; dropping it from the Service-side set or from the allowlist names falls back
+to `/etc/localtime`, a real divergence — invisible on a host already in UTC.
+
+**No render-and-compare case can guard this**, which is what the two failed attempts were really
+demonstrating. The property that holds on every host is a property of the two *environments*. The
+binding detector is now structural, and proven against four mutations on both host zones:
+
+| Mutation | Host UTC | Host America/Chicago |
+| --- | --- | --- |
+| baseline | 19 of 19 pass | 19 of 19 pass |
+| Service-side `TZ` deleted | **2 failed** | **2 failed** |
+| `buildPinnedEnvironment`'s `TZ` deleted | **2 failed** | **2 failed** |
+| `TZ` removed from the allowlist names | **1 failed** | **1 failed** |
+| `...process.env` spread restored before the pins | **1 failed** | **1 failed** |
+
+Both modules were restored byte-identical. **The fourth row is the one no rendering comparison
+could ever have caught**: re-adding the ambient spread changes no output while the pins still
+override, so only asserting the environment's whole contents falsifies AC-0159's no-inheritance
+limb. A behavioural case remains as corroboration and is explicitly **not** cited as the detector.
+
+### Sustained and applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| A round-29 repair was recorded as applied and was absent from the tree | Blocker | Head closed to the two named charset rows; the record is now true |
+| The criteria count stayed at 156 in the screening section and the plan changelog | Blocker | 157, numbered AC-0001 to AC-0159, in both |
+| AC-0159 was in T13's `Covers` and absent from its `Done-when` | Blocker | Added, so the only task claiming it now gates it |
+| The detector was host-dependent while three artifacts recorded host-independence as fact | Blocker | Structural detector, proven above; the spec, plan and ledger claims restated to what is actually exercised |
+| AC-0159's closed-name-set obligation conflicted with AC-0023 | Concern | Restated over the three determinism **values**, with each side built closed under its own allowlist |
+| The Service-side closedness had no falsifying artifact | Concern | The rendering environment is exported and asserted whole |
+| The preamble cited AC-0082 for a split it does not state | Concern | Attributed to AC-0081, which assigns the sweep to the Runtime |
+| The superseded "sixteen" still read as the live roster size | Nit | Marked in place as the pre-r24/r27 figure |
+| Double blank lines inside AC-0080's list item | Nit | Reduced; `spec.md` now has no consecutive-blank runs |
+| The *Permitted executables* row attributed an integer check to the observer's operand | Nit | Each caller's ground stated separately; the observer rests on Studio provenance |
+
+**Three refutations worth not re-litigating.** The inline-proof rule does **not** reach a criterion
+a task only confirms — it triggers on a task that *introduces* an arm, and T13 introduces none.
+AC-0159 having a confirming task but no implementing one is an **accepted consequence** of the
+controlled amendment path, since T5 is completed and pinned. And the disposition roster's apparent
+self-contradiction is the ledger's own supersession trail: flattening it would erase the correction
+record, so it stands.
+
+### Round 30 gate state
+
+| Gate | Result |
+| --- | --- |
+| `pnpm lint` | exit 0, 105 files |
+| `pnpm typecheck` | exit 0 |
+| `spec-coupling-check` | 0 findings |
+| `lint-contract-item-alignment` | 0 findings |
+| Criteria roster | **157 declared, 157 claimed, 0 residual** — and the prose statements of the count were checked this time, not only the list items |
+| Pinned completed-task section hashes | 11 of 11 verify |
+| `pnpm test` | red, and not judged red — see below |
+
+**Triaged by the two-in-isolation rule.** The full run failed 3 cases across `disposal.test.ts`
+and `runtime-supervisor.test.ts` at load average 44 on a host carrying 30 sessions. Both files
+then passed twice in isolation — 7 of 7 and 23 of 23 — so no test failed twice and none is
+deterministic. `runtime-supervisor.test.ts` matters most here because it carries the descendant
+environment assertions this round relies on, and it is clean in both isolated runs. Signature and
+judging rule at `pre-existing-trial-runtime-load-flake` in `[backlog].open`.

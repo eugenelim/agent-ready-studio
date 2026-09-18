@@ -846,7 +846,7 @@ rather than re-implementing it.
 
 **Done when:** `pnpm verify` is green, the ledger carries each recorded
 gesture, the smoke result is recorded with its exact SHA and projection, and
-AC-0114, AC-0129, AC-0130, AC-0131, AC-0132, AC-0148, AC-0150, AC-0151, AC-0152, AC-0153 hold, and the ledger records the four manual-QA transport observations — AC-0009 redirect refusal on both phases, AC-0024 helper environment, AC-0025 helper admission, AC-0030 no surviving helper — each against the build revision.
+AC-0114, AC-0129, AC-0130, AC-0131, AC-0132, AC-0148, AC-0150, AC-0151, AC-0152, AC-0153, AC-0159 hold, and the ledger records the four manual-QA transport observations — AC-0009 redirect refusal on both phases, AC-0024 helper environment, AC-0025 helper admission, AC-0030 no surviving helper — each against the build revision.
 
 ## Rollout
 
@@ -904,7 +904,7 @@ bound in *Canonical values*.
  separation* row at four families, and `TZ=UTC` joins the *Environment
  allowlist*, binding both sides of AC-0081's liveness comparison to one
  rendering. Eighteen standing deferred entries are disposed and none is carried
- forward. Criteria count unchanged at 156; T1 through T11 stay pinned and
+ forward. Criteria count moves 156 → 157 with AC-0159; T1 through T11 stay pinned and
  untouched.
 - 2026-09-17: **amendment addendum — a bounded discovery channel and an inline-proof
  rule.** Authority at

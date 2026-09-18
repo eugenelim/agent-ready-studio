@@ -18,6 +18,7 @@ import { PROCESS_STATUS_EXECUTABLE } from "./executable-identity.js";
 import {
   createPerRequestStateRoot,
   HOME_CHILD_NAME,
+  LIVENESS_RENDERING_ENVIRONMENT,
   MATERIALIZATION_CHILD_NAME,
   OWNERSHIP_MARKER_NAME,
   readProcessStartTime,
@@ -26,7 +27,10 @@ import {
   TEMPORARY_CHILD_NAME,
   verifySweepDomain,
 } from "./per-request-state-root.js";
-import { buildPinnedEnvironment } from "./runtime-environment.js";
+import {
+  buildPinnedEnvironment,
+  ENVIRONMENT_ALLOWLIST_NAMES,
+} from "./runtime-environment.js";
 
 const roots: string[] = [];
 
@@ -186,56 +190,57 @@ describe("AC-0070 and AC-0080 the per-request state root and its marker", () => 
 });
 
 describe("AC-0076 and AC-0079 one removal takes the whole state root", () => {
-  it("AC-0081 renders the liveness token identically on both sides of the comparison, whatever the host zone", () => {
-    // AC-0081's first limb compares two renderings of the token for byte
-    // equality: the Runtime's, written into the marker under the rebuilt
-    // allowlist, and the sweep's, read here. If either side loses its pin it
-    // picks up the host zone, the comparison fails for a process that is alive,
-    // and a live state root is reclaimed.
+  it("AC-0159 pins both renderings of the liveness token, checkably on any host", () => {
+    // This is the binding detector, and it is structural on purpose.
     //
-    // Round 28's first attempt at this case was vacuous: it compared the reader
-    // against a rendering it pinned to UTC itself, so on a UTC host — the usual
-    // CI default — deleting the reader's pin changed nothing and the case stayed
-    // green. It also hardcoded the child's expected rendering, so removing the
-    // allowlist's TZ could not redden it at all.
+    // AC-0081's first limb compares two renderings of `ps -o lstart=` for byte
+    // equality. A render-and-compare case cannot guard that: both sides run
+    // under closed environments, so the only way a pin's loss shows up in
+    // output is the fallback to `/etc/localtime` — and on a host whose zone is
+    // already UTC, the fallback and the pin render identically and nothing
+    // fails. Two successive attempts to guard this behaviourally were green
+    // exactly where CI runs, which is recorded at
+    // `notes/verification-ledger.md#review-round-30-2026-09-18`.
     //
-    // This version fixes the host out of the picture by forcing the ambient zone
-    // to one that is never UTC, and derives the child's side from
-    // `buildPinnedEnvironment` rather than restating it. Unpin either side and
-    // that side falls back to the forced ambient and the two disagree.
-    const restore = process.env.TZ;
-    process.env.TZ = "Pacific/Kiritimati"; // UTC+14 — never equal to the pin
-    try {
-      const root = sweepDomain();
-      const asTheRuntimeRenders = execFileSync(
-        PROCESS_STATUS_EXECUTABLE,
-        ["-o", "lstart=", "-p", String(process.pid)],
-        {
-          encoding: "utf8",
-          env: buildPinnedEnvironment({
-            home: join(root, "home"),
-            temporaryDirectory: join(root, "tmp"),
-          }),
-        },
-      ).trim();
+    // What is true on every host is a property of the two environments. So the
+    // two environments are what this asserts.
+    expect({ ...LIVENESS_RENDERING_ENVIRONMENT }).toEqual({
+      LANG: "C",
+      LC_ALL: "C",
+      TZ: "UTC",
+    });
 
-      expect(readProcessStartTime(process.pid)).toBe(asTheRuntimeRenders);
-
-      // And the forced ambient really does differ from the pin, so the equality
-      // above is a result rather than a coincidence of this host's own zone.
-      const ambient = execFileSync(
-        PROCESS_STATUS_EXECUTABLE,
-        ["-o", "lstart=", "-p", String(process.pid)],
-        { encoding: "utf8" },
-      ).trim();
-      expect(ambient).not.toBe(asTheRuntimeRenders);
-    } finally {
-      if (restore === undefined) {
-        delete process.env.TZ;
-      } else {
-        process.env.TZ = restore;
-      }
+    // `toEqual` over the whole object is what makes the closedness AC-0159
+    // states falsifiable: restoring a `...process.env` spread before the pins
+    // adds keys and reddens here, which no rendering comparison would notice.
+    const runtimeSide = buildPinnedEnvironment({
+      home: "/tmp/does-not-need-to-exist/home",
+      temporaryDirectory: "/tmp/does-not-need-to-exist/tmp",
+    });
+    for (const name of ["LANG", "LC_ALL", "TZ"] as const) {
+      expect(runtimeSide[name]).toBe(LIVENESS_RENDERING_ENVIRONMENT[name]);
     }
+    // The Runtime side keeps AC-0023's thirteen names; what AC-0159 requires is
+    // that the three determinism values agree, not that the name sets do.
+    expect(Object.keys(runtimeSide)).toEqual([...ENVIRONMENT_ALLOWLIST_NAMES]);
+  });
+
+  it("renders the same liveness token on both sides on this host", () => {
+    // Corroboration, not the guard. It confirms the two pins agree in practice
+    // here; it cannot fail on a UTC host if a pin is lost, which is precisely
+    // why the case above exists and why this one is not cited as the detector.
+    const asTheRuntimeRenders = execFileSync(
+      PROCESS_STATUS_EXECUTABLE,
+      ["-o", "lstart=", "-p", String(process.pid)],
+      {
+        encoding: "utf8",
+        env: buildPinnedEnvironment({
+          home: "/tmp/does-not-need-to-exist/home",
+          temporaryDirectory: "/tmp/does-not-need-to-exist/tmp",
+        }),
+      },
+    ).trim();
+    expect(readProcessStartTime(process.pid)).toBe(asTheRuntimeRenders);
   });
 
   it("removes the tree, the home, the temp and the marker together", () => {
