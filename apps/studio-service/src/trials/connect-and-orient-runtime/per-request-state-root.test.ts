@@ -214,6 +214,12 @@ describe("AC-0076 and AC-0079 one removal takes the whole state root", () => {
     // and AC-0023 owns the name set. Comparing sorted keys still reddens when
     // `TZ` leaves the allowlist — the mutation this file would otherwise miss —
     // without failing on a reordering neither criterion constrains.
+    //
+    // That detection holds only while `buildPinnedEnvironment` assigns each name
+    // literally. Refactor it to iterate `ENVIRONMENT_ALLOWLIST_NAMES` and the two
+    // sides of this comparison become the same list, the assertion turns
+    // tautological, and the allowlist-names mutation stops being caught here
+    // with nothing failing to say so.
     expect(Object.keys(runtimeSide).sort()).toEqual(
       [...ENVIRONMENT_ALLOWLIST_NAMES].sort(),
     );
