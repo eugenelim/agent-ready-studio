@@ -2676,7 +2676,7 @@ What the approval covers, so its scope is checkable later:
 three-versus-four family question, which needs its own amendment when the owner decides it.
 
 **Settled later, and this paragraph is left as the record of what was true on 2026-09-17 rather
-than rewritten.** The owner decided four families on 2026-09-18 and Package 4 amended AC-0120;
+than rewritten.** The owner decided four families on 2026-09-17 and Package 4 amended AC-0120;
 see `#owner-decision-2026-09-17-package-4-family-set-and-zone`. Everything above describes the
 state before that amendment.
 
@@ -3217,7 +3217,7 @@ here rather than quietly amended. The lesson is narrower than the one the earlie
 defect was never that nobody checked the count — it is that checking it by counting rows in the
 tables you happen to find is not checking it.
 
-**Disposition of all sixteen.**
+**Disposition of all eighteen rows across seven tables; thirteen were live.**
 
 | Source | Entry | Disposition |
 | --- | --- | --- |
@@ -3236,6 +3236,8 @@ tables you happen to find is not checking it.
 | r26 | 1 — AC-0080 enumerates two crash outcomes while its own encoding property admits three | Repair |
 | r26 | 2 — the extended non-originated item is named more narrowly than its own gloss | Repair |
 | r26 | 3 — the class head admits user-submitted input no enumerated item assigns | Repair |
+| r24 | 1 — the Always-do rail grounds its exemption on an enumeration narrower than the *Permitted executables* row it cites | Repair the rail. **Missed by the first roster entirely**; added after round 28 |
+| r27 | 1 — the plan-contract note says both documents are pinned after approval, against the channel's refinable T12 and T13 | Repair the note with an explicit carve-out. **Missed by the first roster entirely**; added after round 28 |
 | r26 | 4 — the missing-start-time crash form is unreachable under the encoding AC-0080 names | Repair. **Confirmed by test, not by reading**: `per-request-state-root.test.ts:134` finds exactly one parseable prefix and it yields both values, so no crash leaves a parseable marker missing the start time |
 
 Entries r26-1 and r26-4 are the same sentence wrong in both directions: AC-0080's crash
@@ -3330,8 +3332,14 @@ so the suite could not have caught it.
 Repaired at the seam the adjudication named rather than by the new criterion the reviewer proposed:
 `readProcessStartTime` now renders under a pinned `LC_ALL`/`TZ`, and a case in
 `per-request-state-root.test.ts` renders the token the way the child does — explicitly pinned,
-independently of the module's own constant — and asserts the reader matches. **Removing the pin
-reddens exactly that case**, verified, module restored byte-identical.
+independently of the module's own constant — and asserts the reader matches. **Round 29 found that verification insufficient and it is corrected here rather
+than left standing.** The case compared the reader against a rendering it pinned to UTC itself, so
+on a UTC host — the usual CI default — deleting the reader's pin changed nothing and the case
+stayed green; it also hardcoded the child's expected rendering, so removing the allowlist's `TZ`
+could not redden it at all. The mutation recorded above reddened only because this host is UTC-5.
+**A mutation that reddens on one machine is not a proof that the guard guards.** The case was
+replaced in round 29 and the replacement is proven across both dimensions at
+`#review-round-29-2026-09-18`.
 
 **The second Blocker is the sharper one, because it was a proof that could not fail.** AC-0080
 cited the prefix test as establishing that no crash leaves a marker parsing without a start time.
@@ -3389,3 +3397,95 @@ none is deterministic. `runtime-supervisor.test.ts`, the file this amendment edi
 during the reds was **60 to 69** on a host carrying 28 other sessions — the top of the band this
 ledger tracks. Signature and judging rule are recorded at `pre-existing-trial-runtime-load-flake`
 in `[backlog].open`.
+
+## owner-decision-2026-09-18-liveness-guard-and-failopen-routing
+
+**Two owner decisions, taken 2026-09-18**, both arising from round 29.
+
+**1. The fail-open routes out of Package 4 as its own spec-backed work.** Round 29's secure-design
+review found that both liveness readers fold "no bytes on either stream" into a determination that
+the process is **absent**, without consulting the spawn error — so a `ps` that never ran drives
+AC-0081's first limb to reclaim a **live** state root, with no AC-0083 diagnostic because nothing
+was declined. The adjudication established it is real, **pre-existing**, and excluded from this
+amendment's scope twice over, and returned it as indeterminate on the one thing it could not
+settle: whether the owner wished to reopen decision 8.
+
+The owner declined to widen Package 4. The defect is recorded at
+`liveness-read-fails-open-to-reclaim` in `[backlog].open` with its full evidence. **The ground for
+routing rather than deferring**: the repair is exactly the reroute decision 8 declined for its
+contract cost, and decision 8 recorded the condition for reopening — this is a second, independent
+trigger for it, so it deserves its own scope and review rather than riding an amendment already
+two review rounds deep in its own repairs.
+
+**2. All three hardening items around the liveness pin are taken, and each was an owner route
+rather than a repair.** The detector is made host-independent and both-sides-sensitive; the
+Service-side pin gains an acceptance criterion; and the rendering environment becomes a closed set.
+Recorded as owner decisions because each **adds a control**, which this session's evidence says is
+the expensive kind of change — three of them have produced the next round's defects here. Taken
+anyway, for a reason specific to this control: the thing being guarded is a path that deletes a
+live Runtime's working tree, and round 29 showed the previous guard was green exactly where CI
+runs.
+
+## review-round-29-2026-09-18
+
+**Both mandatory reviewers, both adjudications read.** The adversarial half raised 12 and the
+security half 9; **13 sustained between them**, 3 refuted as duplicates already covered by the peer,
+3 refuted on their merits, and **1 returned indeterminate on an owner decision** — a loud stop that
+produced the decisions above.
+
+**The headline finding is that round 28's repair was verified against one machine.** The
+regression detector that closed round 28's Blocker compared the reader against a rendering the case
+pinned to UTC itself. On a UTC host — the usual CI default — deleting the reader's pin left it
+green. It also hardcoded the child's expected rendering, so removing the allowlist's `TZ` could not
+redden it at all. The mutation recorded in round 28 reddened only because this host is UTC-5.
+
+**The replacement is proven across both dimensions rather than asserted.** It forces the ambient
+zone to `Pacific/Kiritimati`, which is never the pin, derives the Runtime's side from
+`buildPinnedEnvironment` rather than restating it, and reads the Service's side through its own
+seam:
+
+| Mutation | Host `TZ=UTC` | Host `TZ=America/New_York` |
+| --- | --- | --- |
+| none — baseline | 18 of 18 pass | 18 of 18 pass |
+| reader's pin deleted | **1 failed** | **1 failed** |
+| allowlist's `TZ` deleted — the child side | **1 failed** | **1 failed** |
+
+Both modules were restored byte-identical afterwards. **This is what round 28's proof should have
+looked like**: the earlier one varied one factor on one host and generalised; this one varies the
+factor the earlier proof held fixed.
+
+**AC-0159 is new, and the criteria count moves 156 → 157.** It binds every rendering of the
+liveness token, on both sides, to the same closed set — `LANG=C`, `LC_ALL=C`, `TZ=UTC` — and is
+stated separately from AC-0023 because AC-0023's scope is the trial tree while one of the two
+renderings happens outside it. T13 claims it, because the work is done and only its verification
+belongs to a task. Without it, nothing in the roster reddened if the Service-side pin were deleted.
+
+**A correction the reviewers did not catch, found by the traversal walk.** The `TZ` asymmetry had
+**two** directions, not one. `writeOwnershipMarker` is Service-side and also writes markers, so a
+Service-written marker met by the child's in-tree sweep would have mismatched in the other
+direction. Pinning the single Service-side reader closed both, because that one function feeds both
+the Service's marker writes and the Service's sweep reads. Two renderers, two comparison sites,
+four combinations — all four now agree.
+
+**Sustained and applied.**
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The detector was vacuous on a UTC host, and spec and ledger recorded its result as verified fact | Blocker | Detector replaced and proven on both host zones and both sides; the ledger's round-28 verification corrected rather than left standing |
+| The *Non-originated value* row left AC-0116's reach over derived values undecidable, and its exclusion was an open predicate | Blocker | The derived-value sentence carries its charset-validated exception, and the head closes to the two named charset rows |
+| The disposition roster enumerated sixteen immediately after retracting that figure | Concern | Now eighteen rows across seven tables, thirteen live, with r24 and r27 added |
+| The *Permitted executables* row misdescribed one Service-side caller's operand | Concern | States the operand class both callers pass — a validated integer identifier — and where validation happens |
+| The preamble placed the live rendering on a side that runs no production sweep | Concern | States that both production renderings are child-side today, that the Service seam has no production caller, and why it is pinned anyway |
+| AC-0080's added paragraphs sat outside its list item | Nit | Indented into the criterion |
+| The new case sat under a describe naming criteria it does not exercise | Nit | Titled for AC-0081 |
+| The Always-do rail denied the Node vector carries the pinned configuration | Nit | States the real exemption ground: it delivers the configuration as payload rather than applying it to itself |
+| The retraction's forward pointer contradicted its target on the date | Nit | 2026-09-17 across all surfaces |
+| The case hardcoded `/bin/ps` while supporting a row that says the path comes from the shared constant | Nit | Uses `PROCESS_STATUS_EXECUTABLE` |
+| The prefix enumeration skipped the empty prefix while the criterion calls it exhaustive | Nit | Starts at 0 |
+| The Service-side rendering pin was bound by no criterion | Owner route | **AC-0159** |
+| The rendering environment spread `process.env` before its pins | Owner route | Closed set of three names |
+
+**Three refuted on their merits**, and one is worth not re-litigating: that amended AC-0120 leaves
+T12 executing against inputs no task produces. The plan already assigns the hue mapping to T12 by
+name and records the owner's accepted feasibility risk, so the gap is a recorded assignment rather
+than a defect this amendment introduced.

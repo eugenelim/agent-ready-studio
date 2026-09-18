@@ -33,6 +33,24 @@ open = [
   # the same session, and green twice in isolation immediately after each red.
   # Judge by the two-in-isolation rule, not by one re-run.
   { slug = "pre-existing-trial-runtime-load-flake", source = "pre-flight/2026-09-17" },
+  # Fail-open in AC-0081's first limb, found by round 29's secure-design review
+  # of Package 4 and routed out of that amendment by owner decision rather than
+  # widening its scope. Both liveness readers -- processStartTime in
+  # runtime-child.ts and readProcessStartTime in per-request-state-root.ts --
+  # fold "no bytes on either stream" into a determination that the process is
+  # ABSENT, without consulting the spawn error. A ps that never ran (ENOENT,
+  # EACCES, or EAGAIN/EMFILE under fd or process-table pressure) yields exactly
+  # that, so limb 1 reclaims a state root whose Runtime is live, deleting its
+  # marker, materialization tree, home and temp, and emits no AC-0083
+  # diagnostic because nothing was "declined". AC-0081 names this class -- "a
+  # liveness comparison that cannot be made" -- as a decline, so the code
+  # contradicts the criterion it implements. Pre-existing: the probe that set
+  # the empty-stdout rule examined only the two cases where ps exited, never
+  # one where it never ran. Needs a spec-backed change, because the repair is
+  # the reroute decision 8 declined for its contract cost; decision 8 recorded
+  # the condition for reopening and this is a second, independent trigger.
+  # Evidence: notes/verification-ledger.md#review-round-29-2026-09-18.
+  { slug = "liveness-read-fails-open-to-reclaim", source = "connect-and-orient/2026-09-18" },
 ]
 closed = []
 
