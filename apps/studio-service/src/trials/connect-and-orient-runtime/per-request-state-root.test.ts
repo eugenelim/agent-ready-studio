@@ -193,10 +193,13 @@ describe("AC-0076 and AC-0079 one removal takes the whole state root", () => {
   it("AC-0159 pins the contents of both rendering environments", () => {
     // Half the guard. AC-0081's first limb compares two renderings of
     // `ps -o lstart=` for byte equality, and there are two ways that breaks:
-    // the pinned set's contents change, or a call site stops using the pinned
-    // set. This case catches the first, on any host. The case below catches
-    // the second. Neither catches both, which is why there are two — four
-    // earlier attempts each caught one and were recorded as guarding both.
+    // the pinned set's contents change, or the Service-side call site stops
+    // using the pinned set. This case catches the first, on any host. The case
+    // below catches the second, and binds that call site only — the Runtime's
+    // rendering runs inside the child and neither case reaches it (spec.md:133).
+    // Neither case catches both modes, which is why there are two. Three earlier
+    // attempts failed: rounds 28 and 29 caught neither mode, round 30 caught the
+    // contents mode only, and each was recorded as guarding both.
     expect({ ...LIVENESS_RENDERING_ENVIRONMENT }).toEqual({
       LANG: "C",
       LC_ALL: "C",
@@ -229,8 +232,10 @@ describe("AC-0076 and AC-0079 one removal takes the whole state root", () => {
   it("AC-0159 binds the Service-side call site to the pinned set, on any host whose zone database resolves the forced zone", () => {
     // The other half. The case above asserts what the pinned set contains; it
     // cannot tell whether `readProcessStartTime` still uses it. Replacing that
-    // call's `env` with `{ ...process.env }` left the whole file green on a UTC
-    // host — recorded at `notes/verification-ledger.md#review-round-31-2026-09-18`.
+    // call's `env` with `{ ...process.env }` leaves the whole file green on a UTC
+    // host. That is derived, not observed: no case in the pre-round-31 set read
+    // the call site, and no run was made with `/etc/localtime` at UTC. See
+    // `notes/verification-ledger.md#review-round-31-2026-09-18`.
     //
     // Forcing a non-UTC zone into this process catches that independently of the
     // host's own zone, because both compared values are then explicit and neither

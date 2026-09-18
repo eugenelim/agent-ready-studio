@@ -27,6 +27,7 @@
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  LIVENESS_TOKEN_CONVENTION,
   MARKERLESS_RECLAIM_AGE_MS,
   OWNERSHIP_MARKER_NAME,
   type RemovalDiagnostic,
@@ -41,6 +42,7 @@ export type SweepLimb = 1 | 2 | 3;
 export type DeclineInputClass =
   | "candidate-modification-time"
   | "clock-moved"
+  | "liveness-token-convention"
   | "process-liveness";
 
 export type SweepDecision =
@@ -72,6 +74,10 @@ type MarkerRead =
   | { readonly kind: "absent" }
   | { readonly kind: "unusable" }
   | { readonly kind: "partial" }
+  /** Complete, but its token was rendered under a convention this build cannot
+   *  compare against -- including a marker written before the convention was
+   *  recorded at all. Never reclaimed on a byte comparison. */
+  | { readonly kind: "inconvertible-token" }
   | {
       readonly kind: "complete";
       readonly pid: number;
@@ -120,6 +126,13 @@ function readMarker(candidate: string): MarkerRead {
   }
   if (typeof startTime !== "string" || startTime.trim() === "") {
     return { kind: "partial" };
+  }
+  // A token is only comparable against a rendering this build produces if it
+  // was rendered the same way. A marker from a build with a different pin --
+  // or from one predating the pin, which records no convention at all -- is
+  // complete and unusable for limb 1 at the same time.
+  if (record.tokenConvention !== LIVENESS_TOKEN_CONVENTION) {
+    return { kind: "inconvertible-token" };
   }
   return { kind: "complete", pid, startTime };
 }
@@ -194,6 +207,19 @@ export function sweepDomain(
     }
 
     const marker = readMarker(candidate);
+
+    // A token this build cannot compare is a liveness comparison that cannot
+    // be made, which AC-0081 routes to a decline. Reaching limb 2 instead would
+    // make a live Runtime's root reclaimable by age; comparing the bytes anyway
+    // would delete it outright the moment the two conventions disagree.
+    if (marker.kind === "inconvertible-token") {
+      record(name, {
+        action: "declined",
+        limb: 1,
+        inputClass: "liveness-token-convention",
+      });
+      continue;
+    }
 
     // Limb 1 needs no age. It is evaluated first so that a live Runtime's root
     // is refused before any age is consulted.

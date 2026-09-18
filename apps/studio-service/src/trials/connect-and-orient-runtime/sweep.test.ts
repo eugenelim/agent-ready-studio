@@ -4,6 +4,7 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   utimesSync,
@@ -14,6 +15,7 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   createPerRequestStateRoot,
+  LIVENESS_TOKEN_CONVENTION,
   MARKERLESS_RECLAIM_AGE_MS,
   OWNERSHIP_MARKER_NAME,
   readProcessStartTime,
@@ -80,11 +82,13 @@ const liveMarker = JSON.stringify({
   schema: 1,
   pid: process.pid,
   startTime: readProcessStartTime(process.pid),
+  tokenConvention: LIVENESS_TOKEN_CONVENTION,
 });
 const deadMarker = JSON.stringify({
   schema: 1,
   pid: 99998,
   startTime: "Wed Sep  9 08:15:07 2026",
+  tokenConvention: LIVENESS_TOKEN_CONVENTION,
 });
 
 describe("AC-0081 the entry gate", () => {
@@ -163,6 +167,7 @@ describe("AC-0081 limb 1 — a marker naming no live process", () => {
         schema: 1,
         pid: 4_000_000_000,
         startTime: "Wed Sep  9 08:15:07 2026",
+        tokenConvention: LIVENESS_TOKEN_CONVENTION,
       }),
       mtimeMs: OLD,
     });
@@ -308,6 +313,7 @@ describe("AC-0081 declines and AC-0083 diagnostics", () => {
         schema: 1,
         pid: 4_000_000_000,
         startTime: secret,
+        tokenConvention: LIVENESS_TOKEN_CONVENTION,
       }),
       entries: [],
       mtimeMs: OLD,
@@ -328,5 +334,120 @@ describe("AC-0081 declines and AC-0083 diagnostics", () => {
       reason: "marker names a live process",
     });
     expect(existsSync(created.stateRoot)).toBe(true);
+  });
+});
+
+describe("AC-0081 a token rendered under another convention is not comparable", () => {
+  // The hazard these cases exist for. This amendment pinned the environment
+  // `ps -o lstart=` renders under, so the bytes a marker carries depend on
+  // which build wrote it. A marker persisted by a Runtime that is still alive
+  // but rendered its token under the old convention compares unequal against
+  // this build's rendering of the very same process. Limb 1 carries no age
+  // gate, so before the convention was recorded that inequality deleted a live
+  // Runtime's materialization root, home and temp.
+
+  it("declines rather than reclaiming when a live process's token predates the convention", () => {
+    const base = domain();
+    // The real shape: this process is alive, and the marker names it, but the
+    // token was rendered before the pin existed -- so it carries no convention
+    // and its bytes are whatever the ambient zone produced.
+    candidate(base, "live-old-build", {
+      marker: JSON.stringify({
+        schema: 1,
+        pid: process.pid,
+        startTime: "Wed Sep  9 08:15:07 2026",
+      }),
+      mtimeMs: OLD,
+    });
+
+    const { entries, diagnostics } = sweepDomain(base, { now: NOW });
+    expect(outcomeFor(entries, "live-old-build").decision).toEqual({
+      action: "declined",
+      limb: 1,
+      inputClass: "liveness-token-convention",
+    });
+    // Still there. This is the assertion the whole gate exists for.
+    expect(existsSync(join(base, "live-old-build"))).toBe(true);
+    // AC-0083: a control whose failure mode emitted nothing would be
+    // unobservable exactly when it matters.
+    expect(
+      diagnostics.some((line) => line.includes("liveness-token-convention")),
+    ).toBe(true);
+  });
+
+  it("declines a token rendered under some later convention", () => {
+    const base = domain();
+    candidate(base, "future-build", {
+      marker: JSON.stringify({
+        schema: 1,
+        pid: process.pid,
+        startTime: readProcessStartTime(process.pid),
+        tokenConvention: "lang-c/lc-all-c/tz-utc/iso-8601",
+      }),
+      mtimeMs: OLD,
+    });
+
+    expect(
+      outcomeFor(sweepDomain(base, { now: NOW }).entries, "future-build")
+        .decision,
+    ).toMatchObject({
+      action: "declined",
+      inputClass: "liveness-token-convention",
+    });
+    expect(existsSync(join(base, "future-build"))).toBe(true);
+  });
+
+  it("does not fall through to the age-gated limb, which would reclaim it later", () => {
+    const base = domain();
+    // Old enough that limb 2 would take it if the gate merely made the marker
+    // unusable instead of declining. That is the wrong repair: it destroys the
+    // same live state root, only after the markerless-reclaim age.
+    candidate(base, "old-and-inconvertible", {
+      marker: JSON.stringify({
+        schema: 1,
+        pid: process.pid,
+        startTime: "Wed Sep  9 08:15:07 2026",
+      }),
+      mtimeMs: OLD,
+    });
+
+    const decision = outcomeFor(
+      sweepDomain(base, { now: NOW }).entries,
+      "old-and-inconvertible",
+    ).decision;
+    expect(decision).toMatchObject({ action: "declined", limb: 1 });
+    expect(decision).not.toMatchObject({ action: "reclaimed" });
+    expect(existsSync(join(base, "old-and-inconvertible"))).toBe(true);
+  });
+
+  it("still reclaims a dead process whose token this build can compare", () => {
+    // The discriminating positive: the gate must not turn limb 1 off. A marker
+    // recording this build's convention and naming a process that is gone is
+    // reclaimed exactly as before.
+    const base = domain();
+    candidate(base, "dead-same-convention", {
+      marker: deadMarker,
+      mtimeMs: YOUNG,
+    });
+
+    expect(
+      outcomeFor(
+        sweepDomain(base, { now: NOW }).entries,
+        "dead-same-convention",
+      ).decision,
+    ).toMatchObject({ action: "reclaimed", limb: 1 });
+    expect(existsSync(join(base, "dead-same-convention"))).toBe(false);
+  });
+
+  it("writes the convention into every marker it claims", () => {
+    // Binds the writer to the reader. Without this, the writer could stop
+    // recording the convention and every later sweep would decline everything
+    // -- fail-closed, but a silent leak of every state root.
+    const base = domain();
+    const created = createPerRequestStateRoot(base);
+    const written = JSON.parse(
+      readFileSync(created.markerPath, "utf8"),
+    ) as Record<string, unknown>;
+    expect(written.tokenConvention).toBe(LIVENESS_TOKEN_CONVENTION);
   });
 });

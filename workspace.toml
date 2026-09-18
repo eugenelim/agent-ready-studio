@@ -70,6 +70,24 @@ open = [
   # fail the spawn outright. Evidence:
   # notes/verification-ledger.md#review-round-31-2026-09-18.
   { slug = "spawn-failure-sentinel-signals-init", source = "connect-and-orient/2026-09-18" },
+  # AC-0116's scope over non-rendering sinks. Round 33 of Package 4 widened the
+  # criterion by owner decision to reach "the operands of a spawned transport
+  # command", with a carve-out for a shape-validated class member. Round 34
+  # found the widened limb unverifiable in this slice: AC-0116 sits in the
+  # "Desktop surface and rendering" Testing Strategy group, whose declared mode
+  # is renderer tests through the typed host boundary, and its only covering
+  # task T12 lists renderer assertions only, so no declared verification reaches
+  # the git fetch operand formed at git-driver.ts:139-156 or the gate at :186.
+  # Narrowed back by owner decision rather than widening the amendment to add a
+  # spawn-boundary verification. Two things to settle when the scope question is
+  # taken up: whether AC-0116 or a new criterion owns non-rendering sinks, and
+  # where the shape rule must hold -- resolveRevision applies EXACT_COMMIT_SHA
+  # at git-driver.ts:186, but materializeRevision accepts any value satisfying
+  # the plain ResolvedRevision interface at :49-54 and re-validates nothing
+  # before `git fetch -- <url> <sha>`. Unreachable today: both functions have
+  # only test callers, so no production path composes the gate with the spawn.
+  # Evidence: notes/verification-ledger.md#review-round-34-2026-09-18.
+  { slug = "connect-orient-transport-operand-sink-scope", source = "connect-and-orient/2026-09-18" },
 ]
 closed = []
 

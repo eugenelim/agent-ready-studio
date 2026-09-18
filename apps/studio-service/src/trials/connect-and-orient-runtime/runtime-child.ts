@@ -41,6 +41,13 @@ interface RuntimeChildPlan {
   /** Reserved by the Service; its children are created here, after the marker. */
   readonly stateRoot: string;
   readonly ownershipMarkerName: string;
+  /**
+   * Identifies the environment this build renders liveness tokens under.
+   * Delivered rather than duplicated, for the reason in the module header.
+   * Written into every marker this Runtime claims, and required to match
+   * before a persisted token is compared: see the sweep's limb 1 below.
+   */
+  readonly livenessTokenConvention: string;
   readonly materializationChildName: string;
   readonly homeChildName: string;
   readonly temporaryChildName: string;
@@ -171,7 +178,12 @@ function claimStateRoot(): void {
   if (typeof startTime !== "string" || startTime === "") {
     throw new Error(`the Runtime's own start time could not be read`);
   }
-  const marker = { schema: 1, pid: process.pid, startTime };
+  const marker = {
+    schema: 1,
+    pid: process.pid,
+    startTime,
+    tokenConvention: plan.livenessTokenConvention,
+  };
   const handle = openSync(
     join(plan.stateRoot, plan.ownershipMarkerName),
     "wx",
@@ -306,7 +318,9 @@ function sweep(domain: string): void {
     // The marker read carries the candidate's own discipline: no link, no
     // non-regular file.
     const markerPath = join(candidate, plan.ownershipMarkerName);
-    let marker: { pid?: unknown; startTime?: unknown } | undefined;
+    let marker:
+      | { pid?: unknown; startTime?: unknown; tokenConvention?: unknown }
+      | undefined;
     let markerPresent = false;
     try {
       const markerStatus = lstatSync(markerPath);
@@ -325,6 +339,21 @@ function sweep(domain: string): void {
       pid > 0 &&
       typeof startTime === "string" &&
       startTime !== "";
+
+    // A token rendered under another build's convention -- or under none,
+    // which is what a marker predating the pin carries -- cannot be compared
+    // against a rendering from this one. AC-0081 routes a comparison that
+    // cannot be made to a decline. Falling through to the age-gated limbs
+    // would leave a live Runtime's root reclaimable by age instead.
+    if (complete && marker?.tokenConvention !== plan.livenessTokenConvention) {
+      outcomes.push({
+        name,
+        action: "declined",
+        limb: 1,
+        inputClass: "liveness-token-convention",
+      });
+      continue;
+    }
 
     if (complete) {
       // Limb 1 carries no age gate.

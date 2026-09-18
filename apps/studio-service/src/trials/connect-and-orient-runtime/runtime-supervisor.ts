@@ -12,6 +12,7 @@ import {
 import { pinnedGitConfigurationArgs } from "./git-driver.js";
 import {
   HOME_CHILD_NAME,
+  LIVENESS_TOKEN_CONVENTION,
   MARKERLESS_RECLAIM_AGE_MS,
   MATERIALIZATION_CHILD_NAME,
   OWNERSHIP_MARKER_NAME,
@@ -301,6 +302,7 @@ export function beginTrialInspection(
     // import a sibling module, so these keep one source of truth for the
     // layout AC-0070 and AC-0080 describe.
     ownershipMarkerName: OWNERSHIP_MARKER_NAME,
+    livenessTokenConvention: LIVENESS_TOKEN_CONVENTION,
     materializationChildName: MATERIALIZATION_CHILD_NAME,
     homeChildName: HOME_CHILD_NAME,
     temporaryChildName: TEMPORARY_CHILD_NAME,
