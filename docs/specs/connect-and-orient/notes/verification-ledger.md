@@ -3474,7 +3474,7 @@ four combinations — all four now agree.
 
 | Finding | Severity | Applied |
 | --- | --- | --- |
-| The detector was vacuous on a UTC host, and spec and ledger recorded its result as verified fact | Blocker | Detector replaced and proven on both host zones and both sides; the ledger's round-28 verification corrected rather than left standing |
+| The detector was vacuous on a UTC host, and spec and ledger recorded its result as verified fact | Blocker | Detector replaced; the ledger's round-28 verification corrected rather than left standing. **This row's proof claim was false when written and is retracted in round 33**: the replacement was run on one host, not two, and round 30 found it still vacuous — see that entry |
 | The *Non-originated value* row left AC-0116's reach over derived values undecidable, and its exclusion was an open predicate | Blocker | The derived-value sentence carries its charset-validated exception, and the head closes to the two named charset rows |
 | The disposition roster enumerated sixteen immediately after retracting that figure | Concern | Now eighteen rows across seven tables, thirteen live, with r24 and r27 added |
 | The *Permitted executables* row misdescribed one Service-side caller's operand | Concern | States the operand class both callers pass — a validated integer identifier — and where validation happens |
@@ -3552,7 +3552,8 @@ to `/etc/localtime`, a real divergence — invisible on a host already in UTC.
 
 **No render-and-compare case can guard this**, which is what the two failed attempts were really
 demonstrating. The property that holds on every host is a property of the two *environments*. The
-binding detector is now structural, and proven against four mutations on both host zones:
+binding detector is now structural, and proven against four mutations on one host — see **One
+host, not two** below, which this lead-in contradicted until round 33:
 
 | Mutation | Result |
 | --- | --- |
@@ -3629,16 +3630,19 @@ security counterparts so each defect took one repair.
 
 **The detector needed both techniques, and four rounds failed because each attempt used one.**
 The pin breaks in two ways. The pinned set's contents can change — caught by asserting each
-environment whole, on any host. A call site can stop using the pinned set — caught by forcing a
-non-UTC zone into the rendering process, also on any host, because both compared values are then
-explicit and neither falls back to `/etc/localtime`. Round 29 forced a zone but both sides were
+environment whole, on any host. The **Service-side** call site can stop using the pinned set — caught by
+forcing a non-UTC zone into the rendering process, on any host whose zone database resolves that
+zone, because both compared values are then explicit and neither falls back to `/etc/localtime`.
+The Runtime-side call site is not bound by either case. **Both qualifications were added in round
+33**, which found this passage still carrying the unscoped form. Round 29 forced a zone but both sides were
 closed environments, which cannot observe an ambient, so it was inert. Round 30 asserted contents
 but nothing bound the call site to them: replacing `env: LIVENESS_RENDERING_ENVIRONMENT` with
 `{ ...process.env }` left the file green on a UTC host. **The two cases are complementary, not
 alternatives**, and round 29's failure is the reason the forcing works now: the mutation being
 detected is precisely a call site that *starts* inheriting from the process the test controls.
 
-Five mutations, both host zones, modules restored byte-identical:
+Five mutations on one host — `/etc/localtime` at America/Chicago, `TZ` unset — modules
+restored byte-identical:
 
 | Mutation | Result |
 | --- | --- |
@@ -3649,8 +3653,8 @@ Five mutations, both host zones, modules restored byte-identical:
 | `TZ` removed from the allowlist names | **1 failed** |
 | `...process.env` spread restored | **1 failed** |
 
-**One host, and this entry said so sixty lines earlier before contradicting
-itself.** An earlier version of this table carried a second column headed "Host
+**One host, and the round-30 entry above had already said so before this table
+contradicted it.** An earlier version of this table carried a second column headed "Host
 UTC", produced by `TZ=UTC npx vitest run` — the technique the round-30
 correction above rules out by name. **No run was made with `/etc/localtime`
 pointing at UTC**, and this session cannot change it. Round 32 caught the
@@ -3658,9 +3662,10 @@ contradiction. The counts above are the America/Chicago host, `TZ` unset.
 
 **What the two cases each catch, since one table cannot show it.** The structural case catches the
 pinned set's contents changing, and does so without reference to any host. The forcing case
-catches a call site that stops using the pinned set: it writes `Pacific/Kiritimati` into this
-process, so an inheriting call site reads that and a pinned one does not, and both compared values
-are explicit. An earlier version of this passage argued the two columns differed because the zone
+catches the Service-side call site ceasing to use the pinned set: it writes `Pacific/Kiritimati`
+into this process, so an inheriting call site reads that and a pinned one does not, and both
+compared values are explicit. It needs a host whose zone database resolves that zone, and it does
+not reach the Runtime-side call site. An earlier version of this passage argued the two columns differed because the zone
 knob reached the call-site mutation alone. That was wrong about mechanism: the forcing case pins
 the zone itself and behaves identically either way, so the row that moved with the vitest `TZ` was
 the corroboration case — which is host-dependent by design and is not the detector.
@@ -3669,7 +3674,7 @@ the corroboration case — which is host-dependent by design and is not the dete
 
 | Finding | Severity | Applied |
 | --- | --- | --- |
-| The detector could not fail when the Service seam stopped using the pin | Blocker | Second case added; both mutation classes now covered on any host |
+| The detector could not fail when the Service seam stopped using the pin | Blocker | Second case added; both mutation classes covered on the Service side, on hosts whose zone database resolves the forced zone. **Round 33 qualified this row**, which had read "on any host" |
 | The *Environment allowlist* preamble described the deleted forced-ambient test | Blocker | Restated against the two cases that exist |
 | The Testing Strategy group's ground for AC-0159 carried the same deleted description | Blocker | Restated; a separate artifact from the preamble, separately edited |
 | T13's rationale repeated the stale claim about the artifact it gates | Concern | Restated |
@@ -3708,9 +3713,11 @@ Signature and judging rule at `pre-existing-trial-runtime-load-flake` in `[backl
 
 ## review-round-32-2026-09-18
 
-**Both mandatory reviewers; 9 findings raised, 6 sustained, none refuted, one returned
-indeterminate on an owner decision.** The adversarial adjudication covered all three security
-findings, so one repair was applied per defect and no second adjudication was needed.
+**Both mandatory reviewers; 10 findings raised — 7 adversarial and 3 security.** Of the seven,
+six were sustained and one returned indeterminate on an owner decision; none was refuted. Each
+security finding restated a sustained adversarial one — the precedence rule, the Service-side-only
+binding, and the forced-zone guard — so six distinct defects were sustained, one repair was
+applied per defect, and no second adjudication was needed.
 
 **Sustained findings by round: 13, 13, 10, 11, 6.** The composition changed as well as the count.
 Neither Blocker this round is a defect in the mechanism — the two detector cases work, and the
@@ -3719,7 +3726,7 @@ findings are the same shape: a general statement where only the specific one was
 
 **The worst finding is a self-contradiction inside one entry.** Round 31 dropped round 30's
 two-column mutation table and stated the ground — this session cannot change the host's system
-zone. Sixty lines later it presented a new two-column table produced by `TZ=UTC npx vitest run`,
+zone. Later in the same entry it presented a new two-column table produced by `TZ=UTC npx vitest run`,
 the technique that sentence rules out by name. The asymmetry argument offered as proof named the
 wrong case: the forcing case pins `Pacific/Kiritimati` into the process itself and behaves the
 same either way, so the row that moved was the corroboration case, which is host-dependent by
@@ -3761,3 +3768,81 @@ load this session has seen. Taken with the reds at 36 to 55 and the repeated two
 passes, the band now reads: green at 8.8 and 15, one failure at 40, three to four at 44 to 55,
 twelve at 172. That is a load curve, not a defect curve, and it is the strongest evidence yet for
 the diagnosis recorded at `pre-existing-trial-runtime-load-flake` in `[backlog].open`.
+
+## review-round-33-2026-09-18
+
+**Both mandatory reviewers; 12 findings raised — 7 adversarial and 5 security.** All seven
+adversarial findings were sustained; two security findings restated sustained adversarial ones
+(the forcing case's title, the Runtime-side audit ground), two were refuted, and one returned
+indeterminate on an owner decision. Seven distinct defects, one repair each.
+
+**Every sustained finding this round is a false or unsupported claim about the detector, not a
+defect in it.** The mechanism has been stable since round 31: two complementary cases, five
+mutations, all proven. What keeps failing is the record of them. This is the fifth consecutive
+round whose findings are dominated by the same shape — a general statement where only the
+specific case was checked — and the first in which no finding touched behaviour at all.
+
+**The repairs did not reach as far as the record claimed, twice over.** Round 32 dropped the
+mislabelled second host column from round 31's table but left the lead-in above it saying "both
+host zones"; the adjudicated finding named that lead-in. The claim sweep then found the identical
+residue at two further surfaces no finding had cited: round 30's table carried a lead-in
+contradicting its own correction ten lines below, and round 29's applied row claimed the detector
+was "proven on both host zones and both sides" — a proof that never ran on two zones and that
+round 30 went on to find vacuous. Both are corrected in place and marked as round-33 retractions.
+
+**The wrong-distance defect recurred.** Round 33 removed "sixty lines earlier" from round 31's
+entry as an invented measurement attributing the contradiction to the wrong entry. The sweep found
+"Sixty lines later" in round 32's narrative, and the applied row at `:3077` shows a third instance
+already recorded and repaired in an earlier round. Positional references to other entries are now
+replaced by naming the entry.
+
+**The owner decision on the indeterminate finding.** AC-0116's prohibition reaches non-rendering
+sinks, including the operands of a spawned transport command, with one carve-out conditional on a
+check that already exists: a class member whose shape is validated against a stated rule before
+the spawn may be passed as such an operand, which is how the remote-resolved revision passes under
+the exact-commit-SHA rule.
+
+### Sustained and applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The mutation table's lead-in still claimed two host zones | Blocker | Lead-in names the one configuration the counts came from, matching the correction below it |
+| The forcing case's title and comment claimed unconditional host-independence | Blocker | Both state the zone-resolution condition the case's own guard depends on |
+| The round-31 entry recorded both repaired claims unqualified, including in text round 32 newly wrote | Blocker | Each statement qualified in place to the Service side and to hosts resolving the forced zone |
+| The sorted-key comment's stated hazard did not hold for the mutation it named | Concern | States what is actually lost silently — an allowlist name outside the determinism triple |
+| The spec's ground for leaving the Runtime-side call site unbound misdescribed the audit | Concern | The audit leg is recorded as carrying names only, never values |
+| The round-32 finding tally did not reconcile | Concern | Restated from that round's own records: 10 raised, 7 adversarial and 3 security, 6 distinct defects sustained |
+| The self-contradiction was attributed to the wrong entry and an invented distance | Nit | Names the round-30 entry; the distance is dropped |
+
+**Found by the claim sweep, not by a reviewer.** Round 30's table lead-in and round 29's applied
+row, both carrying the retired "both host zones" claim; round 32's "Sixty lines later". Corrected
+in place with their retractions marked.
+
+**Applied-check result.** All thirteen assertions passed — eleven presence claims across the three
+edited files and two absence claims ("both host zones", "9 findings raised") confirming the
+retired wording survives nowhere in the spec, plan, ledger or runtime tests. The check compares
+text against text; it does not verify that any claim is licensed by its evidence, which is where
+this round's findings and the four before them landed.
+
+### Round 33 gate state
+
+`pnpm lint` exit 0 over 105 files; `pnpm typecheck` exit 0; `spec-coupling-check` 0 findings;
+`lint-contract-item-alignment` 0 findings (its stale-assertion rule had no `--since` input, so
+that one rule did not run); `lint-spec-status --all` clean across both specs; roster 157 list
+items, 157 unique, no duplicates, matching the declared count at `spec.md:428`. The pinned
+completed-task section hashes are enforced by the `contract-amendment` transition and were not
+re-verified here; the engine is at `SPEC-PLAN-DRAFTING`, sequence 82.
+
+`per-request-state-root.test.ts`, which carries this round's code repairs, is 20 of 20.
+
+**The full suite failed once and then passed, and the load reading went the wrong way.** The first
+run was 569 of 570 at load average 14.4, failing one SIGTERM disposal assertion in
+`disposal.test.ts`; the immediate re-run was 570 of 570 at load 23.2. `disposal.test.ts` then
+passed twice in isolation, 7 of 7 each time, so the failure is non-deterministic and the file is
+in the known family. But a green run at 23.2 above a red run at 14.4 does not fit the load curve
+recorded in round 32, which read green at 8.8 and 15 and reds from 40 up. **Load average is at
+best a proxy here** — it says nothing about which processes were contending for the same
+filesystem and signal paths this suite uses. The contention diagnosis at
+`pre-existing-trial-runtime-load-flake` still fits the two-in-isolation evidence; the monotone
+reading of the load numbers does not, and round 32's band should be read as correlation on a
+noisy proxy rather than a curve.

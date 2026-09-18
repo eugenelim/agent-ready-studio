@@ -217,23 +217,26 @@ describe("AC-0076 and AC-0079 one removal takes the whole state root", () => {
     //
     // That detection holds only while `buildPinnedEnvironment` assigns each name
     // literally. Refactor it to iterate `ENVIRONMENT_ALLOWLIST_NAMES` and the two
-    // sides of this comparison become the same list, the assertion turns
-    // tautological, and the allowlist-names mutation stops being caught here
-    // with nothing failing to say so.
+    // sides of this comparison become the same list and the assertion turns
+    // tautological. Removing `TZ` would still redden — the three-name loop above
+    // catches that, since `runtimeSide.TZ` becomes undefined — so what is lost
+    // silently is any allowlist name *outside* the determinism triple.
     expect(Object.keys(runtimeSide).sort()).toEqual(
       [...ENVIRONMENT_ALLOWLIST_NAMES].sort(),
     );
   });
 
-  it("AC-0159 binds the Service-side call site to the pinned set, on any host", () => {
+  it("AC-0159 binds the Service-side call site to the pinned set, on any host whose zone database resolves the forced zone", () => {
     // The other half. The case above asserts what the pinned set contains; it
     // cannot tell whether `readProcessStartTime` still uses it. Replacing that
     // call's `env` with `{ ...process.env }` left the whole file green on a UTC
     // host — recorded at `notes/verification-ledger.md#review-round-31-2026-09-18`.
     //
-    // Forcing a non-UTC zone into this process catches that on **any** host,
-    // because both compared values are then explicit and neither falls back to
-    // `/etc/localtime`. Round 29 forced a zone too and it was inert: both sides
+    // Forcing a non-UTC zone into this process catches that independently of the
+    // host's own zone, because both compared values are then explicit and neither
+    // falls back to `/etc/localtime`. It is not unconditional: the host's zone
+    // database must resolve the forced zone, or `ps` renders UTC and the guard
+    // below fails for an environmental reason rather than an AC-0159 breach. Round 29 forced a zone too and it was inert: both sides
     // were closed environments, which cannot see an ambient. What makes it work
     // here is that the mutation being detected is precisely a call site that
     // *starts* inheriting from this process.

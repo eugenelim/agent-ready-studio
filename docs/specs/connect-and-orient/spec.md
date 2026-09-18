@@ -130,9 +130,10 @@ rendering process and compares the reader's output against an explicitly pinned
 rendering, which catches **the Service-side** call site ceasing to use the
 pinned set, independently of the host's own zone because both compared values
 are then explicit. **Two limits are stated rather than left to be discovered.**
-It binds only that call site: the Runtime's rendering runs inside the child, and
-its spawn audit records the environment object's own keys rather than what was
-passed, so no case here observes it. And it needs the forced zone to resolve —
+It binds only that call site. The Runtime's rendering runs inside the child, and
+the audit leg that records its spawn carries **names only, never values** — while
+AC-0159 is an obligation over three values — so recording the environment more
+faithfully would still observe nothing, and no case here reaches it. And it needs the forced zone to resolve —
 on a host whose zone database lacks it, `ps` falls back to UTC and the case's
 own guard fails, closed but for an environmental reason.
 
@@ -591,7 +592,7 @@ assisted authoring and has known false negatives.
 - [ ] **AC-0113.** The `cancelled` state tells the lead they stopped the inspection and how to restart it.
 - [ ] **AC-0114.** Where a verdict was reached, the verdict takes the highest content-contrast and largest type role on the surface, per the composition rule; where the verdict is `no-verdict` the condition takes that role instead, also per the composition rule. In both cases the revision identity takes the highest provenance role and is subordinate to whichever holds the primary role.
 - [ ] **AC-0115.** Every non-originated value in *Canonical values* renders as literal text, and is announced as literal text where it enters an announcement channel, on every surface and channel this slice introduces: the connect surface, the progress states, the verdict surface, the secondary diagnostic surface, and the polite live region. Embedded HTML, script or command content is never executed. The obligation is stated over the class of value rather than an enumeration of sinks, so adding a surface cannot silently escape it.
-- [ ] **AC-0116.** No non-originated value in *Canonical values* is used as a URL, resource reference, or navigation target, and the host window refuses navigation and new-window requests it did not originate.
+- [ ] **AC-0116.** No non-originated value in *Canonical values* is used as a URL, resource reference, or navigation target, and the host window refuses navigation and new-window requests it did not originate. **The prohibition reaches non-rendering sinks, including the operands of a spawned transport command** — stated because the *Non-originated value* row's exclusion of the derived owner and repository rests on it, and a renderer-only reading would leave that exclusion ungrounded. **One carve-out, and it is conditional on a check that exists:** a class member whose shape is validated against a stated rule before the spawn may be passed as such an operand. The remote-resolved revision passes under the exact-commit-SHA rule and is fetched by that operand; it stays in the class, so AC-0115 continues to require it render and be announced literally. A future transport operand taking a class member must name the rule that gates it.
 - [ ] **AC-0117.** Diagnostics carrying no next action, and raw child-process output, are collapsed by default on a secondary surface.
 - [ ] **AC-0118.** No surface renders a chart.
 - [ ] **AC-0119.** No degraded condition renders a generic success treatment. A verdict rendered at the subordinate role beneath a degraded condition keeps its own identity treatment and does not violate this.
