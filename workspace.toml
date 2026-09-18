@@ -51,6 +51,25 @@ open = [
   # the condition for reopening and this is a second, independent trigger.
   # Evidence: notes/verification-ledger.md#review-round-29-2026-09-18.
   { slug = "liveness-read-fails-open-to-reclaim", source = "connect-and-orient/2026-09-18" },
+  # Spawn-failure sentinel reaches a signal site as pid 1. Found by round 31's
+  # secure-design review of Package 4 and routed out by owner decision rather
+  # than widening that amendment, which does not touch this file.
+  # runtime-supervisor.ts:354 reads `const childPid = child.pid ?? -1`, and
+  # signalProcessGroup evaluates `process.kill(-pgid, signal)` -- so -1 becomes
+  # process.kill(1, signal), a signal to init, swallowed by a bare catch rather
+  # than doing nothing. The same value also flows to sampleProcessGroup,
+  # sampleProcessGroupAsync and waitForGroupToClear, and on to
+  # process-tree-observer.ts, where no integer or positivity check exists.
+  # Under the desktop app's unprivileged user this is EPERM and caught, which is
+  # why it is not urgent. Pre-existing: this file is unchanged by Package 4,
+  # which is relevant only because its amended *Permitted executables* row newly
+  # grounds that operand as "a process-group id that carries no runtime check
+  # because Studio minted it itself" -- true of provenance, but -1 is not a
+  # group id. Repair shape is an owner choice: reject the sentinel at
+  # signalProcessGroup's entry, propagate undefined and guard five consumers, or
+  # fail the spawn outright. Evidence:
+  # notes/verification-ledger.md#review-round-31-2026-09-18.
+  { slug = "spawn-failure-sentinel-signals-init", source = "connect-and-orient/2026-09-18" },
 ]
 closed = []
 
