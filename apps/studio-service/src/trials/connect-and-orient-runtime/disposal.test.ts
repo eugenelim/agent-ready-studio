@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -219,6 +220,105 @@ describe("AC-0082 the Service invokes the sweep without performing it", () => {
         inputClass: "liveness-token-convention",
       }),
     );
+    expect(existsSync(root)).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("routes an incomparable token whose process is gone to the age-gated limb", async () => {
+    // The bound, at the reader that actually runs. The sibling case above
+    // covers the decline while the pid is live; this covers the other side,
+    // which is what keeps retention bounded. Without it the child could stop
+    // routing these to limb 2 and no case would notice, while the Service-side
+    // reader -- which has no production caller -- stayed green.
+    const root = join(sweepDomain, "gone-old-convention");
+    mkdirSync(root, { mode: 0o700 });
+    writeFileSync(
+      join(root, ".studio-ownership.json"),
+      `${JSON.stringify({
+        schema: 1,
+        pid: 99998,
+        startTime: "Wed Sep  9 08:15:07 2026",
+      })}\n`,
+    );
+    chmodSync(root, 0o700);
+    // Older than the reclaim age, so the age gate admits it.
+    const aged = (Date.now() - 2 * 60 * 60 * 1000) / 1000;
+    utimesSync(root, aged, aged);
+
+    const record = await run("disposal-0010");
+    const swept = record.protocolLines.find((line) => line.type === "sweep");
+    const outcomes = (swept?.outcomes ?? []) as Record<string, unknown>[];
+    expect(outcomes).toContainEqual(
+      expect.objectContaining({
+        name: "gone-old-convention",
+        action: "reclaimed",
+        limb: 2,
+      }),
+    );
+    expect(existsSync(root)).toBe(false);
+  });
+
+  it("reclaims a live pid's incomparable root once it outlives the reclaim age", async () => {
+    // The recycled-pid case at the child. The marker names a process that is
+    // live -- this test process -- but its token cannot be compared, so
+    // nothing establishes that the live process is the one the marker names.
+    // Past the reclaim age it cannot be: the child SIGKILLs its own group at
+    // the inspection deadline. Without the age bound this root is held for the
+    // lifetime of whatever recycled the pid.
+    const root = join(sweepDomain, "recycled-pid-child");
+    mkdirSync(root, { mode: 0o700 });
+    writeFileSync(
+      join(root, ".studio-ownership.json"),
+      `${JSON.stringify({
+        schema: 1,
+        pid: process.pid,
+        startTime: "Wed Sep  9 08:15:07 2026",
+      })}\n`,
+    );
+    chmodSync(root, 0o700);
+    const aged = (Date.now() - 2 * 60 * 60 * 1000) / 1000;
+    utimesSync(root, aged, aged);
+
+    const record = await run("disposal-0011");
+    const swept = record.protocolLines.find((line) => line.type === "sweep");
+    const outcomes = (swept?.outcomes ?? []) as Record<string, unknown>[];
+    expect(outcomes).toContainEqual(
+      expect.objectContaining({
+        name: "recycled-pid-child",
+        action: "reclaimed",
+        limb: 2,
+      }),
+    );
+    expect(existsSync(root)).toBe(false);
+  });
+
+  it("does not decline a young incomparable root whose process is absent", async () => {
+    // Binds the liveness half of the child's gate. The candidate is young, so
+    // the age gate holds it either way -- but it must be held as "younger than
+    // the reclaim age", not as a declined liveness comparison. A gate that
+    // dropped the liveness condition and declined on the token alone would
+    // pass every other case in this file.
+    const root = join(sweepDomain, "young-gone-old-convention");
+    mkdirSync(root, { mode: 0o700 });
+    writeFileSync(
+      join(root, ".studio-ownership.json"),
+      `${JSON.stringify({
+        schema: 1,
+        pid: 99998,
+        startTime: "Wed Sep  9 08:15:07 2026",
+      })}\n`,
+    );
+    chmodSync(root, 0o700);
+
+    const record = await run("disposal-0012");
+    const swept = record.protocolLines.find((line) => line.type === "sweep");
+    const outcomes = (swept?.outcomes ?? []) as Record<string, unknown>[];
+    const mine = outcomes.filter(
+      (outcome) => outcome.name === "young-gone-old-convention",
+    );
+    for (const outcome of mine) {
+      expect(outcome.inputClass).not.toBe("liveness-token-convention");
+    }
     expect(existsSync(root)).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });

@@ -79,7 +79,13 @@ export interface OwnershipMarker {
    * `tokenConvention`, which is the field that actually governs, and a reader
    * that rejected an unknown schema outright would reclaim by age what it
    * should decline. It is written so a later build that needs to tell the
-   * shapes apart can, and it is kept honest so that build is not misled.
+   * shapes apart can, with one limit that build must know: `1` is ambiguous.
+   * Two shapes were written under it -- the pre-pin marker with no
+   * `tokenConvention`, and the one that carried a convention before this field
+   * was bumped -- and bumping does not disambiguate them retroactively. Read
+   * `1` as "a convention may or may not be present"; only `2` and later are
+   * exact. `tokenConvention`'s own presence and value is the reliable test,
+   * which is why it, and not this field, governs comparability.
    */
   readonly schema: 2;
   readonly pid: number;

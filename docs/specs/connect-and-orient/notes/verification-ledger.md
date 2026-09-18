@@ -847,7 +847,7 @@ that holds, implemented and proven by an exhaustive per-prefix test in
 > process identity and a start time, or yields exactly the complete marker's values.
 
 The first disjunct is AC-0081's second-limb input; the second cannot misstate ownership.
-The encoding that realizes it is single-line JSON with the start time last. Recorded at
+The encoding that realizes it is single-line JSON with the start time last. **Superseded — see round 35**: the marker gained a field after the start time, and the ground the claim needs is that the closing brace is written last. Recorded at
 `#t5-progress-2026-09-16` as the second of two defects this increment's own tests caught.
 
 **Decision 4 — extend the enumeration.** The head — "any value whose bytes Studio did not
@@ -4101,8 +4101,7 @@ first three run `sweep.test.ts`, 25 cases; the last two run `disposal.test.ts`, 
 reddens, so the bound is held by a test rather than by intention.
 
 **M4 did not redden, and it is the same class as round 34's M5.** `runtime-supervisor.ts` is the
-sole producer of the child plan and always supplies the convention, and the field is typed
-required, so no reachable path omits it and no test can exercise the validation without an
+sole producer of the child plan and always supplies the convention, so no reachable path omits it and no test can exercise the validation without an
 injection seam this amendment does not have. The validation is defence against a future producer.
 **Uncovered, named rather than implied covered** — as it was last round, and for the same reason.
 
@@ -4120,3 +4119,130 @@ producer of the child plan and always supplies the convention, so a startup thro
 fail-closed validation is not reachable and cannot explain a reduced descendant count. Known
 family. **This green at load 29.55, above the red at 14.4 recorded in round 33, is a second data
 point against reading the load numbers as a curve.**
+
+## review-round-36-2026-09-18
+
+**Both mandatory reviewers, scoped to round 35's narrowing; 13 findings raised — 8 adversarial and
+5 security. 11 sustained, 2 refuted, none indeterminate.** Two Blockers were retained through
+adjudication, the first since round 33.
+
+**The narrowing was wrong, and the way it was wrong is this amendment's own signature.** Round 35
+bounded the token-convention decline on the named process being live, on the stated ground that
+"absence is established without comparing any token bytes, since no process carries the recorded
+identity under any convention". A marker's identity is its process identity **and** its start
+time — that pairing is how AC-0081 defeats pid reuse, weighed in this ledger when the `flock`
+route was considered. An incomparable token is exactly one whose start time cannot be compared, so
+the liveness read establishes only that some process holds the recorded **pid**. A recycled pid
+held the root for its new holder's lifetime, which is unbounded — and the incomparable population
+is by construction old roots from a prior build, whose pids are the likeliest to have been
+recycled. **The bound round 35 recorded as restored was not restored for the class most likely to
+need it.** A general claim licensed by only part of the evidence, for the fourth consecutive round.
+
+**Closed by owner decision: bound the decline on age as well as liveness.** The decline now
+requires the pid to be live **and** the candidate to be younger than the markerless-reclaim age.
+No Runtime can legitimately be older — `runtime-child.ts` arms a timer that signals its own
+process group at the inspection deadline, so it cannot outlive the 150 s maximum window, against
+which the one-hour age carries roughly twenty-four times the headroom. Past that age, whatever
+holds the pid is not the Runtime the marker names. Retention now terminates for every incomparable
+root, including the recycled-pid subclass, with no residual to record.
+
+**The criterion contradicted itself, and three surfaces stated the stale form.** AC-0081 removes a
+candidate "only when one of three limbs holds", and limb 2's input class was "a marker that cannot
+be parsed, or that does not yield both a process identity and a start time". An incomparable
+marker parses and yields both, so no limb admitted the class the code was deleting under limb 2.
+Limb 2's input class is now stated as the markers the first limb cannot decide on, in AC-0081, the
+*Markerless-reclaim age* row and the sweep docstring together.
+
+**A fail-open sat beside the field validated last round, and was more dangerous than it.** Round
+35 added a fail-closed check for the delivered convention. `plan.markerlessReclaimAgeMs` gates
+every destructive limb and had neither a default nor validation on the child side, and it fails
+open rather than closed: `now - modifiedAt <= undefined` is `false`, so an absent bound does not
+retain a young candidate, it reclaims it on sight — including a root another request reserved
+seconds earlier in the `mkdtemp`-to-marker window that the gate is the only protection for. Now
+validated at the same seam.
+
+**Two findings were refuted, both as observation errors**: a claimed contradiction between the
+round-34 and round-35 mutation baselines, which name different scopes on their own faces, and a
+claimed arithmetic failure in the round-35 counts, which reconcile as findings.
+
+### Sustained and applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The bounded decline rested on pid alone, so a recycled pid retained an incomparable root without limit | Blocker | Decline bounded on liveness and age together; AC-0081 asserts only the absence the code determines and states the deadline ground for the age |
+| AC-0081's limb enumeration did not admit the class the code deletes under limb 2 | Blocker | Limb 2's input class restated on all three surfaces as the markers the first limb cannot decide on |
+| The child's destructive age bound was unvalidated and failed open to reclaim | Concern | Refused when absent or not a finite non-negative number, at the seam the convention check uses |
+| The production-reachable reader's fallthrough had no verification artifact | Concern | Three cases at the child's own boundary: the age-gated reclaim, the recycled-pid reclaim, and the young-and-absent skip |
+| Removal-failure diagnostics interpolated the unescaped filesystem-supplied path | Concern | Both the path and the reason go through the same seam as the entry name |
+| The M4 rationale cited a typed-required guarantee TypeScript does not give at runtime | Concern | Clause dropped; the sole-producer ground stands alone |
+| AC-0081's observe-then-delete ground named a start-time comparison the new route never makes | Nit | The conjunct is attached to the limb that uses it; the age-gated limbs rest on the never-reused name and their own gate |
+| A fourth surface still carried the start-time-last ground | Nit | Marked superseded in place |
+| The escaping added last round was bound by no test | Nit | A case asserts an entry name carrying a line break cannot produce a second diagnostic line |
+| The schema docblock overstated what value 1 distinguishes | Nit | States that 1 is ambiguous across two shapes and that `tokenConvention` is the reliable test |
+| The Service-side removal walk recurses without a depth bound, its recursion outside the guarded blocks | Nit | **Not repaired this round** — see below |
+
+**The depth-bound finding is recorded, not fixed.** A `RangeError` from stack exhaustion in the
+Service-side walk escapes `sweepDomain` and abandons the remaining candidates. It is pre-existing,
+needs the sweep domain's own uid, the child's mirrored recursion does not carry it because that
+recursion sits inside its `try`, and the adjudication recorded the proposed mechanism as absent
+with the route left to the owner. Repairing it would add a control to a path this amendment does
+not otherwise touch. Routed to `connect-orient-sweep-walk-depth-bound` in `[backlog].open`.
+
+### Round 36 mutation proof
+
+One host — `/etc/localtime` at America/Chicago, `TZ` unset — modules restored byte-identical.
+Service-side mutations run `sweep.test.ts`, 26 cases; child mutations run `disposal.test.ts`, 11.
+
+| Mutation | Result |
+| --- | --- |
+| Service baseline | 26 of 26 pass |
+| S1 — the age bound removed, leaving round 35's liveness-only decline | **1 failed** |
+| S2 — the liveness condition dropped, declining on age alone | **1 failed** |
+| S3 — the entry-name escaping reverted to bare interpolation | **1 failed** |
+| S4 — the convention check removed entirely | **5 failed** |
+| Child baseline | 11 of 11 pass |
+| C1 — the child's age bound removed | **1 failed** |
+| C2 — the child's liveness condition dropped | **1 failed** |
+| C3 — the child's fail-closed age-bound validation removed | **0 failed — not caught** |
+
+**S1 and C1 are the cases that bind this round's decision**, and S2 and C2 hold the other half:
+neither condition alone produces the behaviour, on either reader.
+
+**C3 did not redden, and it is the third mutation of this class.** `runtime-supervisor.ts:328`
+supplies `markerlessReclaimAgeMs` through `options.markerlessReclaimAgeMs ?? MARKERLESS_RECLAIM_AGE_MS`,
+so no reachable path omits it and no test can exercise the validation without an injection seam
+this amendment does not have. The same is true of round 35's M4 and round 34's M5. All three are
+defence against a future producer. **Uncovered, named rather than implied covered.**
+
+### Round 36 gate state
+
+`pnpm lint` exit 0 over 105 files; `pnpm typecheck` exit 0; `spec-coupling-check` 0 findings;
+`lint-spec-status --all` clean.
+
+**`pnpm test` was run four times, and the record is all four rather than the best.**
+
+| Load average | Result |
+| --- | --- |
+| 10.16 | 580 of 581 — AC-0025's descendant-count assertion |
+| 13.26 | 579 of 581 — AC-0023 and AC-0025, both descendant observation |
+| 14.85 | 577 of 582 — five, including AC-0078 and **two of this round's new child cases** |
+| 35.62 | **582 of 582** |
+
+Every failing file passed twice in isolation: `runtime-supervisor.test.ts` at 23 of 23 and
+`disposal.test.ts` at 11 of 11. **The two new cases were checked as suspects rather than assumed
+innocent**, because a test that fails in the suite it was added to is the obvious candidate. They
+use the same `run()` harness as the pre-existing cases that failed beside them, and that harness
+is what the documented signature describes: the single-in-flight guard turns one timed-out
+inspection into several apparent failures, so a run with no `sweep` protocol line fails every
+assertion that reads one. AC-0078 failing in the same run is a pre-existing case in that family.
+This round's code change was also checked and cleared: the second throw added to `claimStateRoot`
+is unreachable, because `runtime-supervisor.ts:328` always supplies a number through
+`options.markerlessReclaimAgeMs ?? MARKERLESS_RECLAIM_AGE_MS`.
+
+**The green came at load 35.62, the highest reading this ledger records for a full run, and the
+three reds came at 10 to 15.** Taken with round 33's red at 14.4 against a green at 23.2, and
+round 35's green at 29.55, the load numbers now correlate with nothing. **Round 32's band is
+withdrawn rather than narrowed.** What the evidence supports is that these failures are
+non-deterministic and confined to the trial-runtime harness; load average has not predicted them
+in any of the last four rounds, and the diagnosis at `pre-existing-trial-runtime-load-flake`
+should be read as naming a harness, not a cause.

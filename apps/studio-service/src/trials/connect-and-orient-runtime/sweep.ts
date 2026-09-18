@@ -10,9 +10,10 @@
  *
  * 1. it carries a parseable marker whose recorded process and start time do not
  *    match a live process;
- * 2. it carries a marker that cannot be parsed, **or that does not yield both a
- *    process identity and a start time**, and is older than the
- *    markerless-reclaim age;
+ * 2. it carries a marker the first limb cannot decide on -- **one that cannot
+ *    be parsed, that does not yield both a process identity and a start time,
+ *    or whose liveness token this build cannot compare** -- and is older than
+ *    the markerless-reclaim age;
  * 3. it carries no marker, contains no entries, and is older than that age.
  *
  * Every age read is the **candidate directory's own modification time**, never
@@ -25,11 +26,15 @@
  * comparison — it is limb 2's input, and limb 2 reclaims it on its age gate.
  *
  * Retention stays bounded for the token-convention class too, which is why the
- * decline is conditioned on liveness rather than on the token alone. A process
- * that is absent is absent under any rendering convention, so an incomparable
- * token whose process is gone is limb 2's input and ages out; only a live
- * process with an incomparable token is undecidable, and that decline lasts no
- * longer than the process does.
+ * decline is conditioned on liveness **and** on age rather than on the token
+ * alone. An incomparable token cannot be compared against the live rendering,
+ * so a liveness read establishes only that some process holds the recorded
+ * pid, not that it is the one the marker names -- start time is what separates
+ * those, and it is what is missing. A recycled pid would hold the root for its
+ * new holder's lifetime. So the decline also requires the candidate to be
+ * younger than the reclaim age, which no Runtime can outlive: the child
+ * SIGKILLs its own process group at the inspection deadline. Past that age, or
+ * with the pid absent, the root is limb 2's input and ages out.
  */
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -185,7 +190,9 @@ export function sweepDomain(
       );
     }
     for (const failure of removalDiagnostics) {
-      diagnostics.push(`removal failed for ${failure.path}: ${failure.reason}`);
+      diagnostics.push(
+        `removal failed for ${forDiagnostic(failure.path)}: ${forDiagnostic(failure.reason)}`,
+      );
     }
   };
 
@@ -241,22 +248,33 @@ export function sweepDomain(
         });
         continue;
       }
-      // Absence is established without comparing token bytes: no process
-      // carries that identity, whatever convention rendered the marker. So a
-      // token this build cannot compare only matters while the named process
-      // is running -- otherwise the root is abandoned like any other, and
-      // falls to the age-gated limb below rather than being retained forever.
-      if (liveStartTime !== null && marker.kind === "inconvertible-token") {
-        // The process is live and its token is not comparable, so whether this
-        // root is in use cannot be decided. AC-0081 routes that to a decline.
-        // Reaching the age-gated limb instead would reclaim a live Runtime's
-        // root once it aged; comparing the bytes would delete it at once.
-        record(name, {
-          action: "declined",
-          limb: 1,
-          inputClass: "liveness-token-convention",
-        });
-        continue;
+      // An incomparable token cannot be checked against the live rendering, so
+      // the only liveness signal here is that *some* process holds the recorded
+      // pid -- not that it is the process the marker names. Start time is what
+      // distinguishes those, and it is exactly what cannot be compared. So a
+      // recycled pid would hold this root forever on liveness alone.
+      //
+      // Two conditions therefore gate the decline. The pid must be live, and
+      // the candidate must be younger than the reclaim age. No Runtime can
+      // legitimately be older: the child arms a timer that SIGKILLs its own
+      // process group at the inspection deadline, 150 s at the most, and the
+      // reclaim age carries roughly twenty-four times that. Past it, whatever
+      // holds the pid is not the Runtime this marker names, and the root goes
+      // to the age-gated limb like any other abandoned one.
+      if (marker.kind === "inconvertible-token") {
+        const modifiedAt = status.mtimeMs;
+        const young =
+          Number.isFinite(modifiedAt) &&
+          modifiedAt <= now &&
+          now - modifiedAt <= reclaimAgeMs;
+        if (liveStartTime !== null && young) {
+          record(name, {
+            action: "declined",
+            limb: 1,
+            inputClass: "liveness-token-convention",
+          });
+          continue;
+        }
       }
       if (
         marker.kind === "complete" &&
@@ -275,8 +293,9 @@ export function sweepDomain(
         ]);
         continue;
       }
-      // An inconvertible token whose process is absent: nothing is in use, and
-      // the marker still parsed, so this is the second limb's input.
+      // An incomparable token whose process is absent, or whose candidate has
+      // outlived the reclaim age: nothing this marker names can still be in
+      // use, and the marker parsed, so this is the second limb's input.
     }
 
     // Limbs 2 and 3 are both age-gated on the candidate's own mtime.

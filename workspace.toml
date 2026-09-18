@@ -88,6 +88,24 @@ open = [
   # only test callers, so no production path composes the gate with the spawn.
   # Evidence: notes/verification-ledger.md#review-round-34-2026-09-18.
   { slug = "connect-orient-transport-operand-sink-scope", source = "connect-and-orient/2026-09-18" },
+  # The Service-side sweep's removal walk recurses without a depth bound, and
+  # its recursive call sits outside the guarded blocks. Found by round 36's
+  # secure-design review of Package 4 and routed out by owner decision rather
+  # than widening that amendment. removeEntry in per-request-state-root.ts
+  # recurses per directory level with try blocks wrapping only the syscalls,
+  # and the recursive call in the loop at :356-358 is outside them, so a
+  # RangeError from stack exhaustion on a sufficiently deep tree escapes
+  # removePerRequestStateRoot and sweepDomain, abandoning the remaining
+  # candidates and their AC-0083 diagnostics unswept. The child's mirrored
+  # recursion does NOT carry this: its recursion sits inside the try at
+  # :245-260 and degrades to intact = false. Pre-existing -- limbs 1 and 2
+  # already traversed arbitrary trees -- and it needs the sweep domain's own
+  # uid, which is a path that can already write the tree. Adjudication recorded
+  # the proposed mechanism as absent: the required outcome is that stack
+  # exhaustion must not abandon the rest of the sweep, or that the exposure be
+  # recorded as an accepted residual with its ground, and which is the owner's
+  # choice. Evidence: notes/verification-ledger.md#review-round-36-2026-09-18.
+  { slug = "connect-orient-sweep-walk-depth-bound", source = "connect-and-orient/2026-09-18" },
 ]
 closed = []
 
