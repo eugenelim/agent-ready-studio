@@ -2350,7 +2350,216 @@ question, the enumerated options, the option taken, the evidence that decided it
 refined — or the kill and the amendment it returns to. An entry is never edited once written; a
 reversal is a new entry naming the one it supersedes.
 
-No entries yet. T14 has not started.
+### Entry 1 — the ΔE2000 comparison set — **KILLED**
+
+**Question.** The bound is stated against a hue set that is materialized for one comparison
+family and absent for two.
+
+**Enumerated options.** (a) Derive representative hues for review and execution from the tokens
+already present and record the mapping. (b) Kill, if no defensible mapping exists or no
+inspection hue clears the bound in both themes. Minting product colour families was excluded by
+name before discovery began.
+
+**Taken: the kill, on two independent grounds.** Either alone is sufficient; both hold.
+
+**Ground one — option (a) has no source to derive from.** `readThemeHues` over the shipped
+`apps/desktop/src/renderer/styles/tokens.css` returns **14 hue names in the root block and the
+same 14 in the `prefers-color-scheme: dark` block**, every dark value differing from its light
+counterpart. Enumerated, those 14 are `--color-canvas`, `--color-surface`,
+`--color-surface-raised`, `--color-text`, `--color-muted`, `--color-border`, `--color-accent`,
+`--color-accent-strong`, `--color-on-accent`, `--color-focus`, `--color-proposal-surface`,
+`--color-proposal-border`, `--color-accepted-surface` and `--color-accepted-border`. **Exactly
+four are product-state hues**, all four artifact-state — the *proposed* and *accepted* members —
+and the remaining ten are chrome, text and focus roles that name no state family. **No review-
+state and no execution-state hue is present in either block.** So "derive from the tokens
+already present" has nothing to derive from: deriving a review hue from `--color-border` is
+minting one and calling it a derivation, and minting is excluded.
+
+**Ground two — the family set the comparison runs against is not settled.** The
+*Inspection-family hue separation* row names four families including attention;
+`docs/product/design-system.md` *Product state vocabulary* enumerates the same four — artifact,
+review, execution, attention — and records **no hue value for any of them**; AC-0120 names three
+and excludes attention explicitly. A criterion and the row it cites disagree about what is
+compared, and resolving that moves an acceptance criterion. Owner-accepted as a kill at
+`#owner-decision-2026-09-17-package-3-gates-and-family-kill`; **accepting the kill route is not
+choosing three or four**, and this entry decides neither.
+
+**Measured anyway, because the measurement is cheap and the numbers are what a later amendment
+will argue over.** The one materialized family pair, both themes:
+
+| Pair | Light | Dark |
+| --- | --- | --- |
+| `--color-proposal-border` ↔ `--color-accepted-border` | 40.389 | 37.967 |
+| `--color-proposal-surface` ↔ `--color-accepted-surface` | 21.866 | 28.485 |
+
+These are *within* the artifact family, so they are not an AC-0120 comparison and clear nothing.
+They are recorded because they establish that the generator reports plausible magnitudes on the
+real tokens, and because a family whose two materialized members sit 21.866 apart in light
+constrains any later inspection hue more tightly than the bound alone suggests.
+
+**Returns to the owner** through the controlled amendment path. **No hue mapping was derived and
+no obligation was removed.** T12 and T13 are not refined by this question; T12 records the wait.
+
+### Entry 2 — where the ΔE2000 generator lives — **RESOLVED, option (a)**
+
+**Question.** Nothing in the repository computes ΔE2000. The bound's value has exactly one home
+and must keep it, so the generator cites that home rather than restating the number.
+
+**Enumerated options.** (a) A small local module under the desktop tools directory exercised by a
+test. (b) A test-only helper, if no second caller appears.
+
+**Taken: (a)** — `apps/desktop/tools/delta-e2000.ts`, with its proof at
+`apps/desktop/tools/delta-e2000.test.ts`.
+
+**Evidence that decided it.**
+
+- **A second caller appears, so (b)'s precondition fails.** T14's own proof is the first caller;
+ T12's AC-0120 assertion is the second, and the plan's coverage list assigns AC-0120 to T12.
+ Two distinct test files, one in each task.
+- **`pnpm verify` reaches that directory and the repository-root `tools/` directory it does
+ not.** `tsconfig.json` includes `apps/**/*.ts`; `vitest.config.ts` includes
+ `apps/**/*.test.{ts,tsx}`; `biome.json` includes `apps/**`. Root `tools/*.mjs` is in none of
+ the three. A generator placed at the root would be neither typechecked nor run, which is the
+ opposite of "exercised by a test".
+- **The directory is already the desktop tools home** — `visual-evidence.mjs` sits in it — so the
+ placement introduces no new directory and no new module boundary.
+
+**The bound keeps its one home.** A mechanical check and a read were both needed, and stating
+only the first would overclaim. `grep -nE '(^|[^0-9.])20([^0-9.]|$)'` over the module returns
+**one line** — the CIEDE2000 lightness-weighting constant inside
+`Math.sqrt(20 + (meanL - 50) ** 2)`, part of the metric's own definition and not a threshold —
+and **zero lines** over the test.
+
+**What that pattern does not establish, said plainly:** it cannot see the value written as `20.0`
+or `2e1`, and it cannot see it in prose. It did in fact miss one — round 1's review found a test
+comment relating a measurement to *half* the separation value, which is a derived second home the
+grep was blind to. That comment is repaired, and the claim is now the stronger one: **neither file
+states the separation value, in figures or in prose, and neither compares a ΔE2000 result to it.**
+The **test** file pins three measured magnitudes — 40.389, 37.967 and 10.29 — which are
+observations of the tokens, not the bound; the module pins none, carrying no numeric constant but
+the metric's own.
+
+The module's doc comment names the *Canonical values* row as the value's home and names AC-0120's
+assertion as what reads it.
+
+**Task refined:** T12 — the *Discovery refinements* block names the module and its exports.
+
+### Entry 3 — the capture path for the two specialist reviewers — **RESOLVED, option (a)**
+
+**Question.** `experience-reviewer` cannot self-capture and must be handed rendered output;
+`visual-evidence.mjs` reads the built renderer and needs a Chromium.
+
+**Enumerated options.** (a) Reuse `visual-evidence.mjs` as the capture source. (b) Add a narrower
+capture entry, if its scenario set does not reach the new surfaces.
+
+**Taken: (a)** — reuse.
+
+**Evidence that decided it.**
+
+- **The scenario set reaches the new surfaces, so (b)'s precondition fails.** The tool runs six
+ scenarios over a surface list, and surfaces are driven by a literal `{ name, clicks }` array
+ that clicks button labels by text. A new surface is **one array entry**, not a new capture
+ entry. `desktop-light` and `desktop-dark` are already two of the six scenarios, which is the
+ both-themes reach AC-0120 needs from a capture.
+- **Reviewer capabilities were read from their definitions rather than assumed**, and the
+ definitions are **host-local, not repository evidence**: the `tools:` frontmatter of
+ `~/.claude/agents/frontend-reviewer.md` and `~/.claude/agents/experience-reviewer.md`. A later
+ reader on another machine cannot re-derive this from the tree, which is why the paths are named
+ here and marked host-local. `frontend-reviewer` advertises `Read, Grep, Glob, Bash` and drives
+ named routes itself. `experience-reviewer` advertises `Read, Grep, Glob` and **no `Bash`** — the
+ plan's unprobed note is confirmed, not guessed — so it receives the PNGs the tool writes, with
+ the grounded aesthetic reference its confirm-before-reviewing gate requires.
+- **The capture path resolves a browser from a declared candidate list**, `findChromium` at
+ `apps/desktop/tools/visual-evidence.mjs:288-308`, whose final fallback is the system Chrome
+ install. **Which candidate wins is host-local and is deliberately not recorded here as contract
+ evidence.** An earlier draft of this entry named four Playwright builds and a newest-first
+ preference; round 2 showed that claim could not be settled from the repository at all, because
+ the deciding fact lives outside the tree and outside any reviewer's read envelope. The claim was
+ **dropped rather than resolved** — entry 3 needs only that a browser resolves, which the
+ candidate list establishes from in-repo code. A durable record should not rest on a fact only one
+ machine can check.
+
+**One wrinkle recorded rather than left implicit.** The tool's `outputRoot` is hard-coded to
+`docs/specs/product-development-walking-skeleton/notes/visual` — the *other* spec's notes
+directory. **Its dependants were located rather than assumed, and this sentence has now been
+wrong in both directions, so it states the distinction exactly.**
+
+That spec's Testing Strategy **names no path**. It does bind three of its rows to the evidence set
+that lives at this one: AC-50 at `spec.md:115` ("the rendered list is measured in the retained
+visual evidence"), AC-51 at `:116` ("measured directly in the retained visual evidence, as their
+own captures"), and the Visual/manual QA row at `:117` ("retain screenshots"). **The criteria
+depend on the set; the directory is named separately, in prose rather than in contract** —
+including `notes/headful-session-checklist.md` lines 6 and 42, that spec's
+`notes/verification-ledger.md` at 781, 955, 1534 and 1680, and a comment in the tool itself at
+`visual-evidence.mjs:891`.
+
+**That list is deliberately not offered as exhaustive, and no total is claimed.** Three successive
+rounds falsified three successive enumerations of it, which is the point at which a longer list
+stops being the repair: what decides this question is the *kind* of dependant, not a count, and
+every kind is represented above.
+
+**That spec is `Shipped`** (`spec.md:3`), which raises the cost of disturbing either from a fix-up
+to an amendment against closed work.
+
+**Reuse carries the two additive changes the plan names, and the second one does touch the
+retained set.** An earlier draft of this entry counted only the first and concluded nothing was
+disturbed. That was wrong.
+
+1. **The spec-selectable output root**, defaulting to today's path. This disturbs nothing by
+ itself — the three bound rows and every reference to the directory keep their meaning.
+2. **The surface entries** for the connect and verdict surfaces. The surface list is iterated
+ inside each scenario (`visual-evidence.mjs:650-656`), each capture is named
+ `<scenario>-<surface>` (`:799`), and one PNG per pair is written along with a wholly regenerated
+ `manifest.json` (`:933-945`). Six scenarios are declared (`:383-445`), and the retained set is
+ today **36 PNGs plus `manifest.json`** — counted, not inferred.
+
+ **Publishing replaces that directory rather than adding to it**, which an earlier draft of this
+ entry did not say and which is the larger fact for anyone choosing the root. The staging
+ directory is filled with **only this run's** captures (`:932-945`) and then renamed over the
+ retained one (`:958-959`). So a run under the default root leaves **48 freshly rendered PNGs in
+ place of the 36**, every one re-rendered and the manifest re-stamped — the growth is twelve, but
+ the disturbance is the whole set.
+
+**Under the default root that writes inside a `Shipped` spec's notes directory**, which is exactly
+the cost this entry raises just above. **Which root T12 writes each spec's captures to is left to
+T12**: it is a task-level construction choice, and settling it here would decide it. What this
+entry records is that the choice exists and that the surface-entry addition is not neutral — so no
+later reader takes "reuse" to mean "nothing moves".
+
+The decision still survives its own correction: reuse remains the right option, it is a path, it
+belongs to T12, and it moves no criterion.
+
+**Two further dependants are derived rather than written, and they are the ones selectability
+actually reaches.** The tool builds `${outputRoot}.next` and `${outputRoot}.previous` as staging
+directories (`visual-evidence.mjs:912-913`), and `.gitignore:47-48` ignore exactly those two
+paths **spelled against the hard-coded root**. A non-default root therefore stages into paths no
+ignore rule covers. These are a **further kind of dependant** — derived rather than written — and,
+consistent with the paragraph above, no total is claimed for the set.
+
+**What that obliges of T12**, stated here because it is the obligation the enumeration first
+missed: any non-default root must bring its own ignore entries for `${root}.next` and
+`${root}.previous`. The exposure is narrower than it first looks, and narrower than an earlier draft
+of this paragraph said. On a successful run the tool renames `publishDir` away (`:959`) and clears
+`retiredDir` (`:976`), leaving neither. **Two failure paths are residue-free**, and an earlier draft of this paragraph
+wrongly generalised that to all of them: the pre-publish abort exits before either directory is
+derived (`:888-895` against `:912-913`), and the publish catch restores `outputRoot` and removes
+`publishDir` (`:960-975`).
+
+**A third path is not.** The block that creates and fills `${root}.next` — `mkdirSync` at `:932`
+and the `writeFileSync` calls at `:933-945` — sits **outside every `try`**: the run's own
+`try/finally` closes at `:834` — `:818` is that statement's `} finally {` clause opener, not its
+end — and the publish `try` does not open until `:957`. A write error
+there throws uncaught and strands a partly populated staging directory. So does a throw from the
+restore rename at `:965`, which escapes before `rmSync(publishDir)` at `:968`. **Residue therefore follows three triggers**: a hard interruption, a
+failure of the unguarded staging write, and a failure of that restore rename. The list is stated
+as three named paths rather than as "any throw before `rmSync`", because a throw from
+`renameSync(outputRoot, retiredDir)` at `:958` **is** cleared by the publish catch — generalising
+would reassert a universal the code does not support, which is the error this paragraph was
+repaired for once already. Any of the three lands a dirty tree in front of T13's clean-tree gate,
+which is why the T12 obligation is stated against all three.
+
+**Tasks refined:** T12 (the surface entries, the default-preserving root, and the ignore entries
+any non-default root requires) and T13 (what each reviewer is handed).
 
 ## gate-state-2026-09-17-discovery-channel-addendum
 
@@ -2465,3 +2674,420 @@ What the approval covers, so its scope is checkable later:
 
 **Not covered by this approval**, and named so no later reader treats it as settled: the
 three-versus-four family question, which needs its own amendment when the owner decides it.
+
+## t14-evidence
+
+**T14 carries no acceptance criterion**, on T8's precedent: it discharges construction detail.
+Its obligations are its three decision entries at `#discovery-channel-t14`, the ΔE2000 arm's four
+inline proofs, a green `pnpm verify`, and the pinned section hashes still verifying.
+
+### The ΔE2000 arm's inline proof
+
+**1. Discriminating positive and consequential negative.** The positive is
+`--color-proposal-border` against `--color-accepted-border` — two real artifact-state identity
+hues — measured in each theme's own values: **40.389** light, **37.967** dark. The negative is the
+dark theme's `--color-surface` against `--color-accepted-surface`, which measures **10.290**. That
+negative is the one that would matter if admitted: the design means those two to be
+distinguishable, and an arm that reported them as widely separated would report anything as widely
+separated. It is not a malformed input; both values ship.
+
+**2. Reference data, because a colour-difference function's failure mode is a plausible number.**
+**17 rows chosen from** Sharma, Wu and Dalal's published CIEDE2000 test data reproduce **within
+the 5e-5 window the assertion enforces** (`toBeCloseTo(expected, 4)`) — all 17 the file carries, which is a subset of the published set and not the whole of it.
+The rows were picked to reach the formulation's discontinuities rather than to sample it evenly,
+and the repair below is itself proof that the published data contains rows this file does not. Reading the arithmetic would not have distinguished a correct implementation from a subtly
+wrong one; this does.
+
+**Which branch each row takes was instrumented, not assumed, and the first instrumentation found a
+hole.** Round 1's review measured the mean-hue branches **per row**, over the sixteen rows the
+file then carried: the near branch twelve times, the zero-chroma-product branch once, the `+360`
+wraparound three times, and the `(hue1 + hue2 - 360) / 2` wraparound **never**. The tally is per
+row rather than per argument order because the branch predicates are symmetric in `hue1` and
+`hue2`, so both orders of a row take the same branch and counting them separately would only
+double every figure. The row believed to straddle that
+boundary — `(50, 2.49, -0.001)` against `(50, -2.49, 0.0009)` — computes to a hue separation of
+179.9985 and sits on the near side of it. The published **adjacent** row, differing in b* by
+0.0002, is the one that crosses: `(50, 2.49, -0.001)` against `(50, -2.49, 0.0011)`, expected
+7.2195, measured **7.219472**. It now sits immediately after the row it was
+confused with, as the **seventh element** of `REFERENCE_DATA` — 17 is the array's new total, not
+its position — and the docblock's coverage claim is stated against instrumented branches rather
+than against an assumption.
+
+**The conversion feeding the metric is pinned externally too**, which the 17 Lab-to-Lab rows do
+not do. `#ffffff` → L\*=100, `#000000` → L\*=0, and the three sRGB primaries match their
+published D65 values **within the 5e-4 window the assertion enforces** (`toBeCloseTo(…, 3)`, not
+the tighter figure an earlier draft of this line claimed): `#ff0000` → (53.2408, 80.0925,
+67.2032), `#00ff00` → (87.7347, −86.1827, 83.1793), `#0000ff` → (32.2970, 79.1875, −107.8602). Before this case existed,
+every assertion reaching `hexToLab` compared against a magnitude this implementation had itself
+produced, so a systematically wrong matrix or white point would have produced different pins and
+passed anyway.
+
+**3. Neutralising the arm reddens named cases.** Seven neutralisations were run against the real
+test file and the module was restored byte-for-byte after each. **This is the leg that says the
+tests are load-bearing rather than decorative.**
+
+| Neutralisation | Reddens | Count |
+| --- | --- | --- |
+| `deltaE2000` returns a constant 100 | *reproduces Sharma…*, *separates the proposal and accepted border hues in both themes*, *reports the dark accepted surface as close to the base surface it sits on*, *treats the three-digit and six-digit hex forms as the same colour* | 4 failed / 10 passed |
+| `deltaE2000` returns a constant 0 | the first three of those | 3 failed / 11 passed |
+| `readThemeHues` returns the root block as **both** themes | exactly *reads the hues of both theme blocks of the shipped tokens.css*, on its first entry: `expected '#f4e8ff' not to be '#f4e8ff'` | 1 failed / 13 passed |
+| `WHITE_X` swapped from D65 to D50, `0.95047` → `0.96422` | *converts the sRGB primaries to their published D65 L\*a\*b\* values*, plus both token-measurement cases | 3 failed / 11 passed |
+| The unparseable-colour refusal turned back into a silent drop | *refuses a colour token whose value it cannot parse* and *reaches a final declaration written without its optional semicolon* | 2 failed / 12 passed |
+| The declaration pattern's terminating `;` made mandatory again — the round-5 defect, re-injected | exactly *reaches a final declaration written without its optional semicolon* | 1 failed / 13 passed |
+| Comment stripping removed — the other round-5 defect, re-injected | exactly *ignores CSS comments rather than reading declarations out of them* | 1 failed / 13 passed |
+
+The third is the mutation the both-blocks obligation exists to catch, and the one a
+root-block-only arm would have survived. The fourth is what makes the external conversion pin
+load-bearing rather than decorative: the illuminant is the exact systematic error the finding that
+prompted it named, and the published-primaries case is what catches it.
+
+**These counts are against the test file as it now stands** — 14 cases — and all seven were
+re-measured after round 5's repairs rather than carried over from an earlier run. **The last two
+exist because a repair needs the same proof a mechanism does**: each re-injects one of the two
+defects round 5 found in the round-4 refusal, and each reddens exactly the case added to catch
+it. The module was confirmed
+byte-identical to its pre-mutation state after each neutralisation.
+
+**4. The real entry path, across both theme blocks.** *reads the hues of both theme blocks of the
+shipped tokens.css* reads `apps/desktop/src/renderer/styles/tokens.css` off disk — the file the
+renderer loads, resolved from `import.meta.url`, not a fixture and not a copy. It observes **14
+hue names in the root block and the same 14 in the `prefers-color-scheme: dark` block**, asserts
+that every dark value differs from its light counterpart, and asserts that the four artifact-state
+identity hues are present and different in both. It also asserts that no non-colour token reaches
+the metric: `--space-1` and `--control-height` are declared in the same blocks and are absent from
+what the reader returns. Both are declared in the **root block only**, so the test asserts their
+absence from that block; the dark block redeclares neither.
+
+The reader's own false-pass direction is covered on **three** axes, since a reader is exactly the
+kind of mechanism the rule names. Two are structural: a source with only a `:root` block, and one
+whose block never closes, both throw rather than parsing to a half-observed hue set.
+
+**A third axis was missing until round 4 found it**, and it is the one no structural check
+reaches. `hues()` admitted a declaration only when its value matched a hex literal, so a
+`--color-*` token written as `rgb()`, `oklch()`, `color-mix()` or `var(--…)` — every form T12
+might reasonably reach for when it mints an inspection hue — would have been **dropped with
+nothing failing**, and AC-0120's gate would have measured a subset and passed. The reader now
+**refuses** a colour-named property it cannot parse while still **dropping** a non-colour one, and
+both halves of that distinction carry a case.
+
+**That refusal was itself defective in both directions, which round 5 found and this entry records
+rather than quietly repairing.** It was **incomplete**: the declaration pattern required a
+terminating `;`, which CSS makes optional on a block's final declaration, so a token in exactly
+that position never matched — dropping a valid hex hue as silently as an unparseable one, the
+quieter failure because nothing would ever have reported it. And it was **over-broad**: it read
+declarations out of CSS comments and rejected a hex value carrying a trailing comment, both legal
+and both present in the shipped `tokens.css`, so commenting a token out during T12's own work
+would have halted AC-0120's gate with a message calling `#176b52` not a hex literal.
+
+**Both are closed and both are pinned.** The terminating semicolon is optional, comments are
+stripped before anything else reads the source — including before the braces are matched, so a
+brace inside a comment cannot end a block early — and the two neutralisations in the table
+re-inject each defect and redden exactly the case that catches it.
+
+The practical effect is a stated constraint on `tokens.css`: a `--color-*` token must be an sRGB
+hex literal, and one that is not stops the reader rather than vanishing from the comparison —
+**wherever it sits in its block, terminated or not**, with comments neither triggering the refusal
+nor hiding a token from it.
+
+**5. The retiring condition** is stated on the module rather than in this note, so it is read by
+whoever next edits the mechanism. Two circumstances retire it: the workspace admitting a
+maintained colour-difference implementation, since hand-rolled CIEDE2000 is justified only while
+the alternative is a new dependency for the arithmetic it would replace — `Lab` through
+`hexDeltaE2000`, **118 non-blank, non-comment lines**, measured rather than estimated because the
+cost argument rests on the figure; and `tokens.css` ceasing to be
+the renderer's sole colour home — the design system's serialized W3C token file becoming the
+source and CSS a projection of it — because `readThemeHues` would then report confidently on the
+wrong artifact.
+
+### What T14 did not do
+
+- **It derived no hue mapping.** Entry 1 is a kill on two independent grounds and returns to the
+ owner. The three-versus-four family disagreement is carried, not settled.
+- **It minted no colour family.** That was excluded by name before discovery began, and nothing
+ in `tokens.css` changed: the file is untouched by this task.
+- **It touched no pinned section, no completed-task evidence and no `amendment_history`.** The
+ channel adds records; it removes none.
+- **It restated no bound.** See entry 2's mechanical check.
+
+### T14 gate state
+
+| Gate | Result |
+| --- | --- |
+| `pnpm lint` (`biome check .`) | exit 0, 105 files |
+| `pnpm typecheck` | exit 0 |
+| `pnpm test` | see the two runs below |
+| `pnpm build` | exit 0 |
+| `git diff --check` | clean |
+| `spec-coupling-check` | 0 findings |
+| `lint-contract-item-alignment` | 0 findings, 1 spec checked |
+| `lint-spec-status` | spec metadata clean |
+| Pinned completed-task section hashes, against the real cohort validator | **11 of 11 verify** |
+| Criteria roster | 156 declared, 156 claimed, **0 residuals** — unchanged by this task |
+
+**`pnpm test` was run twice across this task, and the two runs are the clearest evidence yet for the host-contention diagnosis.**
+
+| Run | Load average | Result |
+| --- | --- | --- |
+| After T14's first implementation | **15.23** | exit 0 — 41 files, **562 of 562** passed, 55.7s |
+| After round 5's repairs | **40.45** | exit 1 — **566 of 567** passed; one failure, `AC-0025 admits every executable observed in the descendant tree` |
+
+**The single failure is triaged as pre-existing host contention, by rule rather than by assertion.** Its file, `apps/studio-service/src/trials/connect-and-orient-runtime/runtime-supervisor.test.ts`, is **not in this task's diff** — the diff is four files, two of them `docs/`. It then passed **twice in isolation**, 23 of 23 each time, at load average 38, which is the two-in-isolation rule rather than a single reassuring re-run. The failure kind is the signature `#gate-state-2026-09-17-discovery-channel-addendum` documents at load average 172.
+
+**Three points now span the band**: 172 → twelve failures, 40 → one, 15 → none. A latent defect would not track load that way. A `[backlog].open` entry, `pre-existing-trial-runtime-load-flake`, now records the signature and the judging rule so a cold reader does not re-diagnose it.
+
+**The first run remains the meaningful green for T14's own work**: every gate above was re-run after round 5's repairs, and `delta-e2000.test.ts` is 14 of 14 green in every run.
+
+**Hash verification used the real guard, not a recomputation.** `validate_completed_task_sections` was imported from `.claude/skills/work-loop/scripts/loop-cohort.py` and called against the edited `plan.md` and the live `state.json` — the same function `approve-plan` calls, which is the check that previously refused with "completed task section changed: T4".
+
+### Round 1 — adversarial review of T14, and what it changed
+
+`adversarial-reviewer` returned 14 findings; the adjudicator **sustained 7 and refuted 7**, none
+indeterminate. **All four findings raised as Blockers were demoted or refuted** — two to Nit on the
+ground that the cited surfaces are ungated comment prose in a task carrying no acceptance
+criterion, two refuted on authority. Every sustained finding was applied.
+
+| Sustained | Severity | Applied |
+| --- | --- | --- |
+| The negative's comment related 10.29 to *half* the separation value — a derived second home, and false arithmetic besides, since half of 20 is 10 | Nit | Comment now states the measured magnitude and the range it sits in, with no reference to the separation value |
+| One mean-hue wraparound branch was never exercised while the docblock claimed each discontinuity was | Nit | Published adjacent row added as row 17; coverage claim restated against instrumented branches |
+| Entry 2's grep was described as establishing more than it compares, and one sentence in it was false | Concern | Entry 2 now states what the pattern does and does not cover, and the single-home claim reaches prose |
+| The `outputRoot` dependants were cited to a Testing Strategy that never names them | Concern | The six real references named, and the consuming spec recorded as `Shipped` |
+| The probed reviewer capabilities named no consultable source | Concern | Both host-local agent-definition paths named and marked host-local |
+| The sRGB→Lab leg was pinned only by numbers this code produced | Nit | Five externally published points pinned, and a D65→D50 white-point mutation proves the pin load-bearing |
+| The ledger said two non-colour tokens are declared in both blocks | Nit | Corrected to the root block only |
+
+**The refutations are recorded because two of them mark boundaries worth not re-litigating.** The
+kill entry was challenged for naming no amendment: the *Decision record* paragraph requires the
+question, options, option taken, evidence and task refined — not a named amendment — and no
+amendment exists to name, since the owner's decision explicitly leaves the three-versus-four
+question for one it has not yet made. Entry 3 was challenged on the ground that a default-preserving
+`outputRoot` parameter made the resolution a fourth, unenumerated option: it is a path-level
+construction detail assigned to T12, which the discovery predicate admits, rather than an option.
+The remaining five were refuted on existing handling or consequence.
+
+**Two claims in this ledger were wrong before the review and are corrected above rather than
+quietly overwritten**: the fractional restatement of the bound, and the `outputRoot` citation. The
+first is the more instructive, because the mechanical check recorded alongside it could not have
+caught it — a grep for figures is blind to prose.
+
+### Round 2 — the review that found defects in round 1's repairs
+
+`adversarial-reviewer` returned 9 findings against the **repairs**, not the original work. The
+adjudicator **sustained 7, refuted 1 and returned 1 indeterminate**; both findings raised as
+Blockers were **demoted to Concern**, on the ground that the reuse decision itself survives its
+record being wrong.
+
+**The reviewer's prescribed remedy was rejected on authority for two of them.** It asked for
+*superseding entries*, reading the decision record's append-only rule as binding. The adjudicator
+held that rule governs an entry **once written and relied upon**, and that in-place repair under
+the scoped review is the operative practice for an uncommitted, pre-reliance entry — which is
+exactly how round 1's sustained findings were applied. So these are in-place repairs, and the
+append-only rule is untouched.
+
+| Sustained | Severity | Applied |
+| --- | --- | --- |
+| The Testing-Strategy sentence round 1 repaired was **false in the other direction**: that spec names no path, but does bind AC-50, AC-51 and its Visual/manual QA row to the evidence set at this one | Concern | Entry 3 now separates the two — criteria depend on the set, only that spec's notes name the directory — with all three rows cited |
+| The dependant set was enumerated as located and **omitted the two derived paths**: the tool builds `${outputRoot}.next`/`.previous` and `.gitignore:47-48` ignore only those spelled against today's root | Concern | Eight dependants, not six; T12 now carries an obligation that any non-default root brings its own ignore entries, and the plan's "mechanical" wording is corrected to exclude it |
+| Entry 2 said **both** files pin measured magnitudes; the module pins none | Concern | Attributed to the test file alone |
+| "All 17 of 17 rows of the published data" credited the leg with whole-dataset coverage | Concern | Stated as 17 rows chosen from the published set, with the round-1 repair itself as proof the set is larger |
+| The comment above the five-element primaries array said "these four" | Nit | Corrected to five |
+| "It is now row 17" named the array's new total as a position | Nit | Located as the seventh element, immediately after the row it was confused with |
+| The primaries tolerance was recorded a digit tighter than `toBeCloseTo(…, 3)` enforces | Nit | Stated as the 5e-4 window the assertion actually enforces |
+
+**The one refutation** concerned this subsection's own form: recording a round's sustained, refuted
+and demoted counts is this ledger's established convention, and the claim that the conversion-pin
+gap is described inconsistently was held to compare a severity assignment against a technical
+description — both true of different things.
+
+**The indeterminate was dissolved rather than resolved, by owner decision.** Finding 3 held that
+`findChromium` cannot reach the four Playwright builds this record cited, because they contain
+`Google Chrome for Testing.app` and not the `Chromium.app` path the tool constructs. The
+adjudicator confirmed the in-repo half — the candidate path, the newest-first sort and the system
+Chrome fallback are exactly as described — but **could not settle the fact at all**: the directory
+lies outside the repository working tree and outside any reviewer's read envelope, and no closed
+evidence-gate catalog exists here that could admit it. Re-dispatching would have hit the same wall.
+
+The owner's decision was to **drop the claim**. Entry 3 needs only that a browser resolves, which
+the declared candidate list establishes from in-repo code; which candidate wins is host-local and
+is now explicitly not recorded as contract evidence. **This is the `drop-the-claim` rung, not a
+finding left open** — the assertion removed was obliged by nothing, and removing it removes no
+stated outcome.
+
+**The lesson this round teaches is mostly about the record.** Most sustained findings in these two
+rounds landed on a claim in the ledger rather than on the ΔE2000 arm — though not all, and round 5
+corrected this sentence for saying otherwise: round 1's reference-row and conversion-pin repairs
+changed the **proof artifact**, and rounds 1 and 2 each corrected a comment in it. The `outputRoot`
+citation was wrong, then wrong in the opposite direction, then incomplete — three times on one
+sentence, because it was asserting more than entry 3's decision needed. A claim that keeps being
+wrong under review is evidence the claim is doing work the decision does not require, which is
+what the dropped Chromium claim and the narrowed Testing-Strategy sentence both act on.
+
+### Round 3 — the channel's own authority tested, and upheld
+
+`adversarial-reviewer` returned 8 findings. The adjudicator **sustained 5 and refuted 3**, none
+indeterminate. The single finding raised as a Blocker was **demoted to Concern**; **no sustained
+Blocker survived any of the three rounds.**
+
+**The most important outcome is a refutation, not a repair.** The reviewer argued that round 2's
+new T12 obligation — that a non-default root must bring its own ignore entries — is itself the
+thing the discovery predicate's fourth conjunct forbids, and that question 3 must therefore route
+through the kill condition rather than resolve. The adjudicator settled it from the plan's own
+text and **refuted it on authority**: an ignore entry is a path and a local construction detail,
+which the first conjunct admits by name; it is stated on T12, which is named in *Refinable tasks*
+and unstarted; and it adds nothing to verify, existing only so a **pre-existing** gate — T13's
+clean-tree check — is not violated by a root T12 may not even select. The decisive reading is
+that this plan uses "verification obligation" for a duty a task must prove or record, which is
+why the inline-proof rule went through the controlled amendment path and this does not.
+
+**Reading it the other way would have emptied the channel**: every refinement states some
+construction requirement on a refined task, including the "task refined" element the *Decision
+record* paragraph itself requires. So the fourth conjunct does not reach this, and the kill
+condition has nothing to route. **Entry 3's resolution stands.**
+
+| Sustained | Severity | Applied |
+| --- | --- | --- |
+| Entry 3 counted **one** additive change where the plan names **two**, and concluded the retained evidence set was undisturbed — but the surface entries write into it | Concern | Both additions now enumerated; the surface-entry effect stated as twelve added captures and a regenerated manifest against a counted 36-PNG set, with the root choice explicitly left to T12 |
+| "Three neutralisations were run" sat directly above a **four**-row table | Concern | Corrected to four |
+| The directory enumeration asserted completeness a **fourth** time, omitting two further spellings including one in the tool's own comment | Nit | Exhaustive framing dropped and the list restated as kinds of dependant; **the total survived this repair and was removed in round 4**, which is where entry 3's single position on counting is settled |
+| The residue claim blamed a **failed** publish and miscited the successful-run removal | Nit | Attributed to hard interruption only; every failure path shown residue-free, with `:959` and `:976` cited for the success path |
+| The reference rows' tolerance was recorded as 1e-4 beside an assertion enforcing 5e-5 | Nit | Stated as the 5e-5 window `toBeCloseTo(expected, 4)` enforces |
+
+**The other two refutations.** The claim that the strengthened single-home sentence is false
+because the module contains a literal `20` was refuted: that `20` is CIEDE2000's lightness-weighting
+denominator, a different quantity with a different referent, which the entry two paragraphs above
+already surfaces and excepts. And the test file's bare `notes/verification-ledger.md#anchor`
+reference was refuted as following this repository's established in-code convention, used at four
+pre-existing committed sites from directories that have no `notes/` either.
+
+**Convergence, stated with the numbers rather than asserted.** Sustained findings across the three
+rounds: **7, then 7, then 5**. Sustained Blockers: **none in rounds 1 to 3** — all **seven**
+raised as Blockers there were demoted or refuted, four in round 1, two in round 2 and one in
+round 3.
+
+**Where those 19 findings landed, separated three ways rather than collapsed into one claim**,
+because round 5 sustained a finding against an earlier version of this paragraph for collapsing
+them. Most landed on **this ledger's prose**. Four landed on the **proof artifact**
+`delta-e2000.test.ts`: round 1 added reference row 17 and the whole published-primaries case with
+its white-point mutation — changes to the proof, not to a sentence about it — and rounds 1 and 2
+each corrected a comment in that file. **None in rounds 1 to 3 landed on the module's behaviour**,
+which is the narrow claim that survives and the one worth making: the arm computed the same
+answers throughout, independently re-verified each round.
+
+**Rounds 4 and 5 broke that too, and the subsections below record it rather than letting this
+paragraph stand as the last word:** round 4 sustained the review's first Blocker and its first
+defect in the module's behaviour, and round 5 found two more in the control round 4 added.
+
+**What the enumeration taught, kept because it generalises.** Three rounds falsified three
+successive attempts to enumerate one directory's dependants exhaustively. The repair that finally
+held was not a longer list — it was dropping the claim of completeness, because the decision
+never needed a count. A record should assert the weakest thing that still decides the question.
+
+### Round 4 — the round that found a defect in the mechanism, and in the repairs
+
+`adversarial-reviewer` returned 10 findings. The adjudicator **sustained 7 and refuted 3**, none
+indeterminate. This round broke the pattern of the first three in two ways, and both are recorded
+here rather than smoothed over.
+
+**It sustained the review's first Blocker**, and the cause was a repair that landed in only one of
+the two places it reached. Round 3 corrected entry 3 to say the surface entries are *not* neutral,
+but left `plan.md`'s T12 refinement still saying the retained evidence set is unchanged — the
+false sentence in the **higher-precedence** document, and the one T12 would actually execute from.
+The traversal the DECIDE ladder requires of a repair, outward from the cited location to every
+other surface stating the same claim, was not run.
+
+**It sustained the first finding against the module's behaviour**, after three rounds whose
+sustained findings had landed on this ledger's prose or on the proof artifact but never on what
+the module computes. `readThemeHues` admitted a declaration only when its value
+matched a hex literal, so a `--color-*` token written as `rgb()`, `oklch()`, `color-mix()` or
+`var(--…)` would have been dropped silently and AC-0120's gate would have measured a subset while
+passing. **The owner chose the reader-side route**: the reader now refuses a colour-named property
+it cannot parse, and still drops a non-colour one. Both halves carry a case, and neutralising the
+refusal back to a silent drop reddens exactly the new case.
+
+| Sustained | Severity | Applied |
+| --- | --- | --- |
+| `plan.md`'s T12 refinement still called the retained evidence set unchanged, contradicting the entry it cites | **Blocker** | T12's refinement now carries the surface-entry effect — twelve captures and a regenerated manifest — with the root choice left to T12 |
+| Entry 3 disclaimed a total two paragraphs before stating one | Concern | The surviving total removed; the derived paths stated as a kind of dependant |
+| The Round 3 row said the total was dropped when it was not | Concern | The row now records that the total survived round 3 and fell in round 4 |
+| "Every failure path is residue-free" was false: the publish write block sits outside every `try` | Concern | Narrowed to the two paths actually shown residue-free; the unguarded write named; the T12 obligation restated against write failure as well as interruption |
+| The convergence paragraph said five findings were raised as Blockers; its own subsections sum to seven | Concern | Corrected to seven, with the per-round split |
+| `readThemeHues` dropped a non-hex colour token silently | Nit | Reader refuses an unparseable `--color-*` property; two new cases and a fifth mutation |
+| The branch tally was stated over both argument orders but counted one | Nit | Restated as a per-row tally, with the reason the branch is order-invariant |
+
+**The three refutations all concern authority, and two are worth not re-litigating.** That T12's
+unqualified `Done when` conflicts with the recorded AC-0120 wait was refuted a second time: the
+kill condition is the more specific authority and directs exactly this outcome, and the blockage
+originates in the pre-existing row-versus-criterion disagreement rather than in anything the
+channel resolved, so the fourth conjunct is not reached. That the killed family-set question needs
+a `workspace.toml` register entry was refuted on authority: the kill condition requires the
+amendment route and T14's record, the *Decision record* paragraph enumerates five elements and a
+register entry is not among them, and the index is lifecycle membership for target artifacts rather
+than a register of open contract questions — so requiring one would add a control no authority
+states. And entry 2's second-caller ground was upheld: the contract assigns AC-0120 to T12
+unqualified, and the kill removed no obligation.
+
+**Convergence, stated honestly rather than favourably.** Sustained findings by round: **7, 7, 5,
+7** — not a falling curve. The arm's **arithmetic** has been stable and independently re-verified in
+every round; the first defect in the module's behaviour was found here, and round 5 then found two
+more in the refusal added to close it. What has not been
+stable is this record: round 4's sustained set was dominated by defects that **round 3's own
+repairs introduced**. The pattern is specific and worth naming — repairing a sentence without
+walking every surface that states the same claim, and replacing a wrong claim with a universal
+the evidence does not reach. Both are failures of the traversal step, not of the review.
+
+**This is the fourth round and the owner has set round 5 as the last.** If round 5's sustained set
+is again dominated by prose defects in this ledger rather than by defects in the mechanism or the
+decisions, the loop stops there and the result goes to the owner as it stands, on the ground that
+further rounds of the same shape find real errors without the artifact getting better.
+
+### Round 5 — the round that judged the previous round's control
+
+`adversarial-reviewer` returned 7 findings. The adjudicator **sustained all 7 and refuted none** —
+the first round with no refutation — at 4 Concerns and 3 Nits, with **no Blocker raised or
+sustained**. Two findings were about the mechanism; five were corrections to this record.
+
+**The two mechanism findings both concerned the control added in round 4**, and they pointed in
+opposite directions. The refusal was **incomplete**: `CUSTOM_PROPERTY` required a terminating `;`,
+which CSS makes optional on a block's final declaration, so a token in that position never
+matched. A hex-valued token there was lost as silently as an unparseable one — **the quieter
+failure, because nothing would ever have reported it**, and a defect that predated the refusal
+while the refusal is what made three documents claim it was closed. The refusal was also
+**over-broad**: it read declarations out of comments and rejected a hex value carrying a trailing
+comment, both legal and both forms the shipped `tokens.css` already contains.
+
+**The owner chose to complete the parser** rather than narrow the claims or revert to the
+recorded-constraint route. The terminating semicolon is now optional, comments are stripped before
+anything else reads the source, and the seven-case probe that established the defects was turned
+into two test cases. Two new neutralisations re-inject each defect and redden exactly the case
+that catches it, on the principle that a repair needs the same proof a mechanism does.
+
+| Sustained | Severity | Applied |
+| --- | --- | --- |
+| The refusal missed a final declaration without its optional semicolon, and three documents claimed closure | Concern | Semicolon made optional; both halves pinned — unparseable refused, valid hex returned — and a re-injecting mutation added |
+| The refusal false-failed on commented-out tokens and hex values with trailing comments | Concern | Comments stripped before matching, ahead of brace matching so a braced comment cannot end a block early; three forms pinned and a re-injecting mutation added |
+| Three convergence claims were false against this ledger's own applied columns | Concern | Restated three ways — findings against this ledger, against the proof artifact, against the module's behaviour — since four rounds-1-and-2 repairs landed on the proof, not on prose |
+| Both records described publishing as additive when it is a whole-directory swap | Concern | Both now state that a run leaves 48 freshly rendered PNGs in place of 36, every one re-rendered and the manifest re-stamped |
+| `:818` was cited as where the run's `try/finally` closes; it is the `finally` opener | Nit | Corrected to `:834`, with the distinction stated |
+| The two-label residue summary omitted the restore-rename path named one sentence earlier | Nit | Three named triggers, and explicitly **not** generalised to "any throw", because a throw at `:958` **is** cleared by the publish catch |
+| "Sixty lines of arithmetic" named no span and understated the one the sentence implies | Nit | Measured: `Lab` through `hexDeltaE2000`, 118 non-blank non-comment lines, stated at both sites |
+
+**What five rounds show, now that there are enough rounds to say something.** Sustained findings:
+**7, 7, 5, 7, 7** — flat, not converging. But the composition changed, and that is the part worth
+carrying forward.
+
+- **Rounds 1-3 were corrections only** and introduced no new defect. The one repair that held
+ across all of them was **dropping a claim**, not extending one: three attempts to enumerate a
+ directory's dependants exhaustively all failed, and the record only stabilised when it stopped
+ claiming a count the decision never needed.
+- **Round 4 added a control** — at the owner's direction, to close an advisory Nit — and that
+ control generated **two defects of its own**, which round 5 then found. It is the only change in
+ five rounds to do so.
+- **Round 5's corrections applied cleanly**; its two mechanism findings were both against round
+ 4's addition, not against anything rounds 1-3 produced.
+
+**The generalisable lesson is about which repairs are safe under review.** A correction removes a
+false statement and closes. A dropped claim removes an obligation nothing needed and closes. **A
+new control opens a new surface, and a surface added mid-review gets reviewed by the next round
+with no prior art to steady it.** When a reviewer offers "add a control" and "state a constraint"
+as equally defensible routes, those two are not equally cheap, and the cost shows up a round
+later.

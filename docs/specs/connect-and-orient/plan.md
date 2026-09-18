@@ -715,6 +715,50 @@ it("AC-0106 exposes no credential input on the connect form", () => {
 });
 ```
 
+**Discovery refinements (T14).** Construction details only; each has an entry
+at `notes/verification-ledger.md#discovery-channel-t14`.
+
+- **The ΔE2000 generator is `apps/desktop/tools/delta-e2000.ts`**, built and
+ proved at T14. It exports `deltaE2000`, `hexDeltaE2000`, `hexToLab` and
+ `readThemeHues`, the last returning both theme blocks of a `tokens.css`
+ source together. **It contains no bound.** The *Inspection-family hue
+ separation* row remains the value's one home, and this task's AC-0120
+ assertion is what reads it and applies it.
+- **The comparison set is still unsettled**, and the kill recorded at
+ `#discovery-channel-t14` says why: the design-system durable output enumerates
+ four state families and no hue for any of them, `tokens.css` materializes hues
+ for two artifact-state members only, and the row and AC-0120 disagree on
+ whether attention is compared. AC-0120's assertion therefore waits on the
+ owner's family-set amendment. T14 derived no mapping and removed no
+ obligation.
+- **Rendered evidence comes from `apps/desktop/tools/visual-evidence.mjs`**, not
+ from a new capture entry. Its scenario matrix already carries `desktop-light`
+ and `desktop-dark`, which is the both-themes reach AC-0120 needs; a new
+ surface is one entry in its `{ name, clicks }` surface array. Two additions
+ are mechanical **in construction, not in effect**: the surface entries for the
+ connect and verdict surfaces, and a spec-selectable output root that
+ **defaults to today's hard-coded path**.
+
+ The root default leaves every reference to the walking-skeleton directory
+ unchanged. **The surface entries do not leave its retained set unchanged**, and
+ T12 must not read them as neutral. Publishing is a **whole-directory swap, not
+ an append**: the tool fills a staging directory with only that run's captures
+ and renames it over the retained one. So a run under the default root leaves
+ that directory holding **48 freshly rendered PNGs in place of today's 36**,
+ every one re-rendered and the `manifest.json` re-stamped — not twelve files
+ added beside the existing ones. Under the default root that directory is a
+ `Shipped` spec's notes. **Which root T12 writes each spec's captures to is T12's
+ choice**; `#discovery-channel-t14` entry 3 records the effect, not the choice.
+
+ **A third addition is stated as an obligation:** the tool derives `${root}.next`
+ and `${root}.previous` staging directories, and `.gitignore` ignores those two
+ paths only as spelled against today's root, so any non-default root must bring
+ its own ignore entries or leave an un-ignored residue. Three triggers, because
+ the block that creates and fills `${root}.next` sits outside every `try`: a hard
+ interruption, a failure of that unguarded staging write, and a failure of the
+ restore rename that runs after a failed publish. Any of the three lands the
+ residue in front of T13's clean-tree gate.
+
 **Approach:** preload additions, renderer hook, connect and verdict surfaces.
 **The design-system edit lands first and separately** — the inspection family
 and the ΔE2000 value are written and reviewed before a component consumes them.
@@ -750,6 +794,25 @@ and the ΔE2000 value are written and reviewed before a component consumes them.
  endpoint AC-0148 forbids; T4 gates the automated legs of AC-0024, AC-0025 and
  AC-0030 and this task gates only the observations it cannot.
 - Covers AC-0114, AC-0129, AC-0130, AC-0131, AC-0132, AC-0148, AC-0150, AC-0151, AC-0152, AC-0153, and the manual-QA observations of AC-0024, AC-0025 and AC-0030.
+
+**Discovery refinements (T14).** Construction details only; the entry is at
+`notes/verification-ledger.md#discovery-channel-t14`.
+
+- **The two specialist reviewers are handed different things**, because their
+ capabilities differ. Read from the `tools:` frontmatter of
+ `~/.claude/agents/frontend-reviewer.md` and
+ `~/.claude/agents/experience-reviewer.md` — **host-local files, not repository
+ evidence**, so a reader on another machine cannot re-derive this from the tree.
+ `frontend-reviewer` carries `Bash` and drives the named routes itself.
+ `experience-reviewer` carries no `Bash` — the plan's unprobed note is
+ confirmed — so it cannot self-capture and receives the PNGs
+ `visual-evidence.mjs` writes, together with the grounded aesthetic reference
+ its confirm-before-reviewing gate requires.
+- **The capture path resolves a browser from a declared candidate list** —
+ `findChromium` at `apps/desktop/tools/visual-evidence.mjs:288-308`, whose final
+ fallback is the system Chrome install. **Which candidate wins is host-local and
+ is not recorded as contract evidence**; `#discovery-channel-t14` entry 3 records
+ why an earlier draft's Playwright-build claim was dropped rather than resolved.
 
 **Approach:** write the evidence note from observed behaviour, including the
 needed-versus-inherited classification and the statement that the no-local-path

@@ -25,6 +25,14 @@ open = [
   { path = "docs/product/intents/make-product-work-visible-before-automating-it.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make product work visible and reviewable before adding governed automation over it", needs = [] },
   { path = "docs/product/research/recorded-policy-acceptance-charter-alignment.md", kind = "research", source = { mode = "repo-origin" }, summary = "Reconcile recorded-policy acceptance semantics across ARS-CORE-005 and ARS-SHAPE-005 with the accepted charter before either intent advances", needs = [] },
   { slug = "connect-orient-trial-runtime-removal", source = "connect-and-orient/2026-09-14" },
+  # Host-contention flake, not a code defect. Tests in
+  # apps/studio-service/src/trials/connect-and-orient-runtime/ time out or report
+  # "inspection refused: already-in-flight" when the full suite runs under high
+  # load; the guard is global single-in-flight, so one timeout cascades into
+  # several apparent failures. Observed green at load ~14 and red at load ~40 in
+  # the same session, and green twice in isolation immediately after each red.
+  # Judge by the two-in-isolation rule, not by one re-run.
+  { slug = "pre-existing-trial-runtime-load-flake", source = "pre-flight/2026-09-17" },
 ]
 closed = []
 
