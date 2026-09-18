@@ -96,6 +96,29 @@ If any of these checks fail, push back rather than proceeding.
    is preferred over `ls | grep | sed | sort` so the snippet works the
    same way on native Windows, macOS, and Linux.)
 
+   The number it prints is free across the working tree and the remote default
+   branch it can see — a snapshot, not a reservation. **Re-derive it immediately
+   before you open the pull request, not when the branch starts.** A branch that
+   sits in review long enough will find its number taken by whoever merged first,
+   and that collision exists only against the default branch: it is invisible
+   inside your branch, so no amount of review will find it. If the number moved,
+   rename the file and update every citation, including any bare ordinal column
+   in the index — a substitution on `ADR-NNNN` or on the filename fixes the link
+   and leaves that column wrong.
+
+   Check the destination for an ordinal already held by two records:
+
+   ```bash
+   python3 scripts/next-ordinal.py --check <resolved-decision-record-directory>
+   ```
+
+   It exits non-zero when two records share an ordinal, and also when it cannot
+   inspect the directory at all, so a mistyped path never reports clean. A
+   companion never counts: a `NNNN-notes/` directory or a
+   `NNNN-<slug>-research.md` sibling shares its record's ordinal by design. Wire
+   it into the check your project runs before a change merges — that, rather
+   than the allocator, is what keeps ordinals unique.
+
 3. Pick a kebab-case filename title from the user's description. Keep it
    short and declarative — `0007-primary-store-postgres-over-dynamodb.md`,
    not `0007-decision-about-the-database.md`. The H1 title inside the file
@@ -183,7 +206,13 @@ If any of these checks fail, push back rather than proceeding.
      the line.
 
 7. **Preview and confirm — the write gate.** Before creating the file or
-   touching any index, show the author, in the conversation:
+   touching any index, scan the resolved destination's sibling records for the
+   `Areas` tokens already in use there. If the drafted `Areas` value coins a
+   token none of them use, surface the tokens already in use and require an
+   explicit answer confirming the new one before continuing — coining an area
+   is a deliberate act, not a typo, so it needs its own confirmation rather
+   than riding the general preview below. Then show the author, in the
+   conversation:
    - the **identifier** — `ADR-NNNN`;
    - the **status** — `Proposed`;
    - the **target path** — absolute *and* repo-relative;
@@ -195,9 +224,14 @@ If any of these checks fail, push back rather than proceeding.
 
 8. **On confirmation, write.** Copy the bundled `assets/adr.md` into the
    resolved location (step 1), rename to `NNNN-<title>.md`, write the drafted
-   content, then add the new ADR's row to the index (`<adr-dir>/README.md`,
-   with `docs/adr/README.md` only when the resolved destination is the catalogue
-   fallback).
+   content, then regenerate the sibling index so the new ADR appears in it:
+
+   ```bash
+   python3 scripts/index-records.py <resolved-decision-record-directory>
+   ```
+
+   The index is derived from the records, so no row is written by hand. Use
+   `--check` to report whether it would change without writing.
 
 9. **Return a completion receipt.** After writing, hand back:
    - **Identifier** — `ADR-NNNN`;
@@ -212,7 +246,13 @@ If any of these checks fail, push back rather than proceeding.
 10. Leave the status `Proposed`. Once the decision-makers sign off, mark it
     `Accepted`; if they decline it, mark it `Rejected` and keep the file — a
     recorded rejection stops the same option being re-proposed later. After
-    `Accepted`, the body is frozen (see Lifecycle below).
+    `Accepted`, four zones govern what may still change (see Lifecycle below):
+    **Live** — `Status`, the supersession fields, and `Areas` may gain entries,
+    and `Status` may be replaced in place; **Attested** — `Date`,
+    `Decision-makers`, and `Reversibility` are frozen, because they record a
+    judgement made at the time; **Frozen** — every prose section is frozen,
+    except `## Errata`; **Append-only** — `## Errata` entries may be added but
+    never removed or rewritten.
 
 ## Project-knowledge gate: `adr-accepted`
 
@@ -272,16 +312,33 @@ status, or repository instructions. Consequential uncertainty abstains.
 
 ## Lifecycle after acceptance
 
-- **Reversing a decision.** Don't edit an accepted ADR. Write a *new* ADR for
-  the new decision, set its `Supersedes:` to the old ADR's number, and flip the
-  old ADR's status to `Superseded by ADR-NNNN` — status line only, the old body
-  stays as history. The cross-reference points both ways.
-- **Deprecated vs Superseded.** Mark an ADR `Deprecated` when the decision no
-  longer applies and nothing replaces it; `Superseded by ADR-NNNN` when a
-  specific later ADR replaces it.
+- **Reversing a decision.** Don't rewrite an accepted ADR's prose. Write a
+  *new* ADR for the new decision, set its `Supersedes:` to the old record's
+  ordinal, set the old record's `Status:` to the bare token `Superseded` and its
+  `Superseded by:` to the new ordinal. Both records then carry the same fact, so
+  either reads alone. The old prose stays as history.
+- **Deprecated vs Superseded.** Both are bare `Status` tokens. Use
+  `Deprecated` when the decision no longer applies and nothing replaces it, and
+  `Superseded` — naming the replacement in `Superseded by:`, never in `Status`
+  — when a specific later ADR replaces it.
 - **Backfilling.** Recording a decision made months ago is fine — reconstruct
   the Context from memory and history, list the people who actually decided as
   `Decision-makers`, and note in References that it's a backfill.
+
+## Recording corrections (Errata)
+
+An accepted ADR gains a `## Errata` section for corrections that clarify what
+the decision means without changing what was decided — a changed decision is a
+new superseding ADR (see Lifecycle above), never an edit here. The heading is
+fixed at `## Errata`: unlike `new-rfc`, there is no in-flight `## Amendments`
+state, because a `Proposed` ADR is not frozen and can simply be edited before
+acceptance.
+
+Entries are append-only and dated: a later entry supersedes an earlier one by
+being later, and an existing entry is never deleted or rewritten. Once more
+than one entry exists, or any entry supersedes another, treat the current
+state as authoritative rather than reading the entries as a strict audit
+trail.
 
 ## Infra mode (`mode: infra`)
 
@@ -303,8 +360,10 @@ reference just gives you the right framing question and "Revisit if" trigger.
   that's an RFC, not an ADR. An ADR records a decision already made; an open
   debate is an RFC, and the accepted RFC then produces the ADR. Suggest opening
   one instead.
-- Editing an accepted ADR's body → ADRs are immutable. A reversal is a *new*
-  ADR that supersedes the old one (see Lifecycle above), never an edit.
+- Rewriting an accepted ADR's prose → the prose is frozen. A reversal is a
+  *new* ADR that supersedes the old one (see Lifecycle above), never a rewrite.
+  The metadata block is a different matter: the connection fields stay writable
+  after acceptance, which is what records a supersession discovered later.
 - A title that carries the whole rationale → shorten it to *identify* the
   decision; the detail lives in the Decision section, and a scannable ADR index
   depends on it.

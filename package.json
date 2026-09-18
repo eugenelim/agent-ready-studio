@@ -11,10 +11,11 @@
     "dev": "vite build --config vitest.config.ts && pnpm --filter @agent-ready/studio-desktop --fail-if-no-match dev",
     "lint": "biome check .",
     "typecheck": "tsc --project tsconfig.json --noEmit",
+    "governance": "node tools/governance-gate.mjs",
     "pretest": "vite build --config vitest.config.ts && pnpm --filter @agent-ready/studio-desktop build",
     "test": "vitest run",
     "build": "vite build --config vitest.config.ts && pnpm --filter @agent-ready/studio-desktop build && tsc --build tsconfig.json",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "verify": "pnpm lint && pnpm typecheck && pnpm governance && pnpm test && pnpm build",
     "visual-evidence": "node apps/desktop/tools/visual-evidence.mjs"
   },
   "devDependencies": {

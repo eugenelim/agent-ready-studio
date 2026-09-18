@@ -1,7 +1,7 @@
 # Specs
 
 > Feature specifications and implementation plans. See
-> [`../CONVENTIONS.md`](../CONVENTIONS.md#4-specs-and-plans--docsspecsfeature)
+> [`../README.md`](../README.md#specs-and-plans)
 > for the spec / plan distinction and lifecycle.
 
 Work that needs a durable delivery contract gets a directory:
