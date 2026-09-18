@@ -79,13 +79,13 @@ function outcomeFor(
 }
 
 const liveMarker = JSON.stringify({
-  schema: 1,
+  schema: 2,
   pid: process.pid,
   startTime: readProcessStartTime(process.pid),
   tokenConvention: LIVENESS_TOKEN_CONVENTION,
 });
 const deadMarker = JSON.stringify({
-  schema: 1,
+  schema: 2,
   pid: 99998,
   startTime: "Wed Sep  9 08:15:07 2026",
   tokenConvention: LIVENESS_TOKEN_CONVENTION,
@@ -164,7 +164,7 @@ describe("AC-0081 limb 1 — a marker naming no live process", () => {
     // reporting that the process is absent, so liveness is uncomparable.
     const path = candidate(base, "uncomparable", {
       marker: JSON.stringify({
-        schema: 1,
+        schema: 2,
         pid: 4_000_000_000,
         startTime: "Wed Sep  9 08:15:07 2026",
         tokenConvention: LIVENESS_TOKEN_CONVENTION,
@@ -310,7 +310,7 @@ describe("AC-0081 declines and AC-0083 diagnostics", () => {
     const secret = "s3cret-repository-bytes";
     candidate(base, "leaky", {
       marker: JSON.stringify({
-        schema: 1,
+        schema: 2,
         pid: 4_000_000_000,
         startTime: secret,
         tokenConvention: LIVENESS_TOKEN_CONVENTION,
@@ -379,7 +379,7 @@ describe("AC-0081 a token rendered under another convention is not comparable", 
     const base = domain();
     candidate(base, "future-build", {
       marker: JSON.stringify({
-        schema: 1,
+        schema: 2,
         pid: process.pid,
         startTime: readProcessStartTime(process.pid),
         tokenConvention: "lang-c/lc-all-c/tz-utc/iso-8601",
@@ -418,6 +418,51 @@ describe("AC-0081 a token rendered under another convention is not comparable", 
     expect(decision).toMatchObject({ action: "declined", limb: 1 });
     expect(decision).not.toMatchObject({ action: "reclaimed" });
     expect(existsSync(join(base, "old-and-inconvertible"))).toBe(true);
+  });
+
+  it("reclaims an incomparable token whose process is gone, on the age gate", () => {
+    // The bound. Declining on every incomparable token, live or not, would
+    // retain a root from a long-dead other-build Runtime forever: limb 1 has
+    // no age gate and limbs 2 and 3 were unreachable behind it. Absence is
+    // established without comparing any token bytes -- no process carries
+    // that identity under any convention -- so the root is abandoned like any
+    // other and falls to the second limb's age gate.
+    const base = domain();
+    candidate(base, "dead-old-build", {
+      marker: JSON.stringify({
+        schema: 1,
+        pid: 99998,
+        startTime: "Wed Sep  9 08:15:07 2026",
+      }),
+      mtimeMs: OLD,
+    });
+
+    expect(
+      outcomeFor(sweepDomain(base, { now: NOW }).entries, "dead-old-build")
+        .decision,
+    ).toMatchObject({ action: "reclaimed", limb: 2 });
+    expect(existsSync(join(base, "dead-old-build"))).toBe(false);
+  });
+
+  it("retains an incomparable token whose process is gone but is still young", () => {
+    // The age gate still applies: reaching limb 2 is not reclaiming on sight.
+    const base = domain();
+    candidate(base, "dead-old-build-young", {
+      marker: JSON.stringify({
+        schema: 1,
+        pid: 99998,
+        startTime: "Wed Sep  9 08:15:07 2026",
+      }),
+      mtimeMs: YOUNG,
+    });
+
+    expect(
+      outcomeFor(
+        sweepDomain(base, { now: NOW }).entries,
+        "dead-old-build-young",
+      ).decision,
+    ).toMatchObject({ action: "skipped", reason: "younger than reclaim age" });
+    expect(existsSync(join(base, "dead-old-build-young"))).toBe(true);
   });
 
   it("still reclaims a dead process whose token this build can compare", () => {

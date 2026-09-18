@@ -23,6 +23,13 @@
  * direction: uncertainty costs bounded retention and never destroys state still
  * in use. A marker that does not yield both values is *not* a declined liveness
  * comparison — it is limb 2's input, and limb 2 reclaims it on its age gate.
+ *
+ * Retention stays bounded for the token-convention class too, which is why the
+ * decline is conditioned on liveness rather than on the token alone. A process
+ * that is absent is absent under any rendering convention, so an incomparable
+ * token whose process is gone is limb 2's input and ages out; only a live
+ * process with an incomparable token is undecidable, and that decline lasts no
+ * longer than the process does.
  */
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -76,8 +83,9 @@ type MarkerRead =
   | { readonly kind: "partial" }
   /** Complete, but its token was rendered under a convention this build cannot
    *  compare against -- including a marker written before the convention was
-   *  recorded at all. Never reclaimed on a byte comparison. */
-  | { readonly kind: "inconvertible-token" }
+   *  recorded at all. Never reclaimed on a byte comparison; declined while its
+   *  process is live, and treated as the second limb's input once it is not. */
+  | { readonly kind: "inconvertible-token"; readonly pid: number }
   | {
       readonly kind: "complete";
       readonly pid: number;
@@ -132,7 +140,7 @@ function readMarker(candidate: string): MarkerRead {
   // or from one predating the pin, which records no convention at all -- is
   // complete and unusable for limb 1 at the same time.
   if (record.tokenConvention !== LIVENESS_TOKEN_CONVENTION) {
-    return { kind: "inconvertible-token" };
+    return { kind: "inconvertible-token", pid };
   }
   return { kind: "complete", pid, startTime };
 }
@@ -140,6 +148,19 @@ function readMarker(candidate: string): MarkerRead {
 export interface SweepOptions {
   readonly now?: number;
   readonly reclaimAgeMs?: number;
+}
+
+/**
+ * A filesystem-supplied entry name, rendered so it cannot forge a diagnostic.
+ *
+ * Diagnostics are a line-oriented stream, so a name carrying a newline would
+ * introduce lines a reader attributes to the sweep. The entry gate already
+ * requires same-uid ownership at mode 0700, so an actor who can create such a
+ * name can write the tree anyway -- this keeps the *record* honest rather
+ * than defending the tree.
+ */
+function forDiagnostic(name: string): string {
+  return JSON.stringify(name);
 }
 
 export function sweepDomain(
@@ -160,7 +181,7 @@ export function sweepDomain(
     entries.push({ name, decision, removalDiagnostics });
     if (decision.action === "declined") {
       diagnostics.push(
-        `declined reclaim of ${name}: limb ${decision.limb} could not read or compare ${decision.inputClass}`,
+        `declined reclaim of ${forDiagnostic(name)}: limb ${decision.limb} could not read or compare ${decision.inputClass}`,
       );
     }
     for (const failure of removalDiagnostics) {
@@ -208,22 +229,9 @@ export function sweepDomain(
 
     const marker = readMarker(candidate);
 
-    // A token this build cannot compare is a liveness comparison that cannot
-    // be made, which AC-0081 routes to a decline. Reaching limb 2 instead would
-    // make a live Runtime's root reclaimable by age; comparing the bytes anyway
-    // would delete it outright the moment the two conventions disagree.
-    if (marker.kind === "inconvertible-token") {
-      record(name, {
-        action: "declined",
-        limb: 1,
-        inputClass: "liveness-token-convention",
-      });
-      continue;
-    }
-
     // Limb 1 needs no age. It is evaluated first so that a live Runtime's root
     // is refused before any age is consulted.
-    if (marker.kind === "complete") {
+    if (marker.kind === "complete" || marker.kind === "inconvertible-token") {
       const liveStartTime = readProcessStartTime(marker.pid);
       if (liveStartTime === undefined) {
         record(name, {
@@ -233,17 +241,42 @@ export function sweepDomain(
         });
         continue;
       }
-      if (liveStartTime !== null && liveStartTime === marker.startTime) {
+      // Absence is established without comparing token bytes: no process
+      // carries that identity, whatever convention rendered the marker. So a
+      // token this build cannot compare only matters while the named process
+      // is running -- otherwise the root is abandoned like any other, and
+      // falls to the age-gated limb below rather than being retained forever.
+      if (liveStartTime !== null && marker.kind === "inconvertible-token") {
+        // The process is live and its token is not comparable, so whether this
+        // root is in use cannot be decided. AC-0081 routes that to a decline.
+        // Reaching the age-gated limb instead would reclaim a live Runtime's
+        // root once it aged; comparing the bytes would delete it at once.
+        record(name, {
+          action: "declined",
+          limb: 1,
+          inputClass: "liveness-token-convention",
+        });
+        continue;
+      }
+      if (
+        marker.kind === "complete" &&
+        liveStartTime !== null &&
+        liveStartTime === marker.startTime
+      ) {
         record(name, {
           action: "skipped",
           reason: "marker names a live process",
         });
         continue;
       }
-      record(name, { action: "reclaimed", limb: 1 }, [
-        ...removePerRequestStateRoot(candidate),
-      ]);
-      continue;
+      if (marker.kind === "complete") {
+        record(name, { action: "reclaimed", limb: 1 }, [
+          ...removePerRequestStateRoot(candidate),
+        ]);
+        continue;
+      }
+      // An inconvertible token whose process is absent: nothing is in use, and
+      // the marker still parsed, so this is the second limb's input.
     }
 
     // Limbs 2 and 3 are both age-gated on the candidate's own mtime.

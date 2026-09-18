@@ -72,7 +72,16 @@ export interface PerRequestStateRoot {
 export const LIVENESS_TOKEN_CONVENTION = "lang-c/lc-all-c/tz-utc";
 
 export interface OwnershipMarker {
-  readonly schema: 1;
+  /**
+   * The marker's shape. Bumped when a field is added, removed or retyped --
+   * it reached 2 when the rendering convention joined the marker. No reader
+   * consults it today: liveness comparability is decided by
+   * `tokenConvention`, which is the field that actually governs, and a reader
+   * that rejected an unknown schema outright would reclaim by age what it
+   * should decline. It is written so a later build that needs to tell the
+   * shapes apart can, and it is kept honest so that build is not misled.
+   */
+  readonly schema: 2;
   readonly pid: number;
   readonly startTime: string;
   readonly tokenConvention: string;
@@ -229,7 +238,8 @@ export function reserveStateRoot(sweepDomain: string): PerRequestStateRoot {
  * staging child is ever visible under the state root and no partially-renamed
  * file can be mistaken for a complete marker.
  *
- * The encoding is single-line JSON with the start time last. The property that
+ * The encoding is single-line JSON written once, closing brace last. The
+ * property that
  * makes AC-0080's crash-window claim hold is **not** that no truncation parses
  * — the prefix that drops only the trailing newline parses to the complete
  * object. It is that every proper prefix of this write either fails to yield
@@ -252,7 +262,7 @@ export function writeOwnershipMarker(markerPath: string): OwnershipMarker {
     );
   }
   const marker: OwnershipMarker = {
-    schema: 1,
+    schema: 2,
     pid: process.pid,
     startTime,
     tokenConvention: LIVENESS_TOKEN_CONVENTION,
