@@ -3252,7 +3252,8 @@ being deferred past it.
 
 **Package 4's edits, and a correction to its own scope record.** The amendment entry above
 promised a disposition for all sixteen deferred entries — **the pre-r24/r27 figure, superseded by
-eighteen rows across seven tables once round 30 found the roster two tables short**. Executing it
+eighteen rows across seven tables: round 28 found the roster two tables short and round 29
+added the r24 and r27 entries**. Executing it
 found that **four were
 already repaired by later rounds and had simply never been struck off**, which is the same defect
 class as the "thirteen" undercount: a list nobody re-read against the text it cites.
@@ -3553,13 +3554,21 @@ to `/etc/localtime`, a real divergence — invisible on a host already in UTC.
 demonstrating. The property that holds on every host is a property of the two *environments*. The
 binding detector is now structural, and proven against four mutations on both host zones:
 
-| Mutation | Host UTC | Host America/Chicago |
-| --- | --- | --- |
-| baseline | 19 of 19 pass | 19 of 19 pass |
-| Service-side `TZ` deleted | **2 failed** | **2 failed** |
-| `buildPinnedEnvironment`'s `TZ` deleted | **2 failed** | **2 failed** |
-| `TZ` removed from the allowlist names | **1 failed** | **1 failed** |
-| `...process.env` spread restored before the pins | **1 failed** | **1 failed** |
+| Mutation | Result |
+| --- | --- |
+| baseline | 19 of 19 pass |
+| Service-side `TZ` deleted | **2 failed** |
+| `buildPinnedEnvironment`'s `TZ` deleted | **2 failed** |
+| `TZ` removed from the allowlist names | **1 failed** |
+| `...process.env` spread restored before the pins | **1 failed** |
+
+**One host, not two.** An earlier version of this table carried a second column
+headed "Host UTC". It was not a second configuration: setting `TZ` on the vitest
+process does not change `/etc/localtime`, which is what an unpinned side falls
+back to, so both columns recorded the same America/Chicago run. Round 31 caught
+it — the same inert-variable defect as round 29, in the record certifying its
+repair. The column is dropped rather than re-derived, because this session cannot
+change the host's system zone.
 
 Both modules were restored byte-identical. **The fourth row is the one no rendering comparison
 could ever have caught**: re-adding the ambient spread changes no output while the pins still
@@ -3573,7 +3582,7 @@ limb. A behavioural case remains as corroboration and is explicitly **not** cite
 | A round-29 repair was recorded as applied and was absent from the tree | Blocker | Head closed to the two named charset rows; the record is now true |
 | The criteria count stayed at 156 in the screening section and the plan changelog | Blocker | 157, numbered AC-0001 to AC-0159, in both |
 | AC-0159 was in T13's `Covers` and absent from its `Done-when` | Blocker | Added, so the only task claiming it now gates it |
-| The detector was host-dependent while three artifacts recorded host-independence as fact | Blocker | Structural detector, proven above; the spec, plan and ledger claims restated to what is actually exercised |
+| The detector was host-dependent while three artifacts recorded host-independence as fact | Blocker | Structural detector, proven above. **The claim that the spec, plan and ledger were all restated was false when written**: round 31 found the *Environment allowlist* preamble, the Testing Strategy group text and T13's rationale still describing the deleted forced-ambient case. Corrected in round 31, and the detector itself replaced there after round 31 showed the structural assertions alone could not catch a call site that stops using the pinned set |
 | AC-0159's closed-name-set obligation conflicted with AC-0023 | Concern | Restated over the three determinism **values**, with each side built closed under its own allowlist |
 | The Service-side closedness had no falsifying artifact | Concern | The rendering environment is exported and asserted whole |
 | The preamble cited AC-0082 for a split it does not state | Concern | Attributed to AC-0081, which assigns the sweep to the Runtime |
@@ -3606,3 +3615,77 @@ then passed twice in isolation — 7 of 7 and 23 of 23 — so no test failed twi
 deterministic. `runtime-supervisor.test.ts` matters most here because it carries the descendant
 environment assertions this round relies on, and it is clean in both isolated runs. Signature and
 judging rule at `pre-existing-trial-runtime-load-flake` in `[backlog].open`.
+
+## review-round-31-2026-09-18
+
+**Both mandatory reviewers; 15 findings raised, 11 sustained, none refuted, one returned
+indeterminate on an owner decision.** Three adversarial findings were marked as covering their
+security counterparts so each defect took one repair.
+
+**The detector needed both techniques, and four rounds failed because each attempt used one.**
+The pin breaks in two ways. The pinned set's contents can change — caught by asserting each
+environment whole, on any host. A call site can stop using the pinned set — caught by forcing a
+non-UTC zone into the rendering process, also on any host, because both compared values are then
+explicit and neither falls back to `/etc/localtime`. Round 29 forced a zone but both sides were
+closed environments, which cannot observe an ambient, so it was inert. Round 30 asserted contents
+but nothing bound the call site to them: replacing `env: LIVENESS_RENDERING_ENVIRONMENT` with
+`{ ...process.env }` left the file green on a UTC host. **The two cases are complementary, not
+alternatives**, and round 29's failure is the reason the forcing works now: the mutation being
+detected is precisely a call site that *starts* inheriting from the process the test controls.
+
+Five mutations, both host zones, modules restored byte-identical:
+
+| Mutation | Host UTC | Host America/Chicago |
+| --- | --- | --- |
+| baseline | 20 of 20 pass | 20 of 20 pass |
+| the call site stops using the pin | **1 failed** | **2 failed** |
+| `TZ` removed from the pinned set | **3 failed** | **3 failed** |
+| the builder stops setting `TZ` | **2 failed** | **2 failed** |
+| `TZ` removed from the allowlist names | **1 failed** | **1 failed** |
+| `...process.env` spread restored | **1 failed** | **1 failed** |
+
+**These two columns are two real configurations**, unlike round 30's. The zone knob reaches the
+call-site mutation because that mutation makes the reader inherit from the process the test sets
+`TZ` on; it does not reach the other four, which is why their counts match across columns. That
+asymmetry is the evidence the columns differ.
+
+### Sustained and applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The detector could not fail when the Service seam stopped using the pin | Blocker | Second case added; both mutation classes now covered on any host |
+| The *Environment allowlist* preamble described the deleted forced-ambient test | Blocker | Restated against the two cases that exist |
+| The Testing Strategy group's ground for AC-0159 carried the same deleted description | Blocker | Restated; a separate artifact from the preamble, separately edited |
+| T13's rationale repeated the stale claim about the artifact it gates | Concern | Restated |
+| The round-30 mutation table recorded two host columns for a one-host run | Concern | Column dropped, with the reason stated: setting `TZ` on the vitest process does not change `/etc/localtime` |
+| The *Non-originated value* row resolved its own conflict by rationale, not by rule | Concern | Precedence stated as a rule: charset exclusion governs over derivation reach |
+| The superseded-"sixteen" marking credited the wrong round | Concern | Round 28 found the roster short; round 29 added r24 and r27 |
+| AC-0159's "built closed" limb was not decidably true of the Runtime side | Nit | Owner chose to admit the re-projection hop; the limb now describes the two-hop construction |
+| The key-order assertion constrained a sequence AC-0159 does not | Nit | Sorted-key comparison, which still catches `TZ` leaving the allowlist |
+| The exported rendering environment was runtime-mutable | Nit | `Object.freeze` at the declaration |
+| A test fixture reaching a spawn's `HOME` and `TMPDIR` used a predictable shared path | Nit | Private per-test root via `mkdtemp`, removed after the case |
+
+**Routed out by owner decision**, as the liveness fail-open was in round 30: a failed spawn yields
+`childPid = -1`, and `signalProcessGroup(-1, …)` evaluates `process.kill(1, …)` — a signal to init
+swallowed by a bare `catch`. Recorded at `spawn-failure-sentinel-signals-init` in `[backlog].open`
+with the five call sites and the three candidate repair shapes. `runtime-supervisor.ts` is
+untouched by this amendment; it surfaced only because the amended *Permitted executables* row newly
+grounds that operand.
+
+**A correction to round 30's own record.** Its applied row claimed the spec, plan and ledger
+claims were "restated to what is actually exercised". Three of them were not. That row now says so.
+This is the second instance of the class in three rounds, and the reason the applied-claim check
+now takes absence assertions as well as presence ones — a repair can add its new wording while the
+superseded wording survives elsewhere, and a presence-only check passes.
+
+### Round 31 gate state
+
+`pnpm lint` exit 0 over 105 files; `pnpm typecheck` exit 0; `spec-coupling-check` 0 findings;
+`lint-contract-item-alignment` 0 findings; roster 157 declared, 157 claimed, 0 residual; eleven
+pinned completed-task section hashes verify.
+
+`pnpm test` failed 4 cases across `disposal.test.ts` and `runtime-supervisor.test.ts` at load
+average 36 to 47 on a host carrying 29 sessions. Both files then passed twice in isolation — 7 of
+7 and 23 of 23 — so no test failed twice and none is deterministic. `per-request-state-root.test.ts`,
+which carries this round's repairs, is 20 of 20 in every run including both mutation sweeps.
+Signature and judging rule at `pre-existing-trial-runtime-load-flake` in `[backlog].open`.

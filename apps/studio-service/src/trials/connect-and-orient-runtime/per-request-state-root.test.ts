@@ -190,57 +190,96 @@ describe("AC-0070 and AC-0080 the per-request state root and its marker", () => 
 });
 
 describe("AC-0076 and AC-0079 one removal takes the whole state root", () => {
-  it("AC-0159 pins both renderings of the liveness token, checkably on any host", () => {
-    // This is the binding detector, and it is structural on purpose.
-    //
-    // AC-0081's first limb compares two renderings of `ps -o lstart=` for byte
-    // equality. A render-and-compare case cannot guard that: both sides run
-    // under closed environments, so the only way a pin's loss shows up in
-    // output is the fallback to `/etc/localtime` — and on a host whose zone is
-    // already UTC, the fallback and the pin render identically and nothing
-    // fails. Two successive attempts to guard this behaviourally were green
-    // exactly where CI runs, which is recorded at
-    // `notes/verification-ledger.md#review-round-30-2026-09-18`.
-    //
-    // What is true on every host is a property of the two environments. So the
-    // two environments are what this asserts.
+  it("AC-0159 pins the contents of both rendering environments", () => {
+    // Half the guard. AC-0081's first limb compares two renderings of
+    // `ps -o lstart=` for byte equality, and there are two ways that breaks:
+    // the pinned set's contents change, or a call site stops using the pinned
+    // set. This case catches the first, on any host. The case below catches
+    // the second. Neither catches both, which is why there are two — four
+    // earlier attempts each caught one and were recorded as guarding both.
     expect({ ...LIVENESS_RENDERING_ENVIRONMENT }).toEqual({
       LANG: "C",
       LC_ALL: "C",
       TZ: "UTC",
     });
 
-    // `toEqual` over the whole object is what makes the closedness AC-0159
-    // states falsifiable: restoring a `...process.env` spread before the pins
-    // adds keys and reddens here, which no rendering comparison would notice.
     const runtimeSide = buildPinnedEnvironment({
-      home: "/tmp/does-not-need-to-exist/home",
-      temporaryDirectory: "/tmp/does-not-need-to-exist/tmp",
+      home: "/does-not-reach-a-spawn/home",
+      temporaryDirectory: "/does-not-reach-a-spawn/tmp",
     });
     for (const name of ["LANG", "LC_ALL", "TZ"] as const) {
       expect(runtimeSide[name]).toBe(LIVENESS_RENDERING_ENVIRONMENT[name]);
     }
-    // The Runtime side keeps AC-0023's thirteen names; what AC-0159 requires is
-    // that the three determinism values agree, not that the name sets do.
-    expect(Object.keys(runtimeSide)).toEqual([...ENVIRONMENT_ALLOWLIST_NAMES]);
+    // A set, not a sequence: AC-0159 constrains the three determinism values,
+    // and AC-0023 owns the name set. Comparing sorted keys still reddens when
+    // `TZ` leaves the allowlist — the mutation this file would otherwise miss —
+    // without failing on a reordering neither criterion constrains.
+    expect(Object.keys(runtimeSide).sort()).toEqual(
+      [...ENVIRONMENT_ALLOWLIST_NAMES].sort(),
+    );
+  });
+
+  it("AC-0159 binds the Service-side call site to the pinned set, on any host", () => {
+    // The other half. The case above asserts what the pinned set contains; it
+    // cannot tell whether `readProcessStartTime` still uses it. Replacing that
+    // call's `env` with `{ ...process.env }` left the whole file green on a UTC
+    // host — recorded at `notes/verification-ledger.md#review-round-31-2026-09-18`.
+    //
+    // Forcing a non-UTC zone into this process catches that on **any** host,
+    // because both compared values are then explicit and neither falls back to
+    // `/etc/localtime`. Round 29 forced a zone too and it was inert: both sides
+    // were closed environments, which cannot see an ambient. What makes it work
+    // here is that the mutation being detected is precisely a call site that
+    // *starts* inheriting from this process.
+    const restore = process.env.TZ;
+    process.env.TZ = "Pacific/Kiritimati"; // UTC+14, never equal to the pin
+    try {
+      const pinned = execFileSync(
+        PROCESS_STATUS_EXECUTABLE,
+        ["-o", "lstart=", "-p", String(process.pid)],
+        { encoding: "utf8", env: { LANG: "C", LC_ALL: "C", TZ: "UTC" } },
+      ).trim();
+      const inheriting = execFileSync(
+        PROCESS_STATUS_EXECUTABLE,
+        ["-o", "lstart=", "-p", String(process.pid)],
+        { encoding: "utf8" },
+      ).trim();
+
+      // Guard the guard: if the zone did not resolve, `ps` falls back to UTC and
+      // the comparison below would pass for the wrong reason.
+      expect(inheriting).not.toBe(pinned);
+
+      expect(readProcessStartTime(process.pid)).toBe(pinned);
+    } finally {
+      if (restore === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = restore;
+      }
+    }
   });
 
   it("renders the same liveness token on both sides on this host", () => {
-    // Corroboration, not the guard. It confirms the two pins agree in practice
-    // here; it cannot fail on a UTC host if a pin is lost, which is precisely
-    // why the case above exists and why this one is not cited as the detector.
-    const asTheRuntimeRenders = execFileSync(
-      PROCESS_STATUS_EXECUTABLE,
-      ["-o", "lstart=", "-p", String(process.pid)],
-      {
-        encoding: "utf8",
-        env: buildPinnedEnvironment({
-          home: "/tmp/does-not-need-to-exist/home",
-          temporaryDirectory: "/tmp/does-not-need-to-exist/tmp",
-        }),
-      },
-    ).trim();
-    expect(readProcessStartTime(process.pid)).toBe(asTheRuntimeRenders);
+    // Corroboration, not a guard: it cannot fail on a UTC host if a pin is lost.
+    // Its fixture reaches a real spawn as HOME and TMPDIR, so it comes from a
+    // private per-test root rather than a predictable shared path.
+    const root = mkdtempSync(join(tmpdir(), "liveness-render-"));
+    try {
+      const asTheRuntimeRenders = execFileSync(
+        PROCESS_STATUS_EXECUTABLE,
+        ["-o", "lstart=", "-p", String(process.pid)],
+        {
+          encoding: "utf8",
+          env: buildPinnedEnvironment({
+            home: join(root, "home"),
+            temporaryDirectory: join(root, "tmp"),
+          }),
+        },
+      ).trim();
+      expect(readProcessStartTime(process.pid)).toBe(asTheRuntimeRenders);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("removes the tree, the home, the temp and the marker together", () => {

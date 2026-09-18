@@ -840,9 +840,12 @@ changelog.
 
 **AC-0159 rides here because its work is already done and only its verification
 belongs to a task.** Package 4 added the criterion and the pinned rendering it
-requires, and `per-request-state-root.test.ts` carries the case that fails when
-either side loses its pin, on any host zone. T13 confirms it holds at delivery
-rather than re-implementing it.
+requires. `per-request-state-root.test.ts` carries two cases: one asserts the
+contents of both rendering environments, the other forces a non-UTC zone into the
+rendering process and compares the reader against an explicitly pinned rendering.
+Together they fail when either side loses its pin and when a call site stops using
+it, on any host zone. T13 confirms they hold at delivery rather than
+re-implementing them.
 
 **Done when:** `pnpm verify` is green, the ledger carries each recorded
 gesture, the smoke result is recorded with its exact SHA and projection, and

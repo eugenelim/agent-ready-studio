@@ -123,11 +123,11 @@ export function verifySweepDomain(sweepDomain: string): void {
  * reclaims a live state root. AC-0159 is what makes that a contract obligation
  * rather than a convention this module happens to keep.
  */
-export const LIVENESS_RENDERING_ENVIRONMENT = {
+export const LIVENESS_RENDERING_ENVIRONMENT = Object.freeze({
   LANG: "C",
   LC_ALL: "C",
   TZ: "UTC",
-} as const;
+} as const);
 
 /**
  * The start time of a live process, read from `ps`, at the one-second
