@@ -3489,3 +3489,21 @@ four combinations — all four now agree.
 T12 executing against inputs no task produces. The plan already assigns the hue mapping to T12 by
 name and records the owner's accepted feasibility risk, so the gap is a recorded assignment rather
 than a defect this amendment introduced.
+
+### A process slip in round 29, recorded rather than smoothed over
+
+Round 29's repairs were made while the engine sat at `SPEC-PLAN-REVIEW`. The work-loop's sequence
+is `findings-remain` → revise → `spec-ready`, so the revision should have happened in
+`SPEC-PLAN-DRAFTING`. The engine caught it by refusing `spec-ready` as an illegal transition from
+`SPEC-PLAN-REVIEW`, which is the guard working: the state machine would not let the run pretend it
+had returned to review from drafting it never entered.
+
+Both transitions were then fired in order, seq 74 and 75, leaving the state correct. **What is
+inaccurate is only the ordering in the transition log**, not the content: the findings were
+sustained, the revision happened, and the run is ready for review again. Pre-EXECUTE rounds call no
+`review record` and consume no retry budget, so all three counters remain 0 after twenty-nine
+rounds, and the eleven pinned section hashes and five amendments are untouched.
+
+Naming it because this ledger's convention is that a slip caught by a guard is still a slip, and a
+reader reconstructing the sequence from timestamps would otherwise find the edits preceding the
+transition that authorizes them.
