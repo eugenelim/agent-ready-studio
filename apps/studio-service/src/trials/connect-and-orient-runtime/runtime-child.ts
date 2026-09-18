@@ -178,8 +178,20 @@ function claimStateRoot(): void {
   if (typeof startTime !== "string" || startTime === "") {
     throw new Error(`the Runtime's own start time could not be read`);
   }
+  // The plan is parsed, not validated, so an absent convention would fail
+  // silently in both directions at once: the writer would emit no convention,
+  // and the sweep's comparison would be `undefined === undefined`, which
+  // treats every pre-pin marker as comparable -- re-arming the deletion this
+  // field exists to prevent. Fail closed here, at the same seam the start-time
+  // read uses, so a missing field stops the Runtime rather than the guard.
+  if (
+    typeof plan.livenessTokenConvention !== "string" ||
+    plan.livenessTokenConvention === ""
+  ) {
+    throw new Error(`the plan delivered no liveness token convention`);
+  }
   const marker = {
-    schema: 1,
+    schema: 2,
     pid: process.pid,
     startTime,
     tokenConvention: plan.livenessTokenConvention,
@@ -338,22 +350,15 @@ function sweep(domain: string): void {
       Number.isInteger(pid) &&
       pid > 0 &&
       typeof startTime === "string" &&
-      startTime !== "";
+      // Same predicate as the Service-side reader's `readMarker`: a
+      // whitespace-only start time is partial, not complete. Both paths now
+      // gate the convention comparison behind this, so they must agree.
+      startTime.trim() !== "";
 
     // A token rendered under another build's convention -- or under none,
     // which is what a marker predating the pin carries -- cannot be compared
-    // against a rendering from this one. AC-0081 routes a comparison that
-    // cannot be made to a decline. Falling through to the age-gated limbs
-    // would leave a live Runtime's root reclaimable by age instead.
-    if (complete && marker?.tokenConvention !== plan.livenessTokenConvention) {
-      outcomes.push({
-        name,
-        action: "declined",
-        limb: 1,
-        inputClass: "liveness-token-convention",
-      });
-      continue;
-    }
+    // against a rendering from this one.
+    const comparable = marker?.tokenConvention === plan.livenessTokenConvention;
 
     if (complete) {
       // Limb 1 carries no age gate.
@@ -367,16 +372,34 @@ function sweep(domain: string): void {
         });
         continue;
       }
-      if (live !== null && live === startTime) {
+      // Absence is established without comparing token bytes, so an
+      // incomparable token only matters while the named process runs.
+      if (live !== null && !comparable) {
+        // Live process, incomparable token: whether this root is in use cannot
+        // be decided, which AC-0081 routes to a decline. Falling through to
+        // the age-gated limb would reclaim a live Runtime's root once it aged.
+        outcomes.push({
+          name,
+          action: "declined",
+          limb: 1,
+          inputClass: "liveness-token-convention",
+        });
+        continue;
+      }
+      if (comparable && live !== null && live === startTime) {
         continue; // a live process owns it
       }
-      outcomes.push({
-        name,
-        action: "reclaimed",
-        limb: 1,
-        removed: removeRoot(candidate),
-      });
-      continue;
+      if (comparable) {
+        outcomes.push({
+          name,
+          action: "reclaimed",
+          limb: 1,
+          removed: removeRoot(candidate),
+        });
+        continue;
+      }
+      // Incomparable token, absent process: nothing is in use and the marker
+      // parsed, so this is the second limb's input.
     }
 
     // Limbs 2 and 3, both gated on the candidate's own modification time.
@@ -424,7 +447,7 @@ function sweep(domain: string): void {
   for (const outcome of outcomes) {
     if (outcome.action === "declined") {
       diagnostic(
-        `declined reclaim of ${outcome.name}: limb ${outcome.limb} could not read or compare ${outcome.inputClass}`,
+        `declined reclaim of ${JSON.stringify(outcome.name)}: limb ${outcome.limb} could not read or compare ${outcome.inputClass}`,
       );
     }
   }

@@ -144,7 +144,7 @@ describe("AC-0082 the Service invokes the sweep without performing it", () => {
     writeFileSync(
       join(root, ".studio-ownership.json"),
       `${JSON.stringify({
-        schema: 1,
+        schema: 2,
         pid: 99998,
         startTime: "Wed Sep  9 08:15:07 2026",
         tokenConvention: LIVENESS_TOKEN_CONVENTION,

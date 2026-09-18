@@ -3327,8 +3327,11 @@ would guard has no production caller — `resolveRevision` and `materializeRevis
 only by tests. AC-0116 now states the scope its verification reaches and names the open question.
 The question is recorded at `connect-orient-transport-operand-sink-scope` in `[backlog].open` with
 its full evidence. The *Non-originated value* row's exclusion of the derived owner and repository
-rests on AC-0011's exact 40-character commit SHA rule, which is stated in the spec and gated in
-code, rather than on AC-0116.
+rests on the *Owner / repository charset* validation that row names, enforced by AC-0006, rather
+than on AC-0116. **This sentence named AC-0011 when written, and that was wrong — retracted in
+round 35.** AC-0011's exact-commit-SHA rule governs the resolved revision, which the row
+deliberately keeps inside the class. Round 33's ground for the exclusion was wrong and round 34
+replaced it with a different wrong one.
 
 **2. The liveness token carries its rendering convention, and a mismatch declines.** Round 34's
 secure-design review found that this amendment changed what bytes `ps -o lstart=` renders — the
@@ -3341,10 +3344,18 @@ Runtime's materialization root, home and temp.
 
 The owner chose to close it in this amendment rather than route it out. **The ground**: unlike the
 fail-open routed out at decision 1 above, this hazard is **introduced by this amendment** rather
-than pre-existing, and it falsifies a property AC-0081 states at `spec.md:551` — that uncertainty
-costs bounded retention and never destroys state still in use — together with the accepted
-residual that limb 1 "cannot reclaim it while its process is live". Shipping the pin without the
-gate would make both statements false. A token whose convention cannot be established is a
+than pre-existing, and it falsifies a property AC-0081 states — that uncertainty costs bounded
+retention and never destroys state still in use — together with the accepted residual that limb 1
+"cannot reclaim it while its process is live". **Round 35 corrected the citation**, which read
+`spec.md:551`; that line is AC-0080's crash-outcome paragraph, and AC-0081 carries the clause.
+
+Shipping the pin without the gate would make the second of those statements false. **As first
+built, the gate secured it by making the first false**: an incomparable token declined on limb 1
+forever and reached no age-gated limb, so a root from a long-dead other-build Runtime was retained
+permanently. Round 35 sustained that and the decline is now conditioned on the named process being
+live, which restores the bound — absence is established without comparing token bytes, so an
+incomparable token whose process is gone is the second limb's input. **Both statements hold as of
+round 35, and neither held on the round-34 gate alone.** A token whose convention cannot be established is a
 liveness comparison that cannot be made, which AC-0081 already routes to a decline, so the repair
 states an existing rule over a new case rather than adding a new kind of control.
 
@@ -3928,8 +3939,9 @@ Runtime's materialization root, home and temp. The window is an upgrade or rollb
 other-build Runtime. No attacker is required.
 
 **The reviewer reached it through `sweep.ts`, which has no production caller; adjudication found
-the reachable one.** `runtime-child.ts:273-345` carries the identical ungated limb 1 and runs on
-every inspection. Both paths are now gated, and both are covered — the Service-side reader by unit
+the reachable one.** The sweep inside `runtime-child.ts` carried the identical ungated limb 1 and
+runs on every inspection. **Round 35 replaced a line range here** that located limb 1 against the
+parent commit and stopped doing so once this round's own gate shifted it. Both paths are now gated, and both are covered — the Service-side reader by unit
 cases in `sweep.test.ts`, the child by an integration case in `disposal.test.ts` that asserts the
 decline in the child's own protocol stream.
 
@@ -3999,3 +4011,112 @@ input; `lint-spec-status --all` clean; roster 157 list items, 157 unique, no dup
 **`pnpm test` exit 0 — 41 files, 576 of 576 passed, at load average 7.60.** Six cases added this
 round: five in `sweep.test.ts` and one in `disposal.test.ts`. No flake appeared in this run, which
 is consistent with the low load and establishes nothing further about the cause.
+
+## review-round-35-2026-09-18
+
+**Both mandatory reviewers; 18 findings raised — 12 adversarial and 6 security. 15 sustained, 2
+refuted, 1 returned indeterminate and settled by the orchestrator.** No finding survived
+adjudication at Blocker: all three adversarial Blockers were reduced to Concern, and four
+Concerns to Nit. Six findings were adjudicated as three shared defects across the two reviewers.
+
+**Every sustained finding is a consequence of round 34's repair.** The round before it found the
+amendment's first behavioural defect and closed it; this round is the tail that close generated.
+That is the pattern this ledger already records — an amendment that adds a control produces
+defects, a correction does not — now demonstrated against the control this session added rather
+than against the record.
+
+**The gate secured one property by breaking another.** Round 34 declined on limb 1 whenever a
+marker's rendering convention was not this build's. Limb 1 has no age gate and both age-gated
+limbs sat behind a `continue`, so an incomparable marker was never reclaimed by anything: a root
+from a long-dead other-build Runtime was retained permanently, and `per-request-state-root.ts`
+instructs that the convention be bumped whenever the rendering environment changes, which would
+manufacture a fresh unreclaimable population at every bump. AC-0081's "uncertainty costs bounded
+retention" was false for the new class, and no residual recorded it. **Both reviewers found this
+independently, and so did the orchestrator before either reported.**
+
+**The repair, by owner decision: condition the decline on liveness.** Absence is established
+without comparing token bytes — no process carries the recorded identity under any convention —
+so an incomparable token whose process is gone is the second limb's input and ages out like any
+other abandoned root. Only a live process with an incomparable token is undecidable, and that
+decline lasts no longer than the process does. The hazard stays closed and the bound returns, with
+no residual to record.
+
+**A criterion's stated ground broke silently, and no test could have caught it.** AC-0080 derived
+its crash-window claim from "the start time is written last, so any truncation removing it also
+removes the object's closing brace". Round 34 appended `tokenConvention` after `startTime` in both
+writers. The conclusion still holds — the closing brace is written last, whatever precedes it —
+but the stated mechanism no longer existed, on three surfaces. The prefix test stayed green
+because it binds prefix classification and the exactly-one-parseable-prefix count, not field
+order. **The invariant the criterion named had no guard, which is why the change was silent.**
+
+**The AC-0011 citation was wrong twice over.** Round 33 grounded the *Non-originated value* row's
+owner/repository exclusion on AC-0116's reach; round 34 replaced that with AC-0011. AC-0011
+governs the resolved revision, which the row deliberately keeps inside the class. The row states
+its own ground: charset validation under AC-0006. Corrected at the criterion, the owner decision
+and the applied row.
+
+**Two findings were refuted.** The claim that the convention stamp is a label rather than a
+derived value was refuted on existing handling — `per-request-state-root.test.ts` binds the pinned
+set's contents and the Runtime-side projection against the same constant, so the drift that would
+make the label a lie reddens; the one uncovered call site is a stated limit at `spec.md:133`. The
+claim that narrowing AC-0116 left the spawn-operand sink ungoverned was refuted as reversing a
+settled owner decision recorded with its ground and full evidence.
+
+### Sustained and applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The liveness-token decline class had no reclaim path, falsifying AC-0081's bounded-retention clause | Concern | Decline conditioned on the named process being live; AC-0081 states the condition and why it keeps retention bounded |
+| The same boundedness claim stood in the sweep module docstring | Concern | Restated to what the code does, with the liveness condition and its ground |
+| Three surfaces stated that the start time is written last, false since round 34 | Concern | Ground restated on all three to the property the encoding has — the closing brace is written last |
+| The ledger's owner decision and applied row grounded the owner/repository exclusion in AC-0011 | Concern | Corrected to AC-0006's charset gate, marked as a round-35 retraction |
+| AC-0116's closing sentence carried the same wrong ground | Concern | Same correction at the criterion; AC-0011 reserved for the revision-as-fetch-operand case |
+| The *Non-originated value* row justified its exclusion by a reach AC-0116 no longer claims | Concern | Ground restated to the charset precedence the row itself states |
+| The owner decision implied the gate restored both properties it named | Nit | States that the gate secured one by breaking the other, and that both hold only as of this round |
+| The child writer copied an unvalidated plan field into the marker | Nit | Fails closed when the delivered convention is absent or empty, at the seam the start-time read uses |
+| The child's gate compared undefined against undefined when the plan field is absent | Nit | Same defect; discharged by the same validation |
+| The covering plan task enumerated the decline classes without the one this round added | Nit | Names the fourth class and both sides of it — decline while live, second limb's input once absent |
+| The owner decision cited `spec.md:551` for a property AC-0081 states | Nit | Cited by criterion instead of by line |
+| The round-34 narrative's child-sweep line range no longer located limb 1 | Nit | Cited by module and function; the range is dropped |
+| The round-34 commit message's sustained-finding count reconciles with no reading of the set | Nit | Corrected here rather than by rewriting a commit other records cite: fifteen were sustained, one behavioural, and four of the other fourteen are contract changes rather than record corrections |
+| The marker carried an inert `schema` field pinned to 1 after its shape changed | Nit | Bumped to 2, with what it is and is not for stated at the type |
+| The decline diagnostic interpolated a filesystem-supplied entry name into a line-oriented stream | Nit | Both readers render the name through `JSON.stringify`, so a name cannot forge a diagnostic line |
+
+### Round 35 mutation proof
+
+One host — `/etc/localtime` at America/Chicago, `TZ` unset — modules restored byte-identical. The
+first three run `sweep.test.ts`, 25 cases; the last two run `disposal.test.ts`, 8 cases.
+
+| Mutation | Result |
+| --- | --- |
+| baseline | 25 of 25 pass |
+| M1 — the live-pid decline removed, so an incomparable live token is compared | **3 failed** |
+| M2 — the decline made unconditional again, which is round 34's behaviour | **2 failed** |
+| M3 — the convention check removed entirely | **5 failed** |
+| baseline, child path only | 8 of 8 pass |
+| M4 — the child's fail-closed validation of the delivered convention removed | **0 failed — not caught** |
+| M5 — the child's live-pid decline removed | **1 failed** |
+
+**M2 is the case that binds this round's decision.** Reverting to round 34's unconditional decline
+reddens, so the bound is held by a test rather than by intention.
+
+**M4 did not redden, and it is the same class as round 34's M5.** `runtime-supervisor.ts` is the
+sole producer of the child plan and always supplies the convention, and the field is typed
+required, so no reachable path omits it and no test can exercise the validation without an
+injection seam this amendment does not have. The validation is defence against a future producer.
+**Uncovered, named rather than implied covered** — as it was last round, and for the same reason.
+
+### Round 35 gate state
+
+`pnpm lint` exit 0 over 105 files; `pnpm typecheck` exit 0; `spec-coupling-check` 0 findings;
+`lint-contract-item-alignment` 0 findings, its stale-assertion rule again without a `--since`
+input; `lint-spec-status --all` clean; roster 157 list items, 157 unique.
+
+**`pnpm test` exit 0 — 41 files, 578 of 578 passed, at load average 29.55.** Two cases added.
+An earlier run in this round failed two — the SIGTERM disposal assertion and AC-0025's
+descendant-count assertion — and both files then passed twice in isolation at 31 of 31. Both were
+checked against this round's change before being judged: `runtime-supervisor.ts:305` is the sole
+producer of the child plan and always supplies the convention, so a startup throw from the new
+fail-closed validation is not reachable and cannot explain a reduced descendant count. Known
+family. **This green at load 29.55, above the red at 14.4 recorded in round 33, is a second data
+point against reading the load numbers as a curve.**
