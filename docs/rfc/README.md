@@ -1,8 +1,10 @@
 # Requests For Comments
 
 > Proposals for change. See
-> [`../CONVENTIONS.md`](../CONVENTIONS.md#3-rfc--request-for-comments--docsrfc)
-> for when to open an RFC vs. an ADR vs. just opening a PR.
+> [`../README.md`](../README.md#decision-records)
+> for the split between an RFC and an ADR. The threshold for opening an RFC at
+> all — including what is reserved to one, and when to push the change back to
+> a PR, an issue, or a spec — is owned by the `new-rfc` skill's `SKILL.md`.
 
 | #    | Title | Status | Opened     | Closed |
 | ---- | ----- | ------ | ---------- | ------ |

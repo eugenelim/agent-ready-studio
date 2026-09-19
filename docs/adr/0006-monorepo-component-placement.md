@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-12
+- **Areas:** repo-layout, build
+- **Reversibility:** high
 - **Decision-makers:** Agent-Ready Studio maintainers
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0001, ADR-0001, ADR-0005, `docs/architecture/reference.md`
 
 ## Context
@@ -38,21 +43,22 @@ unwritten convention answers differently depending on who is asked.
 | `docs/` | Charter, decisions, proposals, architecture, product state, specs, plans, guidance | — |
 | `infra/` | Packaging, provisioning, deployment, cloud infrastructure | Deferred: created only once it has a maintained owner and lifecycle |
 
-Boundaries on this decision:
-
-- `agent-ready-repo` remains a separate repository and is not changed by this
-  record.
-- No third repository is created for a Workspace Runtime at this stage.
-- If a durable Workspace Runtime is later established, its repository home is
-  this monorepo, under `apps/`. **That conditional placement does not accept
-  RFC-0001's D1 process boundary.** It answers only where such a component
-  would live if D1 is later recorded, and it costs nothing if D1 is withdrawn,
-  because then nothing is placed.
-- `apps/` stays flat. Grouping waits for real component count, ownership, or
-  deployment pressure.
-- Repository separation is not a security boundary. Two repositories compiled
-  into one process share one trust domain.
-- **This ADR creates no directory.** `infra/` is not created, and neither is
+- **D1:** Future first-party Studio runnable components stay in the
+  `agent-ready-studio` monorepo, and root directories are classified by
+  component lifecycle as the table above sets out.
+- **D2:** `agent-ready-repo` remains a separate repository and is not changed by
+  this record.
+- **D3:** No third repository is created for a Workspace Runtime at this stage.
+- **D4:** If a durable Workspace Runtime is later established, its repository
+  home is this monorepo, under `apps/`. That conditional placement does not
+  accept RFC-0001's D1 process boundary. It answers only where such a component
+  would live if RFC-0001's D1 is later recorded, and it costs nothing if that
+  D1 is withdrawn, because then nothing is placed.
+- **D5:** `apps/` stays flat. Grouping waits for real component count,
+  ownership, or deployment pressure.
+- **D6:** Repository separation is not a security boundary. Two repositories
+  compiled into one process share one trust domain.
+- **D7:** This ADR creates no directory. `infra/` is not created, and neither is
   any component.
 
 ## Decision drivers
