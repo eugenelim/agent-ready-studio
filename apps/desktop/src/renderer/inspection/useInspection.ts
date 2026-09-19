@@ -27,6 +27,8 @@ export interface InspectionView {
   }> | null;
   readonly busy: boolean;
   readonly rejection: string | null;
+  /** When the current in-flight phase began, for the progress channel. */
+  readonly startedAt: number | null;
 }
 
 const IN_FLIGHT: ReadonlySet<UserVisibleState> = new Set<UserVisibleState>([
@@ -53,6 +55,7 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
   }> | null>(null);
   const nonce = useRef(0);
   const [rejection, setRejection] = useState<string | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
   const snapshot = useRef<SurfaceSnapshot>({
     state: null,
     verdict: null,
@@ -67,6 +70,10 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
         resolvedSha: next?.resolvedSha ?? null,
       };
       const step = transition(snapshot.current, nextSnapshot, provenance);
+      // The phase clock restarts when the phase does, so the channel reports
+      // this phase's age rather than the whole inspection's.
+      if (nextSnapshot.state !== snapshot.current.state)
+        setStartedAt(Date.now());
       snapshot.current = nextSnapshot;
       setInspection(next);
       // Only a real transition writes the live region. Re-rendering with the
@@ -124,6 +131,7 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
     focusRequest,
     busy: state !== null && IN_FLIGHT.has(state),
     rejection,
+    startedAt,
   };
   return { view, connect, cancel, refresh } as const;
 }

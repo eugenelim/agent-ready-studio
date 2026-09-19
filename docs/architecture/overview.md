@@ -17,6 +17,26 @@ Electron renderer reaches it only through the typed preload boundary.
 | `packages/storage-sqlite` | Migrations and SQLite storage operations | Keep SQL behind the service-owned storage boundary. |
 | `contracts/jsonschema` | Versioned public protocol schema | Changes require the protocol approval path. |
 
+## Connected sources and the trial Runtime
+
+The connect surface is the first path that reaches content Studio did not
+author. A lead submits a public GitHub URL; the Studio Service canonicalizes it,
+then delegates the inspection to a **trial Runtime child process** rather than
+materializing the repository in its own process.
+
+The Runtime is **provisional, private and non-normative**, authorized only by
+[RFC-0001 follow-on item 7](../rfc/0001-notes/post-acceptance-follow-ons.md) and
+time-boxed. It is not `apps/workspace-runtime`, which item 11 forbids ahead of
+the Stage 2 gate. What it turned out to hold, and what the boundary actually
+enforced rather than left to convention, is recorded without a verdict in
+[the evidence note](../product/research/connect-and-orient-trial-runtime-evidence.md).
+
+Topology is two deep — Service → Runtime → transport and probe helpers. The
+Runtime is a process-group leader under a closed environment built from an
+empty object, owns its own inspection deadline, and signals its whole group at
+expiry so no descendant outlives it. It reports progress as NDJSON on stdout,
+and the Service parses those lines rather than evaluating them.
+
 ## Request and state flow
 
 1. The React renderer calls a purpose-specific method on the frozen preload API

@@ -30,9 +30,16 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../../..");
 const rendererRoot = resolve(repoRoot, "apps/desktop/out/renderer");
 const serviceEntry = resolve(repoRoot, "apps/studio-service/dist/service.js");
+// Spec-selectable, defaulting to today's path so every existing reference is
+// unchanged. Publishing is a whole-directory swap, not an append: a run under
+// the default root replaces that directory's retained captures wholesale, and
+// that directory is a Shipped spec's notes. A slice capturing its own surfaces
+// passes its own root and brings its own `.gitignore` entries for the two
+// staging directories derived below.
 const outputRoot = resolve(
   repoRoot,
-  "docs/specs/product-development-walking-skeleton/notes/visual",
+  process.env.VISUAL_EVIDENCE_ROOT ??
+    "docs/specs/product-development-walking-skeleton/notes/visual",
 );
 
 const MIME = {
@@ -654,6 +661,11 @@ try {
       { name: "strategy", clicks: ["Strategy"] },
       { name: "reviews", clicks: ["Home", "Reviews"] },
       { name: "studio", clicks: ["Open review"] },
+      // The connect-and-orient surfaces. Reachable from global navigation, so
+      // one click each, and both render before any repository is connected --
+      // which is the state AC-0107 governs and the one a capture can show
+      // without contacting a remote.
+      { name: "connect", clicks: ["Connect"] },
     ]) {
       for (const label of surface.clicks) {
         const clicked = await page("Runtime.evaluate", {
