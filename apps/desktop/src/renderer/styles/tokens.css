@@ -572,3 +572,168 @@ h3 {
   margin-block: 0 var(--space-6);
   padding: var(--space-3) var(--space-4);
 }
+
+/* Inspection surfaces.
+   Every state carries a shape and a text label, never a hue alone (AC-0122).
+   The label takes --color-text so it meets the text ratio on any surface; the
+   hue carries the shape only, where the non-text ratio applies. */
+.inspection-badge,
+.inspection-verdict {
+  align-items: center;
+  color: var(--color-text);
+  display: flex;
+  gap: var(--space-2);
+  margin-block: 0 var(--space-3);
+}
+
+/* The shape is a second visual carrier, drawn from the family's identity hue
+   and distinguished by its border geometry rather than by colour. */
+.inspection-badge__shape,
+.inspection-verdict__shape {
+  border: 0.2rem solid currentColor;
+  display: inline-block;
+  flex: none;
+  height: 0.9rem;
+  width: 0.9rem;
+}
+
+[data-shape="broken-square"] .inspection-badge__shape {
+  border-style: dashed;
+}
+[data-shape="octagon-cross"] .inspection-badge__shape {
+  border-radius: 30%;
+  transform: rotate(45deg);
+}
+[data-shape="cloud-slash"] .inspection-badge__shape {
+  border-radius: 50% 50% 20% 20%;
+}
+[data-shape="hourglass"] .inspection-badge__shape {
+  border-width: 0.3rem 0.2rem;
+}
+[data-shape="square-stop"] .inspection-badge__shape {
+  border-radius: 0;
+}
+[data-shape="circle-slash"] .inspection-badge__shape {
+  border-radius: 50%;
+  border-left-style: none;
+}
+[data-shape="dashed-circle"] .inspection-badge__shape {
+  border-radius: 50%;
+  border-style: dashed;
+}
+[data-shape="plug"] .inspection-badge__shape {
+  border-radius: 20%;
+  border-top-width: 0.4rem;
+}
+[data-shape="triangle-exclaim"] .inspection-badge__shape {
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+[data-shape="arrow-loop"] .inspection-badge__shape {
+  border-radius: 50%;
+  border-right-style: dotted;
+}
+[data-shape="magnifier"] .inspection-badge__shape {
+  border-radius: 50%;
+  border-bottom-width: 0.4rem;
+}
+[data-shape="check-badge"] .inspection-verdict__shape {
+  border-radius: 50%;
+  border-bottom-width: 0.4rem;
+}
+[data-shape="cross-badge"] .inspection-verdict__shape {
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+
+/* The identity hue reaches the shape, which is non-text, and never the label. */
+[data-state="malformed"] .inspection-badge__shape {
+  color: var(--color-attention-caution);
+}
+[data-state="inspector-unavailable"] .inspection-badge__shape {
+  color: var(--color-attention-critical);
+}
+[data-state="source-unavailable"] .inspection-badge__shape {
+  color: var(--color-attention-caution);
+}
+[data-state="source-rate-limited"] .inspection-badge__shape {
+  color: var(--color-attention-caution);
+}
+[data-state="inspection-stopped"] .inspection-badge__shape {
+  color: var(--color-attention-caution);
+}
+[data-state="cancelled"] .inspection-badge__shape {
+  color: var(--color-attention-informative);
+}
+[data-state="incomplete"] .inspection-badge__shape {
+  color: var(--color-attention-caution);
+}
+[data-state="unconnected"] .inspection-badge__shape {
+  color: var(--color-attention-informative);
+}
+[data-state="url-rejected"] .inspection-badge__shape {
+  color: var(--color-attention-caution);
+}
+[data-state="resolving"] .inspection-badge__shape {
+  color: var(--color-execution-running);
+}
+[data-state="inspecting"] .inspection-badge__shape {
+  color: var(--color-execution-running);
+}
+[data-verdict="agent-ready"] .inspection-verdict__shape {
+  color: var(--color-inspection-agent-ready);
+}
+[data-verdict="not-agent-ready"] .inspection-verdict__shape {
+  color: var(--color-inspection-not-agent-ready);
+}
+
+/* AC-0114: the primary role takes the largest type and highest contrast. */
+.inspection-verdict--primary .inspection-verdict__label,
+.inspection-badge--primary .inspection-badge__label {
+  font-size: var(--type-plus-2);
+  font-weight: 650;
+}
+.inspection-badge--secondary .inspection-badge__label {
+  font-size: var(--type-plus-1);
+}
+.inspection-verdict--subordinate .inspection-verdict__label {
+  font-size: var(--type-base);
+}
+
+.verdict-surface__identity {
+  color: var(--color-muted);
+  display: grid;
+  gap: var(--space-1) var(--space-3);
+  grid-template-columns: auto 1fr;
+}
+
+.verdict-surface__diagnostics > pre {
+  background: var(--color-surface-raised);
+  overflow-x: auto;
+  padding: var(--space-3);
+  white-space: pre-wrap;
+}
+
+.connect-form__rejection {
+  color: var(--color-text);
+}
+.connect-form__actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* The result container is focusable so a user-initiated transition can land
+   on it, but it is not a tab stop of its own. */
+.inspection-surface [tabindex="-1"]:focus-visible {
+  outline: 0.2rem solid var(--color-focus);
+  outline-offset: 0.2rem;
+}
+
+.visually-hidden {
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

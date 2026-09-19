@@ -61,6 +61,19 @@ export type StudioPreloadApi = Readonly<{
       input: ExecutionStartInput,
     ): Promise<StudioCallOutcome<"execution.start">>;
   }>;
+  /**
+   * The inspection surface's three methods. `connect` carries the submitted
+   * URL and nothing else: AC-0106 puts no credential on the form, so there is
+   * no credential to pass, and adding an optional field here would be the
+   * first place one could appear.
+   */
+  source: Readonly<{
+    connect(
+      input: StudioRequestParams<"source.connect">,
+    ): Promise<StudioCallOutcome<"source.connect">>;
+    get(sourceId: string): Promise<StudioCallOutcome<"source.get">>;
+    cancel(sourceId: string): Promise<StudioCallOutcome<"source.cancel">>;
+  }>;
   review: Readonly<{
     list(workspaceId?: string): Promise<StudioCallOutcome<"review.list">>;
     get(id: string): Promise<StudioCallOutcome<"review.get">>;
@@ -128,6 +141,12 @@ export function createStudioPreloadApi(invoke: StudioInvoke): StudioPreloadApi {
           transformationId: "strategy.frame-product-intent",
           executorKind: "deterministic",
         }),
+    }),
+    source: Object.freeze({
+      connect: (input: StudioRequestParams<"source.connect">) =>
+        request("source.connect", input),
+      get: (sourceId: string) => request("source.get", { sourceId }),
+      cancel: (sourceId: string) => request("source.cancel", { sourceId }),
     }),
     review: Object.freeze({
       list: (workspaceId?: string) =>

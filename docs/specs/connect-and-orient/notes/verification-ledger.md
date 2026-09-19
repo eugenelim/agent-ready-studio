@@ -4344,3 +4344,77 @@ the palette.
 **Gates.** `pnpm lint` exit 0 over 106 files; `pnpm typecheck` exit 0; `pnpm test` 42 files,
 **585 of 585** at load average 16.08. `apps/desktop/tools/` is 17 of 17, covering the ΔE2000
 generator's own proofs and the new separation arm.
+
+## t12-implementation-2026-09-19
+
+**T12's renderer work, after the design-system edit landed separately.** Twenty-five criteria,
+`pnpm verify` exit 0.
+
+**Named skip: `frontend-engineering` is not installed**, so the frontend pre-flight the plan
+requires ran without its craft rules. Recorded rather than passed over silently, per the skill's
+"named skip" rule. What stood in for it: the accessibility criteria are the pre-flight here —
+AC-0121 through AC-0128 and AC-0157 and AC-0158 are checked by tests rather than by a checklist.
+
+**Three obligations were moved out of the components and into one module**, because each is stated
+over *every* transition and a per-component answer satisfies it on the surfaces that exist while
+missing the next one. `presentation.ts` owns the shape roster (AC-0121, AC-0122), the single
+focus-management path (AC-0125) and the one announcement per transition (AC-0128, AC-0158). A new
+surface cannot acquire a second focus rule without going through it.
+
+**The labels are imported, not restated.** `@agent-ready/studio-service/state-projection` is the
+spec's tables in code; the renderer reads it through a new package subpath rather than keeping its
+own copy, and a test asserts the two rosters are identical. A second copy would let the surface be
+honest about a state the service no longer reports — the drift the token retirement above removed
+in the palette.
+
+**Two defects the tests found, both real.**
+
+- **A result whose condition is `ok` announced nothing.** `transition` returned early when the
+  next state was null, and `ok` is the absence of condition chrome, so it has no user-visible
+  state. An `agent-ready` verdict arriving cleanly — the commonest success path — produced no
+  announcement at all, failing AC-0158 on its main case. The test caught it on first run. The
+  transition test is now "state changed **or** verdict changed".
+- **The unconnected heading duplicated its own badge**, so the state read twice to a screen
+  reader. Caught by a query matching two elements.
+
+**Mutation proof, renderer.** Five mutations, all reddening.
+
+| Mutation | Result |
+| --- | --- |
+| baseline | 40 of 40 pass |
+| `aria-invalid` dropped from the refused field | **1 failed** |
+| the focus effect disabled | **2 failed** |
+| the announcement fired on every render, not every transition | **1 failed** |
+| diagnostics set as markup rather than text | **1 failed** |
+| the diagnostics disclosure opened by default | **1 failed** |
+
+**Mutation proof, contrast.** Three mutations against `inspection-contrast.test.ts`, all
+reddening: muted text washed out, an inspection hue moved to near-white, the focus indicator made
+faint. The check enumerates its pairings rather than scraping the stylesheet, because a scraper
+reports a pass over whatever it managed to parse — the same failure direction AC-0120's arm has.
+
+**AC-0116's two halves are verified in different places, and neither is new.** The sink prohibition
+is asserted over the DOM rather than over today's components: no `a[href]`, no `[src]`, no
+`iframe`, `embed`, `object` or `form[action]` anywhere the verdict surface renders. The window's
+refusal of foreign navigation was already built and tested at `installWindowGuards` —
+`will-navigate`, `will-frame-navigate`, `will-redirect` and `setWindowOpenHandler` — so this task
+cites it rather than duplicating it.
+
+**A preload boundary test reddened, and it was right to.** Adding the `source` namespace broke the
+roster assertion enumerating what the bridge exposes. The roster now names `source` and its three
+methods. `connect` takes the submitted URL only: AC-0106 puts no credential on the form, so a
+credential-shaped parameter on the boundary would be the first place one could appear.
+
+**Four child-sweep cases were merged into one inspection, and that was this session's own doing.**
+The round-36 cases were written as one inspection each. `pnpm verify` then failed six times in
+`disposal.test.ts` — the first test timing out at 5,000 ms and five more failing in 2 to 3 ms
+behind it, which is exactly the cascade `pre-existing-trial-runtime-load-flake` describes. The
+flake is pre-existing, **but tripling the spawned Runtimes in that block was not**, so the four
+cases now share one sweep over four candidate roots. Failures fell from eight to one across the
+next two runs. Coverage is unchanged: all three child mutations still redden.
+
+**Gate state.** `pnpm lint` exit 0 over 116 files; `pnpm typecheck` exit 0; **`pnpm verify` exit 0
+— 46 files, 629 of 629** at load average 20.19. Three earlier verify runs failed on the known
+family and each failing file passed twice in isolation — `disposal.test.ts` 8 of 8 and
+`runtime-supervisor.test.ts` 23 of 23, the latter being AC-0025's descendant-count assertion,
+which is the same one that flaked in rounds 35 and 36.
