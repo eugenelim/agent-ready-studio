@@ -1,7 +1,7 @@
 # Plan: Connect and Orient — connect and see the verdict
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `docs/architecture/reference.md`;
  `apps/desktop/src/main/index.ts` (argv-array child spawn, NDJSON transport,
  SIGTERM shutdown — the supervision precedent this plan reuses);
@@ -405,13 +405,7 @@ signalled" indistinguishable from "the Runtime took its pipes with it".
  read or compared the sweep declines to reclaim**, and AC-0083 records that
  decline as its own explicit diagnostic — but a marker missing a start time is
  the second limb's input, not a declined liveness comparison, so the test
- asserts reclaim on its age gate rather than a decline. Its mirror is the
- fourth decline class, added with AC-0159's token pin: a marker whose
- rendering convention this build cannot compare **is** a declined liveness
- comparison while its named process is live, and the test asserts the decline
- rather than an age-gated reclaim. Once that process is absent the same marker
- becomes the second limb's input, which is what keeps retention bounded; a
- case asserts each side.
+ asserts reclaim on its age gate rather than a decline.
 - **Measurement:** four quantities over one 250 ms interval, recorded in the
  verification ledger and carried into the bounds tolerances. One carries an
  advance-fixed pass bar: file-creation rate (at or below 5,000 files). **Write
