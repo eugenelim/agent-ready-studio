@@ -5,6 +5,7 @@ import { ReviewInbox } from "./components/ReviewInbox.js";
 import { ReviewsList } from "./components/ReviewsList.js";
 import { StrategySurface } from "./components/StrategySurface.js";
 import { WorkItemStudio } from "./components/WorkItemStudio.js";
+import { InspectionSurface } from "./inspection/InspectionSurface.js";
 import { useReviews } from "./useReviews.js";
 import { useStudio } from "./useStudio.js";
 
@@ -20,7 +21,7 @@ const blueprintModules = [
 ] as const;
 
 type ModuleName = (typeof blueprintModules)[number];
-type View = "Home" | "Reviews" | ModuleName;
+type View = "Home" | "Reviews" | "Connect" | ModuleName;
 
 // Overview and Strategy are absent on purpose: both read the workspace's real
 // work and state emptiness only when there is none, so neither has a constant
@@ -90,7 +91,7 @@ export function App() {
           Agent-Ready Studio
         </a>
         <nav aria-label="Global navigation">
-          {(["Home", "Reviews"] as const).map((item) => (
+          {(["Home", "Reviews", "Connect"] as const).map((item) => (
             <button
               aria-current={view === item ? "page" : undefined}
               className="nav-item"
@@ -237,6 +238,8 @@ export function App() {
               />
             ) : null}
           </>
+        ) : view === "Connect" ? (
+          <InspectionSurface />
         ) : view === "Overview" ? (
           <OverviewSurface
             state={reviews.state}

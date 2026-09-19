@@ -46,6 +46,8 @@ out/
 # the retained evidence set. Present only between two renames.
 docs/specs/product-development-walking-skeleton/notes/visual.next/
 docs/specs/product-development-walking-skeleton/notes/visual.previous/
+docs/specs/connect-and-orient/notes/visual.next/
+docs/specs/connect-and-orient/notes/visual.previous/
 
 # Local runtime database created by the desktop application
 studio.db

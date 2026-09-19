@@ -252,3 +252,89 @@ function expectCanonicalValid(
     true,
   );
 }
+
+describe("connect-and-orient protocol methods", () => {
+  // biome-ignore format: approved plan stub must remain byte-identical
+  it("validates the source.connect fixture against both schemas", () => {
+ expect(validateRequest(validRequestFixtures["source.connect"]).ok).toBe(true);
+ expect(canonicalAjv.validate(canonicalProtocolSchema, validRequestFixtures["source.connect"])).toBe(true);
+});
+
+  it("refuses a malformed source.connect params payload with a JSON-RPC error", () => {
+    const malformed = {
+      jsonrpc: "2.0",
+      id: "1",
+      method: "source.connect",
+      // `url` is required and `token` is not a member of the params object.
+      params: { token: "ghp_secret" },
+    };
+
+    const mirrored = validateRequest(malformed);
+
+    expect(mirrored.ok).toBe(false);
+    if (!mirrored.ok) {
+      expect(mirrored.error.code).toBe(-32602);
+    }
+    expect(canonicalAjv.validate(canonicalProtocolSchema, malformed)).toBe(
+      false,
+    );
+  });
+
+  it("carries the same result definition for all three methods", () => {
+    const results = canonicalProtocolSchema["x-studio"].methodResults;
+
+    for (const method of ["source.connect", "source.get", "source.cancel"]) {
+      expect(results[method as StudioMethod]).toBe(
+        "#/$defs/sourceInspectionResult",
+      );
+    }
+  });
+
+  it("points the canonical schema at this spec", () => {
+    expect(canonicalProtocolSchema["x-spec"]).toContain(
+      "docs/specs/connect-and-orient/",
+    );
+  });
+});
+
+describe("connect-and-orient result enums match the spec's tables", () => {
+  const properties = (
+    canonicalProtocolSchema as unknown as {
+      $defs: {
+        sourceInspectionResult: {
+          properties: {
+            condition: { enum: string[] };
+            phase: { oneOf: [{ enum: string[] }, unknown] };
+          };
+        };
+      };
+    }
+  ).$defs.sourceInspectionResult.properties;
+
+  it("carries all eight condition values", () => {
+    // The Condition axis table has eight rows. An earlier encoding of this
+    // contract carried seven and filed `incomplete` as a progress state, which
+    // is what this count exists to catch.
+    expect(properties.condition.enum).toHaveLength(8);
+    expect(properties.condition.enum).toContain("incomplete");
+  });
+
+  it("carries exactly the four progress and surface rows", () => {
+    expect(properties.phase.oneOf[0].enum).toEqual([
+      "unconnected",
+      "url-rejected",
+      "resolving",
+      "inspecting",
+    ]);
+  });
+
+  it("reconciles to the eleven user-visible states", () => {
+    // The User-visible states table is the union of both, minus `ok`.
+    const union = new Set([
+      ...properties.condition.enum.filter((value) => value !== "ok"),
+      ...properties.phase.oneOf[0].enum,
+    ]);
+
+    expect(union.size).toBe(11);
+  });
+});

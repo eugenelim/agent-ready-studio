@@ -37,7 +37,10 @@
         { "$ref": "#/$defs/reviewListRequest" },
         { "$ref": "#/$defs/reviewGetRequest" },
         { "$ref": "#/$defs/artifactReviseRequest" },
-        { "$ref": "#/$defs/reviewResolveRequest" }
+        { "$ref": "#/$defs/reviewResolveRequest" },
+        { "$ref": "#/$defs/sourceConnectRequest" },
+        { "$ref": "#/$defs/sourceGetRequest" },
+        { "$ref": "#/$defs/sourceCancelRequest" }
       ]
     },
     "successResponse": {
@@ -127,7 +130,10 @@
         "review.list",
         "review.get",
         "artifact.revise",
-        "review.resolve"
+        "review.resolve",
+        "source.connect",
+        "source.get",
+        "source.cancel"
       ]
     },
     "notificationMethod": {
@@ -157,6 +163,9 @@
     "reviewGetRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "review.get" }, "params": { "$ref": "#/$defs/idParams" } } }] },
     "artifactReviseRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "artifact.revise" }, "params": { "$ref": "#/$defs/artifactReviseParams" } } }] },
     "reviewResolveRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "review.resolve" }, "params": { "$ref": "#/$defs/reviewResolveParams" } } }] },
+    "sourceConnectRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "source.connect" }, "params": { "$ref": "#/$defs/sourceConnectParams" } } }] },
+    "sourceGetRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "source.get" }, "params": { "$ref": "#/$defs/sourceIdParams" } } }] },
+    "sourceCancelRequest": { "allOf": [{ "$ref": "#/$defs/requestEnvelope" }, { "properties": { "method": { "const": "source.cancel" }, "params": { "$ref": "#/$defs/sourceIdParams" } } }] },
     "helloParams": {
       "type": "object",
       "additionalProperties": false,
@@ -231,6 +240,16 @@
         "content": { "$ref": "#/$defs/productIntent" }
       }
     },
+    "sourceConnectParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": { "type": "string", "minLength": 1 },
+        "ref": { "type": "string", "minLength": 1 }
+      }
+    },
+    "sourceIdParams": { "type": "object", "additionalProperties": false, "required": ["sourceId"], "properties": { "sourceId": { "type": "string", "minLength": 1 } } },
     "reviewResolveParams": {
       "type": "object",
       "additionalProperties": false,
@@ -421,6 +440,30 @@
     "reviewListResult": { "type": "object", "additionalProperties": false, "required": ["kind", "items"], "properties": { "kind": { "const": "reviews" }, "items": { "type": "array", "items": { "$ref": "#/$defs/reviewSummary" } } } },
     "reviewResult": { "type": "object", "additionalProperties": false, "required": ["kind", "package"], "properties": { "kind": { "const": "review-package" }, "package": { "$ref": "#/$defs/reviewPackage" } } },
     "artifactRevisionResult": { "type": "object", "additionalProperties": false, "required": ["kind", "revisionId", "reviewId"], "properties": { "kind": { "const": "artifact-revision" }, "revisionId": { "type": "string" }, "reviewId": { "type": "string" } } },
+    "sourceInspectionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "sourceId", "phase", "verdict", "condition", "versionUnverified", "owner", "repository", "requestedRef", "resolvedSha", "inspectedAt", "declaredVersionMarker", "inspectorContractVersion", "diagnostics", "stopReason", "waitWindow", "secondaryDiagnostic"],
+      "properties": {
+        "kind": { "const": "source-inspection" },
+        "sourceId": { "type": "string", "minLength": 1 },
+        "phase": { "oneOf": [{ "enum": ["unconnected", "url-rejected", "resolving", "inspecting"] }, { "type": "null" }] },
+        "verdict": { "oneOf": [{ "enum": ["agent-ready", "not-agent-ready", "no-verdict"] }, { "type": "null" }] },
+        "condition": { "enum": ["ok", "malformed", "inspector-unavailable", "source-unavailable", "source-rate-limited", "inspection-stopped", "cancelled", "incomplete"] },
+        "versionUnverified": { "type": "boolean" },
+        "owner": { "type": "string" },
+        "repository": { "type": "string" },
+        "requestedRef": { "type": ["string", "null"] },
+        "resolvedSha": { "type": ["string", "null"] },
+        "inspectedAt": { "type": ["string", "null"] },
+        "declaredVersionMarker": { "type": ["string", "null"] },
+        "inspectorContractVersion": { "type": ["string", "null"] },
+        "diagnostics": { "type": "string" },
+        "stopReason": { "oneOf": [{ "enum": ["remote-ref-charset", "head-mismatch", "request-identifier-mismatch", "result-invalid-studio", "result-invalid-repository", "result-too-large", "inspector-inside-target", "file-count", "resolution-timeout", "inspection-timeout", "parse-failure-studio", "parse-failure-repository-echoed", "parse-failure-declaration-file"] }, { "type": "null" }] },
+        "waitWindow": { "type": ["string", "null"] },
+        "secondaryDiagnostic": { "type": ["string", "null"] }
+      }
+    },
     "reviewResolutionResult": { "type": "object", "additionalProperties": false, "required": ["kind", "reviewId", "revisionId", "decisionId", "status"], "properties": { "kind": { "const": "review-resolution" }, "reviewId": { "type": "string" }, "revisionId": { "type": "string" }, "decisionId": { "type": "string" }, "status": { "enum": ["accepted", "revision-needed"] } } },
     "eventParams": {
       "type": "object", "required": ["protocolVersion", "occurredAt"],
@@ -443,7 +486,7 @@
     "executionCompletedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "execution.completed" }, "params": { "$ref": "#/$defs/executionEventParams" } } }] },
     "executionFailedNotification": { "allOf": [{ "$ref": "#/$defs/notificationEnvelope" }, { "properties": { "method": { "const": "execution.failed" }, "params": { "$ref": "#/$defs/failureEventParams" } } }] }
   },
-  "x-spec": ["docs/specs/product-development-walking-skeleton/"],
+  "x-spec": ["docs/specs/product-development-walking-skeleton/", "docs/specs/connect-and-orient/"],
   "x-studio": {
     "protocolVersion": "1",
     "transport": "ndjson-stdio",
@@ -461,7 +504,10 @@
       "review.list": "#/$defs/reviewListResult",
       "review.get": "#/$defs/reviewResult",
       "artifact.revise": "#/$defs/artifactRevisionResult",
-      "review.resolve": "#/$defs/reviewResolutionResult"
+      "review.resolve": "#/$defs/reviewResolutionResult",
+      "source.connect": "#/$defs/sourceInspectionResult",
+      "source.get": "#/$defs/sourceInspectionResult",
+      "source.cancel": "#/$defs/sourceInspectionResult"
     },
     "errorCodes": {
       "-32700": "parse-error",
