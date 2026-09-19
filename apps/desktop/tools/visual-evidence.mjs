@@ -409,6 +409,29 @@ const scenarios = [
     scheme: "dark",
     motion: "no-preference",
   },
+  // AC-0130: the connect-and-orient *Minimum supported window width* is 900
+  // CSS pixels, which is narrower than the 1024 below and is the floor that
+  // criterion actually names.
+  {
+    name: "narrow-900",
+    width: 900,
+    height: 720,
+    scale: 1,
+    scheme: "light",
+    motion: "no-preference",
+  },
+  // AC-0132's text-resize half. A device scale factor enlarges the layout with
+  // the text; this enlarges the text against a fixed layout, which is the case
+  // that clips.
+  {
+    name: "text-200",
+    width: 1024,
+    height: 768,
+    scale: 1,
+    scheme: "light",
+    motion: "no-preference",
+    textScale: 2,
+  },
   // AC-37: the criterion's 1024px-wide viewport.
   {
     name: "narrow-1024",
@@ -558,6 +581,19 @@ try {
       enabled: coarse,
       maxTouchPoints: 5,
     });
+    // Text resize against a fixed layout, which is a different failure from a
+    // device scale factor: the layout box does not grow with the text, so a
+    // column that cannot reflow clips instead.
+    await page("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
+    if (scenario.textScale !== undefined) {
+      await page("Runtime.evaluate", {
+        expression: `document.documentElement.style.fontSize = '${scenario.textScale * 100}%'`,
+      });
+    } else {
+      await page("Runtime.evaluate", {
+        expression: "document.documentElement.style.fontSize = ''",
+      });
+    }
     await page("Emulation.setEmulatedMedia", {
       features: [
         { name: "prefers-color-scheme", value: scenario.scheme },

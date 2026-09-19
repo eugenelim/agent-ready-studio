@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-19T06:15:33.820Z",
+  "capturedAt": "2026-09-19T07:06:41.642Z",
   "results": [
     {
       "scenario": "desktop-light-home",
@@ -29,7 +29,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "6fe289f3362c4a9c",
+      "sha256": "770e4e4dc2585b43",
       "problems": []
     },
     {
@@ -108,7 +108,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "63862ce212eac97b",
+      "sha256": "f64d842770f739f2",
       "problems": []
     },
     {
@@ -135,7 +135,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "f8c428ced8499bba",
+      "sha256": "3cd1c26428812e2b",
       "problems": []
     },
     {
@@ -177,7 +177,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "8320d5bf49107711",
+      "sha256": "1b7b13092fb04e32",
       "problems": []
     },
     {
@@ -237,7 +237,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "520c5e89773e416e",
+      "sha256": "06fdcd7908fc68a7",
       "problems": []
     },
     {
@@ -316,7 +316,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "6d55534b640de62f",
+      "sha256": "22ea8fc751ddff8c",
       "problems": []
     },
     {
@@ -343,7 +343,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "1432f0950d4d5380",
+      "sha256": "d10cb98043987b57",
       "problems": []
     },
     {
@@ -385,7 +385,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "6962f3be8b324376",
+      "sha256": "8d52653f71b74577",
       "problems": []
     },
     {
@@ -415,6 +415,422 @@
       ],
       "horizontalOverflow": 0,
       "sha256": "ae0a14eb773994f3",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-900-home",
+      "surface": "home",
+      "viewport": "900x720@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 18,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Connect",
+        "Create workspace",
+        "Delivery",
+        "Description (optional)",
+        "Experience",
+        "Home",
+        "Name",
+        "Open review",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Research",
+        "Reviews",
+        "Seed demo workspace",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "e5cea86836d21ea8",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-900-overview",
+      "surface": "overview",
+      "viewport": "900x720@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 13,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Connect",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "912ec0b31ed84fa0",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-900-module",
+      "surface": "module",
+      "viewport": "900x720@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 13,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Connect",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "184f65b752ebc2e8",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-900-strategy",
+      "surface": "strategy",
+      "viewport": "900x720@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 14,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Connect",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Open review",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "a367a1c3087981c3",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-900-reviews",
+      "surface": "reviews",
+      "viewport": "900x720@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 14,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Connect",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Open review",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "864d34b699b9f432",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-900-studio",
+      "surface": "studio",
+      "viewport": "900x720@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 29,
+      "names": [
+        "Agent-Ready Studio",
+        "Approve and advance",
+        "Architecture",
+        "Assumptions",
+        "Back to all reviews",
+        "Confidence",
+        "Connect",
+        "Delivery",
+        "Experience",
+        "Guardrails",
+        "Home",
+        "Non-goals",
+        "Open questions",
+        "Opportunity",
+        "Outcome",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Request revision",
+        "Research",
+        "Reviews",
+        "Revision comment",
+        "Run details",
+        "Save Product Intent",
+        "Strategy",
+        "Target users",
+        "Title",
+        "Work item",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "6626638c12c7feab",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-900-connect",
+      "surface": "connect",
+      "viewport": "900x720@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "60cad763f0fae552",
+      "problems": []
+    },
+    {
+      "scenario": "text-200-home",
+      "surface": "home",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 18,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Connect",
+        "Create workspace",
+        "Delivery",
+        "Description (optional)",
+        "Experience",
+        "Home",
+        "Name",
+        "Open review",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Research",
+        "Reviews",
+        "Seed demo workspace",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "ecc84e5aea62aa38",
+      "problems": []
+    },
+    {
+      "scenario": "text-200-overview",
+      "surface": "overview",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 13,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Connect",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "86a4328f8aad025c",
+      "problems": []
+    },
+    {
+      "scenario": "text-200-module",
+      "surface": "module",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 13,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Connect",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "db89c082acf45169",
+      "problems": []
+    },
+    {
+      "scenario": "text-200-strategy",
+      "surface": "strategy",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 14,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Connect",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Open review",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "a88918fd83e3a36a",
+      "problems": []
+    },
+    {
+      "scenario": "text-200-reviews",
+      "surface": "reviews",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 14,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Connect",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Open review",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "c5d40c986d48aa7e",
+      "problems": []
+    },
+    {
+      "scenario": "text-200-studio",
+      "surface": "studio",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 29,
+      "names": [
+        "Agent-Ready Studio",
+        "Approve and advance",
+        "Architecture",
+        "Assumptions",
+        "Back to all reviews",
+        "Confidence",
+        "Connect",
+        "Delivery",
+        "Experience",
+        "Guardrails",
+        "Home",
+        "Non-goals",
+        "Open questions",
+        "Opportunity",
+        "Outcome",
+        "Outcomes",
+        "Overview",
+        "Release",
+        "Request revision",
+        "Research",
+        "Reviews",
+        "Revision comment",
+        "Run details",
+        "Save Product Intent",
+        "Strategy",
+        "Target users",
+        "Title",
+        "Work item",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "29dfd2b5f6bab986",
+      "problems": []
+    },
+    {
+      "scenario": "text-200-connect",
+      "surface": "connect",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "f72159a0859faf81",
       "problems": []
     },
     {
@@ -497,7 +913,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "db89c082acf45169",
+      "sha256": "13b67136811c9c80",
       "problems": []
     },
     {
@@ -524,7 +940,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c8a59f5520e2710c",
+      "sha256": "aca1967d175fa029",
       "problems": []
     },
     {
@@ -551,7 +967,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "e695f77926973c9b",
+      "sha256": "a2bcabc38b7c33f0",
       "problems": []
     },
     {
@@ -593,7 +1009,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ad0fef3b1d4cf63e",
+      "sha256": "1160ee5e2b9c4914",
       "problems": []
     },
     {
@@ -732,7 +1148,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "b9c9667f436dc1fe",
+      "sha256": "38bd2782e55c1248",
       "problems": []
     },
     {
@@ -759,7 +1175,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "7a8f4d86e564427a",
+      "sha256": "d068976124360a1a",
       "problems": []
     },
     {
@@ -801,7 +1217,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "d73431ab5d7fc3cc",
+      "sha256": "f1250c69fc868879",
       "problems": []
     },
     {
@@ -861,7 +1277,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "509bbf1d626d52b5",
+      "sha256": "ea994c62e5351b93",
       "problems": []
     },
     {
@@ -940,7 +1356,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "22f1abf1658aa8fa",
+      "sha256": "07c526e4d72defc7",
       "problems": []
     },
     {
@@ -967,7 +1383,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "df44e290ad4f258f",
+      "sha256": "ea720500a6736dab",
       "problems": []
     },
     {
@@ -1009,7 +1425,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "976b7823e176b731",
+      "sha256": "c6b6bd0900df76cc",
       "problems": []
     },
     {
@@ -1069,7 +1485,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "36a21e5684793587",
+      "sha256": "63bb36b351f42ad4",
       "problems": []
     },
     {
@@ -1148,7 +1564,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ad95b3888c28512b",
+      "sha256": "0581cfd4ed7697ba",
       "problems": []
     },
     {
@@ -1175,7 +1591,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "38e708238bab967e",
+      "sha256": "bd225d7857b2b2ea",
       "problems": []
     },
     {
@@ -1217,7 +1633,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ed6d5dbb4d429817",
+      "sha256": "49b1dc91698e2ccd",
       "problems": []
     },
     {

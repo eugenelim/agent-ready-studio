@@ -106,6 +106,31 @@ open = [
   # recorded as an accepted residual with its ground, and which is the owner's
   # choice. Evidence: notes/verification-ledger.md#review-round-36-2026-09-18.
   { slug = "connect-orient-sweep-walk-depth-bound", source = "connect-and-orient/2026-09-18" },
+  # The result carries no stop reason, wait window or secondary diagnostic, so
+  # five criteria are verified at the projection and have no user-visible
+  # realization. Found by the T12/T13 review of Package 4 and routed out rather
+  # than widening that slice, because carrying them needs fields on
+  # `sourceInspectionResultSchema` and the canonical schema, which is the
+  # protocol approval path T8 straddles. Specifically: AC-0088's human reason is
+  # never composed with the `inspection-stopped` label, though the spec requires
+  # it "in both the rendered surface and the announcement"; AC-0091 and AC-0092
+  # fall away for that state, because `project()` supplies attribution and
+  # retryability only when a reason is passed; AC-0097's wait window is never
+  # shown; and AC-0099's `secondaryDiagnostic` reaches no surface. The
+  # projection already computes all four -- `state-vocabulary.ts` STOP_REASONS
+  # and the `waitWindow`/`secondaryDiagnostic` fields -- so the work is carrying
+  # them over the boundary, not deriving them.
+  # Evidence: notes/verification-ledger.md#t12-composition-2026-09-19.
+  { slug = "connect-orient-result-carries-no-reason-or-wait-window", source = "connect-and-orient/2026-09-19" },
+  # No trusted inspector runs against the materialized tree, so the verdict
+  # derivation (AC-0061 to AC-0068) is composed and unit-tested but unexercised
+  # end to end: every real inspection returns `inspector-unavailable`. The
+  # Runtime materializes the revision and locates nothing to run. Found by the
+  # same review. This is the next slice's work by design -- the trial Runtime's
+  # authorization is for the boundary, not for shipping an inspector -- and it
+  # is recorded so the gap is not read as a defect in the derivation.
+  # Evidence: notes/verification-ledger.md#t12-composition-2026-09-19.
+  { slug = "connect-orient-no-inspector-runs", source = "connect-and-orient/2026-09-19" },
 ]
 closed = []
 
