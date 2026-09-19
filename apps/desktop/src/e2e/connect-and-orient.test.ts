@@ -74,6 +74,12 @@ function freshBoundary(): StudioPreloadApi {
   return boundary(join(directory, "studio.db"));
 }
 
+function freshDatabase(): string {
+  const directory = mkdtempSync(join(tmpdir(), "connect-orient-e2e-"));
+  temporaryDirectories.push(directory);
+  return join(directory, "studio.db");
+}
+
 const networked = process.env.CONNECT_ORIENT_E2E_NETWORK === "1";
 
 describe("the connect path across the real desktop boundary", () => {
@@ -191,6 +197,56 @@ describe("the connect path across the real desktop boundary", () => {
       ).toBe("inspector-unavailable");
     },
     180_000,
+  );
+
+  it.skipIf(!networked)(
+    "AC-0100 to AC-0103 a result is still readable after a real restart",
+    async () => {
+      // The in-memory map is not the claim; surviving a process boundary is.
+      // This runs one inspection to a terminal state, shuts the service down,
+      // spawns a second one against the same database, and reads it back.
+      const databasePath = freshDatabase();
+      const first = boundary(databasePath);
+      const started = await first.source.connect({
+        url: "https://github.com/octocat/Hello-World",
+      });
+      expect(started.ok).toBe(true);
+      if (!started.ok) return;
+      const sourceId = started.value.sourceId;
+
+      const deadline = Date.now() + 120_000;
+      let latest = started.value;
+      while (Date.now() < deadline && latest.phase !== null) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const read = await first.source.get(sourceId);
+        if (!read.ok) throw new Error(`get failed: ${JSON.stringify(read)}`);
+        latest = read.value;
+      }
+      expect(latest.phase).toBeNull();
+
+      // Shut the first service down before the second reads, so nothing is
+      // answered from a process that is still holding the result in memory.
+      for (const client of openClients.splice(0)) await client.shutdown();
+
+      const second = boundary(databasePath);
+      const restored = await second.source.get(sourceId);
+      expect(
+        restored.ok,
+        `restored read failed: ${JSON.stringify(restored)}`,
+      ).toBe(true);
+      if (!restored.ok) return;
+
+      expect(restored.value.owner).toBe("octocat"); // AC-0100
+      expect(restored.value.repository).toBe("Hello-World");
+      expect(restored.value.resolvedSha).toBe(latest.resolvedSha); // AC-0101
+      expect(restored.value.inspectedAt).not.toBeNull();
+      expect(restored.value.verdict).toBe(latest.verdict); // AC-0102
+      expect(restored.value.condition).toBe(latest.condition);
+      // AC-0103: the restored result carries the time it was inspected, which
+      // is what lets a surface show it as restored rather than as fresh.
+      expect(restored.value.inspectedAt).toBe(latest.inspectedAt);
+    },
+    240_000,
   );
 
   it("reports an unknown source as not found rather than as an internal error", async () => {

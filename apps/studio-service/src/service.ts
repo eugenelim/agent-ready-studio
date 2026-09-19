@@ -33,9 +33,11 @@ import {
   type Storage,
   type StorageTransaction,
 } from "@agent-ready/storage-sqlite";
+import { reconcileAfterRestart } from "./connected-source.js";
 import {
   createDefaultTransport,
   createSourceInspections,
+  createStorageStore,
   inspectInRuntime,
   type SourceInspections,
 } from "./source-inspection.js";
@@ -210,11 +212,23 @@ export function createStudioService(dependencies: {
     dependencies.idFactory ?? ((prefix: string) => `${prefix}-${randomUUID()}`);
   const now = dependencies.clock ?? (() => new Date().toISOString());
 
+  // Run once at construction, before any request is served: a source left
+  // `resolving` or `inspecting` by a restart must read as `incomplete` rather
+  // than sitting in a phase no process is advancing.
+  for (const sourceId of reconcileAfterRestart(storage)) {
+    // Observable: a source silently changing condition during startup is the
+    // kind of state change AC-0083 exists to make visible.
+    process.stderr.write(
+      `connected source ${sourceId} was in flight at restart and is now incomplete\n`,
+    );
+  }
+
   let sources = dependencies.sourceInspections;
   const sourceInspections = (): SourceInspections => {
     sources ??= createSourceInspections({
       transport: createDefaultTransport(),
       inspect: inspectInRuntime,
+      store: createStorageStore(storage),
     });
     return sources;
   };
