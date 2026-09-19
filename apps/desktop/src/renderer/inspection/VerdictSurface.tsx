@@ -1,4 +1,8 @@
-import { project, type UserVisibleState } from "@agent-ready/protocol";
+import {
+  project,
+  type StopReasonKey,
+  type UserVisibleState,
+} from "@agent-ready/protocol";
 import { VERDICT_LABELS, type Verdict } from "./presentation.js";
 import { StateBadge, VerdictBadge } from "./StateBadge.js";
 
@@ -24,6 +28,9 @@ export function VerdictSurface({
   repository,
   resolvedSha,
   diagnostics,
+  stopReason,
+  waitWindow,
+  secondaryDiagnostic,
 }: Readonly<{
   verdict: Verdict;
   /** The condition, or null when it is `ok` and carries no chrome. */
@@ -33,6 +40,10 @@ export function VerdictSurface({
   repository: string;
   resolvedSha: string | null;
   diagnostics: string;
+  /** Which reason stopped it, where the condition is `inspection-stopped`. */
+  stopReason?: StopReasonKey | null;
+  waitWindow?: string | null;
+  secondaryDiagnostic?: string | null;
 }>) {
   const verdictLabel = VERDICT_LABELS[verdict];
   const verdictLeads = verdictLabel !== null;
@@ -53,6 +64,7 @@ export function VerdictSurface({
               state={condition}
               resolvedSha={resolvedSha}
               emphasis="secondary"
+              stopReason={stopReason}
             />
           )}
         </>
@@ -65,6 +77,7 @@ export function VerdictSurface({
             state={condition}
             resolvedSha={resolvedSha}
             emphasis="primary"
+            stopReason={stopReason}
           />
         )
       )}
@@ -108,9 +121,18 @@ export function VerdictSurface({
         </div>
       )}
 
-      {condition !== null && <ConditionDetail condition={condition} />}
+      {condition !== null && (
+        <ConditionDetail
+          condition={condition}
+          stopReason={stopReason ?? null}
+          waitWindow={waitWindow ?? null}
+        />
+      )}
 
-      <DiagnosticsDisclosure diagnostics={diagnostics} />
+      <DiagnosticsDisclosure
+        diagnostics={diagnostics}
+        secondaryDiagnostic={secondaryDiagnostic ?? null}
+      />
     </section>
   );
 }
@@ -122,8 +144,22 @@ export function VerdictSurface({
  */
 function ConditionDetail({
   condition,
-}: Readonly<{ condition: UserVisibleState }>) {
-  const projected = project({ state: condition });
+  stopReason,
+  waitWindow,
+}: Readonly<{
+  condition: UserVisibleState;
+  stopReason: StopReasonKey | null;
+  waitWindow: string | null;
+}>) {
+  // The reason is passed through, not dropped. `project()` supplies
+  // attribution and retryability for `inspection-stopped` **only** when a
+  // reason is given (AC-0091, AC-0092), and the reason itself is the human
+  // sentence AC-0088 requires beside the state's label.
+  const projected = project({
+    state: condition,
+    ...(stopReason === null ? {} : { reason: stopReason }),
+    ...(waitWindow === null ? {} : { waitWindow }),
+  });
   if (!projected.degraded) return null;
   return (
     <div className="verdict-surface__detail">
@@ -141,6 +177,19 @@ function ConditionDetail({
       {projected.retryable !== undefined && (
         <p>Retrying: {projected.retryable}.</p>
       )}
+      {projected.waitWindow !== undefined && (
+        // AC-0097: what the transport said to wait, or that it said nothing.
+        <p data-wait-window="true">{projected.waitWindow}</p>
+      )}
+      {projected.actions.length > 0 && (
+        // AC-0095: what the lead can do about it, on the result rather than
+        // only on the unconnected notice.
+        <ul data-lead-actions="true">
+          {projected.actions.map((action) => (
+            <li key={action}>{action}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -152,13 +201,20 @@ function ConditionDetail({
  */
 function DiagnosticsDisclosure({
   diagnostics,
-}: Readonly<{ diagnostics: string }>) {
-  if (diagnostics === "") return null;
+  secondaryDiagnostic,
+}: Readonly<{ diagnostics: string; secondaryDiagnostic: string | null }>) {
+  if (diagnostics === "" && secondaryDiagnostic === null) return null;
   return (
     <details className="verdict-surface__diagnostics">
       <summary>Diagnostics</summary>
       {/* Raw child-process output, rendered as text. AC-0115. */}
-      <pre data-diagnostics="raw">{diagnostics}</pre>
+      {diagnostics !== "" && <pre data-diagnostics="raw">{diagnostics}</pre>}
+      {secondaryDiagnostic !== null && (
+        // AC-0099: a protocol identifier never appears as user-visible copy.
+        // It appears only here, on the secondary surface, which is why it
+        // travels as its own field rather than inside the copy.
+        <pre data-diagnostics="secondary">{secondaryDiagnostic}</pre>
+      )}
     </details>
   );
 }

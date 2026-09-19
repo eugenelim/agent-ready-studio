@@ -143,6 +143,37 @@ describe("AC-0128 and AC-0158 exactly one announcement", () => {
     }
   });
 
+  it("AC-0088 composes the stop reason into the announcement too", () => {
+    // "in both the rendered surface and the announcement" -- the surface half
+    // alone is half the criterion, and a lead who hears only "Inspection
+    // stopped" has been told nothing they can act on.
+    const step = transition(
+      { state: "inspecting", verdict: null, resolvedSha: "abc1234" },
+      {
+        state: "inspection-stopped",
+        verdict: null,
+        resolvedSha: "abc1234",
+        stopReason: "resolution-timeout",
+      },
+      "system",
+    );
+    expect(step.announcement).toBe(
+      "Inspection stopped: Finding the latest commit took too long",
+    );
+    // Two reasons, two announcements: the state alone does not carry it.
+    const other = transition(
+      { state: "inspecting", verdict: null, resolvedSha: "abc1234" },
+      {
+        state: "inspection-stopped",
+        verdict: null,
+        resolvedSha: "abc1234",
+        stopReason: "remote-ref-charset",
+      },
+      "system",
+    );
+    expect(other.announcement).not.toBe(step.announcement);
+  });
+
   it("announces nothing when the state did not change", () => {
     // The other half of "exactly one": a re-render is not a transition, and a
     // surface that announced on every render would announce many times for one.

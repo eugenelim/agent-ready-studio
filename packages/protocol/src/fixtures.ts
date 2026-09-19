@@ -204,6 +204,9 @@ const sourceInspection = {
   declaredVersionMarker: null,
   inspectorContractVersion: "1",
   diagnostics: "",
+  stopReason: null,
+  waitWindow: null,
+  secondaryDiagnostic: null,
 };
 
 export const validResultFixtures: Record<StudioMethod, unknown> = {

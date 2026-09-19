@@ -1,4 +1,4 @@
-import type { UserVisibleState } from "@agent-ready/protocol";
+import type { StopReasonKey, UserVisibleState } from "@agent-ready/protocol";
 import {
   SHAPES,
   stateLabel,
@@ -21,9 +21,12 @@ export function StateBadge({
   state,
   resolvedSha,
   emphasis,
+  stopReason,
 }: Readonly<{
   state: UserVisibleState;
   resolvedSha: string | null;
+  /** Composed into the label, per AC-0088. */
+  stopReason?: StopReasonKey | null;
   /**
    * Which composition role this badge occupies, per AC-0114. Named `emphasis`
    * rather than `role` because a prop called `role` lands on the element as
@@ -41,7 +44,7 @@ export function StateBadge({
     >
       <span className="inspection-badge__shape" aria-hidden="true" />
       <span className="inspection-badge__label">
-        {stateLabel(state, resolvedSha)}
+        {stateLabel(state, resolvedSha, stopReason)}
       </span>
     </p>
   );

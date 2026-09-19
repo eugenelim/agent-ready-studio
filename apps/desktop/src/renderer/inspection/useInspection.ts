@@ -102,6 +102,7 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
         verdict: next === null ? null : (next.verdict as Verdict | null),
         resolvedSha: next?.resolvedSha ?? null,
         detail: detail ?? null,
+        stopReason: next?.stopReason ?? null,
       };
       const step = transition(snapshot.current, nextSnapshot, provenance);
       // The phase clock restarts when the phase does, so the channel reports

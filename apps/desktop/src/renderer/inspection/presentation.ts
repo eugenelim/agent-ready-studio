@@ -26,6 +26,7 @@
  */
 import {
   project,
+  type StopReasonKey,
   USER_VISIBLE_STATES,
   type UserVisibleState,
 } from "@agent-ready/protocol";
@@ -82,8 +83,16 @@ export const VERDICT_SHAPES: Readonly<Record<Verdict, string | null>> =
 export function stateLabel(
   state: UserVisibleState,
   resolvedSha: string | null,
+  stopReason?: StopReasonKey | null,
 ): string {
-  const label = project({ state }).label;
+  // AC-0088: `project` composes `label: reason` when a reason is given, so
+  // passing it here is what puts the reason beside the label everywhere a
+  // label is produced -- the surface and the announcement alike, from one
+  // place rather than two that can drift.
+  const label = project({
+    state,
+    ...(stopReason == null ? {} : { reason: stopReason }),
+  }).label;
   if (state !== "inspecting") return label;
   const short = resolvedSha === null ? "" : resolvedSha.slice(0, 7);
   return short === "" ? "Inspecting" : label.replace("<short-sha>", short);
@@ -104,6 +113,12 @@ export interface SurfaceSnapshot {
    * region does not re-read text that merely changed underneath it.
    */
   readonly detail?: string | null;
+  /**
+   * The stop reason's human sentence, where one applies. AC-0088 requires it
+   * be composed with the `inspection-stopped` label "in both the rendered
+   * surface and the announcement" -- the surface alone is half the criterion.
+   */
+  readonly stopReason?: StopReasonKey | null;
 }
 
 export interface Transition {
@@ -168,7 +183,7 @@ export function transition(
     ? resultAnnouncement(next)
     : next.state === null
       ? null
-      : stateLabel(next.state, next.resolvedSha);
+      : stateLabel(next.state, next.resolvedSha, next.stopReason);
   if (announcement === null) {
     return { announcement: null, focus: null, provenance };
   }
@@ -201,7 +216,9 @@ function resultAnnouncement(next: SurfaceSnapshot): string {
   const verdictLabel =
     next.verdict === null ? null : VERDICT_LABELS[next.verdict];
   if (verdictLabel !== null && verdictLabel !== undefined) return verdictLabel;
-  return next.state === null ? "" : stateLabel(next.state, next.resolvedSha);
+  return next.state === null
+    ? ""
+    : stateLabel(next.state, next.resolvedSha, next.stopReason);
 }
 
 /** Every state the surface can show, for the tests that must be total. */

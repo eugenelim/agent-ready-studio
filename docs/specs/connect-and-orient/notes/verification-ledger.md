@@ -4921,7 +4921,8 @@ which reaches the transport and every helper, because the child is a group leade
 
 Unchanged from the previous entry, minus what this round closed:
 
-- **AC-0088, AC-0091, AC-0092, AC-0097, AC-0099** — need protocol fields; the approval path.
+- ~~**AC-0088, AC-0091, AC-0092, AC-0097, AC-0099**~~ — **closed**; see
+  `#t12-result-fields-2026-09-19` below.
 - **AC-0061 to AC-0068** — no trusted inspector runs.
 - **AC-0103's display half** — the restored inspection time is readable over the protocol and no
   renderer surface shows it. Named here because the previous entry struck AC-0100 to AC-0104 as a
@@ -4977,3 +4978,50 @@ residual turned on has regressed, so AC-0069's ground is unchanged. The pin is r
 `"2.26.0"` beside an assertion that read `PINNED_INSPECTOR.fileDigests` from the pin. It now reads
 the version from the pin too: a literal there drifts from the thing it is supposed to be checking
 the moment the pack moves, which is what just happened.
+
+## t12-result-fields-2026-09-19
+
+**The five criteria that had no user-visible realization, closed by owner approval of the protocol
+change.** `pnpm verify` exit 0 on the first attempt — 51 files, **673 passed, 3 skipped**.
+
+**What crossed the boundary.** `sourceInspectionResult` gains three fields in the canonical schema
+and its Zod mirror together: `stopReason` (the thirteen `STOP_REASONS` keys, nullable),
+`waitWindow` and `secondaryDiagnostic`. The parity harness validates the fixture against both, so
+the two cannot drift.
+
+**Why the condition alone could not answer these.** AC-0091 and AC-0092 take attribution and
+retryability **per reason** for `inspection-stopped`, not per state — `project()` supplies them
+only when a reason is passed. Without the reason on the wire, a resolution timeout and an unusable
+branch name were the same result to the surface, and attributing a network timeout to the
+repository is the crossing AC-0093 forbids. The two now render different attributions from the
+same condition, which a case asserts directly.
+
+**AC-0088 is composed in one place, not two.** `project()` already returns `label: reason` when a
+reason is given, so the reason is threaded into `stateLabel` rather than rendered as a separate
+sentence. That is what puts it beside the label **in both the rendered surface and the
+announcement**, from a single source — the criterion's "both" is otherwise two code paths that can
+drift. An earlier attempt composed the announcement separately and was replaced.
+
+**AC-0099's identifier reaches only the secondary surface.** It travels as its own field precisely
+so no copy path can reach it, and a case asserts it appears in the collapsed disclosure and **not**
+in the detail copy above it.
+
+**AC-0095 was found on the way.** The projection's `actions` were rendered only on the unconnected
+notice, never on a result — so a degraded result told the lead what happened and not what they
+could do. Now rendered on the result too.
+
+### Mutation proof
+
+| Mutation | Result |
+| --- | --- |
+| baseline | 17 of 17 pass |
+| the reason dropped from the label | **1 failed** |
+| the reason dropped from the detail projection | **1 failed** |
+| the wait window not rendered | **2 failed** |
+| the secondary diagnostic hidden | **1 failed** |
+| the lead actions dropped | **1 failed** |
+
+**One gap is named rather than closed.** The stored record has no column for these three, so a
+restored result carries the verdict and its diagnostics but **not** the stop reason, wait window or
+secondary diagnostic. The read sets them to `null` explicitly and says why at the site. Persisting
+them is a storage-migration change this approval did not cover.

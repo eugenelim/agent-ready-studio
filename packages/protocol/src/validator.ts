@@ -43,6 +43,38 @@ const sourceInspectionResultSchema = z
     declaredVersionMarker: z.string().nullable(),
     inspectorContractVersion: z.string().nullable(),
     diagnostics: z.string(),
+    /**
+     * The reason an inspection stopped, where one applies. AC-0088 requires
+     * the human reason be composed with the `inspection-stopped` label in both
+     * the rendered surface and the announcement, and AC-0091 and AC-0092 take
+     * their attribution and retryability **per reason** rather than per state
+     * -- so the reason has to cross the boundary, not just the condition.
+     */
+    stopReason: z
+      .enum([
+        "remote-ref-charset",
+        "head-mismatch",
+        "request-identifier-mismatch",
+        "result-invalid-studio",
+        "result-invalid-repository",
+        "result-too-large",
+        "inspector-inside-target",
+        "file-count",
+        "resolution-timeout",
+        "inspection-timeout",
+        "parse-failure-studio",
+        "parse-failure-repository-echoed",
+        "parse-failure-declaration-file",
+      ])
+      .nullable(),
+    /** AC-0097. What the transport reported, or null when it reported none. */
+    waitWindow: z.string().nullable(),
+    /**
+     * AC-0099. A protocol identifier never appears as user-visible copy; it
+     * appears only here, for the secondary diagnostic surface. Carried as its
+     * own field precisely so no copy path can reach it.
+     */
+    secondaryDiagnostic: z.string().nullable(),
   })
   .strict();
 const productIntentSchema = z

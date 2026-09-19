@@ -151,6 +151,9 @@ export function InspectionSurface({
             repository={inspection.repository}
             resolvedSha={inspection.resolvedSha}
             diagnostics={inspection.diagnostics}
+            stopReason={inspection.stopReason}
+            waitWindow={inspection.waitWindow}
+            secondaryDiagnostic={inspection.secondaryDiagnostic}
           />
         </div>
       )}

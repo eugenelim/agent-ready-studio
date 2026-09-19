@@ -148,6 +148,119 @@ describe("AC-0115 and AC-0116 non-originated values", () => {
   });
 });
 
+describe("AC-0088, AC-0091, AC-0092, AC-0097 and AC-0099 reach the lead", () => {
+  it("AC-0088 composes the stop reason with the state's label", () => {
+    render(
+      <VerdictSurface
+        {...defaults}
+        verdict="no-verdict"
+        condition="inspection-stopped"
+        stopReason="resolution-timeout"
+      />,
+    );
+    // The label says what happened; the reason says why, composed into the
+    // same label by `project`. Before the result carried the reason,
+    // `inspection-stopped` rendered alone and the lead was told an inspection
+    // stopped with no way to know which of thirteen causes fired.
+    const badge = document.querySelector('[data-state="inspection-stopped"]');
+    expect(badge?.textContent).toBe(
+      "Inspection stopped: Finding the latest commit took too long",
+    );
+    // And the bare label alone is no longer what the surface shows.
+    expect(screen.queryByText("Inspection stopped")).toBeNull();
+  });
+
+  it("AC-0091 and AC-0092 take attribution and retryability per reason", () => {
+    // The same state, two reasons, two different answers. `project()` supplies
+    // these only when a reason is passed, so dropping the reason silently made
+    // both criteria unanswerable for this state -- and attributing a network
+    // timeout to the repository is the crossing AC-0093 forbids.
+    const attributionFor = (
+      reason: "resolution-timeout" | "remote-ref-charset",
+    ) => {
+      const { unmount } = render(
+        <VerdictSurface
+          {...defaults}
+          verdict="no-verdict"
+          condition="inspection-stopped"
+          stopReason={reason}
+        />,
+      );
+      const value = document
+        .querySelector("[data-attribution]")
+        ?.getAttribute("data-attribution");
+      unmount();
+      return value;
+    };
+    expect(attributionFor("resolution-timeout")).toBe("network");
+    expect(attributionFor("remote-ref-charset")).toBe("repository");
+  });
+
+  it("AC-0097 shows the wait window the transport reported", () => {
+    render(
+      <VerdictSurface
+        {...defaults}
+        verdict="no-verdict"
+        condition="source-rate-limited"
+        waitWindow="about 40 minutes"
+      />,
+    );
+    expect(
+      document.querySelector('[data-wait-window="true"]')?.textContent,
+    ).toContain("about 40 minutes");
+  });
+
+  it("AC-0097 says so when the transport reported no wait window", () => {
+    render(
+      <VerdictSurface
+        {...defaults}
+        verdict="no-verdict"
+        condition="source-rate-limited"
+      />,
+    );
+    // Not silence: "Studio was not told" is a different fact from a known
+    // window, and the lead can act on knowing which they have.
+    expect(
+      document.querySelector('[data-wait-window="true"]')?.textContent,
+    ).toMatch(/not told/i);
+  });
+
+  it("AC-0099 puts the protocol identifier only on the secondary surface", () => {
+    render(
+      <VerdictSurface
+        {...defaults}
+        verdict="no-verdict"
+        condition="inspection-stopped"
+        stopReason="request-identifier-mismatch"
+        secondaryDiagnostic="request smoke-0001 did not match"
+        diagnostics=""
+      />,
+    );
+    const secondary = document.querySelector('[data-diagnostics="secondary"]');
+    expect(secondary?.textContent).toBe("request smoke-0001 did not match");
+    // Collapsed, and absent from the copy above it.
+    expect((document.querySelector("details") as HTMLDetailsElement).open).toBe(
+      false,
+    );
+    expect(
+      document.querySelector(".verdict-surface__detail")?.textContent ?? "",
+    ).not.toContain("smoke-0001");
+  });
+
+  it("AC-0095 offers the lead actions on a result, not only before connecting", () => {
+    render(
+      <VerdictSurface
+        {...defaults}
+        verdict="no-verdict"
+        condition="source-unavailable"
+      />,
+    );
+    const actions = document.querySelector('[data-lead-actions="true"]');
+    expect(actions).not.toBeNull();
+    expect(actions?.querySelectorAll("li").length).toBeGreaterThan(0);
+  });
+});
+
 describe("AC-0117 and AC-0118 secondary surfaces", () => {
   it("collapses raw child-process output by default", () => {
     render(
