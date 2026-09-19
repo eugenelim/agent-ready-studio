@@ -5,7 +5,9 @@ changes aligned with the accepted architecture and the active specification.
 
 ## Local setup
 
-Use Node.js 24 and pnpm 12.3.4 through Corepack.
+Use Node.js 24 and pnpm 12.3.4 through Corepack. `pnpm governance` runs the
+decision-record checks through `python3`, so a Python 3 interpreter must be on
+`PATH`; `pnpm verify` includes that gate.
 
 ```bash
 corepack enable
@@ -26,6 +28,7 @@ Run the finite root checks before handing work over:
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm governance
 pnpm test
 pnpm build
 pnpm verify

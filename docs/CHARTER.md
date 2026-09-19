@@ -111,7 +111,7 @@ To keep this file from becoming everything-and-the-kitchen-sink:
 - **Current product state** lives in [`product/`](product/). The charter
   is direction; product/ is where we are.
 - **Current architecture state** lives in [`architecture/`](architecture/).
-- **Conventions for how we work** live in [`CONVENTIONS.md`](CONVENTIONS.md).
+- **Conventions for how we work** live in [`README.md`](README.md).
 - **Governance** is intentionally not a project document yet. A maintainer or
   small group operating by consensus is sufficient until roles or formal
   decision processes need durable documentation.

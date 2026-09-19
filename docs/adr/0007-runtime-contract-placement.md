@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-12
+- **Areas:** repo-layout, contracts
+- **Reversibility:** high
 - **Decision-makers:** Agent-Ready Studio maintainers
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0001, ADR-0004, ADR-0005, ADR-0006,
   `docs/architecture/reference.md`
 
@@ -31,21 +36,22 @@ Orient having been delivered.
 > Studio Runtime contract lives in `packages/runtime-protocol`, with
 > language-neutral schemas under `contracts/jsonschema/runtime`.
 
-Caveats that travel with this decision:
-
-- **Neither location is created by this record.** Creation waits for a real
+- **D1:** If the durable Workspace Runtime boundary is established, its
+  northbound Studio Runtime contract lives in `packages/runtime-protocol`, with
+  language-neutral schemas under `contracts/jsonschema/runtime`.
+- **D2:** Neither location is created by this record. Creation waits for a real
   runtime specification that defines an actual contract.
-- **This was accepted ahead of its evidence.** A separately versioned package
-  earns its cost only if a second, independently released runtime deployment
-  exists, and no work currently in view can demonstrate that. The maintainers
-  accepted it so later work inherits one answer rather than inventing several,
-  not because the cost is proven.
-- **It lapses with D1.** A contract placement for a runtime that will not exist
-  decides nothing. If RFC-0001's Stage 2 gate withdraws D1, this decision
-  lapses with it and needs a superseding or amending record.
-- **Contract wire types must not import application implementation packages.**
-  `packages/runtime-protocol` defines its own wire types.
-- **Consumers map wire types to domain types at their own boundaries.** The
+- **D3:** This was accepted ahead of its evidence. A separately versioned
+  package earns its cost only if a second, independently released runtime
+  deployment exists, and no work currently in view can demonstrate that. The
+  maintainers accepted it so later work inherits one answer rather than
+  inventing several, not because the cost is proven.
+- **D4:** It lapses with RFC-0001's D1. A contract placement for a runtime that
+  will not exist decides nothing. If RFC-0001's Stage 2 gate withdraws that D1,
+  this decision lapses with it and needs a superseding or amending record.
+- **D5:** Contract wire types must not import application implementation
+  packages. `packages/runtime-protocol` defines its own wire types.
+- **D6:** Consumers map wire types to domain types at their own boundaries. The
   mapping layer belongs to the consumer, not to the contract.
 
 ## Decision drivers
@@ -95,7 +101,7 @@ the contract must still support:
 - Nothing is created now, so there is nothing to conform to and nothing to
   check until the runtime specification exists.
 
-**Revisit if:** RFC-0001's Stage 2 gate withdraws D1, or the runtime
+**Revisit if:** RFC-0001's Stage 2 gate withdraws RFC-0001's D1, or the runtime
 specification shows no independently evolving runtime deployment will exist —
 in which case the cheaper placement should supersede this record rather than be
 adopted silently.

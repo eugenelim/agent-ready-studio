@@ -2,8 +2,13 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-12
+- **Areas:** security, architecture
+- **Reversibility:** low
 - **Decision-makers:** Agent-Ready Studio maintainers
 - **Supersedes:** none
+- **Supersedes in part:** none
+- **Superseded by:** none
+- **Superseded in part:** none
 - **Related:** RFC-0001, ADR-0001, ADR-0002, `docs/architecture/reference.md`
 
 ## Context
@@ -40,8 +45,10 @@ Stage 1 outcome; the RFC carries the argument.
 > architecture vocabulary for Agent-Ready Studio, and as the test that
 > separates authority.
 
-Each authority in the system belongs to exactly one plane. A plane is never
-co-owned.
+- **D1:** Product, Control, Execution, Capability, and Source are the architecture
+  vocabulary for Agent-Ready Studio, and the test that separates authority.
+- **D2:** Each authority in the system belongs to exactly one plane. A plane is
+  never co-owned.
 
 | Plane | Owns | Implemented today by |
 | --- | --- | --- |
@@ -53,20 +60,18 @@ co-owned.
 
 Three boundaries bound this decision.
 
-**A plane identifies semantic authority, not a process, package, deployment, or
-repository.** One component may implement more than one plane. Today
-`apps/studio-service` implements the Product plane and is the proposed owner of
-the Control plane.
-
-**The vocabulary applies to current and future architecture reasoning**, not
-only to work still to be shaped. An existing component is describable in these
-terms today, as the table above does.
-
-**This decision does not assign the Execution plane to a separate Workspace
-Runtime process.** RFC-0001's D1 — whether execution authority earns its own
-process boundary — remains gated on Connect and Orient having been *delivered*,
-and is deliberately not recorded here. `apps/workspace-runtime` does not exist
-and is not authorized by this record.
+- **D3:** A plane identifies semantic authority, not a process, package,
+  deployment, or repository. One component may implement more than one plane.
+  Today `apps/studio-service` implements the Product plane and is the proposed
+  owner of the Control plane.
+- **D4:** The vocabulary applies to current and future architecture reasoning,
+  not only to work still to be shaped. An existing component is describable in
+  these terms today, as the table above does.
+- **D5:** This decision does not assign the Execution plane to a separate
+  Workspace Runtime process. RFC-0001's D1 — whether execution authority earns
+  its own process boundary — remains gated on Connect and Orient having been
+  *delivered*, and is deliberately not recorded here. `apps/workspace-runtime`
+  does not exist and is not authorized by this record.
 
 ## Decision drivers
 
@@ -141,4 +146,4 @@ both plausibly own, or a plane no capability names as its most relevant owner.
 - [RFC-0001](../rfc/0001-studio-authority-planes-and-workspace-runtime-boundary.md),
   Accepted 2026-09-11 — §Authority planes, §Acceptance sequencing, §Risks.
 - [`post-acceptance-follow-ons.md`](../rfc/0001-notes/post-acceptance-follow-ons.md)
-  item 1, which warrants this record and excludes D1 from it.
+  item 1, which warrants this record and excludes RFC-0001's D1 from it.
