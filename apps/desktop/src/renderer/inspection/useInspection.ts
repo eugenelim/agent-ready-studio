@@ -32,12 +32,20 @@ export interface InspectionView {
   readonly studioFailure: string | null;
   /** When the current in-flight phase began, for the progress channel. */
   readonly startedAt: number | null;
+  readonly reading: boolean;
 }
 
 /**
  * Total over the eleven, so adding a twelfth state is a compile error here
  * rather than a silent classification as not-in-flight.
  */
+/**
+ * How many consecutive failed reads the surface tolerates before it stops.
+ * Four at the poll cadence is six seconds of silence, well short of the 150 s
+ * inspection window, and the lead keeps a working Refresh status button.
+ */
+export const MAX_FAILED_READS = 4;
+
 const IN_FLIGHT: Readonly<Record<UserVisibleState, boolean>> = Object.freeze({
   resolving: true,
   inspecting: true,
@@ -75,6 +83,8 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
   // a late response from an older one cannot overwrite a newer one.
   const submitting = useRef(false);
   const generation = useRef(0);
+  /** Consecutive failed reads, so the poll stops rather than retrying forever. */
+  const failedReads = useRef(0);
   const snapshot = useRef<SurfaceSnapshot>({
     state: null,
     verdict: null,
@@ -147,6 +157,9 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
   const cancel = useCallback(async () => {
     const sourceId = inspection?.sourceId;
     if (sourceId === undefined) return;
+    // Cancelling is the lead's word on this inspection; a poll that resolves
+    // after it must not reinstate the phase it stopped.
+    ++generation.current;
     const outcome = await api.source.cancel(sourceId);
     if (outcome.ok) {
       setStudioFailure(null);
@@ -186,6 +199,12 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
     rejection,
     studioFailure,
     startedAt,
+    /**
+     * False once the surface has stopped polling. A read that keeps failing
+     * would otherwise fire every interval forever against a service that is
+     * not answering, saying nothing new each time.
+     */
+    reading: failedReads.current < MAX_FAILED_READS,
   };
   return { view, connect, cancel, refresh } as const;
 }

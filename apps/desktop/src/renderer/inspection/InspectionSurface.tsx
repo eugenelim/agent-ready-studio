@@ -57,10 +57,10 @@ export function InspectionSurface({
   // is the same cadence the progress text uses, because both exist to keep a
   // wait of up to 150 seconds legible.
   useEffect(() => {
-    if (!view.busy) return;
+    if (!view.busy || !view.reading) return;
     const id = setInterval(() => void refresh(), POLL_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [view.busy, refresh]);
+  }, [view.busy, view.reading, refresh]);
 
   const inspection = view.inspection;
   const state = inspection === null ? null : surfaceState(inspection);

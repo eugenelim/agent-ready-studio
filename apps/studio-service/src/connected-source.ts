@@ -24,7 +24,13 @@ import type { NormalizedTrialResult } from "./trial-result.js";
 export const PERSISTED_REPOSITORY_CONTENT_BOUND_BYTES = 256 * 1024;
 
 /** The states an inspection can be left in other than by completing. */
-export const IN_FLIGHT_CONDITIONS = ["resolving", "inspecting"] as const;
+/**
+ * The phases an inspection can be interrupted in. These are **phase** values,
+ * not conditions: the condition of an in-flight source is `ok`, and an earlier
+ * version matched these against `condition`, so the reconciliation below could
+ * never fire and AC-0085's `incomplete` was unreachable.
+ */
+export const IN_FLIGHT_PHASES = ["resolving", "inspecting"] as const;
 
 export type PersistRefusal = "exceeds-persisted-content-bound";
 
@@ -165,9 +171,10 @@ export function recordCancellation(
 export function reconcileAfterRestart(storage: Storage): string[] {
   const moved: string[] = [];
   for (const source of storage.listConnectedSources()) {
-    if (
-      (IN_FLIGHT_CONDITIONS as readonly string[]).includes(source.condition)
-    ) {
+    // An in-flight source is stored with its phase in `condition`, because
+    // that is the only column a restart can read it from. Nothing else writes
+    // a phase there, so the match is unambiguous.
+    if ((IN_FLIGHT_PHASES as readonly string[]).includes(source.condition)) {
       storage.setConnectedSourceCondition(source.id, "incomplete");
       moved.push(source.id);
     }

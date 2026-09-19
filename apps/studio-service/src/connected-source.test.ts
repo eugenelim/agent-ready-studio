@@ -9,7 +9,7 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  IN_FLIGHT_CONDITIONS,
+  IN_FLIGHT_PHASES,
   PERSISTED_REPOSITORY_CONTENT_BOUND_BYTES,
   persistConnectedSource,
   persistedRepositoryBytes,
@@ -324,7 +324,7 @@ describe("AC-0084 and AC-0085 cancellation and restart are distinct", () => {
   });
 
   it("treats both progress conditions as in flight", () => {
-    expect([...IN_FLIGHT_CONDITIONS]).toEqual(["resolving", "inspecting"]);
+    expect([...IN_FLIGHT_PHASES]).toEqual(["resolving", "inspecting"]);
   });
 });
 

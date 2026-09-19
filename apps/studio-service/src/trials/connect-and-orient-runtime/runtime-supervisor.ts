@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import type { CanonicalSourceIdentity } from "../../source-identity.js";
@@ -248,6 +249,15 @@ export function signalProcessGroup(
 }
 
 function defaultChildEntry(): string {
+  // A compiled sibling wins when one exists. The child is spawned, never
+  // imported, so a `.ts` entry depends on the interpreter type-stripping it --
+  // true of the node this repository develops on and not something to rely on
+  // for the binary the product actually ships. The build emits `.js` beside
+  // `service.js`; in the source tree only the `.ts` exists.
+  const compiled = fileURLToPath(
+    new URL("./runtime-child.js", import.meta.url),
+  );
+  if (existsSync(compiled)) return compiled;
   return fileURLToPath(new URL("./runtime-child.ts", import.meta.url));
 }
 

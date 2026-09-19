@@ -71,6 +71,7 @@ import {
 import {
   CONDITIONAL_ENVIRONMENT_NAME,
   ENVIRONMENT_ALLOWLIST_NAMES,
+  HOST_CONDITIONAL_ENVIRONMENT_NAMES,
   PINNED_PATH,
 } from "./runtime-environment.js";
 import {
@@ -106,6 +107,19 @@ function validRequest(): TrialRequest {
   };
 }
 
+/**
+ * The allowlist admits two names the built environment carries only on some
+ * hosts -- `GIT_CONFIG_PARAMETERS`, which `git` sets on helpers it
+ * re-executes, and `ELECTRON_RUN_AS_NODE`, present only when the Service is an
+ * Electron binary. Comparisons drop them from **both** sides, so an unexpected
+ * name still fails and a missing expected one still fails.
+ */
+function withoutHostConditional(names: readonly string[]): string[] {
+  return names.filter(
+    (name) => !HOST_CONDITIONAL_ENVIRONMENT_NAMES.includes(name),
+  );
+}
+
 function expectedEnv(
   home = "",
   temporaryDirectory = "",
@@ -124,6 +138,15 @@ function expectedEnv(
     GIT_ALLOW_PROTOCOL: "https",
     GIT_ASKPASS: "",
     SSH_ASKPASS: "",
+    // Present only when this process is an Electron binary. The Service is
+    // started by the desktop with ELECTRON_RUN_AS_NODE=1, and the child's
+    // environment is built closed, so without the name pinned the spawn
+    // launches Electron as a GUI app and no Runtime starts. On plain node --
+    // which is what runs this suite -- the name is absent, and the pinned set
+    // is exactly the determinism triple and the git rail.
+    ...(process.versions.electron === undefined
+      ? {}
+      : { ELECTRON_RUN_AS_NODE: "1" }),
   };
 }
 
@@ -257,9 +280,9 @@ describe("process boundary", () => {
     for (const needle of forbidden) {
       expect(argumentText).not.toContain(needle);
     }
-    expect(Object.keys(record.environment)).toEqual([
-      ...ENVIRONMENT_ALLOWLIST_NAMES,
-    ]);
+    expect(withoutHostConditional(Object.keys(record.environment))).toEqual(
+      withoutHostConditional([...ENVIRONMENT_ALLOWLIST_NAMES]),
+    );
     expect(
       [...record.observedEnvByPid.values()]
         .flatMap((environment) => Object.keys(environment))
@@ -434,7 +457,15 @@ describe("argument vector", () => {
 
 describe("environment partitions", () => {
   it("AC-0023 names the allowlist and marks GIT_CONFIG_PARAMETERS as the one conditional name", () => {
-    expect(ENVIRONMENT_ALLOWLIST_NAMES).toEqual(Object.keys(expectedEnv()));
+    // The allowlist names every name the environment may carry; the built
+    // environment carries the Electron flag only on an Electron host, so the
+    // roster is compared against the names rather than against one host's set.
+    expect([...ENVIRONMENT_ALLOWLIST_NAMES]).toEqual([
+      ...Object.keys(expectedEnv()),
+      ...(process.versions.electron === undefined
+        ? ["ELECTRON_RUN_AS_NODE"]
+        : []),
+    ]);
     expect(ENVIRONMENT_ALLOWLIST_NAMES).not.toContain(
       CONDITIONAL_ENVIRONMENT_NAME,
     );
@@ -474,7 +505,9 @@ describe("environment partitions", () => {
       expect(observed.executable).toContain("ython");
     }
     for (const entry of record.spawnAudit) {
-      expect(entry.environmentNames).toEqual([...ENVIRONMENT_ALLOWLIST_NAMES]);
+      expect(withoutHostConditional(entry.environmentNames)).toEqual(
+        withoutHostConditional([...ENVIRONMENT_ALLOWLIST_NAMES]),
+      );
     }
   });
 
@@ -672,7 +705,9 @@ describe("permitted executables and identity", () => {
     expect(gitProbes.length).toBeGreaterThan(2);
     expect(interpreterProbes.length).toBeGreaterThan(0);
     for (const entry of [...gitProbes, ...interpreterProbes]) {
-      expect(entry.environmentNames).toEqual([...ENVIRONMENT_ALLOWLIST_NAMES]);
+      expect(withoutHostConditional(entry.environmentNames)).toEqual(
+        withoutHostConditional([...ENVIRONMENT_ALLOWLIST_NAMES]),
+      );
     }
   });
 });

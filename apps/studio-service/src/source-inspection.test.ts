@@ -240,25 +240,52 @@ describe("AC-0100 to AC-0104 a result survives a restart", () => {
     expect(restored?.diagnostics).toBe("inspected cleanly");
   });
 
-  it("does not write a phase through, so a restart cannot resume one", async () => {
+  it("AC-0085 records an in-flight source so a restart can find it", async () => {
     const store = memoryStore();
     const sources = createSourceInspections(deps({ store }));
     const started = sources.connect("https://github.com/acme/widgets");
 
-    // `resolving` is in flight. Writing it would leave a restart holding a
-    // phase no process is advancing, which is what reconcileAfterRestart
-    // exists to correct and would then have to compete with.
-    expect(store.rows.get(started.sourceId)).toBeUndefined();
+    // An interrupted inspection must be reconcilable to `incomplete`, and
+    // `reconcileAfterRestart` can only move a source that was recorded. An
+    // earlier version wrote only terminal results, so an interrupted
+    // inspection vanished entirely -- `get` answered "not found" rather than
+    // "Interrupted by restart".
+    const inFlight = store.rows.get(started.sourceId);
+    expect(inFlight, "an in-flight source was not recorded").toBeDefined();
+    expect(inFlight.phase).toBe("resolving");
+
     await settled();
     expect(store.rows.get(started.sourceId)?.phase).toBeNull();
   });
 
   it("survives a cancellation too", async () => {
+    // Cancelled while in flight, which is the only state a cancel applies to:
+    // a settled result is refused rather than overwritten.
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     const store = memoryStore();
-    const sources = createSourceInspections(deps({ store }));
+    const sources = createSourceInspections(
+      deps({
+        store,
+        inspect: vi.fn(async (): Promise<InspectionOutcome> => {
+          await gate;
+          return {
+            ok: true,
+            completed: true,
+            workspacePresent: true,
+            invalidWorkspace: false,
+            diagnostics: "",
+          };
+        }),
+      }),
+    );
     const started = sources.connect("https://github.com/acme/widgets");
     await settled();
     sources.cancel(started.sourceId);
+    release?.();
+    await settled();
 
     const after = createSourceInspections(deps({ store }));
     expect(after.get(started.sourceId)?.condition).toBe("cancelled");
@@ -296,6 +323,39 @@ describe("cancelling", () => {
     // A pipeline that reported after the lead stopped it would tell them the
     // inspection they cancelled had finished.
     expect(sources.get(started.sourceId)?.condition).toBe("cancelled");
+  });
+
+  it("refuses to cancel a settled result rather than destroying it", async () => {
+    const store = {
+      rows: new Map<string, ReturnType<typeof JSON.parse>>(),
+      persist: (record: { sourceId: string }) =>
+        store.rows.set(record.sourceId, JSON.parse(JSON.stringify(record))),
+      read: (sourceId: string) => store.rows.get(sourceId),
+    };
+    const sources = createSourceInspections(
+      deps({
+        store,
+        inspect: vi.fn(
+          async (): Promise<InspectionOutcome> => ({
+            ok: true,
+            completed: true,
+            workspacePresent: true,
+            invalidWorkspace: false,
+            diagnostics: "",
+          }),
+        ),
+      }),
+    );
+    const started = sources.connect("https://github.com/acme/widgets");
+    await settled();
+
+    // A restart, then a cancel on a source that already has a verdict.
+    const after = createSourceInspections(deps({ store }));
+    const outcome = after.cancel(started.sourceId);
+
+    expect(outcome?.verdict).toBe("agent-ready");
+    expect(outcome?.condition).toBe("ok");
+    expect(store.rows.get(started.sourceId)?.verdict).toBe("agent-ready");
   });
 
   it("reports an unknown source as absent rather than inventing one", () => {

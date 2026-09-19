@@ -30,6 +30,7 @@ import {
 import {
   buildPinnedEnvironment,
   ENVIRONMENT_ALLOWLIST_NAMES,
+  HOST_CONDITIONAL_ENVIRONMENT_NAMES,
 } from "./runtime-environment.js";
 
 const roots: string[] = [];
@@ -224,8 +225,18 @@ describe("AC-0076 and AC-0079 one removal takes the whole state root", () => {
     // tautological. Removing `TZ` would still redden — the three-name loop above
     // catches that, since `runtimeSide.TZ` becomes undefined — so what is lost
     // silently is any allowlist name *outside* the determinism triple.
-    expect(Object.keys(runtimeSide).sort()).toEqual(
-      [...ENVIRONMENT_ALLOWLIST_NAMES].sort(),
+    // Host-conditional names are excluded from both sides rather than from
+    // one: `ELECTRON_RUN_AS_NODE` is in the allowlist and is built only on an
+    // Electron host, so comparing the raw sets fails on plain node for a
+    // reason that is not a defect. Excluding them from both keeps the
+    // comparison's real property -- that no unexpected name appears and none
+    // of the expected ones is missing.
+    const comparable = (names: readonly string[]) =>
+      names
+        .filter((name) => !HOST_CONDITIONAL_ENVIRONMENT_NAMES.includes(name))
+        .sort();
+    expect(comparable(Object.keys(runtimeSide))).toEqual(
+      comparable([...ENVIRONMENT_ALLOWLIST_NAMES]),
     );
   });
 
