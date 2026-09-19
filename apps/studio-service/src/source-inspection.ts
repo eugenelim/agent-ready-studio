@@ -39,6 +39,14 @@ import { startTrialInspection } from "./trials/connect-and-orient-runtime/runtim
 
 const execFileAsync = promisify(execFile);
 
+/** git is absent or unusable on this host, which is a Studio-side condition. */
+export class GitUnavailableError extends Error {
+  constructor(readonly code: string) {
+    super(`git could not be identified on this host: ${code}`);
+    this.name = "GitUnavailableError";
+  }
+}
+
 export type SourceInspection = StudioResult<"source.get">;
 
 /** What the Runtime reports back about one inspection. */
@@ -303,12 +311,15 @@ export async function inspectInRuntime(
     .protocolLines;
   const materialized = (lines ?? []).find(
     (line) => line.type === "materialized",
-  ) as { status?: number } | undefined;
+  ) as { status?: number; mismatch?: string } | undefined;
   if (materialized === undefined || materialized.status !== 0) {
     return {
       ok: false,
       condition: "inspection-stopped",
-      diagnostics: "the Runtime did not materialize the revision",
+      diagnostics:
+        materialized?.mismatch === "head-mismatch"
+          ? "the downloaded copy did not match the commit Studio asked for"
+          : "the Runtime did not materialize the revision",
     };
   }
 
@@ -330,7 +341,11 @@ export async function inspectInRuntime(
  */
 export function createDefaultTransport(): RevisionTransport {
   const environment: Record<string, string> = {
-    PATH: "/usr/bin:/bin",
+    // Wide enough to find git where supported hosts put it. Pinning this to
+    // two directories made the first submission fail with an internal error on
+    // any host with git at /usr/local/bin or /opt/homebrew/bin -- a
+    // configuration problem surfacing as Studio blaming itself.
+    PATH: "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin",
     HOME: "/nonexistent",
     GIT_TERMINAL_PROMPT: "0",
     GIT_ASKPASS: "",
@@ -341,7 +356,9 @@ export function createDefaultTransport(): RevisionTransport {
   };
   const identity = resolveGitIdentity(environment, []);
   if (!identity.ok) {
-    throw new Error(`git could not be identified: ${identity.code}`);
+    // Named rather than thrown as an opaque internal error: the lead can act
+    // on "Studio cannot inspect", and cannot act on -32603.
+    throw new GitUnavailableError(identity.code);
   }
   const run: GitCommandRunner = async ({ executable, args, cwd }) => {
     const { stdout, stderr } = await execFileAsync(executable, [...args], {

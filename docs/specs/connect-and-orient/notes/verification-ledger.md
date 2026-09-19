@@ -4645,15 +4645,25 @@ evidence:
 - **AC-0088, AC-0091, AC-0092, AC-0097, AC-0099** — the protocol result carries no stop reason,
   wait window or secondary diagnostic, so these are verified at the projection and have no
   user-visible realization. Carrying them needs protocol fields, which is the approval path.
-- **AC-0024, AC-0025, AC-0030** — retracted above and not re-made. The observations must come from
-  the Runtime child's own spawn audit, which is now where the transport runs; they were not
-  re-run in this session.
+- **AC-0024, AC-0025, AC-0030** — ~~retracted above and not re-made~~. **Superseded within this
+  session**: they were re-made from the child's own audit and descendant observer, and are
+  recorded at `#t13-delivery-2026-09-19-remade` below. This line is corrected rather than deleted
+  so a reader following the retraction forward lands on the remake.
 - **AC-0114** — no recorded gesture, and no capture of the verdict surface in any state.
 - **AC-0130, AC-0132** — the captures are at 1024 px and at device-pixel-ratio 2. The *Minimum
   supported window width* is **900** px, and 200 percent **text** resize is not a pixel-ratio
   change. Both halves are unevidenced.
 - **AC-0061 to AC-0068** — the verdict derivation is unit-tested and composed, but no trusted
   inspector runs, so the derivation from real inspector output is unexercised end to end.
+- **AC-0100 to AC-0104** — restart survival. \`source-inspection.ts\` holds every inspection in an
+  in-memory \`Map\`, and \`persistConnectedSource\`, \`toConnectedSourceRecord\` and
+  \`getConnectedSource\` have **zero production callers** — the same pattern the retraction
+  enumerated, still present for persistence. An inspection does not survive a restart. Added to
+  this list in the confirmation round, which found it absent from the first version.
+- **Progress does not advance without a manual click.** \`refresh\` is called only by the
+  "Refresh status" button; there is no interval, focus or event subscription, so a lead who
+  connects sits on \`resolving\` until they press it. A user-visible design decision that neither
+  the plan nor the first version of this entry recorded.
 
 **A full 157-criterion audit has not been performed.** This list is what this round's review
 established, not a complete reconciliation, and saying so is the point: an unchecked box means
@@ -4716,3 +4726,75 @@ Every failing file passed twice in isolation: `disposal.test.ts` 8 of 8 and `swe
 entry describes. **Three of four runs failed**, which is worse than the ratio earlier entries
 record, and the added end-to-end artifact spawns a real Service process of its own — so this
 session has again increased the load that harness runs under. Recorded rather than averaged away.
+
+## review-round-37-2026-09-19
+
+**The confirmation round on the composition. Nine Blockers, and the first one is the same failure
+shape as the retraction, one layer down.**
+
+**The composed path did not work in the built service.** `runtime-supervisor.ts` resolves the
+child as `new URL("./runtime-child.ts", import.meta.url)`. The shipped artifact is a single
+bundle — `dist/` held only `service.js` — and the child is *spawned*, never imported, so the
+bundler never saw it and it never reached `dist/`. Every accepted URL resolved its ref and then
+failed to spawn a Runtime. **Composed in source, broken in the target: exactly what the retraction
+was written about, and I verified in source again.** The build now copies the child into `dist/`,
+and the boundary artifact asserts an accepted inspection through to a terminal state. **Mutation:
+removing `dist/runtime-child.ts` turns that case red** with the diagnostic naming it.
+
+**The boundary artifact could not fail for the step that mattered.** Its cases asserted
+`phase === "resolving"` — the synchronous pre-pipeline return — plus refusal and not-found paths
+that consult no transport. Everything after the dispatch was unbound, which is how the build gap
+survived a green run. A case now drives an accepted URL to a terminal state.
+
+**"It reaches no remote" was false.** An accepted URL dispatches into the spawned service, which
+builds the real transport and runs `git ls-remote` in a background pipeline. The offline suite
+passed only because nothing asserted the outcome of the request it made. The accepted cases are
+now gated behind `CONNECT_ORIENT_E2E_NETWORK=1` and the claim is corrected to what is actually
+attempted.
+
+**A validation was cut at a trust boundary.** `materializeRevision` fetched, then read `HEAD` and
+returned `head-mismatch` when it differed from the resolved SHA — the stop reason the vocabulary
+still carries, "The downloaded copy did not match the commit Studio asked for". Moving
+materialization into the child brought the fetch and the checkout and **not** the verification.
+The child now runs `rev-parse --verify HEAD` and reports the mismatch, and the orchestrator routes
+it to that stop reason.
+
+**The text-resize evidence evidenced nothing.** `text-200`'s captures were byte-identical to their
+unscaled `narrow-1024` baselines — the root font size was set *before* `Page.navigate`, which
+discarded it. This is the same defect the harness's mode probe was added for, on a new dimension
+with no probe. The scale is now applied after navigation and **probed against the computed root
+font size**, failing the run when it does not take. All three captures now differ from their
+baselines, and the connect surface still reflows at zero overflow.
+
+**AC-0030 claimed more than its evidence for the second round running.** The entry said "every one
+of these is now asserted by the smoke" while the pgid appeared only inside a `writeFileSync`
+payload. The smoke now runs `ps -g` against the pgid it recorded and asserts the group is empty,
+and the row carries the number — `81491` — because citing it is how the previous defect was found.
+
+### Sustained and applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The Runtime child was absent from the built bundle, so the composed path could not run | Blocker | Build copies it; the boundary artifact binds an accepted inspection to a terminal state, and removing the file reddens it |
+| The boundary artifact asserted only the pre-pipeline return | Blocker | A case drives resolve → spawn → materialize through the built bundle |
+| "Reaches no remote" was false for accepted URLs | Blocker | Network cases gated behind an env var; the claim states what is attempted |
+| AC-0030 was not asserted anywhere, against a sentence saying it was | Blocker | Asserted against the recorded pgid, with the number and the empty result in the record |
+| The t12 unmet list contradicted the t13 entry two below it | Blocker | Corrected in place, pointing forward to the remake rather than deleted |
+| AC-0100 to AC-0104 were unmet and absent from the list | Blocker | Named, with the in-memory store and the three zero-caller persistence functions as their ground |
+| `buildNorthboundRequest`, `materializeRevision` and `locateTrustedInspector` are still test-only, against framing that implied otherwise | Blocker | The entry names which two of the four are composed and which three are not |
+| The head-mismatch check was dropped from the production materialization path | Blocker | Restored in the child, routed by the orchestrator, covered by a case |
+| `text-200` captures were byte-identical to their baselines | Blocker | Applied after navigation and probed; all three now differ |
+| A child comment claimed an inspector is located; none is | Concern | Removed |
+| The service shim re-exported the whole protocol package | Concern | Narrowed to named exports, with the reason stated |
+| The renderer comment named the package the move was away from | Concern | Names the protocol package and why |
+| The evidence note's removal inventory was unchanged though the table said otherwise | Concern | Names `source-inspection.ts`, the dispatch cases and the build plugin |
+| AC-0116's deferral rested on a condition this session ended | Concern | The backlog entry records that the ground is weaker than when written |
+| Progress never advances without a manual click | Concern | Named in the unmet list |
+| A double cast read a field the record type declares | Nit | Narrowed |
+| The transport's `PATH` made git unresolvable on supported hosts | Nit | Widened, and a named error replaces an opaque internal one |
+
+### Gate state
+
+`pnpm lint` exit 0 over 124 files; `pnpm typecheck` exit 0; **`pnpm verify` exit 0 on the first
+attempt — 50 files, 656 passed, 2 skipped** at load average 25.42. The two skips are the live
+smoke and the networked boundary case, both gated so AC-0148 holds.

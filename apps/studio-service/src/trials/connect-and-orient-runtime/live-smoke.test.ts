@@ -11,6 +11,7 @@
  * and checks out, so every transport spawn is the child's own and appears in
  * the child's audit.
  */
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -118,6 +119,25 @@ describe.skipIf(!enabled)("T13 live unauthenticated smoke", () => {
       expect(helper?.environment?.SSH_ASKPASS).toBe("");
       expect(helper?.environment?.GIT_TERMINAL_PROMPT).toBe("0");
 
+      // AC-0030: no descendant survives. Asserted against the pgid this run
+      // recorded, not read from a file afterwards -- the retracted row cited a
+      // group from a different run, and citing the number is how that was
+      // caught, so the number is carried into the evidence below.
+      const pgid = record.childPgid;
+      expect(pgid, "no child pgid was recorded").toBeGreaterThan(0);
+      const survivors = spawnSync(
+        "/bin/ps",
+        ["-g", String(pgid), "-o", "pid="],
+        {
+          encoding: "utf8",
+        },
+      );
+      const surviving = (survivors.stdout ?? "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line !== "");
+      expect(surviving, `processes survived in group ${pgid}`).toEqual([]);
+
       writeFileSync(
         process.env.CONNECT_ORIENT_SMOKE_OUT ?? "/tmp/smoke.json",
         `${JSON.stringify(
@@ -127,6 +147,7 @@ describe.skipIf(!enabled)("T13 live unauthenticated smoke", () => {
             servicePid: record.servicePid,
             childPid: record.childPid,
             childPgid: record.childPgid,
+            survivingInGroup: surviving,
             environmentNames: Object.keys(record.environment).sort(),
             askpass: {
               GIT_ASKPASS: record.environment.GIT_ASKPASS,

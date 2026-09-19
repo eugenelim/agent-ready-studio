@@ -8,8 +8,13 @@
  * `-32603 Internal error` to every submission. A test at this level is the only
  * one that could have caught it, and the only one that keeps it caught.
  *
- * It reaches no remote. A refused URL is refused before any transport is
- * consulted, which is exactly the property that makes it testable here.
+ * A refused URL reaches no remote: it is refused before any transport is
+ * consulted, which is exactly the property AC-0108 depends on. **An accepted
+ * URL does reach one** -- the spawned service resolves the ref for real -- so
+ * the accepted cases are gated behind CONNECT_ORIENT_E2E_NETWORK=1 and the
+ * offline suite runs the refusal and not-found paths only. An earlier version
+ * of this file claimed the whole artifact reached no remote; it passed offline
+ * only because nothing asserted the outcome of the request it made.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -68,6 +73,8 @@ function freshBoundary(): StudioPreloadApi {
   temporaryDirectories.push(directory);
   return boundary(join(directory, "studio.db"));
 }
+
+const networked = process.env.CONNECT_ORIENT_E2E_NETWORK === "1";
 
 describe("the connect path across the real desktop boundary", () => {
   it("answers source.connect rather than failing at the boundary", async () => {
@@ -143,6 +150,48 @@ describe("the connect path across the real desktop boundary", () => {
     expect(cancelled.value.condition).toBe("cancelled");
     expect(cancelled.value.phase).toBeNull();
   }, 30_000);
+
+  it.skipIf(!networked)(
+    "carries an accepted inspection through to a terminal state",
+    async () => {
+      // The step the previous version never bound. `resolving` is the
+      // synchronous pre-pipeline return, so asserting it alone left the whole
+      // post-dispatch path -- resolve, spawn the Runtime, materialize --
+      // unexercised, and a Runtime child missing from the built bundle passed
+      // a green run.
+      const api = freshBoundary();
+      const started = await api.source.connect({
+        url: "https://github.com/octocat/Hello-World",
+      });
+      expect(started.ok).toBe(true);
+      if (!started.ok) return;
+      const sourceId = started.value.sourceId;
+
+      const deadline = Date.now() + 120_000;
+      let latest = started.value;
+      while (Date.now() < deadline && latest.phase !== null) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const read = await api.source.get(sourceId);
+        if (!read.ok) throw new Error(`get failed: ${JSON.stringify(read)}`);
+        latest = read.value;
+      }
+
+      expect(
+        latest.phase,
+        "the inspection never reached a terminal state",
+      ).toBeNull();
+      expect(latest.resolvedSha).toMatch(/^[0-9a-f]{40}$/);
+      // The Runtime materialized it and found no trusted inspector, which is
+      // the honest outcome. A child that failed to spawn yields
+      // `inspection-stopped` instead, which is how a broken built bundle
+      // reddens here.
+      expect(
+        latest.condition,
+        `expected inspector-unavailable, got ${latest.condition}: ${latest.diagnostics}`,
+      ).toBe("inspector-unavailable");
+    },
+    180_000,
+  );
 
   it("reports an unknown source as not found rather than as an internal error", async () => {
     const api = freshBoundary();

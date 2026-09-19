@@ -170,6 +170,32 @@ describe("an accepted URL runs the pipeline", () => {
   });
 });
 
+describe("a head mismatch is its own stop reason", () => {
+  it("reports the downloaded copy not matching the commit asked for", async () => {
+    const sources = createSourceInspections(
+      deps({
+        inspect: vi.fn(
+          async (): Promise<InspectionOutcome> => ({
+            ok: false,
+            condition: "inspection-stopped",
+            diagnostics:
+              "the downloaded copy did not match the commit Studio asked for",
+          }),
+        ),
+      }),
+    );
+    const started = sources.connect("https://github.com/acme/widgets");
+    await settled();
+
+    const held = sources.get(started.sourceId);
+    expect(held?.condition).toBe("inspection-stopped");
+    // The stop reason the vocabulary carries, not a generic failure: moving
+    // materialization into the child brought the fetch and the checkout
+    // without bringing the verification this names.
+    expect(held?.diagnostics).toContain("did not match the commit");
+  });
+});
+
 describe("cancelling", () => {
   it("stops the run and does not let it report afterwards", async () => {
     let release: (() => void) | undefined;

@@ -142,9 +142,11 @@ run removed its state root and reported `removed: true`.
 ## Code that must be deleted or rewritten on expiry
 
 The whole of `apps/studio-service/src/trials/connect-and-orient-runtime/`,
-its tests, and the three call sites that reach it:
-`runtime-supervisor.ts`'s export surface, the `source.*` protocol handlers
-that invoke it, and the desktop preload's `source` namespace. The design-system
+its tests, and the call sites that reach it: `runtime-supervisor.ts`'s export
+surface, `apps/studio-service/src/source-inspection.ts` — which composes the
+connect path and calls into the Runtime — the three `source.*` cases in
+`service.ts`'s dispatch, the `copy-runtime-child` build plugin in
+`vitest.config.ts`, and the desktop preload's `source` namespace. The design-system
 inspection family and the connect and verdict surfaces are **not** trial code;
 they describe a product capability that outlives the runtime that served it.
 
