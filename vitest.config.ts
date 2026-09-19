@@ -1,5 +1,6 @@
 import { copyFileSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vitest/config";
 
 /**
@@ -11,15 +12,21 @@ import { defineConfig, type Plugin } from "vitest/config";
  * has now hit twice.
  */
 function copyRuntimeChild(): Plugin {
+  // Anchored to this config's own location rather than to `process.cwd()`, so
+  // an invocation from another directory cannot write the child into the wrong
+  // tree.
+  const root = dirname(fileURLToPath(import.meta.url));
   const from = resolve(
+    root,
     "apps/studio-service/src/trials/connect-and-orient-runtime/runtime-child.ts",
   );
-  const to = resolve("apps/studio-service/dist/runtime-child.ts");
+  const outDir = resolve(root, "apps/studio-service/dist");
   return {
     name: "copy-runtime-child",
     closeBundle() {
-      mkdirSync(resolve("apps/studio-service/dist"), { recursive: true });
-      copyFileSync(from, to);
+      mkdirSync(outDir, { recursive: true });
+      // Kept for readability beside the compiled sibling the spawn prefers.
+      copyFileSync(from, resolve(outDir, "runtime-child.ts"));
     },
   };
 }
@@ -30,9 +37,17 @@ export default defineConfig({
     outDir: "apps/studio-service/dist",
     rollupOptions: {
       external: [/^node:/, "better-sqlite3"],
-      output: { entryFileNames: "service.js" },
+      output: { entryFileNames: "[name].js" },
     },
-    ssr: "apps/studio-service/src/service.ts",
+    ssr: true,
+    lib: {
+      entry: {
+        service: "apps/studio-service/src/service.ts",
+        "runtime-child":
+          "apps/studio-service/src/trials/connect-and-orient-runtime/runtime-child.ts",
+      },
+      formats: ["es"],
+    },
   },
   ssr: {
     external: ["better-sqlite3"],

@@ -25,6 +25,7 @@ import type { Storage } from "@agent-ready/storage-sqlite";
 import { persistConnectedSource } from "./connected-source.js";
 import type { CanonicalSourceIdentity } from "./source-identity.js";
 import { buildFetchUrl, canonicalizeSource } from "./source-identity.js";
+import type { Provenance } from "./trial-result.js";
 import {
   deriveCondition,
   deriveVerdict,
@@ -37,7 +38,10 @@ import {
   type RevisionTransport,
   resolveRevision,
 } from "./trials/connect-and-orient-runtime/git-driver.js";
-import { startTrialInspection } from "./trials/connect-and-orient-runtime/runtime-supervisor.js";
+import {
+  beginTrialInspection,
+  signalProcessGroup,
+} from "./trials/connect-and-orient-runtime/runtime-supervisor.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -77,6 +81,13 @@ export interface InspectionRequest {
     readonly fetchUrl: string;
     readonly resolvedSha: string;
   };
+  /**
+   * Aborted when the lead cancels. AC-0084 requires the Service to terminate
+   * the in-flight Runtime; recording `cancelled` without this left the child
+   * running to its own deadline, holding its process group and its
+   * materialization root after the lead had been told it stopped.
+   */
+  readonly signal: AbortSignal;
 }
 
 /**
@@ -108,6 +119,7 @@ export interface SourceInspectionDependencies {
 interface Run {
   cancelled: boolean;
   readonly cleanup: (() => void)[];
+  readonly abort: AbortController;
 }
 
 function base(
@@ -149,12 +161,19 @@ export function createSourceInspections(
     const run = runs.get(next.sourceId);
     if (run?.cancelled) return store.get(next.sourceId) ?? next;
     store.set(next.sourceId, next);
-    // A terminal result is written through, so a restart can still answer
-    // AC-0100 to AC-0104: the identity, the ref and SHA, the inspection time,
-    // the verdict and its diagnostics. An in-flight phase is not written --
-    // `reconcileAfterRestart` moves what was in flight to `incomplete`, and a
-    // half-written phase would compete with it.
-    if (next.phase === null) dependencies.store?.persist(next);
+    // Written through in both states, for different reasons. A terminal
+    // result answers AC-0100 to AC-0104 after a restart. An **in-flight** one
+    // is what makes AC-0085 reachable at all: `reconcileAfterRestart` moves an
+    // interrupted source to `incomplete`, and it can only move a source that
+    // was recorded. An earlier version wrote only terminal results, so the
+    // reconciliation had nothing to find and an interrupted inspection
+    // vanished -- `source.get` answered "not found" rather than "Interrupted
+    // by restart".
+    // A refused URL is not a connected source: it never had an owner or a
+    // repository, so persisting it writes an identity-less row -- and a second
+    // refusal then collides with the first on the identity unique key, which
+    // surfaced to the lead as an internal error on their second bad URL.
+    if (next.phase !== "url-rejected") dependencies.store?.persist(next);
     return next;
   };
 
@@ -207,6 +226,7 @@ export function createSourceInspections(
           fetchUrl: buildFetchUrl(identity.identity),
           resolvedSha: resolution.resolvedSha,
         },
+        signal: run?.abort.signal ?? new AbortController().signal,
       });
       if (run?.cancelled) return;
 
@@ -275,7 +295,11 @@ export function createSourceInspections(
         phase: "resolving",
         requestedRef: requestedRef ?? null,
       });
-      runs.set(sourceId, { cancelled: false, cleanup: [] });
+      runs.set(sourceId, {
+        cancelled: false,
+        cleanup: [],
+        abort: new AbortController(),
+      });
       void pipeline(sourceId, url, requestedRef);
       return started;
     },
@@ -290,8 +314,19 @@ export function createSourceInspections(
     cancel(sourceId: string): SourceInspection | undefined {
       const held = store.get(sourceId) ?? dependencies.store?.read(sourceId);
       if (held === undefined) return undefined;
+      // A settled result is not cancellable. Before the storage fallback
+      // existed, cancelling after a restart found nothing and returned "not
+      // found"; with it, an unguarded cancel would overwrite a completed
+      // verdict with `no-verdict`/`cancelled` and persist that -- destroying a
+      // result the lead already has, durably, on a button they pressed
+      // expecting it to stop something still running.
+      if (held.phase === null) return held;
       const run = runs.get(sourceId);
-      if (run !== undefined) run.cancelled = true;
+      if (run !== undefined) {
+        run.cancelled = true;
+        // Stops the Runtime rather than only recording that the lead did.
+        run.abort.abort();
+      }
       const cancelled: SourceInspection = {
         ...held,
         phase: null,
@@ -316,57 +351,89 @@ export type SourceInspections = ReturnType<typeof createSourceInspections>;
 export function createStorageStore(storage: Storage): SourceInspectionStore {
   return {
     persist(record) {
-      const outcome = persistConnectedSource(storage, {
-        id: record.sourceId,
-        owner: record.owner,
-        repository: record.repository,
-        requestedRef: record.requestedRef,
-        resolvedSha: record.resolvedSha,
-        inspectedAt: record.inspectedAt,
-        verdict: record.verdict,
-        condition: record.condition,
-        versionUnverified: record.versionUnverified,
-        diagnostics: record.diagnostics,
-        declaredVersionMarker: record.declaredVersionMarker,
-        inspectorContractVersion: record.inspectorContractVersion,
-        // Every value here is Studio's own or the transport's, and each is
-        // marked so AC-0040's provenance survives the round trip.
-        provenance: {
-          diagnostics: "non-originated",
-          resolvedSha: "non-originated",
-          declaredVersionMarker: "non-originated",
-          inspectorContractVersion: "non-originated",
-        },
-      });
-      if (!outcome.ok) {
-        // AC-0104's refusal is observable rather than silent: the prior record
-        // stands and the reason is on the diagnostic stream.
+      try {
+        persistOrReport(record);
+      } catch (cause) {
+        // A store write must not take the service down. The pipeline runs in
+        // the background, so a throw here is an unhandled rejection rather
+        // than a request failure -- a shut database during shutdown is enough
+        // to produce one, and losing the process loses every other inspection
+        // too.
         process.stderr.write(
-          `connected source ${record.sourceId} not persisted: ${outcome.diagnostic}\n`,
+          `connected source ${record.sourceId} could not be written: ${String(cause)}\n`,
         );
       }
     },
     read(sourceId) {
-      const held = storage.getConnectedSource(sourceId);
-      if (held === null) return undefined;
-      return {
-        kind: "source-inspection",
-        sourceId: held.id,
-        phase: null,
-        verdict: held.verdict as SourceInspection["verdict"],
-        condition: held.condition as SourceInspection["condition"],
-        versionUnverified: held.versionUnverified,
-        owner: held.owner,
-        repository: held.repository,
-        requestedRef: held.requestedRef,
-        resolvedSha: held.resolvedSha,
-        inspectedAt: held.inspectedAt,
-        declaredVersionMarker: held.declaredVersionMarker,
-        inspectorContractVersion: held.inspectorContractVersion,
-        diagnostics: held.diagnostics,
-      };
+      try {
+        return readOrUndefined(sourceId);
+      } catch {
+        return undefined;
+      }
     },
   };
+
+  function persistOrReport(record: SourceInspection): void {
+    const outcome = persistConnectedSource(storage, {
+      id: record.sourceId,
+      owner: record.owner,
+      repository: record.repository,
+      requestedRef: record.requestedRef,
+      resolvedSha: record.resolvedSha,
+      inspectedAt: record.inspectedAt,
+      verdict: record.verdict,
+      // An in-flight source records its **phase** here, because that is the
+      // column `reconcileAfterRestart` reads and a phase is what an
+      // interrupted inspection was in. A terminal one records its condition.
+      condition: record.phase ?? record.condition,
+      versionUnverified: record.versionUnverified,
+      diagnostics: record.diagnostics,
+      declaredVersionMarker: record.declaredVersionMarker,
+      inspectorContractVersion: record.inspectorContractVersion,
+      // The provenance each value actually has, matching what
+      // `normalizeTrialResult` marks. This is what AC-0104's bound is
+      // computed over: `repositoryDerivedValues` selects exactly the
+      // `repository-derived` fields, so marking everything with a string
+      // outside the `Provenance` union -- as an earlier version did with
+      // "non-originated" -- measured zero bytes and made the 256 KiB check
+      // unable to trip. `provenance` is typed `Record<string, string>`, so
+      // the compiler did not catch it.
+      provenance: {
+        diagnostics: "repository-derived",
+        declaredVersionMarker: "repository-derived",
+        resolvedSha: "transport-reported",
+        inspectorContractVersion: "inspector-authored",
+      } satisfies Record<string, Provenance>,
+    });
+    if (!outcome.ok) {
+      // AC-0104's refusal is observable rather than silent: the prior record
+      // stands and the reason is on the diagnostic stream.
+      process.stderr.write(
+        `connected source ${record.sourceId} not persisted: ${outcome.diagnostic}\n`,
+      );
+    }
+  }
+
+  function readOrUndefined(sourceId: string): SourceInspection | undefined {
+    const held = storage.getConnectedSource(sourceId);
+    if (held === null) return undefined;
+    return {
+      kind: "source-inspection",
+      sourceId: held.id,
+      phase: null,
+      verdict: held.verdict as SourceInspection["verdict"],
+      condition: held.condition as SourceInspection["condition"],
+      versionUnverified: held.versionUnverified,
+      owner: held.owner,
+      repository: held.repository,
+      requestedRef: held.requestedRef,
+      resolvedSha: held.resolvedSha,
+      inspectedAt: held.inspectedAt,
+      declaredVersionMarker: held.declaredVersionMarker,
+      inspectorContractVersion: held.inspectorContractVersion,
+      diagnostics: held.diagnostics,
+    };
+  }
 }
 
 /**
@@ -376,7 +443,14 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
 export async function inspectInRuntime(
   request: InspectionRequest,
 ): Promise<InspectionOutcome> {
-  const record = await startTrialInspection(
+  if (request.signal.aborted) {
+    return {
+      ok: false,
+      condition: "incomplete",
+      diagnostics: "the inspection was cancelled before the Runtime started",
+    };
+  }
+  const admission = beginTrialInspection(
     {
       requestId: mintRequestIdentifier(),
       identity: request.identity,
@@ -384,14 +458,38 @@ export async function inspectInRuntime(
     },
     { revision: request.revision },
   );
-  if (!("admitted" in record) || record.admitted !== true) {
+  if (!admission.admitted) {
     return {
       ok: false,
       condition: "inspection-stopped",
-      diagnostics: `the Runtime refused the inspection: ${String((record as { code?: string }).code)}`,
+      diagnostics: `the Runtime refused the inspection: ${admission.code}`,
     };
   }
 
+  // The cancel path. Signalling the group is what actually stops the work:
+  // the child is a process-group leader, so this reaches the transport and
+  // every helper it spawned, not just the child itself.
+  const stop = () => {
+    if (admission.childPid > 0) {
+      signalProcessGroup(admission.childPid, "SIGTERM");
+    }
+  };
+  request.signal.addEventListener("abort", stop, { once: true });
+
+  let record: Awaited<typeof admission.settled>;
+  try {
+    record = await admission.settled;
+  } finally {
+    request.signal.removeEventListener("abort", stop);
+  }
+
+  if (request.signal.aborted) {
+    return {
+      ok: false,
+      condition: "incomplete",
+      diagnostics: "the Runtime was stopped before it finished",
+    };
+  }
   const lines = (record as unknown as { protocolLines?: { type: string }[] })
     .protocolLines;
   const materialized = (lines ?? []).find(
@@ -404,7 +502,9 @@ export async function inspectInRuntime(
       diagnostics:
         materialized?.mismatch === "head-mismatch"
           ? "the downloaded copy did not match the commit Studio asked for"
-          : "the Runtime did not materialize the revision",
+          : materialized?.mismatch === "head-unreadable"
+            ? "Studio could not read what was checked out, so it did not verify the commit"
+            : "the Runtime did not materialize the revision",
     };
   }
 

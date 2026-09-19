@@ -505,7 +505,15 @@ function sweep(domain: string): void {
  */
 const descendantEnvironment: Record<string, string> = {};
 for (const name of plan.environmentNames) {
-  descendantEnvironment[name] = process.env[name] ?? "";
+  const value = process.env[name];
+  // An allowlisted name this process does not carry is left out rather than
+  // projected as an empty string. Some names are host-conditional --
+  // `ELECTRON_RUN_AS_NODE` exists only when the Service is an Electron binary
+  // -- and projecting an absent one as `""` puts a name in every descendant's
+  // environment that was never in this one. An empty value is meaningful for
+  // `GIT_ASKPASS` and `SSH_ASKPASS`, which is why those are set explicitly by
+  // the builder rather than inherited.
+  if (value !== undefined) descendantEnvironment[name] = value;
 }
 
 function protocol(message: Record<string, unknown>): void {
@@ -964,9 +972,15 @@ async function main(): Promise<void> {
           head.status === 0 && inspectedSha === plan.revision.resolvedSha
             ? 0
             : 1,
-        ...(inspectedSha === plan.revision.resolvedSha
-          ? {}
-          : { mismatch: "head-mismatch" }),
+        // A HEAD read that did not run is not a verified mismatch: the two
+        // differ in attribution, and telling the lead the downloaded copy did
+        // not match would be an assertion about repository content Studio
+        // never actually checked.
+        ...(head.status !== 0
+          ? { mismatch: "head-unreadable" }
+          : inspectedSha === plan.revision.resolvedSha
+            ? {}
+            : { mismatch: "head-mismatch" }),
       });
     }
   }

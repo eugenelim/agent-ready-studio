@@ -4844,3 +4844,90 @@ Both were run and restored.
 
 **The spec stays `Implementing`.** Three criteria groups remain, two behind a human gate and one
 behind the next slice, so `Shipped` would be false.
+
+## review-round-38-2026-09-19
+
+**Seven Blockers, and the first is the third occurrence of one failure class.** `pnpm verify` exit
+0 — 51 files, **666 passed, 3 skipped**.
+
+**The built product still could not spawn the Runtime.** Round 37 copied `runtime-child.ts` into
+`dist/`, which was necessary and not sufficient. The Service spawns the child with
+`process.execPath`, and in the product the Service is itself started as
+`spawn(process.execPath, [serviceEntry], { ELECTRON_RUN_AS_NODE: "1" })` — so `process.execPath`
+inside it is the **Electron binary**. The child's environment is built closed and did not carry
+that flag, so the spawn would have launched Electron as a GUI application with a script as an
+argument. Every test passed because vitest's `process.execPath` is plain node. **Third time this
+slice has shipped something true in the test environment and false in the target**, and the second
+time on this exact spawn.
+
+Two changes, because one was not enough: `ELECTRON_RUN_AS_NODE` is pinned into the child's
+environment when the Service is an Electron binary, and the build now emits a **compiled**
+`runtime-child.js` that the spawn prefers — removing the dependency on the interpreter
+type-stripping a `.ts` entry, which the shipped binary's Node may not do.
+
+**Two host-conditional names, not one.** Adding the Electron flag to the allowlist broke five
+assertions that compared the built environment against the whole allowlist. They were right to
+break. `GIT_CONFIG_PARAMETERS` was already documented as "the one conditional name"; there are now
+two, named together in `HOST_CONDITIONAL_ENVIRONMENT_NAMES`, and the comparisons exclude them from
+**both** sides so an unexpected name still fails and a missing expected one still fails. The child
+also stopped projecting an absent allowlisted name as `""`, which had been putting a name into
+every descendant's environment that was in no-one's.
+
+**AC-0104's bound could not trip.** `createStorageStore` marked all four provenance fields
+`"non-originated"` — a string outside the `Provenance` union. `repositoryDerivedValues` selects
+only `repository-derived`, so every production write measured **zero bytes**, the 256 KiB check
+was unreachable and its refusal branch was dead code. `provenance` is typed
+`Record<string, string>`, so the compiler said nothing. The markers now match what
+`normalizeTrialResult` assigns.
+
+**AC-0085 was unreachable in both directions.** Nothing persisted an in-flight source, so
+`reconcileAfterRestart` had nothing to find; and `IN_FLIGHT_CONDITIONS` matched **phase** values
+against the `condition` column, which never holds one. A restart during an inspection made the
+source vanish — `source.get` answered "not found" rather than "Interrupted by restart". The
+round-37 entry's claim that not writing the phase avoided "competing with the reconciliation" had
+it backwards: not writing it is what starved the reconciliation. In-flight sources are now
+recorded with their phase, and the predicate is renamed `IN_FLIGHT_PHASES` and matches it.
+
+**A refusal was persisted, and the second one collided.** Removing the terminal-only gate meant a
+refused URL wrote an identity-less row; the second refusal hit the unique key on
+`(owner, repository)` and the lead saw **an internal error on their second bad URL**. Found by the
+boundary artifact, which is the artifact that exists for exactly this. A refusal is not a
+connected source and is no longer written.
+
+**The production adapter had no test in the default gate.** Restart survival was verified against
+a hand-written in-memory store; `createStorageStore` was exercised only by the networked boundary
+case, which the gate never enables. That seam is how the provenance defect stayed invisible.
+`source-inspection-storage.test.ts` now drives the real adapter over a real reopened database,
+offline. **Mutations: restoring the provenance defect reddens two cases; removing the in-flight
+write reddens one; breaking the reconciliation predicate reddens one.**
+
+**Cancel did not stop anything.** It recorded `cancelled` and left the child running to its own
+deadline, holding its process group and materialization root after the lead had been told it
+stopped. The seam now carries an `AbortSignal`, and aborting signals the child's process group —
+which reaches the transport and every helper, because the child is a group leader.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| A stale poll could overwrite a newer read, including a cancel | Concern | The generation guard `connect` already used, extended to `refresh` and bumped by `cancel` |
+| A failing read polled forever | Concern | Bounded at four consecutive failures; the button still works |
+| Cancel could destroy a restored terminal verdict, durably | Concern | A settled result is returned unchanged rather than overwritten |
+| A failed `rev-parse` was reported as a verified mismatch | Concern | `head-unreadable` is distinct from `head-mismatch`: the two differ in attribution |
+| A store write could crash the service | — | Found while fixing the above: the pipeline runs in the background, so a throw is an unhandled rejection. Writes now fail soft and report |
+| The build plugin's paths were cwd-relative | Nit | Anchored to the config's own location |
+
+### Still unmet
+
+Unchanged from the previous entry, minus what this round closed:
+
+- **AC-0088, AC-0091, AC-0092, AC-0097, AC-0099** — need protocol fields; the approval path.
+- **AC-0061 to AC-0068** — no trusted inspector runs.
+- **AC-0103's display half** — the restored inspection time is readable over the protocol and no
+  renderer surface shows it. Named here because the previous entry struck AC-0100 to AC-0104 as a
+  group and the display half was not done.
+- **AC-0130's 900 px control-reachability and focus-obscuring check** — the capture at 900 px
+  reports zero overflow and no problems, but the criterion's focus-obscuring clause is not
+  something a still capture shows.
+
+**This list is round-scoped, not a reconciliation.** A full 157-criterion audit has not been run.

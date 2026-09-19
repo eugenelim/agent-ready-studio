@@ -126,7 +126,10 @@ describe("the connect path across the real desktop boundary", () => {
       url: "https://user:token@github.com/acme/widgets",
     });
 
-    expect(wrongHost.ok && credentials.ok).toBe(true);
+    expect(
+      wrongHost.ok && credentials.ok,
+      `wrongHost=${JSON.stringify(wrongHost)} credentials=${JSON.stringify(credentials)}`,
+    ).toBe(true);
     if (!wrongHost.ok || !credentials.ok) return;
     expect(credentials.value.phase).toBe("url-rejected");
     // AC-0108 across the real boundary: the two causes do not collapse.
