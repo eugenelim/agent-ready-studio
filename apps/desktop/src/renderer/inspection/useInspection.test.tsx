@@ -4,7 +4,7 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { StudioPreloadApi } from "../../preload/index.js";
-import { InspectionSurface } from "./InspectionSurface.js";
+import { InspectionSurface, POLL_INTERVAL_MS } from "./InspectionSurface.js";
 import type { Inspection } from "./useInspection.js";
 
 afterEach(cleanup);
@@ -189,5 +189,54 @@ describe("AC-0128 a second refusal is announced", () => {
     expect(screen.getByRole("status").textContent).toBe(
       "That URL cannot be used",
     );
+  });
+});
+
+describe("an in-flight inspection advances on its own", () => {
+  it("re-reads without the lead pressing anything, and stops when it settles", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let answer: Inspection = {
+        ...base,
+        phase: "inspecting",
+        resolvedSha: "abc1234def",
+      };
+      const get = vi.fn(async () => ({ ok: true as const, value: answer }));
+      render(
+        <InspectionSurface
+          api={api({
+            connect: vi.fn(async () => ({
+              ok: true as const,
+              value: { ...base, phase: "resolving" as const },
+            })),
+            get,
+          })}
+        />,
+      );
+      await submit();
+      await waitFor(() => expect(screen.getByRole("status")).toBeDefined());
+
+      const before = get.mock.calls.length;
+      await act(async () => {
+        vi.advanceTimersByTime(POLL_INTERVAL_MS * 2);
+      });
+      // It advanced without a click. A lead who connected previously sat on
+      // `resolving` until they pressed Refresh status.
+      expect(get.mock.calls.length).toBeGreaterThan(before);
+
+      // And it stops once nothing is in flight, rather than polling a settled
+      // result forever.
+      answer = { ...base, verdict: "agent-ready" };
+      await act(async () => {
+        vi.advanceTimersByTime(POLL_INTERVAL_MS * 2);
+      });
+      const settledAt = get.mock.calls.length;
+      await act(async () => {
+        vi.advanceTimersByTime(POLL_INTERVAL_MS * 4);
+      });
+      expect(get.mock.calls.length).toBe(settledAt);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

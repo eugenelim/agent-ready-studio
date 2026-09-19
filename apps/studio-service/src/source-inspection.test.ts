@@ -196,6 +196,75 @@ describe("a head mismatch is its own stop reason", () => {
   });
 });
 
+describe("AC-0100 to AC-0104 a result survives a restart", () => {
+  function memoryStore() {
+    const rows = new Map<string, ReturnType<typeof JSON.parse>>();
+    return {
+      rows,
+      persist: (record: { sourceId: string }) =>
+        rows.set(record.sourceId, JSON.parse(JSON.stringify(record))),
+      read: (sourceId: string) => rows.get(sourceId),
+    };
+  }
+
+  it("writes a terminal result through and reads it back with a cold map", async () => {
+    const store = memoryStore();
+    const before = createSourceInspections(
+      deps({
+        store,
+        inspect: vi.fn(
+          async (): Promise<InspectionOutcome> => ({
+            ok: true,
+            completed: true,
+            workspacePresent: true,
+            invalidWorkspace: false,
+            diagnostics: "inspected cleanly",
+          }),
+        ),
+      }),
+    );
+    const started = before.connect("https://github.com/acme/widgets");
+    await settled();
+
+    // A second instance with an empty map is what a restart looks like from
+    // here: the process is gone and only what was written survives.
+    const after = createSourceInspections(deps({ store }));
+    const restored = after.get(started.sourceId);
+
+    expect(restored, "nothing survived the restart").toBeDefined();
+    expect(restored?.owner).toBe("acme"); // AC-0100
+    expect(restored?.repository).toBe("widgets");
+    expect(restored?.resolvedSha).toBe(SHA); // AC-0101
+    expect(restored?.inspectedAt).not.toBeNull();
+    expect(restored?.verdict).toBe("agent-ready"); // AC-0102
+    expect(restored?.diagnostics).toBe("inspected cleanly");
+  });
+
+  it("does not write a phase through, so a restart cannot resume one", async () => {
+    const store = memoryStore();
+    const sources = createSourceInspections(deps({ store }));
+    const started = sources.connect("https://github.com/acme/widgets");
+
+    // `resolving` is in flight. Writing it would leave a restart holding a
+    // phase no process is advancing, which is what reconcileAfterRestart
+    // exists to correct and would then have to compete with.
+    expect(store.rows.get(started.sourceId)).toBeUndefined();
+    await settled();
+    expect(store.rows.get(started.sourceId)?.phase).toBeNull();
+  });
+
+  it("survives a cancellation too", async () => {
+    const store = memoryStore();
+    const sources = createSourceInspections(deps({ store }));
+    const started = sources.connect("https://github.com/acme/widgets");
+    await settled();
+    sources.cancel(started.sourceId);
+
+    const after = createSourceInspections(deps({ store }));
+    expect(after.get(started.sourceId)?.condition).toBe("cancelled");
+  });
+});
+
 describe("cancelling", () => {
   it("stops the run and does not let it report afterwards", async () => {
     let release: (() => void) | undefined;

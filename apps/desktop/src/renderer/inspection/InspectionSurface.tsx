@@ -19,6 +19,13 @@ import { VerdictSurface } from "./VerdictSurface.js";
  * leaving a state -- the hook writes one string per transition and this renders
  * whatever that string currently is.
  */
+/**
+ * How often an in-flight inspection is re-read. Matched to the progress text
+ * cadence rather than chosen separately: a surface that polled faster than it
+ * could visibly change would add load for nothing.
+ */
+export const POLL_INTERVAL_MS = 1_500;
+
 export function InspectionSurface({
   api,
 }: Readonly<{ api?: StudioPreloadApi }>) {
@@ -43,6 +50,17 @@ export function InspectionSurface({
     // Keyed on the request rather than on the target: two transitions in a row
     // can name the same element, and the second must still move focus.
   }, [view.focusRequest]);
+
+  // While a phase is in flight the surface advances on its own. Without this a
+  // lead who connected sat on `resolving` until they pressed a button, which is
+  // not a progress indication -- it is a prompt to go and check. The interval
+  // is the same cadence the progress text uses, because both exist to keep a
+  // wait of up to 150 seconds legible.
+  useEffect(() => {
+    if (!view.busy) return;
+    const id = setInterval(() => void refresh(), POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [view.busy, refresh]);
 
   const inspection = view.inspection;
   const state = inspection === null ? null : surfaceState(inspection);

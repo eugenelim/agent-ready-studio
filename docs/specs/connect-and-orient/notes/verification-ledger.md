@@ -4655,15 +4655,10 @@ evidence:
   change. Both halves are unevidenced.
 - **AC-0061 to AC-0068** — the verdict derivation is unit-tested and composed, but no trusted
   inspector runs, so the derivation from real inspector output is unexercised end to end.
-- **AC-0100 to AC-0104** — restart survival. \`source-inspection.ts\` holds every inspection in an
-  in-memory \`Map\`, and \`persistConnectedSource\`, \`toConnectedSourceRecord\` and
-  \`getConnectedSource\` have **zero production callers** — the same pattern the retraction
-  enumerated, still present for persistence. An inspection does not survive a restart. Added to
-  this list in the confirmation round, which found it absent from the first version.
-- **Progress does not advance without a manual click.** \`refresh\` is called only by the
-  "Refresh status" button; there is no interval, focus or event subscription, so a lead who
-  connects sits on \`resolving\` until they press it. A user-visible design decision that neither
-  the plan nor the first version of this entry recorded.
+- ~~**AC-0100 to AC-0104** — restart survival~~ and ~~**progress does not advance without a manual
+  click**~~. **Both closed after this list was written**; see `#t12-persistence-2026-09-19` below.
+  Left struck rather than deleted so the confirmation round's findings stay readable against what
+  answered them.
 
 **A full 157-criterion audit has not been performed.** This list is what this round's review
 established, not a complete reconciliation, and saying so is the point: an unchecked box means
@@ -4798,3 +4793,54 @@ and the row carries the number — `81491` — because citing it is how the prev
 `pnpm lint` exit 0 over 124 files; `pnpm typecheck` exit 0; **`pnpm verify` exit 0 on the first
 attempt — 50 files, 656 passed, 2 skipped** at load average 25.42. The two skips are the live
 smoke and the networked boundary case, both gated so AC-0148 holds.
+
+## t12-persistence-2026-09-19
+
+**The two remaining product gaps from the confirmation round's unmet list, closed.** `pnpm verify`
+exit 0 — 50 files, **660 passed, 3 skipped**.
+
+**AC-0100 to AC-0104: a result now survives a restart.** `connected-source.ts` had a complete
+persistence layer with **zero production callers** — `persistConnectedSource`,
+`toConnectedSourceRecord`, `getConnectedSource` and `reconcileAfterRestart` were all written,
+tested, and reached by nothing. The same shape as the retraction, still present one module over.
+A terminal inspection is now written through, `get` falls back to storage when the in-memory map
+has nothing, and `reconcileAfterRestart` runs at construction before any request is served.
+
+**An in-flight phase is deliberately not written.** Writing `resolving` would leave a restart
+holding a phase no process is advancing, competing with the reconciliation that exists to move it
+to `incomplete` — which is AC-0085's distinction: Studio interrupted it, the lead did not. A case
+asserts the phase is absent from the store while in flight and present as `null` once terminal.
+
+**AC-0104's refusal is observable.** `persistConnectedSource` checks the 256 KiB bound before the
+write, so a breaching result leaves the prior record whole rather than half-replaced, and the
+refusal reaches the diagnostic stream instead of dropping the result silently.
+
+**Proven across a real process boundary, not just a cold map.** The composition test constructs a
+second instance with an empty map, which is what a restart looks like from inside. The boundary
+artifact goes further: it runs an inspection to a terminal state, **shuts the first service down**
+so nothing can be answered from a process still holding it in memory, spawns a second against the
+same database, and reads back the identity, ref, SHA, inspection time, verdict and condition.
+
+**The surface advances on its own.** `refresh` had one caller — a "Refresh status" button — so a
+lead who connected sat on `resolving` until they pressed it. That is not a progress indication, it
+is a prompt to go and check. An interval at the progress-text cadence re-reads while a phase is in
+flight and **stops when nothing is**, which a case asserts in both directions: it advances without
+a click, and it does not poll a settled result forever.
+
+**Mutations.** Removing the self-advance reddens one case; removing the write-through reddens two.
+Both were run and restored.
+
+### What remains unmet, and why each is out of this slice
+
+- **AC-0088, AC-0091, AC-0092, AC-0097, AC-0099** — the result carries no stop reason, wait window
+  or secondary diagnostic. Carrying them needs fields on the canonical schema and its Zod mirror,
+  which is **the protocol approval path T8 straddles** — a human gate, not a coding decision.
+  Routed at `connect-orient-result-carries-no-reason-or-wait-window`.
+- **AC-0061 to AC-0068** — no trusted inspector runs, so the derivation from real inspector output
+  is unexercised end to end. The trial Runtime's authorization is for the boundary, not for
+  shipping an inspector. Routed at `connect-orient-no-inspector-runs`.
+- **AC-0114** — evidenced at the component level; no browser capture exists, because reaching the
+  verdict surface needs a completed inspection and the capture path contacts no remote.
+
+**The spec stays `Implementing`.** Three criteria groups remain, two behind a human gate and one
+behind the next slice, so `Shipped` would be false.

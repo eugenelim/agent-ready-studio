@@ -21,6 +21,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import type { StudioResult } from "@agent-ready/protocol";
+import type { Storage } from "@agent-ready/storage-sqlite";
+import { persistConnectedSource } from "./connected-source.js";
 import type { CanonicalSourceIdentity } from "./source-identity.js";
 import { buildFetchUrl, canonicalizeSource } from "./source-identity.js";
 import {
@@ -77,6 +79,16 @@ export interface InspectionRequest {
   };
 }
 
+/**
+ * Where a terminal inspection is written so it survives a restart, and where
+ * `get` reads from when the in-memory store has nothing. Optional so a service
+ * created without storage still composes; supplied in production.
+ */
+export interface SourceInspectionStore {
+  readonly persist: (record: SourceInspection) => void;
+  readonly read: (sourceId: string) => SourceInspection | undefined;
+}
+
 export interface SourceInspectionDependencies {
   /** Injected so tests compose the pipeline without reaching a remote. */
   readonly transport: RevisionTransport;
@@ -89,6 +101,7 @@ export interface SourceInspectionDependencies {
   readonly materializationParent?: string;
   readonly idFactory?: () => string;
   readonly now?: () => string;
+  readonly store?: SourceInspectionStore;
 }
 
 /** A pipeline run, so `cancel` can stop one that is still going. */
@@ -136,6 +149,12 @@ export function createSourceInspections(
     const run = runs.get(next.sourceId);
     if (run?.cancelled) return store.get(next.sourceId) ?? next;
     store.set(next.sourceId, next);
+    // A terminal result is written through, so a restart can still answer
+    // AC-0100 to AC-0104: the identity, the ref and SHA, the inspection time,
+    // the verdict and its diagnostics. An in-flight phase is not written --
+    // `reconcileAfterRestart` moves what was in flight to `incomplete`, and a
+    // half-written phase would compete with it.
+    if (next.phase === null) dependencies.store?.persist(next);
     return next;
   };
 
@@ -262,11 +281,14 @@ export function createSourceInspections(
     },
 
     get(sourceId: string): SourceInspection | undefined {
-      return store.get(sourceId);
+      // Memory first, then storage. After a restart the map is empty and the
+      // last result is still readable, which is the whole of AC-0100 to
+      // AC-0102 from the lead's side.
+      return store.get(sourceId) ?? dependencies.store?.read(sourceId);
     },
 
     cancel(sourceId: string): SourceInspection | undefined {
-      const held = store.get(sourceId);
+      const held = store.get(sourceId) ?? dependencies.store?.read(sourceId);
       if (held === undefined) return undefined;
       const run = runs.get(sourceId);
       if (run !== undefined) run.cancelled = true;
@@ -277,12 +299,75 @@ export function createSourceInspections(
         condition: "cancelled",
       };
       store.set(sourceId, cancelled);
+      dependencies.store?.persist(cancelled);
       return cancelled;
     },
   };
 }
 
 export type SourceInspections = ReturnType<typeof createSourceInspections>;
+
+/**
+ * The SQLite-backed store. The bound AC-0104 sets is enforced by
+ * `persistConnectedSource` before the write, so a breaching result leaves the
+ * prior record whole rather than half-replaced -- and a refusal is recorded as
+ * a diagnostic rather than silently dropping the result.
+ */
+export function createStorageStore(storage: Storage): SourceInspectionStore {
+  return {
+    persist(record) {
+      const outcome = persistConnectedSource(storage, {
+        id: record.sourceId,
+        owner: record.owner,
+        repository: record.repository,
+        requestedRef: record.requestedRef,
+        resolvedSha: record.resolvedSha,
+        inspectedAt: record.inspectedAt,
+        verdict: record.verdict,
+        condition: record.condition,
+        versionUnverified: record.versionUnverified,
+        diagnostics: record.diagnostics,
+        declaredVersionMarker: record.declaredVersionMarker,
+        inspectorContractVersion: record.inspectorContractVersion,
+        // Every value here is Studio's own or the transport's, and each is
+        // marked so AC-0040's provenance survives the round trip.
+        provenance: {
+          diagnostics: "non-originated",
+          resolvedSha: "non-originated",
+          declaredVersionMarker: "non-originated",
+          inspectorContractVersion: "non-originated",
+        },
+      });
+      if (!outcome.ok) {
+        // AC-0104's refusal is observable rather than silent: the prior record
+        // stands and the reason is on the diagnostic stream.
+        process.stderr.write(
+          `connected source ${record.sourceId} not persisted: ${outcome.diagnostic}\n`,
+        );
+      }
+    },
+    read(sourceId) {
+      const held = storage.getConnectedSource(sourceId);
+      if (held === null) return undefined;
+      return {
+        kind: "source-inspection",
+        sourceId: held.id,
+        phase: null,
+        verdict: held.verdict as SourceInspection["verdict"],
+        condition: held.condition as SourceInspection["condition"],
+        versionUnverified: held.versionUnverified,
+        owner: held.owner,
+        repository: held.repository,
+        requestedRef: held.requestedRef,
+        resolvedSha: held.resolvedSha,
+        inspectedAt: held.inspectedAt,
+        declaredVersionMarker: held.declaredVersionMarker,
+        inspectorContractVersion: held.inspectorContractVersion,
+        diagnostics: held.diagnostics,
+      };
+    },
+  };
+}
 
 /**
  * The production inspection: start the Runtime with the revision to
