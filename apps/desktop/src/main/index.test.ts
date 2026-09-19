@@ -664,7 +664,9 @@ describe("Electron main service connection", () => {
       .prepare("SELECT version FROM schema_migrations ORDER BY version")
       .all()
       .map((row) => row.version);
-    expect(appliedVersions).toEqual([1, 2]);
+    // Migration 3 is Connect and Orient's connected_sources table. This
+    // list is the anchor that keeps a migration appearing here deliberate.
+    expect(appliedVersions).toEqual([1, 2, 3]);
     database.close();
   });
 });

@@ -24,6 +24,122 @@ open = [
   { path = "docs/product/intents/agent-ready-studio-product-vision.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Move product teams from strategic uncertainty to learning through connected, reviewable work", needs = [] },
   { path = "docs/product/intents/make-product-work-visible-before-automating-it.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make product work visible and reviewable before adding governed automation over it", needs = [] },
   { path = "docs/product/research/recorded-policy-acceptance-charter-alignment.md", kind = "research", source = { mode = "repo-origin" }, summary = "Reconcile recorded-policy acceptance semantics across ARS-CORE-005 and ARS-SHAPE-005 with the accepted charter before either intent advances", needs = [] },
+  { slug = "connect-orient-trial-runtime-removal", source = "connect-and-orient/2026-09-14" },
+  # Host-contention flake, not a code defect. Tests in
+  # apps/studio-service/src/trials/connect-and-orient-runtime/ time out or report
+  # "inspection refused: already-in-flight" when the full suite runs under high
+  # load; the guard is global single-in-flight, so one timeout cascades into
+  # several apparent failures. Observed green at load ~14 and red at load ~40 in
+  # the same session, and green twice in isolation immediately after each red.
+  # Judge by the two-in-isolation rule, not by one re-run.
+  { slug = "pre-existing-trial-runtime-load-flake", source = "pre-flight/2026-09-17" },
+  # Fail-open in AC-0081's first limb, found by round 29's secure-design review
+  # of Package 4 and routed out of that amendment by owner decision rather than
+  # widening its scope. Both liveness readers -- processStartTime in
+  # runtime-child.ts and readProcessStartTime in per-request-state-root.ts --
+  # fold "no bytes on either stream" into a determination that the process is
+  # ABSENT, without consulting the spawn error. A ps that never ran (ENOENT,
+  # EACCES, or EAGAIN/EMFILE under fd or process-table pressure) yields exactly
+  # that, so limb 1 reclaims a state root whose Runtime is live, deleting its
+  # marker, materialization tree, home and temp, and emits no AC-0083
+  # diagnostic because nothing was "declined". AC-0081 names this class -- "a
+  # liveness comparison that cannot be made" -- as a decline, so the code
+  # contradicts the criterion it implements. Pre-existing: the probe that set
+  # the empty-stdout rule examined only the two cases where ps exited, never
+  # one where it never ran. Needs a spec-backed change, because the repair is
+  # the reroute decision 8 declined for its contract cost; decision 8 recorded
+  # the condition for reopening and this is a second, independent trigger.
+  # Evidence: notes/verification-ledger.md#review-round-29-2026-09-18.
+  { slug = "liveness-read-fails-open-to-reclaim", source = "connect-and-orient/2026-09-18" },
+  # Spawn-failure sentinel reaches a signal site as pid 1. Found by round 31's
+  # secure-design review of Package 4 and routed out by owner decision rather
+  # than widening that amendment, which does not touch this file.
+  # runtime-supervisor.ts:354 reads `const childPid = child.pid ?? -1`, and
+  # signalProcessGroup evaluates `process.kill(-pgid, signal)` -- so -1 becomes
+  # process.kill(1, signal), a signal to init, swallowed by a bare catch rather
+  # than doing nothing. The same value also flows to sampleProcessGroup,
+  # sampleProcessGroupAsync and waitForGroupToClear, and on to
+  # process-tree-observer.ts, where no integer or positivity check exists.
+  # Under the desktop app's unprivileged user this is EPERM and caught, which is
+  # why it is not urgent. Pre-existing: this file is unchanged by Package 4,
+  # which is relevant only because its amended *Permitted executables* row newly
+  # grounds that operand as "a process-group id that carries no runtime check
+  # because Studio minted it itself" -- true of provenance, but -1 is not a
+  # group id. Repair shape is an owner choice: reject the sentinel at
+  # signalProcessGroup's entry, propagate undefined and guard five consumers, or
+  # fail the spawn outright. Evidence:
+  # notes/verification-ledger.md#review-round-31-2026-09-18.
+  { slug = "spawn-failure-sentinel-signals-init", source = "connect-and-orient/2026-09-18" },
+  # AC-0116's scope over non-rendering sinks. Round 33 of Package 4 widened the
+  # criterion by owner decision to reach "the operands of a spawned transport
+  # command", with a carve-out for a shape-validated class member. Round 34
+  # found the widened limb unverifiable in this slice: AC-0116 sits in the
+  # "Desktop surface and rendering" Testing Strategy group, whose declared mode
+  # is renderer tests through the typed host boundary, and its only covering
+  # task T12 lists renderer assertions only, so no declared verification reaches
+  # the git fetch operand formed at git-driver.ts:139-156 or the gate at :186.
+  # Narrowed back by owner decision rather than widening the amendment to add a
+  # spawn-boundary verification. Two things to settle when the scope question is
+  # taken up: whether AC-0116 or a new criterion owns non-rendering sinks, and
+  # where the shape rule must hold -- resolveRevision applies EXACT_COMMIT_SHA
+  # at git-driver.ts:186, but materializeRevision accepts any value satisfying
+  # the plain ResolvedRevision interface at :49-54 and re-validates nothing
+  # before `git fetch -- <url> <sha>`. Unreachable today: both functions have
+  # only test callers, so no production path composes the gate with the spawn.
+  # Evidence: notes/verification-ledger.md#review-round-34-2026-09-18.
+  # UPDATE 2026-09-19: the ground recorded above no longer holds. AC-0116's
+  # deferral rested partly on resolveRevision and materializeRevision having no
+  # composing caller; source-inspection.ts now resolves and hands fetchUrl and
+  # resolvedSha to the Runtime as spawn operands, so a non-originated value does
+  # reach a transport operand on the production path. The operand is still gated
+  # -- EXACT_COMMIT_SHA at git-driver.ts:186 runs before the revision is handed
+  # over -- so the hazard is unchanged, but the reason for deferring is weaker
+  # than when it was recorded and the next amendment should not read it as
+  # still standing.
+  { slug = "connect-orient-transport-operand-sink-scope", source = "connect-and-orient/2026-09-18" },
+  # The Service-side sweep's removal walk recurses without a depth bound, and
+  # its recursive call sits outside the guarded blocks. Found by round 36's
+  # secure-design review of Package 4 and routed out by owner decision rather
+  # than widening that amendment. removeEntry in per-request-state-root.ts
+  # recurses per directory level with try blocks wrapping only the syscalls,
+  # and the recursive call in the loop at :356-358 is outside them, so a
+  # RangeError from stack exhaustion on a sufficiently deep tree escapes
+  # removePerRequestStateRoot and sweepDomain, abandoning the remaining
+  # candidates and their AC-0083 diagnostics unswept. The child's mirrored
+  # recursion does NOT carry this: its recursion sits inside the try at
+  # :245-260 and degrades to intact = false. Pre-existing -- limbs 1 and 2
+  # already traversed arbitrary trees -- and it needs the sweep domain's own
+  # uid, which is a path that can already write the tree. Adjudication recorded
+  # the proposed mechanism as absent: the required outcome is that stack
+  # exhaustion must not abandon the rest of the sweep, or that the exposure be
+  # recorded as an accepted residual with its ground, and which is the owner's
+  # choice. Evidence: notes/verification-ledger.md#review-round-36-2026-09-18.
+  { slug = "connect-orient-sweep-walk-depth-bound", source = "connect-and-orient/2026-09-18" },
+  # The result carries no stop reason, wait window or secondary diagnostic, so
+  # five criteria are verified at the projection and have no user-visible
+  # realization. Found by the T12/T13 review of Package 4 and routed out rather
+  # than widening that slice, because carrying them needs fields on
+  # `sourceInspectionResultSchema` and the canonical schema, which is the
+  # protocol approval path T8 straddles. Specifically: AC-0088's human reason is
+  # never composed with the `inspection-stopped` label, though the spec requires
+  # it "in both the rendered surface and the announcement"; AC-0091 and AC-0092
+  # fall away for that state, because `project()` supplies attribution and
+  # retryability only when a reason is passed; AC-0097's wait window is never
+  # shown; and AC-0099's `secondaryDiagnostic` reaches no surface. The
+  # projection already computes all four -- `state-vocabulary.ts` STOP_REASONS
+  # and the `waitWindow`/`secondaryDiagnostic` fields -- so the work is carrying
+  # them over the boundary, not deriving them.
+  # Evidence: notes/verification-ledger.md#t12-composition-2026-09-19.
+  { slug = "connect-orient-result-carries-no-reason-or-wait-window", source = "connect-and-orient/2026-09-19" },
+  # No trusted inspector runs against the materialized tree, so the verdict
+  # derivation (AC-0061 to AC-0068) is composed and unit-tested but unexercised
+  # end to end: every real inspection returns `inspector-unavailable`. The
+  # Runtime materializes the revision and locates nothing to run. Found by the
+  # same review. This is the next slice's work by design -- the trial Runtime's
+  # authorization is for the boundary, not for shipping an inspector -- and it
+  # is recorded so the gap is not read as a defect in the derivation.
+  # Evidence: notes/verification-ledger.md#t12-composition-2026-09-19.
+  { slug = "connect-orient-no-inspector-runs", source = "connect-and-orient/2026-09-19" },
 ]
 closed = []
 
@@ -90,6 +206,16 @@ backlog = [
 name      = "Repository Workspace Pane"
 status    = "active"
 milestone = "M1 · Read-only repository workspace status"
+
+["ini-004".brief_queue]
+ready = [
+  { path = "docs/product/briefs/connect-and-orient.md", kind = "brief", source = { mode = "repo-origin", parent = "docs/product/intents/connect-and-orient.md" }, summary = "Orient to one public repository at an exact revision through a safe, read-only Agent-Ready status projection delivered over a provisional trial Runtime", needs = [] },
+]
+
+["ini-004".work]
+queue = [
+  { path = "docs/specs/connect-and-orient/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/connect-and-orient.md" }, summary = "Connect one public GitHub repository and see the Agent-Ready verdict at an exact commit, over a provisional trial Runtime", needs = [] },
+]
 
 ["ini-004".shaping_queue]
 active  = [

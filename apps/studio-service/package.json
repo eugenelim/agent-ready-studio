@@ -8,14 +8,15 @@
     "./entry": "./dist/service.js"
   },
   "dependencies": {
+    "@agent-ready/blueprint-product-development": "workspace:*",
     "@agent-ready/domain": "workspace:*",
     "@agent-ready/execution-sdk": "workspace:*",
     "@agent-ready/executor-fake": "workspace:*",
-    "@agent-ready/blueprint-product-development": "workspace:*",
     "@agent-ready/protocol": "workspace:*",
     "@agent-ready/storage-sqlite": "workspace:*",
     "@agent-ready/workspace-sdk": "workspace:*",
     "better-sqlite3": "13.0.3",
+    "smol-toml": "1.8.0",
     "zod": "4.1.12"
   }
 }

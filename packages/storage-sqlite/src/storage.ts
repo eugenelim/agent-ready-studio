@@ -154,7 +154,28 @@ type NewRevision = Omit<
 type NewDecision = Omit<DecisionRecord, "actorName" | "actorKind">;
 type NewExecution = Omit<ExecutionRecord, "events">;
 
+export type ConnectedSourceRecord = {
+  id: string;
+  owner: string;
+  repository: string;
+  requestedRef: string | null;
+  resolvedSha: string | null;
+  inspectedAt: string | null;
+  verdict: string | null;
+  condition: string;
+  versionUnverified: boolean;
+  diagnostics: string;
+  declaredVersionMarker: string | null;
+  inspectorContractVersion: string | null;
+  /** Field name to provenance marker, as AC-0040 requires it to survive. */
+  provenance: Record<string, string>;
+};
+
 export type StorageTransaction = {
+  upsertConnectedSource(source: ConnectedSourceRecord): void;
+  getConnectedSource(sourceId: string): ConnectedSourceRecord | null;
+  listConnectedSources(): ConnectedSourceRecord[];
+  setConnectedSourceCondition(sourceId: string, condition: string): void;
   createWorkspace(workspace: WorkspaceRecord): void;
   createActor(actor: ActorRecord): void;
   createArtifact(artifact: ArtifactRecord): void;
@@ -237,6 +258,18 @@ const migrations = [
       `ALTER TABLE executions ADD COLUMN completed_at TEXT;`,
     ],
   },
+  {
+    // Connect and Orient. One table per connected source, holding the canonical
+    // identity, the revision it was inspected at, and the last result. Every
+    // repository-derived column is accompanied by the provenance marker it was
+    // normalized with, so AC-0040's marker survives into storage rather than
+    // being recomputed on read.
+    version: 3,
+    statements: [
+      `CREATE TABLE connected_sources (id TEXT PRIMARY KEY, owner TEXT NOT NULL, repository TEXT NOT NULL, requested_ref TEXT, resolved_sha TEXT, inspected_at TEXT, verdict TEXT, condition_value TEXT NOT NULL, version_unverified INTEGER NOT NULL DEFAULT 0, diagnostics TEXT NOT NULL DEFAULT '', declared_version_marker TEXT, inspector_contract_version TEXT, provenance TEXT NOT NULL DEFAULT '{}');`,
+      `CREATE UNIQUE INDEX connected_sources_identity ON connected_sources(owner, repository);`,
+    ],
+  },
 ] as const;
 
 export function openStorage(path: string): Storage {
@@ -244,7 +277,75 @@ export function openStorage(path: string): Storage {
   database.pragma("foreign_keys = ON");
   migrate(database);
 
+  const readConnectedSource = (
+    row: Record<string, unknown>,
+  ): ConnectedSourceRecord => ({
+    id: stringField(row, "id"),
+    owner: stringField(row, "owner"),
+    repository: stringField(row, "repository"),
+    requestedRef: (row.requested_ref as string | null) ?? null,
+    resolvedSha: (row.resolved_sha as string | null) ?? null,
+    inspectedAt: (row.inspected_at as string | null) ?? null,
+    verdict: (row.verdict as string | null) ?? null,
+    condition: stringField(row, "condition_value"),
+    versionUnverified: Number(row.version_unverified) === 1,
+    diagnostics: stringField(row, "diagnostics"),
+    declaredVersionMarker:
+      (row.declared_version_marker as string | null) ?? null,
+    inspectorContractVersion:
+      (row.inspector_contract_version as string | null) ?? null,
+    provenance: JSON.parse(stringField(row, "provenance")) as Record<
+      string,
+      string
+    >,
+  });
+
   const operations: StorageTransaction = {
+    upsertConnectedSource(value) {
+      database
+        .prepare(
+          "INSERT INTO connected_sources (id, owner, repository, requested_ref, resolved_sha, inspected_at, verdict, condition_value, version_unverified, diagnostics, declared_version_marker, inspector_contract_version, provenance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET owner = excluded.owner, repository = excluded.repository, requested_ref = excluded.requested_ref, resolved_sha = excluded.resolved_sha, inspected_at = excluded.inspected_at, verdict = excluded.verdict, condition_value = excluded.condition_value, version_unverified = excluded.version_unverified, diagnostics = excluded.diagnostics, declared_version_marker = excluded.declared_version_marker, inspector_contract_version = excluded.inspector_contract_version, provenance = excluded.provenance",
+        )
+        .run(
+          value.id,
+          value.owner,
+          value.repository,
+          value.requestedRef,
+          value.resolvedSha,
+          value.inspectedAt,
+          value.verdict,
+          value.condition,
+          value.versionUnverified ? 1 : 0,
+          value.diagnostics,
+          value.declaredVersionMarker,
+          value.inspectorContractVersion,
+          json(value.provenance),
+        );
+    },
+    getConnectedSource(sourceId) {
+      const row = database
+        .prepare("SELECT * FROM connected_sources WHERE id = ?")
+        .get(sourceId);
+      return row === undefined
+        ? null
+        : readConnectedSource(objectRow(row, "connected source"));
+    },
+    listConnectedSources() {
+      return database
+        .prepare("SELECT * FROM connected_sources ORDER BY id")
+        .all()
+        .map((row) => readConnectedSource(objectRow(row, "connected source")));
+    },
+    setConnectedSourceCondition(sourceId, condition) {
+      requireOne(
+        database
+          .prepare(
+            "UPDATE connected_sources SET condition_value = ? WHERE id = ?",
+          )
+          .run(condition, sourceId).changes,
+        "connected source",
+      );
+    },
     createWorkspace(value) {
       database
         .prepare(

@@ -30,9 +30,16 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../../..");
 const rendererRoot = resolve(repoRoot, "apps/desktop/out/renderer");
 const serviceEntry = resolve(repoRoot, "apps/studio-service/dist/service.js");
+// Spec-selectable, defaulting to today's path so every existing reference is
+// unchanged. Publishing is a whole-directory swap, not an append: a run under
+// the default root replaces that directory's retained captures wholesale, and
+// that directory is a Shipped spec's notes. A slice capturing its own surfaces
+// passes its own root and brings its own `.gitignore` entries for the two
+// staging directories derived below.
 const outputRoot = resolve(
   repoRoot,
-  "docs/specs/product-development-walking-skeleton/notes/visual",
+  process.env.VISUAL_EVIDENCE_ROOT ??
+    "docs/specs/product-development-walking-skeleton/notes/visual",
 );
 
 const MIME = {
@@ -402,6 +409,29 @@ const scenarios = [
     scheme: "dark",
     motion: "no-preference",
   },
+  // AC-0130: the connect-and-orient *Minimum supported window width* is 900
+  // CSS pixels, which is narrower than the 1024 below and is the floor that
+  // criterion actually names.
+  {
+    name: "narrow-900",
+    width: 900,
+    height: 720,
+    scale: 1,
+    scheme: "light",
+    motion: "no-preference",
+  },
+  // AC-0132's text-resize half. A device scale factor enlarges the layout with
+  // the text; this enlarges the text against a fixed layout, which is the case
+  // that clips.
+  {
+    name: "text-200",
+    width: 1024,
+    height: 768,
+    scale: 1,
+    scheme: "light",
+    motion: "no-preference",
+    textScale: 2,
+  },
   // AC-37: the criterion's 1024px-wide viewport.
   {
     name: "narrow-1024",
@@ -560,6 +590,32 @@ try {
     await page("Page.navigate", { url: `${origin}/index.html` });
     await new Promise((r) => setTimeout(r, 1500));
 
+    // Text resize against a fixed layout, which is a different failure from a
+    // device scale factor: the layout box does not grow with the text, so a
+    // column that cannot reflow clips instead.
+    //
+    // Applied *after* navigation, and probed. An earlier version set it before
+    // `Page.navigate`, which discarded it -- three captures came back
+    // byte-identical to their unscaled baseline and evidenced nothing. This is
+    // the same failure the mode probe below was added for, on a new dimension.
+    if (scenario.textScale !== undefined) {
+      const applied = await page("Runtime.evaluate", {
+        expression: `(() => {
+          document.documentElement.style.fontSize = '${scenario.textScale * 100}%';
+          return getComputedStyle(document.documentElement).fontSize;
+        })()`,
+        returnByValue: true,
+      });
+      const rendered = Number.parseFloat(applied?.result?.value ?? "0");
+      const expected = 16 * scenario.textScale;
+      if (!Number.isFinite(rendered) || Math.abs(rendered - expected) > 1) {
+        throw new Error(
+          `${scenario.name}: text scale did not take effect — root font-size is ${applied?.result?.value}, expected about ${expected}px`,
+        );
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    }
+
     // Confirm the page is actually in the mode this scenario claims. Without
     // this the no-hover scenario silently reran the baseline and its AC-38
     // comparison compared the baseline against itself.
@@ -654,6 +710,11 @@ try {
       { name: "strategy", clicks: ["Strategy"] },
       { name: "reviews", clicks: ["Home", "Reviews"] },
       { name: "studio", clicks: ["Open review"] },
+      // The connect-and-orient surfaces. Reachable from global navigation, so
+      // one click each, and both render before any repository is connected --
+      // which is the state AC-0107 governs and the one a capture can show
+      // without contacting a remote.
+      { name: "connect", clicks: ["Connect"] },
     ]) {
       for (const label of surface.clicks) {
         const clicked = await page("Runtime.evaluate", {

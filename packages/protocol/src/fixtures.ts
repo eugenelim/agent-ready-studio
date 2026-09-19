@@ -169,6 +169,44 @@ export const validRequestFixtures: Record<StudioMethod, unknown> = {
     method: "review.resolve",
     params: { reviewId: "review-1", action: "approve" },
   },
+  "source.connect": {
+    jsonrpc: "2.0",
+    id: "14",
+    method: "source.connect",
+    params: { url: "https://github.com/owner/repository" },
+  },
+  "source.get": {
+    jsonrpc: "2.0",
+    id: "15",
+    method: "source.get",
+    params: { sourceId: "source-1" },
+  },
+  "source.cancel": {
+    jsonrpc: "2.0",
+    id: "16",
+    method: "source.cancel",
+    params: { sourceId: "source-1" },
+  },
+};
+
+const sourceInspection = {
+  kind: "source-inspection",
+  sourceId: "source-1",
+  phase: null,
+  verdict: "agent-ready",
+  condition: "ok",
+  versionUnverified: false,
+  owner: "owner",
+  repository: "repository",
+  requestedRef: null,
+  resolvedSha: "a".repeat(40),
+  inspectedAt: timestamp,
+  declaredVersionMarker: null,
+  inspectorContractVersion: "1",
+  diagnostics: "",
+  stopReason: null,
+  waitWindow: null,
+  secondaryDiagnostic: null,
 };
 
 export const validResultFixtures: Record<StudioMethod, unknown> = {
@@ -237,6 +275,24 @@ export const validResultFixtures: Record<StudioMethod, unknown> = {
     revisionId: "revision-2",
     decisionId: "decision-1",
     status: "accepted",
+  },
+  // A settled, verdict-bearing result: `phase` is null because no progress
+  // state applies, and the qualifier sits beside the verdict rather than
+  // replacing it. The two axes are exercised as two fields.
+  "source.connect": sourceInspection,
+  "source.get": {
+    ...sourceInspection,
+    verdict: "no-verdict",
+    condition: "malformed",
+    versionUnverified: true,
+    declaredVersionMarker: "0.4",
+  },
+  // In flight, so the verdict is absent and `phase` carries the progress state.
+  "source.cancel": {
+    ...sourceInspection,
+    phase: "inspecting",
+    verdict: null,
+    condition: "cancelled",
   },
 };
 
