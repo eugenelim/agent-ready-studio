@@ -4246,3 +4246,41 @@ withdrawn rather than narrowed.** What the evidence supports is that these failu
 non-deterministic and confined to the trial-runtime harness; load average has not predicted them
 in any of the last four rounds, and the diagnosis at `pre-existing-trial-runtime-load-flake`
 should be read as naming a harness, not a cause.
+
+## gate-crossing-2026-09-18-package-4-close-and-t12-start
+
+**The amendment is closed and the build gates are crossed, on owner decision.** Engine sequence 83
+to 87: `spec-ready`, `reviewers-clean`, `spec-approved`, `plan-approved`, `plan-locked`. `spec.md`
+Status moves Draft → Approved and `plan.md` Drafting → Approved. Schedule re-persisted as three
+waves: T14, T12, T13.
+
+**`reviewers-clean` was fired without a review round confirming round 36's repairs.** That is the
+one thing this record must not blur. Rounds 33 to 36 each repaired the round before it, and rounds
+34, 35 and 36 each found a defect the previous round's repair introduced; round 36's two Blockers
+were the last of that chain. The owner's decision was to stop and build rather than run a seventh
+round whose likeliest yield is record corrections on round 36's own entry. **What is unconfirmed
+is round 36's repairs**: the age bound on both readers, the limb-2 input class as restated on
+three surfaces, the child's age-bound validation, the three new child cases, and the extended
+diagnostic escaping. Six of the seven round-36 mutations redden, which is evidence about the code
+but not about the record.
+
+**T14 was re-emitted as wave 1 and closed by verification, not by re-implementation.** It is not in
+`completed_task_ids` — no verb appends to that list outside `contract-amendment`, which is how the
+amendment was entered — so the schedule reproduced it. Its Done-when was checked against the tree
+instead: the three decision entries at `#discovery-channel-t14` and the recorded family-count kill
+are present, the ΔE2000 arm's four inline proofs are at `#t14-evidence` with
+`apps/desktop/tools/delta-e2000.test.ts` green at 14 of 14, `loop-cohort plan check-current
+--require-schedule` verifies the pinned section hashes, and `pnpm verify` is green.
+
+**`pnpm verify` is green non-deterministically, and the record says so.** Three consecutive runs
+gave exit 0 at load 17.2, exit 1, and exit 0 at load 29.6 — the middle one the trial-runtime
+harness flake, whose signature is unchanged. The green runs are 41 files, 582 of 582.
+
+**One round-36 repair was reverted at the gate, and the pin is why.** Round 35's finding 7 asked
+the covering plan task to name the new decline class, and the repair was written into `plan.md`
+inside **T5's section — a completed, pinned task**. `loop-cohort approve-plan` refused with
+"completed task section changed: T5", which is precisely what the pinning exists to catch. The
+edit was reverted rather than re-pinned: T5 is closed, and a completed task's record is not the
+place to document a criterion added four tasks later. The decline class is stated where it
+governs — in AC-0081, in the *Markerless-reclaim age* row, and in the sweep module docstring. The
+edit was also already stale, describing round 35's liveness-only rule that round 36 superseded.

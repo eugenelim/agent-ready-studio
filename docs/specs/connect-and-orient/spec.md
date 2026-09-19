@@ -1,6 +1,6 @@
 # Spec: Connect and Orient — connect and see the verdict
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** Agent-Ready Studio maintainers
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0001, RFC-0002, ADR-0005, ADR-0006, ADR-0007
