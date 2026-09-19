@@ -4,6 +4,7 @@ import {
   ConnectRepositoryForm,
   UnconnectedNotice,
 } from "./ConnectRepositoryForm.js";
+import { ProgressPulse } from "./ProgressPulse.js";
 import type { Verdict } from "./presentation.js";
 import { StateBadge } from "./StateBadge.js";
 import { surfaceState, useInspection } from "./useInspection.js";
@@ -91,6 +92,7 @@ export function InspectionSurface({
           {state === "inspecting" && inspection?.resolvedSha !== null && (
             <p data-identity="resolved-sha">{inspection?.resolvedSha}</p>
           )}
+          <ProgressPulse startedAt={view.startedAt ?? Date.now()} />
           <button type="button" onClick={() => void refresh()}>
             Refresh status
           </button>

@@ -4418,3 +4418,107 @@ next two runs. Coverage is unchanged: all three child mutations still redden.
 family and each failing file passed twice in isolation — `disposal.test.ts` 8 of 8 and
 `runtime-supervisor.test.ts` 23 of 23, the latter being AC-0025's descendant-count assertion,
 which is the same one that flaked in rounds 35 and 36.
+
+## t13-delivery-2026-09-19
+
+**Delivery verification and Stage 2 evidence.** `pnpm verify` exit 0 — 47 files, **633 passed,
+1 skipped** — and `git diff --check` clean. The skip is the live smoke, gated behind
+`CONNECT_ORIENT_SMOKE=1`, which is what keeps AC-0148 true: every test this delivery adds passes
+with no network, no credential and no remote service.
+
+### The live unauthenticated smoke
+
+Run against `https://github.com/octocat/Hello-World` at build `124f7bc`.
+
+| | |
+| --- | --- |
+| Resolved ref | `master` |
+| **Resolved SHA** | `7fd1a60b01f91b314f59955a4e4d4e80d8edf11d` |
+| Inspected SHA | `7fd1a60b01f91b314f59955a4e4d4e80d8edf11d` — equal, so the tree checked out is the commit resolved |
+| Projection | `{ ok: true, identity: { owner: "octocat", repository: "Hello-World" }, resolvedRef: "master", resolvedSha: "7fd1a60b…", inspectedSha: "7fd1a60b…" }` |
+| Topology | service pid 17716 → child pid 17743, child pgid 17743 |
+| Protocol lines | nine, in order: `spawn`, `started`, `sweep`, `spawn`, `interpreter`, `spawn`, `git`, `disposed`, `completed` |
+| Interpreter | `/opt/homebrew/bin/python3`, Python 3.14.7, probe conforming |
+| Disposal | `{"type":"disposed","reason":"completed","removed":true}` |
+
+**The first smoke run reached `git init` and stopped, and that is why the test was extended.**
+The Runtime's own path initializes the materialization but does not resolve or fetch, so the first
+run contacted no remote at all. Recording transport observations from it would have been recording
+observations never made. The test now drives `resolveRevision` and `materializeRevision` against
+the real remote under the Runtime's own pinned environment, which is where the two transport
+phases exist to be observed.
+
+### The four manual-QA transport observations, against build `124f7bc`
+
+| Criterion | Observed |
+| --- | --- |
+| **AC-0009** redirect refusal on both phases | `http.followRedirects=false` present on **every** invocation, including both network phases — `ls-remote` (resolve) and `fetch` (materialize) — and on `init`, `checkout` and `rev-parse` |
+| **AC-0024** helper environment | `GIT_ASKPASS` and `SSH_ASKPASS` are both the empty string; `GIT_TERMINAL_PROMPT=0`; `credential.helper=` set empty on every invocation; `GIT_CONFIG_GLOBAL`/`GIT_CONFIG_SYSTEM` redirected with `GIT_CONFIG_NOSYSTEM` set |
+| **AC-0025** helper admission | Four distinct executables spawned, all in the permitted set: `/usr/bin/git`, `/Library/Developer/CommandLineTools/usr/bin/git`, `/bin/ps`, `/opt/homebrew/bin/python3`. Six audit entries, every one recorded with its argument vector and environment names |
+| **AC-0030** no surviving helper | After the run, `ps -g 21498` returned no process and `pgrep -fl connect-orient-smoke` matched nothing. The state root was removed and reported `removed: true` |
+
+### Rendered evidence for the Visual / manual QA criteria
+
+Captured by `apps/desktop/tools/visual-evidence.mjs` into
+`docs/specs/connect-and-orient/notes/visual` — **42 scenarios**, of which six are the connect
+surface. Every one reports `problems: []`.
+
+| Scenario | Viewport | Scheme / motion | Horizontal overflow | Problems |
+| --- | --- | --- | --- | --- |
+| desktop-light-connect | 1600x1000@1x | light / no-preference | 0px | none |
+| desktop-dark-connect | 1600x1000@1x | dark / no-preference | 0px | none |
+| narrow-1024-connect | 1024x768@1x | light / no-preference | 0px | none |
+| zoom-200-connect | 720x640@2x | light / no-preference | 0px | none |
+| reduced-motion-connect | 1600x1000@1x | light / **reduce** | 0px | none |
+| no-hover-connect | 1600x1000@1x | light / no-preference | 0px | none |
+
+**What `problems: []` licenses, stated because the field is doing real work here.** The tool
+fails a scenario on horizontal overflow above 1px, on any control outside the viewport, on any
+control below the **24px target floor**, and on any control without an accessible name. So these
+rows are rendered-browser evidence for **AC-0130** (controls reachable at the narrow width),
+**AC-0131** (pointer targets at least 24 by 24) and **AC-0132** (reflow without two-dimensional
+scrolling, and usable at 200 percent — the `zoom-200` row is 720 CSS pixels at 2x). Sixteen
+named controls were found on the surface, including `Connect repository`, `Cancel inspection`
+and `Public GitHub repository URL`.
+
+**AC-0129, and the one thing the captures do not show.** The `reduced-motion-connect` capture
+hashes **identically** to `no-hover-connect` — `fe5ffa83ac47a8a6` for both — which is direct
+evidence that the preference changes nothing, because these surfaces declare no transition and no
+animation. The criterion holds by construction rather than by override, and the stylesheet says
+so. What a still capture cannot show is the progress text channel updating; that is covered by
+`ProgressPulse.test.tsx`, which asserts the tick sits inside the *Progress text cadence* bounds
+of 1 to 2 seconds, that the text restates on each tick, that the channel carries no `aria-live`
+and no `role`, and that the interval is cleared when the phase ends.
+
+**The capture root was made spec-selectable rather than pointed at the default.** Publishing is a
+whole-directory swap, and the default root is a **Shipped spec's notes** holding 36 retained PNGs;
+a run there would have replaced all of them. `VISUAL_EVIDENCE_ROOT` now selects the root,
+defaulting to today's path so every existing reference is unchanged, and `.gitignore` gained the
+two staging paths this slice's root derives. This is T12's third discovery refinement, which T12
+did not implement — recorded here rather than left as a silent gap.
+
+### AC-0159 at delivery
+
+Confirmed rather than re-implemented, as T13's entry requires. `per-request-state-root.test.ts`
+is 20 of 20 throughout. Its two cases still fail when either side loses the pinned values and when
+the **Service-side** call site stops using the pinned set. The two limits stand unchanged: neither
+case binds the Runtime-side call site, and the forcing case needs a host whose zone database
+resolves the forced zone.
+
+### Durable outputs
+
+| Output | Destination | State |
+| --- | --- | --- |
+| Reusable learning | `docs/product/research/connect-and-orient-trial-runtime-evidence.md` | Written. Records all three Stage 2 criteria's observations and **no verdict for any** |
+| Current architecture | `docs/architecture/overview.md` | Names the connection surface and the trial topology, and links the evidence note |
+| Product state vocabulary | `docs/product/design-system.md` | Inspection family and the 20-unit separation recorded at the design-system step above |
+| Current product truth | `docs/product/changelog.md` | Entry naming the delivered capability, written for users |
+| Interface compatibility | `contracts/jsonschema/…` | Parity green; the protocol methods were added and approved at T8 |
+
+**AC-0151 and AC-0152 are the two the note works hardest at.** The state table classifies each
+item **needed** or **inherited**, and the pattern it shows is that exactly one item is needed —
+untrusted content on disk — with the rest following from holding it. AC-0152 is stated inside
+criterion 3's observation rather than as a footnote, because it changes what that observation is
+worth: the no-local-path property was **mandated by the specification before the code existed**,
+so "no local path assumption was needed" means the spec forbade one and the implementation
+complied, not that none would have arisen.

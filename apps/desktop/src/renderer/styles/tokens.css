@@ -737,3 +737,51 @@ h3 {
   white-space: nowrap;
   width: 1px;
 }
+
+/* AC-0131: pointer targets are at least 24 by 24 CSS pixels. Stated on the
+   controls this slice introduces, in pixels because the criterion is. */
+.inspection-surface button,
+.connect-form button,
+.connect-form__input {
+  min-block-size: 24px;
+  min-inline-size: 24px;
+}
+
+/* AC-0132: the surfaces reflow without two-dimensional scrolling, and stay
+   usable at 200 percent text. The column is bounded by character measure
+   rather than by a pixel width, so enlarging text reflows instead of clipping. */
+.inspection-surface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-inline-size: 70ch;
+}
+
+.connect-form__actions {
+  flex-wrap: wrap;
+}
+
+/* AC-0129: under a reduced-motion preference the state-change motion is
+   omitted, and the progress text channel carries liveness instead -- which is
+   why that channel exists and why it is not a live region.
+
+   These surfaces declare no transition and no animation, so under the
+   preference there is nothing to omit and the criterion holds by construction
+   rather than by override. The rule below is stated anyway, scoped to this
+   slice, so a motion added later is omitted by default instead of shipping
+   and being caught afterwards. It carries no !important: nothing here sets a
+   competing duration, so there is nothing to win against, and an !important
+   would also silence a future author's deliberate exception. */
+@media (prefers-reduced-motion: reduce) {
+  .inspection-surface,
+  .inspection-surface * {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+  }
+}
+
+.inspection-progress__pulse {
+  color: var(--color-muted);
+  margin-block: 0;
+}
