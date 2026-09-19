@@ -4522,3 +4522,57 @@ criterion 3's observation rather than as a footnote, because it changes what tha
 worth: the no-local-path property was **mandated by the specification before the code existed**,
 so "no local path assumption was needed" means the spec forbade one and the implementation
 complied, not that none would have arisen.
+
+## retraction-2026-09-19-t12-t13-delivery-claims
+
+**The T12 and T13 entries above assert a delivery that does not function. This entry retracts the
+false claims before any further work is recorded, so nothing is built on top of them.** Found by
+the T12/T13 review round: 23 adversarial findings with 9 Blockers, 17 quality findings with 4.
+
+**1. The product path was never composed, and this is not a T12 oversight alone.** `service.ts`
+dispatches no `source.connect`, `source.get` or `source.cancel` case, so the method passes the
+`-32601` guard, returns `undefined`, fails `validateResult`, and the caller receives
+`-32603 Internal error`. The gap is deeper than the missing dispatch: production callers, counted
+excluding tests and the definitions themselves, are **zero** for `resolveRevision`,
+`materializeRevision`, `startTrialInspection` and `buildNorthboundRequest`. Every piece exists and
+is unit-tested; nothing assembles them. **T12's Done-when — "a lead connects a repository and sees
+the verdict" — was recorded as met and is not.** T13's delivery verification was recorded over the
+same path.
+
+**2. Every renderer test mocked the preload, so none could have caught it.** The only artifact that
+crosses preload → main → service is `apps/desktop/src/e2e/walking-skeleton.test.ts`, which does not
+exercise these methods. This is the failure this ledger has named for eight rounds — a criterion
+whose test cannot fail — reached at the composition level rather than inside a unit.
+
+**3. Renderer production code imports Studio Service modules, against a rule this session did not
+name.** `AGENTS.md:85-88` states that renderer production code must not import Electron, Studio
+Service or storage modules, with `apps/desktop/src/e2e/` as the **only** deliberate exception. The
+T12 entry defends importing the projection as avoiding a second copy of the labels — a real
+concern — without recording the rule it crosses. Two package subpath exports were added to enable
+it.
+
+**4. Three of the four manual-QA transport observations do not observe what their criteria name,
+and one mixes two runs.** The smoke drives `resolveRevision` and `materializeRevision` through an
+executor running **in the Vitest process**, so those git spawns sit outside the Runtime child's
+process group and outside its spawn audit — the audit whose contents AC-0025's manual leg exists to
+read. `git-remote-https`, the helper that leg is about, appears nowhere. **AC-0030's row cites
+`ps -g 21498` while the recorded child pgid is 17743**: two runs presented as one observation.
+AC-0024's row records the askpass triple but not the `GIT_CONFIG_PARAMETERS` parsed-set comparison
+the plan requires. **The three rows are retracted.** AC-0009's redirect observation stands on its
+own terms — `http.followRedirects=false` was observed on both network phases — but was also
+observed outside the child.
+
+**5. The evidence note contradicts itself on the criterion the Stage 2 gate turns on.** Its table
+marks **two** rows *Needed* while the note says "exactly one" twice and the ledger repeats it a
+third time — and the note's own criterion-1 text argues the second row *did not* need the Runtime
+("a single-process design could apply [it] to the same subprocesses"), which is the ground for
+classifying it *inherited*. AC-0151's classification is the decisive input to D1, so this is the
+worst place in the record for a count that disagrees with its own table.
+
+**6. The note's removal inventory names code that does not exist** — "the `source.*` protocol
+handlers that invoke it" — which AC-0150 requires be accurate, and which finding 1 shows is empty.
+
+**What this retraction does not touch.** The design-system work stands: AC-0120's arm measures real
+tokens, its margins are reproducible, and its mutations redden. The renderer surfaces exist and
+their unit behaviour is bound. What is retracted is that they are *delivered*, that the transport
+observations were made where the criteria say, and that the evidence note's count is consistent.
