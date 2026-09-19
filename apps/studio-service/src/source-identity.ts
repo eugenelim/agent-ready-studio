@@ -1,13 +1,9 @@
-export const SOURCE_REJECTION_REASONS = {
-  publicGithubOnly: "Studio connects to public github.com repositories only",
-  embeddedCredentials:
-    "Remove the username or token from the URL — Studio never uses credentials",
-  repositoryMainPageOnly:
-    "Use the repository's main page URL, not a link to a file or branch",
-  invalidOwnerOrRepository:
-    "That owner or repository name has characters Studio cannot use",
-  invalidRef: "That branch or tag name has characters Studio cannot use",
-} as const;
+// The reasons themselves are protocol vocabulary: the renderer displays them
+// and may not import this package. Re-exported here so existing importers of
+// this module are unchanged.
+import { SOURCE_REJECTION_REASONS } from "@agent-ready/protocol";
+
+export { SOURCE_REJECTION_REASONS };
 
 export type SourceRejectionCode = keyof typeof SOURCE_REJECTION_REASONS;
 

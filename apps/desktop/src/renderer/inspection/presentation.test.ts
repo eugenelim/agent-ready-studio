@@ -1,7 +1,4 @@
-import {
-  project,
-  USER_VISIBLE_STATES,
-} from "@agent-ready/studio-service/state-projection";
+import { project, USER_VISIBLE_STATES } from "@agent-ready/protocol";
 import { describe, expect, it } from "vitest";
 import {
   ALL_STATES,
@@ -157,6 +154,29 @@ describe("AC-0128 and AC-0158 exactly one announcement", () => {
     expect(transition(at, at, "system").announcement).toBeNull();
     expect(transition(at, at, "user").announcement).toBeNull();
     expect(transition(at, at, "user").focus).toBeNull();
+  });
+
+  it("announces again when the same state is re-entered with a different detail", () => {
+    // Two different bad URLs both land on `url-rejected`. Comparing state and
+    // verdict alone made the second a non-transition, so nothing was
+    // announced and the reason under the field changed silently -- which a
+    // polite region does not re-read.
+    const first = {
+      state: "url-rejected",
+      verdict: null,
+      resolvedSha: null,
+      detail: "Studio connects to public github.com repositories only",
+    } as const;
+    const second = {
+      ...first,
+      detail: "Remove the username or token",
+    } as const;
+    expect(transition(first, second, "user").announcement).toBe(
+      "That URL cannot be used",
+    );
+    expect(transition(first, second, "user").focus).toBe("url-field");
+    // The identical detail is still not a transition.
+    expect(transition(first, first, "user").announcement).toBeNull();
   });
 
   it("leads a result with the verdict's label where a verdict was reached", () => {

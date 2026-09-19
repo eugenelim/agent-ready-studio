@@ -60,13 +60,16 @@ aggregate.
 | The materialized repository tree | **Needed** | It is untrusted content on disk. Holding it in the Service process is precisely what the boundary exists to avoid. |
 | The per-request state root, its `home` and `tmp` children | **Inherited** | They exist to give the materialization a confined place to live. Without the tree there is nothing for them to confine. |
 | The ownership marker and the sweep | **Inherited** | The marker identifies the process that owns a state root. A single-process design would still need the roots, but the marker exists because a *separate* process can die without unwinding. |
-| The pinned git configuration and environment | **Needed** | It constrains what the transport may do while touching untrusted content. |
+| The pinned git configuration and environment | **Inherited** | It constrains what the transport may do while touching untrusted content — but a single-process design could apply the same configuration to the same subprocesses, which is the test AC-0151 sets. It is here because the transport is. |
 | The interpreter probe result | **Inherited** | Studio could probe the interpreter in-process; it runs here because the inspector runs here. |
 | The inspection verdict | **Neither — it passes through** | Derived from trusted inspector output and forwarded. The Runtime holds it only in flight. |
 
-**The pattern the assessor should see:** one item is needed, and it is needed
-for a single reason — untrusted content on disk. The rest follow from holding
-it, or would work equally well in one process.
+**The pattern the assessor should see:** of the six rows, **one is classified
+Needed** — the materialized tree — and its ground is untrusted content on disk.
+Four are Inherited and one passes through. An earlier draft of this note
+classified the pinned configuration Needed while its own criterion-1
+observation argued the opposite; the classification above is the one the ground
+supports, and the count now matches the table.
 
 ## Supervision performed
 
@@ -151,7 +154,7 @@ they describe a product capability that outlives the runtime that served it.
 
 ### 1. Does the runtime hold state, supervision or policy the Studio Service could not hold without taking on untrusted content?
 
-**Observed:** exactly one item in the table above is classified *needed*, and
+**Observed:** exactly one row in the table above is classified *Needed*, and
 its ground is untrusted content on disk. Everything else is *inherited* — it
 exists because the tree does. Supervision is real and is genuinely
 process-shaped: the group signal and the deadline have no single-process

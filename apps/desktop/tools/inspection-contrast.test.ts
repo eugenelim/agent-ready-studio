@@ -52,6 +52,8 @@ const TEXT_PAIRINGS: ReadonlyArray<readonly [string, string]> = [
   // The revision identity, which is deliberately subordinate but still text.
   ["--color-muted", "--color-surface"],
   ["--color-muted", "--color-canvas"],
+  // The diagnostics disclosure puts muted text on the raised surface.
+  ["--color-muted", "--color-surface-raised"],
 ];
 
 /**
@@ -129,6 +131,15 @@ describe("AC-0123 the slice's contrast pairings meet WCAG 2.2 AA", () => {
     // Guards the roster. Dropping a background would make the check easier to
     // pass and nothing else would redden.
     expect(SHAPE_BACKGROUNDS).toHaveLength(3);
+    // The text roster carries the same guard as the other two: dropping a
+    // pairing makes the 4.5:1 check easier and nothing else would redden.
+    expect(TEXT_PAIRINGS).toHaveLength(6);
+    for (const [foreground, background] of TEXT_PAIRINGS) {
+      expect(themes.root.has(foreground)).toBe(true);
+      expect(themes.root.has(background)).toBe(true);
+      expect(themes.dark.has(foreground)).toBe(true);
+      expect(themes.dark.has(background)).toBe(true);
+    }
     expect(NON_TEXT_HUES.length).toBeGreaterThanOrEqual(6);
     for (const name of [...NON_TEXT_HUES, ...SHAPE_BACKGROUNDS]) {
       expect(themes.root.has(name)).toBe(true);

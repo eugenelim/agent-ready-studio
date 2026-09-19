@@ -1,4 +1,4 @@
-import type { UserVisibleState } from "@agent-ready/studio-service/state-projection";
+import type { UserVisibleState } from "@agent-ready/protocol";
 import {
   SHAPES,
   stateLabel,
@@ -27,9 +27,11 @@ export function StateBadge({
   /**
    * Which composition role this badge occupies, per AC-0114. Named `emphasis`
    * rather than `role` because a prop called `role` lands on the element as
-   * an ARIA role, and "primary" is not one.
+   * an ARIA role, and "primary" is not one. States take only these two: the
+   * subordinate role belongs to a verdict under a degraded condition, and a
+   * state never sits beneath another state.
    */
-  emphasis: "primary" | "secondary" | "subordinate";
+  emphasis: "primary" | "secondary";
 }>) {
   return (
     <p

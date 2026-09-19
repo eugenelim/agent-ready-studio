@@ -1,7 +1,4 @@
-import {
-  project,
-  type UserVisibleState,
-} from "@agent-ready/studio-service/state-projection";
+import { project, type UserVisibleState } from "@agent-ready/protocol";
 import { VERDICT_LABELS, type Verdict } from "./presentation.js";
 import { StateBadge, VerdictBadge } from "./StateBadge.js";
 
@@ -97,6 +94,19 @@ export function VerdictSurface({
         <dt>Commit</dt>
         <dd data-identity="resolved-sha">{resolvedSha ?? "not resolved"}</dd>
       </dl>
+
+      {condition === "cancelled" && (
+        // AC-0113. `cancelled` is not a degraded condition, so ConditionDetail
+        // renders nothing for it and the badge alone would read "Cancelled"
+        // with no author and no way forward.
+        <div className="verdict-surface__detail" data-state-detail="cancelled">
+          <p>You stopped this inspection, so Studio did not finish it.</p>
+          <p>
+            To start again, enter the repository URL and choose Connect
+            repository. Nothing was written to the repository.
+          </p>
+        </div>
+      )}
 
       {condition !== null && <ConditionDetail condition={condition} />}
 

@@ -80,6 +80,27 @@ describe("AC-0119 a degraded condition never renders a generic success treatment
   });
 });
 
+describe("AC-0113 the cancelled state", () => {
+  it("tells the lead they stopped it and how to restart", () => {
+    // `cancelled` is not a degraded condition, so the projection's four
+    // sentences do not apply to it and the badge alone would read "Cancelled"
+    // with no author and no way forward.
+    render(
+      <VerdictSurface
+        {...defaults}
+        verdict="no-verdict"
+        condition="cancelled"
+      />,
+    );
+    const detail = document.querySelector('[data-state-detail="cancelled"]');
+    expect(detail).not.toBeNull();
+    // They stopped it -- attribution to the lead, not to Studio or the network.
+    expect(detail?.textContent).toMatch(/you stopped this inspection/i);
+    // And how to start again, naming the control that does it.
+    expect(detail?.textContent).toMatch(/connect repository/i);
+  });
+});
+
 describe("AC-0115 and AC-0116 non-originated values", () => {
   const hostile = "<script>alert(1)</script>";
 

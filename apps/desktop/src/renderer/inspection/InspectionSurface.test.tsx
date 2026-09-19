@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { SOURCE_REJECTION_REASONS } from "@agent-ready/studio-service/source-identity";
+import { SOURCE_REJECTION_REASONS } from "@agent-ready/protocol";
 import {
   cleanup,
   render,
@@ -309,7 +309,17 @@ describe("AC-0124 and AC-0127 keyboard operability and reading order", () => {
     // control is correctly not a tab stop, so asserting one tab order across
     // both states would be asserting the wrong thing: at rest cancel has
     // nothing to cancel, and in flight the field is deliberately unavailable.
-    const api = apiReturning({ ...base, phase: "resolving" });
+    const api = apiReturning(
+      { ...base, phase: "resolving" },
+      {
+        cancel: {
+          ...base,
+          phase: null,
+          verdict: "no-verdict",
+          condition: "cancelled",
+        },
+      },
+    );
     render(<InspectionSurface api={api} />);
     const field = screen.getByRole("textbox");
     const connect = screen.getByRole("button", { name: /connect repository/i });
@@ -330,7 +340,11 @@ describe("AC-0124 and AC-0127 keyboard operability and reading order", () => {
     expect(document.activeElement).toBe(cancel);
     // Operable by keyboard, not pointer only.
     await userEvent.keyboard("{Enter}");
-    await waitFor(() => expect(api.source.cancel).toHaveBeenCalled());
+    // The observable post-condition: activating Cancel from the keyboard
+    // reaches the cancelled result, which renders its own restart copy.
+    await waitFor(() =>
+      expect(screen.getByText(/You stopped this inspection/)).toBeDefined(),
+    );
   });
 
   it("exposes a heading for the connect surface", () => {
@@ -345,6 +359,15 @@ describe("AC-0124 and AC-0127 keyboard operability and reading order", () => {
     render(<InspectionSurface api={api} />);
     screen.getByRole("textbox").focus();
     await userEvent.keyboard("https://github.com/acme/widgets{Enter}");
-    await waitFor(() => expect(api.source.connect).toHaveBeenCalled());
+    // Keyboard submission produces the in-flight surface, which is the
+    // contract; that the mock was called is an implementation detail.
+    const region = await screen.findByRole("region", {
+      name: /inspection in progress/i,
+    });
+    await waitFor(() =>
+      expect(
+        within(region).getByText("Finding the latest commit"),
+      ).toBeDefined(),
+    );
   });
 });

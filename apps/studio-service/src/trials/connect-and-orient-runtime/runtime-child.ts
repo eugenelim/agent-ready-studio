@@ -57,6 +57,16 @@ interface RuntimeChildPlan {
   readonly interpreterSearchList: readonly string[];
   readonly minimumInterpreterVersion: readonly [number, number];
   readonly initializeMaterialization: boolean;
+  /**
+   * The revision to materialize, when one is supplied. Fetching and checking
+   * out happen **here** rather than in the Service: the tree is untrusted
+   * content, and the Service having written it would make the boundary's
+   * central isolation claim false.
+   */
+  readonly revision?: {
+    readonly fetchUrl: string;
+    readonly resolvedSha: string;
+  };
   readonly inspectionDeadlineMs: number;
   /** *Resource bounds*, *Resolution wall-clock*. Owned by the Runtime. */
   readonly resolutionDeadlineMs: number;
@@ -449,7 +459,16 @@ function sweep(domain: string): void {
       continue;
     }
     if (now - modifiedAt <= plan.markerlessReclaimAgeMs) {
-      continue; // younger than the reclaim age
+      // Recorded rather than skipped silently, which is what the Service-side
+      // reader does and what makes the child's sweep reasoning checkable: a
+      // candidate that produced no outcome at all is indistinguishable from
+      // one the sweep never saw.
+      outcomes.push({
+        name,
+        action: "skipped",
+        reason: "younger than reclaim age",
+      });
+      continue;
     }
     if (limb === 3) {
       try {
@@ -877,6 +896,55 @@ async function main(): Promise<void> {
       status: initialized.status,
       args,
     });
+  }
+
+  if (plan.revision !== undefined) {
+    // Depth 1, no tags, and an exact commit rather than a ref: the operand is
+    // a 40-character SHA the Service already gated, and `--` ends option
+    // parsing so neither value can be read as a flag.
+    const fetchArgs = gitVector(
+      "fetch",
+      "--depth=1",
+      "--no-tags",
+      "--",
+      plan.revision.fetchUrl,
+      plan.revision.resolvedSha,
+    );
+    const fetched = run(plan.gitExecutable, fetchArgs, {
+      cwd: materializationRoot,
+    });
+    protocol({
+      type: "git",
+      phase: "fetch",
+      status: fetched.status,
+      args: fetchArgs,
+    });
+
+    if (fetched.status === 0) {
+      const checkoutArgs = gitVector(
+        "checkout",
+        "--detach",
+        "--force",
+        "FETCH_HEAD",
+      );
+      const checkedOut = run(plan.gitExecutable, checkoutArgs, {
+        cwd: materializationRoot,
+      });
+      protocol({
+        type: "git",
+        phase: "checkout",
+        status: checkedOut.status,
+        args: checkoutArgs,
+      });
+
+      // The inspector is located inside the materialized tree's own root, by
+      // the process that holds it. Reported as provenance, never as a verdict.
+      protocol({
+        type: "materialized",
+        resolvedSha: plan.revision.resolvedSha,
+        status: checkedOut.status,
+      });
+    }
   }
 
   if (interpreter.executable !== undefined) {

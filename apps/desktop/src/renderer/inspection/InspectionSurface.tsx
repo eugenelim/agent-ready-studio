@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { StudioPreloadApi } from "../../preload/index.js";
 import {
   ConnectRepositoryForm,
@@ -27,6 +27,9 @@ export function InspectionSurface({
   const urlRef = useRef<HTMLInputElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  // Stable across renders: passing a fresh Date.now() would restart the
+  // progress clock on every render of this component.
+  const fallbackStart = useMemo(() => Date.now(), []);
 
   // The focus half of the single path. The hook decides *where*; this moves
   // it. Keeping the decision out of here is what stops a surface growing its
@@ -74,7 +77,26 @@ export function InspectionSurface({
         rejection={view.rejection}
       />
 
-      {inspection === null && view.rejection === null && <UnconnectedNotice />}
+      {view.studioFailure !== null && (
+        // Studio's own failure, attributed to Studio. It is deliberately not
+        // the field's invalid state: the lead's URL may be perfectly good, and
+        // there is nothing for them to correct.
+        <section
+          className="inspection-failure"
+          aria-labelledby="studio-failure-heading"
+          data-attribution="Studio"
+        >
+          <h2 id="studio-failure-heading">Studio cannot inspect</h2>
+          <p>{view.studioFailure}</p>
+          <p>
+            This is Studio's side of the boundary, not a problem with the URL.
+          </p>
+        </section>
+      )}
+
+      {inspection === null &&
+        view.rejection === null &&
+        view.studioFailure === null && <UnconnectedNotice />}
 
       {/* Progress is its own surface: `resolving` and `inspecting` are
           separately rendered, and `inspecting` carries the resolved SHA. */}
@@ -92,7 +114,7 @@ export function InspectionSurface({
           {state === "inspecting" && inspection?.resolvedSha !== null && (
             <p data-identity="resolved-sha">{inspection?.resolvedSha}</p>
           )}
-          <ProgressPulse startedAt={view.startedAt ?? Date.now()} />
+          <ProgressPulse startedAt={view.startedAt ?? fallbackStart} />
           <button type="button" onClick={() => void refresh()}>
             Refresh status
           </button>

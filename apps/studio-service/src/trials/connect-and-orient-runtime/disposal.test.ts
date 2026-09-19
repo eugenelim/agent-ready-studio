@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { LIVENESS_TOKEN_CONVENTION } from "./per-request-state-root.js";
 import {
   beginTrialInspection,
@@ -185,6 +185,12 @@ describe("AC-0082 the Service invokes the sweep without performing it", () => {
     expect(existsSync(abandoned)).toBe(false);
   });
 
+  const cleanupRoots: string[] = [];
+  afterEach(() => {
+    for (const root of cleanupRoots.splice(0))
+      rmSync(root, { recursive: true, force: true });
+  });
+
   it("decides every token-convention case in one sweep", async () => {
     // Four candidates, one inspection. Each case is a distinct decision the
     // child's limb 1 must make about an incomparable token, and they are
@@ -220,38 +226,80 @@ describe("AC-0082 the Service invokes the sweep without performing it", () => {
     // Absent pid, young: held by the age gate, not by a liveness decline.
     const goneYoung = candidate("young-gone-old-convention", 99998, false);
 
-    const record = await run("disposal-0009");
+    let record: Awaited<ReturnType<typeof run>>;
+    try {
+      record = await run("disposal-0009");
+    } finally {
+      cleanupRoots.push(liveYoung, goneYoung);
+    }
     const swept = record.protocolLines.find((line) => line.type === "sweep");
     const outcomes = (swept?.outcomes ?? []) as Record<string, unknown>[];
     const outcomeFor = (name: string) =>
       outcomes.filter((outcome) => outcome.name === name);
 
-    expect(outcomeFor("live-old-convention")).toContainEqual(
-      expect.objectContaining({
-        action: "declined",
-        limb: 1,
-        inputClass: "liveness-token-convention",
-      }),
+    // Each decision is collected rather than asserted inline, so one broken
+    // decision does not hide the other three behind an aborted test -- and a
+    // reader fixing one does not pay another Runtime spawn to learn about the
+    // next. Every failure names its candidate.
+    const broken: string[] = [];
+    const check = (label: string, holds: boolean) => {
+      if (!holds) broken.push(label);
+    };
+
+    const declined = (name: string) =>
+      outcomeFor(name).some(
+        (outcome) =>
+          outcome.action === "declined" &&
+          outcome.inputClass === "liveness-token-convention",
+      );
+    const reclaimedOnAge = (name: string) =>
+      outcomeFor(name).some(
+        (outcome) => outcome.action === "reclaimed" && outcome.limb === 2,
+      );
+
+    check(
+      "live-old-convention: expected a convention decline",
+      declined("live-old-convention"),
     );
-    expect(existsSync(liveYoung)).toBe(true);
-
-    expect(outcomeFor("recycled-pid-child")).toContainEqual(
-      expect.objectContaining({ action: "reclaimed", limb: 2 }),
+    check(
+      "live-old-convention: expected the root retained",
+      existsSync(liveYoung),
     );
-    expect(existsSync(liveAged)).toBe(false);
 
-    expect(outcomeFor("gone-old-convention")).toContainEqual(
-      expect.objectContaining({ action: "reclaimed", limb: 2 }),
+    check(
+      "recycled-pid-child: expected an age-gated reclaim",
+      reclaimedOnAge("recycled-pid-child"),
     );
-    expect(existsSync(goneAged)).toBe(false);
+    check(
+      "recycled-pid-child: expected the root removed",
+      !existsSync(liveAged),
+    );
 
-    for (const outcome of outcomeFor("young-gone-old-convention")) {
-      expect(outcome.inputClass).not.toBe("liveness-token-convention");
-    }
-    expect(existsSync(goneYoung)).toBe(true);
+    check(
+      "gone-old-convention: expected an age-gated reclaim",
+      reclaimedOnAge("gone-old-convention"),
+    );
+    check(
+      "gone-old-convention: expected the root removed",
+      !existsSync(goneAged),
+    );
 
-    rmSync(liveYoung, { recursive: true, force: true });
-    rmSync(goneYoung, { recursive: true, force: true });
+    // A positive control first: an assertion that only says "not declined"
+    // is satisfied by the sweep never having looked at the candidate at all.
+    check(
+      "young-gone-old-convention: expected the sweep to classify it",
+      outcomeFor("young-gone-old-convention").length > 0,
+    );
+    check(
+      "young-gone-old-convention: expected no convention decline",
+      !declined("young-gone-old-convention"),
+    );
+    check(
+      "young-gone-old-convention: expected the root retained",
+      existsSync(goneYoung),
+    );
+
+    expect(broken).toEqual([]);
   });
 
   it("never reclaims the root of the inspection that invoked it", async () => {

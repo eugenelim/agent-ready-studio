@@ -90,6 +90,14 @@ export interface TrialInspectionOptions {
   readonly interpreterSearchList?: readonly string[];
   readonly initializeMaterialization?: boolean;
   /**
+   * The revision the Runtime should fetch and check out. Passed through to the
+   * child so the Service never writes the tree itself.
+   */
+  readonly revision?: {
+    readonly fetchUrl: string;
+    readonly resolvedSha: string;
+  };
+  /**
    * Holds one `git` descendant open for this long, so the parent can read a
    * descendant's environment and can observe that a group signal reaches a
    * descendant and not only the child. Defaults to the observation hold when
@@ -312,6 +320,7 @@ export function beginTrialInspection(
     interpreterSearchList: [...interpreterSearchList],
     minimumInterpreterVersion: MINIMUM_INTERPRETER_VERSION,
     initializeMaterialization: options.initializeMaterialization ?? true,
+    ...(options.revision === undefined ? {} : { revision: options.revision }),
     inspectionDeadlineMs:
       options.inspectionDeadlineMs ?? INSPECTION_DEADLINE_MS,
     resolutionDeadlineMs:
