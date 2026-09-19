@@ -581,19 +581,6 @@ try {
       enabled: coarse,
       maxTouchPoints: 5,
     });
-    // Text resize against a fixed layout, which is a different failure from a
-    // device scale factor: the layout box does not grow with the text, so a
-    // column that cannot reflow clips instead.
-    await page("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
-    if (scenario.textScale !== undefined) {
-      await page("Runtime.evaluate", {
-        expression: `document.documentElement.style.fontSize = '${scenario.textScale * 100}%'`,
-      });
-    } else {
-      await page("Runtime.evaluate", {
-        expression: "document.documentElement.style.fontSize = ''",
-      });
-    }
     await page("Emulation.setEmulatedMedia", {
       features: [
         { name: "prefers-color-scheme", value: scenario.scheme },
@@ -602,6 +589,32 @@ try {
     });
     await page("Page.navigate", { url: `${origin}/index.html` });
     await new Promise((r) => setTimeout(r, 1500));
+
+    // Text resize against a fixed layout, which is a different failure from a
+    // device scale factor: the layout box does not grow with the text, so a
+    // column that cannot reflow clips instead.
+    //
+    // Applied *after* navigation, and probed. An earlier version set it before
+    // `Page.navigate`, which discarded it -- three captures came back
+    // byte-identical to their unscaled baseline and evidenced nothing. This is
+    // the same failure the mode probe below was added for, on a new dimension.
+    if (scenario.textScale !== undefined) {
+      const applied = await page("Runtime.evaluate", {
+        expression: `(() => {
+          document.documentElement.style.fontSize = '${scenario.textScale * 100}%';
+          return getComputedStyle(document.documentElement).fontSize;
+        })()`,
+        returnByValue: true,
+      });
+      const rendered = Number.parseFloat(applied?.result?.value ?? "0");
+      const expected = 16 * scenario.textScale;
+      if (!Number.isFinite(rendered) || Math.abs(rendered - expected) > 1) {
+        throw new Error(
+          `${scenario.name}: text scale did not take effect — root font-size is ${applied?.result?.value}, expected about ${expected}px`,
+        );
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    }
 
     // Confirm the page is actually in the mode this scenario claims. Without
     // this the no-hover scenario silently reran the baseline and its AC-38

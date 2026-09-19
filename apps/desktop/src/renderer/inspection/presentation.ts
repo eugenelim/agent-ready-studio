@@ -2,11 +2,13 @@
  * Everything the inspection surfaces need to render a state honestly, derived
  * once so no surface can answer these questions differently.
  *
- * The labels and attention come from `@agent-ready/studio-service`'s
- * `state-projection`, which is the spec's tables in code. They are imported
+ * The labels and attention come from `@agent-ready/protocol`'s
+ * `state-vocabulary`, which is the spec's tables in code. They are imported
  * rather than restated: a second copy would let the renderer drift from the
  * projection the service answers with, and the surface would then be honest
- * about a state the service no longer reports.
+ * about a state the service no longer reports. They live in the protocol
+ * package because `AGENTS.md` forbids renderer production code from importing
+ * the Studio Service, and both sides need them.
  *
  * Three obligations are discharged here rather than in a component, because
  * each is stated over *every* transition and a per-component answer could

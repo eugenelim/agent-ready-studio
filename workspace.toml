@@ -87,6 +87,15 @@ open = [
   # before `git fetch -- <url> <sha>`. Unreachable today: both functions have
   # only test callers, so no production path composes the gate with the spawn.
   # Evidence: notes/verification-ledger.md#review-round-34-2026-09-18.
+  # UPDATE 2026-09-19: the ground recorded above no longer holds. AC-0116's
+  # deferral rested partly on resolveRevision and materializeRevision having no
+  # composing caller; source-inspection.ts now resolves and hands fetchUrl and
+  # resolvedSha to the Runtime as spawn operands, so a non-originated value does
+  # reach a transport operand on the production path. The operand is still gated
+  # -- EXACT_COMMIT_SHA at git-driver.ts:186 runs before the revision is handed
+  # over -- so the hazard is unchanged, but the reason for deferring is weaker
+  # than when it was recorded and the next amendment should not read it as
+  # still standing.
   { slug = "connect-orient-transport-operand-sink-scope", source = "connect-and-orient/2026-09-18" },
   # The Service-side sweep's removal walk recurses without a depth bound, and
   # its recursive call sits outside the guarded blocks. Found by round 36's

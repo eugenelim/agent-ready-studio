@@ -937,12 +937,36 @@ async function main(): Promise<void> {
         args: checkoutArgs,
       });
 
-      // The inspector is located inside the materialized tree's own root, by
-      // the process that holds it. Reported as provenance, never as a verdict.
+      // The checked-out HEAD must be the commit that was asked for. Fetching
+      // an exact SHA and checking out FETCH_HEAD should always give that, but
+      // "should" is not a check: the vocabulary carries a `head-mismatch` stop
+      // reason -- "The downloaded copy did not match the commit Studio asked
+      // for" -- and moving materialization here from `materializeRevision`
+      // brought the fetch and the checkout without bringing this. Never cut
+      // validation at a trust boundary.
+      const headArgs = gitVector("rev-parse", "--verify", "HEAD");
+      const head = run(plan.gitExecutable, headArgs, {
+        cwd: materializationRoot,
+      });
+      const inspectedSha = (head.stdout ?? "").trim();
+      protocol({
+        type: "git",
+        phase: "verify-head",
+        status: head.status,
+        args: headArgs,
+      });
+
       protocol({
         type: "materialized",
         resolvedSha: plan.revision.resolvedSha,
-        status: checkedOut.status,
+        inspectedSha,
+        status:
+          head.status === 0 && inspectedSha === plan.revision.resolvedSha
+            ? 0
+            : 1,
+        ...(inspectedSha === plan.revision.resolvedSha
+          ? {}
+          : { mismatch: "head-mismatch" }),
       });
     }
   }
