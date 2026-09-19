@@ -70,7 +70,10 @@ describe("AC-0043 the inspector's identity is recorded with each inspection", ()
     }
     expect(located.resolvedPath).toContain(INSPECTOR_SCRIPTS_RELATIVE_PATH);
     expect(located.packName).toBe("core");
-    expect(located.packVersion).toBe("2.26.0");
+    // Read from the pin rather than restated: the pin is the evidence's scope,
+    // and a literal here would drift from it silently the next time the pack
+    // moves -- which is exactly what happened when core went 2.26.0 to 2.26.14.
+    expect(located.packVersion).toBe(PINNED_INSPECTOR.packVersion);
     expect(located.fileDigests).toEqual(PINNED_INSPECTOR.fileDigests);
   });
 

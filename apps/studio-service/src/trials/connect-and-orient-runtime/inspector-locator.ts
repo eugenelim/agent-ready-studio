@@ -58,12 +58,12 @@ export interface InspectorPin {
  */
 export const PINNED_INSPECTOR: InspectorPin = {
   packName: "core",
-  packVersion: "2.26.0",
+  packVersion: "2.26.14",
   fileDigests: {
     "workspace_status.py":
-      "dec939e052750af346325c9895c75bfa38bcc2795111afcb6e001e817706f1db",
+      "b07efea9132f1ddfeab8ce81554c65633d8fac3f5065fdeba31e40a0ef6d7484",
     "workspace_status_engine.py":
-      "2e6b6037ea5f02fd477cd37105a9e58efef6c27681e245e7abdc6b8e9d89899b",
+      "b99ad663713333d2a221d655af73ff08898a0553e3e238356fd88d274ca4eea0",
   },
 };
 
