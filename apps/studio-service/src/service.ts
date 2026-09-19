@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
 import type { Readable, Writable } from "node:stream";
 import { pathToFileURL } from "node:url";
-
 import { productDevelopmentBlueprint } from "@agent-ready/blueprint-product-development";
 import {
   createProposal,
@@ -34,6 +33,12 @@ import {
   type Storage,
   type StorageTransaction,
 } from "@agent-ready/storage-sqlite";
+import {
+  createDefaultTransport,
+  createSourceInspections,
+  inspectInRuntime,
+  type SourceInspections,
+} from "./source-inspection.js";
 
 const FRAME_PRODUCT_INTENT = "strategy.frame-product-intent" as const;
 const DEMO_INITIATIVE = "demo-initiative";
@@ -191,6 +196,13 @@ export function createStudioService(dependencies: {
   idFactory?: IdFactory;
   clock?: Clock;
   publish?: NotificationPublisher;
+  /**
+   * Injected by tests so the connect path composes without reaching a remote.
+   * Built lazily in production: constructing it resolves `git`, and a service
+   * created for a workspace that never connects a repository should not need
+   * git present to start.
+   */
+  sourceInspections?: SourceInspections;
 }) {
   const { storage } = dependencies;
   const publish = dependencies.publish ?? (() => undefined);
@@ -198,7 +210,31 @@ export function createStudioService(dependencies: {
     dependencies.idFactory ?? ((prefix: string) => `${prefix}-${randomUUID()}`);
   const now = dependencies.clock ?? (() => new Date().toISOString());
 
+  let sources = dependencies.sourceInspections;
+  const sourceInspections = (): SourceInspections => {
+    sources ??= createSourceInspections({
+      transport: createDefaultTransport(),
+      inspect: inspectInRuntime,
+    });
+    return sources;
+  };
+
   return {
+    /**
+     * The connect path. These three are the composition the slice's other
+     * modules were built for; before them a submitted URL reached no
+     * inspection, which the retraction entry in the verification ledger
+     * records.
+     */
+    sourceConnect(url: string, requestedRef?: string) {
+      return sourceInspections().connect(url, requestedRef);
+    },
+    sourceGet(sourceId: string) {
+      return sourceInspections().get(sourceId);
+    },
+    sourceCancel(sourceId: string) {
+      return sourceInspections().cancel(sourceId);
+    },
     createWorkspace(command: CreateWorkspaceCommand): Workspace {
       if ("actorId" in command)
         throw new Error("Caller-supplied actor identity is not allowed");
@@ -950,6 +986,31 @@ function invoke(
         outputRevisionId: execution.proposal?.id ?? null,
         reviewId: execution.review?.id ?? null,
       };
+    }
+    case "source.connect":
+      return service.sourceConnect(
+        params.url as string,
+        params.ref as string | undefined,
+      );
+    case "source.get": {
+      const held = service.sourceGet(params.sourceId as string);
+      if (held === undefined)
+        throw new DispatchFailure(-32002, "Source not found", {
+          kind: "resource",
+          resourceType: "source",
+          id: params.sourceId,
+        });
+      return held;
+    }
+    case "source.cancel": {
+      const cancelled = service.sourceCancel(params.sourceId as string);
+      if (cancelled === undefined)
+        throw new DispatchFailure(-32002, "Source not found", {
+          kind: "resource",
+          resourceType: "source",
+          id: params.sourceId,
+        });
+      return cancelled;
     }
     case "review.list":
       return {

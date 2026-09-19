@@ -1,5 +1,4 @@
-import type { StudioResult } from "@agent-ready/protocol";
-import type { UserVisibleState } from "@agent-ready/studio-service/state-projection";
+import type { StudioResult, UserVisibleState } from "@agent-ready/protocol";
 import { useCallback, useRef, useState } from "react";
 import type { StudioPreloadApi } from "../../preload/index.js";
 import {
@@ -18,23 +17,40 @@ export interface InspectionView {
   readonly announcement: string;
   /**
    * The focus this transition asked for, or null when it asked for none. The
-   * nonce makes two consecutive requests for the same element distinguishable,
-   * so the second is not swallowed as "no change".
+   * object is fresh per request, so two consecutive requests naming the same
+   * element are distinct dependencies and the second still moves focus.
    */
-  readonly focusRequest: Readonly<{
-    target: FocusTarget;
-    nonce: number;
-  }> | null;
+  readonly focusRequest: Readonly<{ target: FocusTarget }> | null;
   readonly busy: boolean;
   readonly rejection: string | null;
+  /**
+   * A failure on Studio's side of the boundary. Separate from `rejection`
+   * because attributing Studio's own failure to the lead's input is the
+   * crossing AC-0093 forbids, and because a refused URL is actionable by the
+   * lead while this is not.
+   */
+  readonly studioFailure: string | null;
   /** When the current in-flight phase began, for the progress channel. */
   readonly startedAt: number | null;
 }
 
-const IN_FLIGHT: ReadonlySet<UserVisibleState> = new Set<UserVisibleState>([
-  "resolving",
-  "inspecting",
-]);
+/**
+ * Total over the eleven, so adding a twelfth state is a compile error here
+ * rather than a silent classification as not-in-flight.
+ */
+const IN_FLIGHT: Readonly<Record<UserVisibleState, boolean>> = Object.freeze({
+  resolving: true,
+  inspecting: true,
+  malformed: false,
+  "inspector-unavailable": false,
+  "source-unavailable": false,
+  "source-rate-limited": false,
+  "inspection-stopped": false,
+  cancelled: false,
+  incomplete: false,
+  unconnected: false,
+  "url-rejected": false,
+});
 
 /**
  * Drives the inspection surfaces and owns the one path every transition takes.
@@ -51,11 +67,14 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
   const [announcement, setAnnouncement] = useState("");
   const [focusRequest, setFocusRequest] = useState<Readonly<{
     target: FocusTarget;
-    nonce: number;
   }> | null>(null);
-  const nonce = useRef(0);
   const [rejection, setRejection] = useState<string | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [studioFailure, setStudioFailure] = useState<string | null>(null);
+  // Guards a second submission while one is in flight, and stamps each run so
+  // a late response from an older one cannot overwrite a newer one.
+  const submitting = useRef(false);
+  const generation = useRef(0);
   const snapshot = useRef<SurfaceSnapshot>({
     state: null,
     verdict: null,
@@ -63,11 +82,16 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
   });
 
   const apply = useCallback(
-    (next: Inspection | null, provenance: "user" | "system") => {
+    (
+      next: Inspection | null,
+      provenance: "user" | "system",
+      detail?: string | null,
+    ) => {
       const nextSnapshot: SurfaceSnapshot = {
         state: next === null ? null : surfaceState(next),
         verdict: next === null ? null : (next.verdict as Verdict | null),
         resolvedSha: next?.resolvedSha ?? null,
+        detail: detail ?? null,
       };
       const step = transition(snapshot.current, nextSnapshot, provenance);
       // The phase clock restarts when the phase does, so the channel reports
@@ -80,30 +104,42 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
       // same state leaves the previous announcement in place rather than
       // repeating it, which is the second half of "exactly one".
       if (step.announcement !== null) setAnnouncement(step.announcement);
-      if (step.focus !== null) {
-        nonce.current += 1;
-        setFocusRequest({ target: step.focus, nonce: nonce.current });
-      }
+      if (step.focus !== null) setFocusRequest({ target: step.focus });
     },
     [],
   );
 
   const connect = useCallback(
     async (url: string) => {
-      const outcome = await api.source.connect({ url });
-      if (!outcome.ok) {
-        // A transport failure is not a refusal of the URL, and saying so would
-        // blame the lead's input for Studio's own problem.
-        setRejection(outcome.error.message);
-        apply(null, "user");
-        return;
+      // Two fast submissions would start two inspections against a Runtime
+      // with a single-in-flight guard, and the second would come back as a
+      // refusal of the lead's URL.
+      if (submitting.current) return;
+      submitting.current = true;
+      const mine = ++generation.current;
+      try {
+        const outcome = await api.source.connect({ url });
+        // A late response from an older submission must not overwrite a newer
+        // one, which would announce the surface backwards.
+        if (mine !== generation.current) return;
+        if (!outcome.ok) {
+          // Studio's own failure is Studio's. Attributing it to the lead's
+          // input is the crossing AC-0093 forbids.
+          setStudioFailure(outcome.error.message);
+          setRejection(null);
+          apply(null, "user");
+          return;
+        }
+        setStudioFailure(null);
+        setRejection(
+          outcome.value.phase === "url-rejected"
+            ? outcome.value.diagnostics
+            : null,
+        );
+        apply(outcome.value, "user", outcome.value.diagnostics);
+      } finally {
+        submitting.current = false;
       }
-      setRejection(
-        outcome.value.phase === "url-rejected"
-          ? outcome.value.diagnostics
-          : null,
-      );
-      apply(outcome.value, "user");
     },
     [api, apply],
   );
@@ -112,7 +148,17 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
     const sourceId = inspection?.sourceId;
     if (sourceId === undefined) return;
     const outcome = await api.source.cancel(sourceId);
-    if (outcome.ok) apply(outcome.value, "user");
+    if (outcome.ok) {
+      setStudioFailure(null);
+      apply(outcome.value, "user");
+      return;
+    }
+    // A failed cancel previously left the form disabled with no feedback at
+    // all: the lead pressed Cancel and nothing happened, and no record existed
+    // for anyone diagnosing it later.
+    setStudioFailure(
+      `Studio could not stop the inspection: ${outcome.error.message}`,
+    );
   }, [api, apply, inspection]);
 
   /** A poll result: the system moved, so focus stays where the lead put it. */
@@ -120,7 +166,14 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
     const sourceId = inspection?.sourceId;
     if (sourceId === undefined) return;
     const outcome = await api.source.get(sourceId);
-    if (outcome.ok) apply(outcome.value, "system");
+    if (outcome.ok) {
+      setStudioFailure(null);
+      apply(outcome.value, "system");
+      return;
+    }
+    setStudioFailure(
+      `Studio could not read the inspection: ${outcome.error.message}`,
+    );
   }, [api, apply, inspection]);
 
   const state = snapshot.current.state;
@@ -129,8 +182,9 @@ export function useInspection(api: StudioPreloadApi = window.studio) {
     inspection,
     announcement,
     focusRequest,
-    busy: state !== null && IN_FLIGHT.has(state),
+    busy: state !== null && IN_FLIGHT[state],
     rejection,
+    studioFailure,
     startedAt,
   };
   return { view, connect, cancel, refresh } as const;

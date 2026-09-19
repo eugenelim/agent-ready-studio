@@ -4576,3 +4576,85 @@ handlers that invoke it" — which AC-0150 requires be accurate, and which findi
 tokens, its margins are reproducible, and its mutations redden. The renderer surfaces exist and
 their unit behaviour is bound. What is retracted is that they are *delivered*, that the transport
 observations were made where the criteria say, and that the evidence note's count is consistent.
+
+## t12-composition-2026-09-19
+
+**The composition the retraction above named as missing, built.** `pnpm verify` exit 0 — 50 files,
+**655 passed, 1 skipped**.
+
+**`apps/studio-service/src/source-inspection.ts` is the module that was absent.** It canonicalizes
+a submitted URL, answers a refusal inline without consulting any transport, and for an accepted URL
+registers the inspection, returns `resolving` immediately and runs the pipeline behind it. The
+dispatch is synchronous and an inspection is not, which is why `connect` returns a phase rather
+than a result. Three cases were added to `service.ts`, and `source.get` and `source.cancel`
+answer from the store.
+
+**The tree is materialized by the Runtime, not by the Service — and the first version of this
+module got that wrong.** As first written the orchestrator fetched and checked out in the Service
+process. That would have falsified the one isolation claim the process boundary exists to make,
+and the evidence note asserts it in terms: "the tree is written, read and removed by the child".
+The child now takes a `revision` in its plan and performs the fetch and checkout itself,
+reporting a `materialized` protocol line; the Service resolves the ref, which reads a listing and
+writes no tree. **This was caught by re-reading the evidence note against the code, not by a
+test**, and it is recorded because the note would otherwise have been true only by accident.
+
+**No verdict is invented.** With no trusted inspector run against the materialized tree, the
+result is `no-verdict` with condition `inspector-unavailable` and a diagnostic saying the
+revision was materialized and nothing trusted ran against it. Deriving a verdict from Studio's own
+reading of the tree is what AC-0061 forbids, and reporting one anyway would be the failure this
+whole spec is built to prevent.
+
+### The artifact that would have caught the original gap
+
+`apps/desktop/src/e2e/connect-and-orient.test.ts`, five cases across preload → main transport →
+spawned Service. **Mutation: removing the three `source.*` dispatch cases turns all five red**,
+where every renderer test stays green because each injects a fake preload. That asymmetry is the
+whole finding: 181 renderer assertions passed against a path that did not exist.
+
+It reaches no remote. A refused URL is refused before any transport is consulted, which is what
+makes the boundary testable without network — and is itself the property AC-0108 depends on.
+
+### Review findings applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| No service handler for `source.*`; the surface could not work | Blocker | The composition above, with a boundary-crossing artifact and its mutation |
+| Renderer production code imported Studio Service modules against `AGENTS.md:85-88` | Blocker | The state vocabulary, its projection and the refusal reasons moved to `packages/protocol`, which both sides may depend on. The two service subpath exports that enabled it are removed, and no renderer file imports the service |
+| A Studio-side failure was rendered as a refusal of the lead's URL | Blocker | Its own attributed surface and state, with `aria-invalid` left off the field |
+| A failed `cancel` or `refresh` was discarded silently | Blocker | Both report; the lead sees what failed and the operator has something to read |
+| Nothing prevented a second submission while one was in flight | Blocker | A submission guard and a generation stamp, so a late response cannot overwrite a newer one |
+| A repeated refusal produced no announcement | Blocker | The snapshot carries the detail, so a second different refusal is a transition |
+| AC-0113 was unimplemented — `cancelled` rendered one badge and nothing else | Blocker | The state says the lead stopped it and how to restart, with an artifact that fails when either half is removed |
+| The `ProgressPulse` interval restarted on every render | Concern | The clock lives in a ref, so the cadence is a property of the component rather than of its render frequency |
+| `RESULT_STATES` and `IN_FLIGHT` defaulted a new state silently | Concern | Both are total records, so a twelfth state is a compile error rather than a silent classification |
+| The `focusRequest` nonce guarded a hazard that cannot occur | Concern | Removed; a fresh object is already a new dependency identity |
+| The young-gone sweep assertion was vacuous over an empty array | Concern | A positive control was added first — **and it failed**, because the child recorded no outcome at all for a young candidate while `sweep.ts` records a `skipped`. The child now records it, which is both the fix and the reason the control was worth adding |
+| The merged sweep test aborted at the first failure and leaked fixtures | Concern | Four decisions collected and reported together, each naming its candidate; cleanup runs on the failure path |
+| `TEXT_PAIRINGS` had no roster guard | Nit | Guarded like the other two, and the muted-on-raised pairing the diagnostics disclosure produces was added |
+| Two tests asserted the mock was called | Nit | Both assert the rendered post-condition instead |
+| `StateBadge`'s `subordinate` emphasis had no caller | Nit | Narrowed to the two roles a state takes |
+| The evidence note's count contradicted its own table | Blocker | The pinned configuration is classified **Inherited**, which is what the note's own criterion-1 ground argues; one row is Needed and the count matches |
+| The note's removal inventory named code that did not exist | Blocker | Names `source-inspection.ts` and the three dispatch cases, which now do |
+| The spec was `Approved` with code shipped | Blocker | Moved to `Implementing`, which is what the convention requires while accepted work remains |
+
+### What is still not met, named rather than left as unchecked boxes
+
+`Shipped` would be false, so the spec stays `Implementing`. Known unmet, from this round's
+evidence:
+
+- **AC-0088, AC-0091, AC-0092, AC-0097, AC-0099** — the protocol result carries no stop reason,
+  wait window or secondary diagnostic, so these are verified at the projection and have no
+  user-visible realization. Carrying them needs protocol fields, which is the approval path.
+- **AC-0024, AC-0025, AC-0030** — retracted above and not re-made. The observations must come from
+  the Runtime child's own spawn audit, which is now where the transport runs; they were not
+  re-run in this session.
+- **AC-0114** — no recorded gesture, and no capture of the verdict surface in any state.
+- **AC-0130, AC-0132** — the captures are at 1024 px and at device-pixel-ratio 2. The *Minimum
+  supported window width* is **900** px, and 200 percent **text** resize is not a pixel-ratio
+  change. Both halves are unevidenced.
+- **AC-0061 to AC-0068** — the verdict derivation is unit-tested and composed, but no trusted
+  inspector runs, so the derivation from real inspector output is unexercised end to end.
+
+**A full 157-criterion audit has not been performed.** This list is what this round's review
+established, not a complete reconciliation, and saying so is the point: an unchecked box means
+"not audited here", and the list above means "known unmet".

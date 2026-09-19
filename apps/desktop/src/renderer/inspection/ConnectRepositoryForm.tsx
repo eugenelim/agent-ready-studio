@@ -1,4 +1,4 @@
-import { project } from "@agent-ready/studio-service/state-projection";
+import { project } from "@agent-ready/protocol";
 import { forwardRef } from "react";
 import { StateBadge } from "./StateBadge.js";
 

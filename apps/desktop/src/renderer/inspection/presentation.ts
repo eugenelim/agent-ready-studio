@@ -26,7 +26,7 @@ import {
   project,
   USER_VISIBLE_STATES,
   type UserVisibleState,
-} from "@agent-ready/studio-service/state-projection";
+} from "@agent-ready/protocol";
 
 export type Verdict = "agent-ready" | "not-agent-ready" | "no-verdict";
 
@@ -95,6 +95,13 @@ export interface SurfaceSnapshot {
   /** The verdict, where the result carries one. */
   readonly verdict: Verdict | null;
   readonly resolvedSha: string | null;
+  /**
+   * What distinguishes two visits to the same state -- the refusal reason, or
+   * the diagnostic. Two different bad URLs both land on `url-rejected`, and
+   * without this the second is "no change": nothing is announced, and a polite
+   * region does not re-read text that merely changed underneath it.
+   */
+  readonly detail?: string | null;
 }
 
 export interface Transition {
@@ -109,15 +116,19 @@ export interface Transition {
  * Whether entering this state is a result rather than progress. A result is
  * where AC-0158 applies: the verdict's label leads when one was reached.
  */
-const RESULT_STATES = new Set<UserVisibleState>([
-  "malformed",
-  "inspector-unavailable",
-  "source-unavailable",
-  "source-rate-limited",
-  "inspection-stopped",
-  "cancelled",
-  "incomplete",
-]);
+const IS_RESULT: Readonly<Record<UserVisibleState, boolean>> = Object.freeze({
+  malformed: true,
+  "inspector-unavailable": true,
+  "source-unavailable": true,
+  "source-rate-limited": true,
+  "inspection-stopped": true,
+  cancelled: true,
+  incomplete: true,
+  unconnected: false,
+  "url-rejected": false,
+  resolving: false,
+  inspecting: false,
+});
 
 /**
  * The single focus-management path. Every transition the slice introduces
@@ -140,7 +151,9 @@ export function transition(
   // the whole test. A verdict arriving is a transition into a result even when
   // no state accompanies it, and AC-0158 requires that one to announce.
   const changed =
-    next.state !== previous.state || next.verdict !== previous.verdict;
+    next.state !== previous.state ||
+    next.verdict !== previous.verdict ||
+    (next.detail ?? null) !== (previous.detail ?? null);
   if (!changed) {
     // A re-render is not a transition. Without this an unrelated render would
     // announce the state the lead is already on.
@@ -148,8 +161,7 @@ export function transition(
   }
 
   const isResult =
-    next.verdict !== null ||
-    (next.state !== null && RESULT_STATES.has(next.state));
+    next.verdict !== null || (next.state !== null && IS_RESULT[next.state]);
   const announcement = isResult
     ? resultAnnouncement(next)
     : next.state === null
