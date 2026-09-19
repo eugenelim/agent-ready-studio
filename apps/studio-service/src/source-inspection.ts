@@ -20,7 +20,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import type { StudioResult } from "@agent-ready/protocol";
+import type { StopReasonKey, StudioResult } from "@agent-ready/protocol";
+import { project } from "@agent-ready/protocol";
 import type { Storage } from "@agent-ready/storage-sqlite";
 import { persistConnectedSource } from "./connected-source.js";
 import type { CanonicalSourceIdentity } from "./source-identity.js";
@@ -72,6 +73,15 @@ export type InspectionOutcome =
         | "inspection-stopped"
         | "incomplete";
       readonly diagnostics: string;
+      /**
+       * Which reason stopped it. AC-0091 and AC-0092 take attribution and
+       * retryability **per reason** for `inspection-stopped`, so the condition
+       * alone cannot answer them -- a network timeout must not be attributed
+       * to the repository, which is the crossing AC-0093 forbids.
+       */
+      readonly stopReason?: StopReasonKey | null;
+      /** AC-0097: what the transport reported, where it reported one. */
+      readonly waitWindow?: string | null;
     };
 
 export interface InspectionRequest {
@@ -142,6 +152,9 @@ function base(
     declaredVersionMarker: null,
     inspectorContractVersion: null,
     diagnostics: "",
+    stopReason: null,
+    waitWindow: null,
+    secondaryDiagnostic: null,
   };
 }
 
@@ -231,6 +244,18 @@ export function createSourceInspections(
       if (run?.cancelled) return;
 
       if (!inspected.ok) {
+        // The projection is what turns a state and a reason into the four
+        // sentences a degraded result owes the lead. Carrying the reason and
+        // the wait window here is what lets the surface show them at all.
+        const projected = project({
+          state: inspected.condition,
+          ...(inspected.stopReason == null
+            ? {}
+            : { reason: inspected.stopReason }),
+          ...(inspected.waitWindow === undefined
+            ? {}
+            : { waitWindow: inspected.waitWindow }),
+        });
         put({
           ...current(),
           phase: null,
@@ -238,6 +263,9 @@ export function createSourceInspections(
           condition: inspected.condition,
           inspectedAt: clock(),
           diagnostics: inspected.diagnostics,
+          stopReason: inspected.stopReason ?? null,
+          waitWindow: projected.waitWindow ?? null,
+          secondaryDiagnostic: projected.secondaryDiagnostic ?? null,
         });
         return;
       }
@@ -432,6 +460,12 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
       declaredVersionMarker: held.declaredVersionMarker,
       inspectorContractVersion: held.inspectorContractVersion,
       diagnostics: held.diagnostics,
+      // Not persisted: the stored record has no column for these, so a
+      // restored result carries the verdict and its diagnostics but not the
+      // stop reason. Named here rather than left to look complete.
+      stopReason: null,
+      waitWindow: null,
+      secondaryDiagnostic: null,
     };
   }
 }

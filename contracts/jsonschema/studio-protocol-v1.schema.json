@@ -443,7 +443,7 @@
     "sourceInspectionResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "sourceId", "phase", "verdict", "condition", "versionUnverified", "owner", "repository", "requestedRef", "resolvedSha", "inspectedAt", "declaredVersionMarker", "inspectorContractVersion", "diagnostics"],
+      "required": ["kind", "sourceId", "phase", "verdict", "condition", "versionUnverified", "owner", "repository", "requestedRef", "resolvedSha", "inspectedAt", "declaredVersionMarker", "inspectorContractVersion", "diagnostics", "stopReason", "waitWindow", "secondaryDiagnostic"],
       "properties": {
         "kind": { "const": "source-inspection" },
         "sourceId": { "type": "string", "minLength": 1 },
@@ -458,7 +458,10 @@
         "inspectedAt": { "type": ["string", "null"] },
         "declaredVersionMarker": { "type": ["string", "null"] },
         "inspectorContractVersion": { "type": ["string", "null"] },
-        "diagnostics": { "type": "string" }
+        "diagnostics": { "type": "string" },
+        "stopReason": { "oneOf": [{ "enum": ["remote-ref-charset", "head-mismatch", "request-identifier-mismatch", "result-invalid-studio", "result-invalid-repository", "result-too-large", "inspector-inside-target", "file-count", "resolution-timeout", "inspection-timeout", "parse-failure-studio", "parse-failure-repository-echoed", "parse-failure-declaration-file"] }, { "type": "null" }] },
+        "waitWindow": { "type": ["string", "null"] },
+        "secondaryDiagnostic": { "type": ["string", "null"] }
       }
     },
     "reviewResolutionResult": { "type": "object", "additionalProperties": false, "required": ["kind", "reviewId", "revisionId", "decisionId", "status"], "properties": { "kind": { "const": "review-resolution" }, "reviewId": { "type": "string" }, "revisionId": { "type": "string" }, "decisionId": { "type": "string" }, "status": { "enum": ["accepted", "revision-needed"] } } },

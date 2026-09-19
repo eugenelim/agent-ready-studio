@@ -170,6 +170,9 @@ describe("AC-0104 the persisted-content bound", () => {
       declaredVersionMarker: null,
       inspectorContractVersion: null,
       diagnostics: huge,
+      stopReason: null,
+      waitWindow: null,
+      secondaryDiagnostic: null,
     });
 
     const held = createSourceInspections(first.dependencies).get(

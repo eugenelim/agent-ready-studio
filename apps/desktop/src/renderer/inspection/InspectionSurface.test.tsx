@@ -31,6 +31,9 @@ const base: Inspection = {
   declaredVersionMarker: null,
   inspectorContractVersion: null,
   diagnostics: "",
+  stopReason: null,
+  waitWindow: null,
+  secondaryDiagnostic: null,
 };
 
 function apiReturning(
