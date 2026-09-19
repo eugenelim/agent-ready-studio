@@ -10,10 +10,38 @@
   --color-accent-strong: #0c4a38;
   --color-on-accent: #ffffff;
   --color-focus: #8b3dff;
-  --color-proposal-surface: #f4e8ff;
-  --color-proposal-border: #76509a;
-  --color-accepted-surface: #dff5e8;
-  --color-accepted-border: #357a54;
+  --color-artifact-proposed-surface: #f4e8ff;
+  --color-artifact-accepted-surface: #dff5e8;
+  /* Product state identity hues. The design-system durable output
+     (docs/product/design-system.md, "Product state vocabulary") enumerates
+     four state families and records a hue for none of them; these materialize
+     every enumerated member, which is what makes AC-0120 measurable. Identity
+     is per member, not per family: T14 measured the two artifact-state
+     identity hues against each other. The legacy --color-proposal-border and
+     --color-accepted-border named those same two identities and are retired
+     here rather than kept beside them, because readThemeHues rejects a
+     non-hex --color-* value, so an alias is impossible and a duplicated
+     literal would be a second source of truth for one identity. */
+  --color-artifact-draft: #6b7280;
+  --color-artifact-proposed: #4a4fa8;
+  --color-artifact-accepted: #357a54;
+  --color-artifact-rejected: #9d4433;
+  --color-artifact-superseded: #7a6a55;
+  --color-review-decision-needed: #1f5fa8;
+  --color-review-revision-requested: #a86a1f;
+  --color-review-resolved: #2f7d7d;
+  --color-execution-queued: #5f6b8c;
+  --color-execution-running: #1f7fa8;
+  --color-execution-completed: #4a7a2f;
+  --color-execution-failed: #b0432a;
+  --color-attention-informative: #3a6ea8;
+  --color-attention-caution: #8a6a1f;
+  --color-attention-critical: #a82020;
+  /* The inspection family. AC-0120 binds each of these at 20 units of CIE
+     ΔE2000 from every hue above, in both themes. */
+  --color-inspection-agent-ready: #6b1259;
+  --color-inspection-not-agent-ready: #4a0f3e;
+  --color-inspection-no-verdict: #2e0a28;
   /* Density decision, applied deliberately rather than inherited from browser
      defaults. This is a review tool: the operator reads dense structured content
      — lineage IDs, field diffs, event sequences — and every row of chrome is a
@@ -58,10 +86,26 @@
     --color-accent-strong: #94dfc3;
     --color-on-accent: #10251d;
     --color-focus: #d5b6ff;
-    --color-proposal-surface: #34253f;
-    --color-proposal-border: #c7a5e8;
-    --color-accepted-surface: #183528;
-    --color-accepted-border: #83c9a1;
+    --color-artifact-proposed-surface: #34253f;
+    --color-artifact-accepted-surface: #183528;
+    --color-artifact-draft: #9aa3ad;
+    --color-artifact-proposed: #a3a8e8;
+    --color-artifact-accepted: #83c9a1;
+    --color-artifact-rejected: #e0a08c;
+    --color-artifact-superseded: #c4b49a;
+    --color-review-decision-needed: #8ab6e8;
+    --color-review-revision-requested: #e8bb84;
+    --color-review-resolved: #86c9c9;
+    --color-execution-queued: #aab4cf;
+    --color-execution-running: #7cc4e0;
+    --color-execution-completed: #a7cf86;
+    --color-execution-failed: #e8a184;
+    --color-attention-informative: #94bce8;
+    --color-attention-caution: #d6bb72;
+    --color-attention-critical: #e58274;
+    --color-inspection-agent-ready: #ef6ed8;
+    --color-inspection-not-agent-ready: #d148b4;
+    --color-inspection-no-verdict: #b03a96;
     --shadow-raised: 0 0.5rem 1.5rem rgb(0 0 0 / 30%);
   }
 }
@@ -406,13 +450,13 @@ h3 {
 }
 
 .proposal-label {
-  background: var(--color-proposal-surface);
-  border-color: var(--color-proposal-border);
+  background: var(--color-artifact-proposed-surface);
+  border-color: var(--color-artifact-proposed);
 }
 
 .accepted-label {
-  background: var(--color-accepted-surface);
-  border-color: var(--color-accepted-border);
+  background: var(--color-artifact-accepted-surface);
+  border-color: var(--color-artifact-accepted);
 }
 
 .change-list,
@@ -520,10 +564,10 @@ h3 {
 }
 
 .action-report {
-  background: var(--color-accepted-surface);
+  background: var(--color-artifact-accepted-surface);
   /* `output` is inline by default; this is a block banner. */
   display: block;
-  border: 1px solid var(--color-accepted-border);
+  border: 1px solid var(--color-artifact-accepted);
   border-radius: var(--radius-control);
   margin-block: 0 var(--space-6);
   padding: var(--space-3) var(--space-4);

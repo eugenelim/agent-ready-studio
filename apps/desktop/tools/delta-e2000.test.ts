@@ -139,9 +139,18 @@ describe("ΔE2000 generator", () => {
     }
   });
 
-  it("separates the proposal and accepted border hues in both themes", () => {
+  it("separates the artifact identity hues T14 measured, in both themes", () => {
     // The discriminating positive: two artifact-state identity hues that are
     // deliberately different colours, measured in each theme's own values.
+    //
+    // These four literals are the values --color-proposal-border and
+    // --color-accepted-border carried when T14 measured them. T12 retired
+    // those token names and revalued the proposed identity, so these are no
+    // longer readable from tokens.css. They stay as literals because what
+    // this case proves is a property of the function, not of the palette:
+    // the magnitudes are the record T14's inline proof pinned, and a case
+    // that chased the current tokens would restate its own subject whenever
+    // the palette moved.
     expect(hexDeltaE2000("#76509a", "#357a54")).toBeCloseTo(40.389, 2);
     expect(hexDeltaE2000("#c7a5e8", "#83c9a1")).toBeCloseTo(37.967, 2);
   });
@@ -164,11 +173,15 @@ describe("ΔE2000 generator", () => {
     // Both artifact-state families are materialized in both themes. This is the
     // whole reason the reader must reach the dark block: AC-0120 binds there
     // too, and these values are not the light ones.
+    // Renamed in T12, which retired --color-proposal-border and
+    // --color-accepted-border: they named the same two artifact-state
+    // identities as the enumerated family set, and one identity carries one
+    // token. The surfaces kept their role under the family's name.
     const identityHues = [
-      "--color-proposal-surface",
-      "--color-proposal-border",
-      "--color-accepted-surface",
-      "--color-accepted-border",
+      "--color-artifact-proposed-surface",
+      "--color-artifact-proposed",
+      "--color-artifact-accepted-surface",
+      "--color-artifact-accepted",
     ];
     for (const name of identityHues) {
       expect(blocks.root.get(name)).toMatch(/^#[0-9a-f]{6}$/);

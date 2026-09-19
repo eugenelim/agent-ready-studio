@@ -51,6 +51,19 @@ looks like approval:
 - **Review state:** decision-needed, revision-requested, and resolved.
 - **Execution state:** queued, running, completed, and failed.
 - **Attention state:** informative, caution, and critical.
+- **Inspection state:** agent-ready, not-agent-ready, and no-verdict.
+
+Inspection is an operational family and is kept away from the semantic ones on
+purpose. Its identity hues sit at least 20 units of CIE ΔE2000 from every hue in
+the four families above, in both themes, so an inspection result never reads as
+an approval or an alarm. That separation is a product obligation, not a styling
+preference: it is why the family takes a reserved arc of the wheel rather than
+borrowing the accepted or critical treatment.
+
+Concrete values for every member live in
+`apps/desktop/src/renderer/styles/tokens.css` as `--color-<family>-<member>`,
+one token per identity, and the separation is measured against them by
+`apps/desktop/tools/inspection-hue-separation.test.ts`.
 
 Each state combines a label, icon or shape, and color. Status hues remain
 recognizable across themes. Proposal and acceptance use deliberately different

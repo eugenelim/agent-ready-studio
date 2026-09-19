@@ -2389,7 +2389,7 @@ will argue over.** The one materialized family pair, both themes:
 
 | Pair | Light | Dark |
 | --- | --- | --- |
-| `--color-proposal-border` ↔ `--color-accepted-border` | 40.389 | 37.967 |
+| `--color-proposal-border` ↔ `--color-accepted-border` — **both tokens retired in T12; see the T12 entry** | 40.389 | 37.967 |
 | `--color-proposal-surface` ↔ `--color-accepted-surface` | 21.866 | 28.485 |
 
 These are *within* the artifact family, so they are not an AC-0120 comparison and clear nothing.
@@ -2690,7 +2690,10 @@ inline proofs, a green `pnpm verify`, and the pinned section hashes still verify
 
 **1. Discriminating positive and consequential negative.** The positive is
 `--color-proposal-border` against `--color-accepted-border` — two real artifact-state identity
-hues — measured in each theme's own values: **40.389** light, **37.967** dark. The negative is the
+hues — measured in each theme's own values: **40.389** light, **37.967** dark. **T12 retired
+`--color-proposal-border` and `--color-accepted-border` and revalued the proposed identity**, so
+these magnitudes are no longer readable from `tokens.css`; the test keeps them as literals,
+because what that case proves is a property of the function rather than of the palette. The negative is the
 dark theme's `--color-surface` against `--color-accepted-surface`, which measures **10.290**. That
 negative is the one that would matter if admitted: the design means those two to be
 distinguishable, and an arm that reported them as widely separated would report anything as widely
@@ -4284,3 +4287,60 @@ edit was reverted rather than re-pinned: T5 is closed, and a completed task's re
 place to document a criterion added four tasks later. The decline class is stated where it
 governs — in AC-0081, in the *Markerless-reclaim age* row, and in the sweep module docstring. The
 edit was also already stale, describing round 35's liveness-only rule that round 36 superseded.
+
+## t12-design-system-2026-09-19
+
+**The design-system edit, landed first and separately as T12's plan entry requires.** No component
+consumes the inspection family yet.
+
+**Owner decision: mint all fifteen enumerated members plus the inspection family.** AC-0120
+measures "against the hue set the design-system durable output enumerates", and that output
+enumerates fifteen members across four families while `tokens.css` materialized two. The
+alternative — minting only the inspection family and comparing against the two that existed —
+was declined: AC-0120 would have measured against two of fifteen, passed almost trivially, and
+strengthened silently whenever anyone later added a hue. **A criterion that cannot fail today is
+the failure this amendment spent eight rounds removing**, so the comparison set is materialized in
+full.
+
+**AC-0120 forced the palette, which is what it is for.** The inspection family cannot borrow any
+semantic hue: green is artifact-accepted, execution-completed and review-resolved; red is
+attention-critical, artifact-rejected and execution-failed. Four successive candidate palettes
+failed at 17.6, 19.2, 19.8 and 13.8 units. The family therefore takes a reserved magenta arc,
+which is the criterion's own stated rationale reached from the other direction — "an inspection hue
+that sat near the critical treatment would read as an alarm".
+
+**Margins, both themes, against all fifteen members.**
+
+| Theme | Closest pair | ΔE2000 | Furthest |
+| --- | --- | --- | --- |
+| light | agent-ready ↔ artifact-proposed | **23.25** | 66.74 |
+| dark | agent-ready ↔ artifact-draft | **23.01** | 72.54 |
+
+The bound is 20, so the palette clears it by about three units at its tightest. **The recorded
+feasibility risk was real but did not bite**: T12's plan entry warned that the palette's natural
+spacing sits at the bound and that clearing four families in both themes might prove infeasible.
+It proved tight — two candidates landed at 19.15 and 19.81 — and it was resolved by moving
+`artifact-proposed` off purple to indigo and `attention-critical` off salmon, not by revisiting the
+bound. **No amendment was needed**, which is the outcome that plan entry names as the alternative.
+
+**The search was bounded by contrast, not only by separation.** An exhaustive sweep of the sRGB
+cube at 17-step granularity found 1,836 light-theme and 1,749 dark-theme hues clearing 20 units —
+but the best-separated were near-white in the light theme and near-black in the dark, each
+invisible against its own canvas. Filtering to WCAG 2.2 non-text contrast of 3:1 against the
+canvas cut those to 203 and 771. **A hue that clears the separation by being unreadable clears
+nothing**, and the criterion does not say so, so the search tool applied it and this entry records
+it.
+
+**Two legacy tokens were retired rather than kept beside the new set.**
+`--color-proposal-border` and `--color-accepted-border` named the same two artifact-state
+identities as `--color-artifact-proposed` and `--color-artifact-accepted`, and had drifted from
+them once the new values landed — two tokens for one identity. `readThemeHues` throws on a
+non-hex `--color-*` value, so an alias was impossible and the only alternative was a duplicated
+literal kept in sync by hand. The surfaces kept their role under the family's name. The T14
+evidence entry above is annotated in place rather than rewritten, and the ΔE2000 tool's pinned
+magnitudes stay as literals, because that case proves a property of the function rather than of
+the palette.
+
+**Gates.** `pnpm lint` exit 0 over 106 files; `pnpm typecheck` exit 0; `pnpm test` 42 files,
+**585 of 585** at load average 16.08. `apps/desktop/tools/` is 17 of 17, covering the ΔE2000
+generator's own proofs and the new separation arm.
