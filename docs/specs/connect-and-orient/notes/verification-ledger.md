@@ -4931,3 +4931,49 @@ Unchanged from the previous entry, minus what this round closed:
   something a still capture shows.
 
 **This list is round-scoped, not a reconciliation.** A full 157-criterion audit has not been run.
+
+## t6-inspector-repin-2026-09-19
+
+**T6's validation re-run against pack `core` 2.26.14, and the pin re-established from it.**
+
+**Why this was not a version bump.** Merging `origin/main` brought a pack upgrade that moved
+`core` from 2.26.0 to 2.26.14, and the two inspector files changed with it. The *Pinned trusted
+inspector* row states the pin is "the version recorded at T6" and that "every A3-derived property
+in the brief is a property of one pack version, so **the pin is the evidence's scope**". Editing
+the version and the digests to make four tests pass would have re-scoped that evidence onto a
+version nobody had read. T6's two questions were therefore asked again of the new source.
+
+| File | 2.26.0 (retired) | 2.26.14 |
+| --- | --- | --- |
+| `workspace_status.py` | `dec939e0…f1db` | `b07efea9…7484` |
+| `workspace_status_engine.py` | `2e6b6037…899b` | `b99ad663…4eea` |
+
+**Question 1 — does it open a repository-declared path operand? YES, in the same three shapes,
+and two of them are now stronger.**
+
+1. `_confined_artifact_path` (`:1806` → `:1807`): unchanged in substance — the
+   `_is_repository_relative_path` gate, then `resolve()` and `relative_to(root_resolved)`, still
+   returning `None` on `OSError`, `RuntimeError` or `ValueError`.
+2. Spec slugs (`:3854` → `:3884`): the pre-join rejection of absolute paths and `..` parts is
+   still there, and **2.26.14 adds a confinement check on `docs/specs` itself** before the join,
+   so a symlinked specs directory is refused rather than walked.
+3. Lifecycle-record locators (`:2125`, unchanged): still joins with **no** `relative_to`. The
+   fail-safe reasoning T6 recorded holds unchanged — the result is the `cooled` set, which the
+   engine consumes as the set of entries it may **not** open, so an escaping locator can only add
+   an out-of-root path to a do-not-open list that no in-root artifact path will match.
+
+**Question 2 — does its traversal follow symlinks? NO, and 2.26.14 closes a gap 2.26.0 had.**
+`os.walk(..., followlinks=False)` is still there (`:4266` → `:4280`), with six `is_symlink()`
+refusals around it. **New in 2.26.14**: a root-confinement check before the walk, because
+"`followlinks=False` does not apply to the initial top directory" — so `docs/specs` or `docs/`
+being a symlink is now caught, which 2.26.0 did not catch — and a visited-set guard so an in-root
+junction cannot produce duplicate findings for the same real directory.
+
+**Conclusion: both answers hold, and the two changes found are improvements.** Nothing T6's
+residual turned on has regressed, so AC-0069's ground is unchanged. The pin is re-established at
+2.26.14 with the digests above.
+
+**One test was reading the version as a literal.** `inspector-locator.test.ts` asserted
+`"2.26.0"` beside an assertion that read `PINNED_INSPECTOR.fileDigests` from the pin. It now reads
+the version from the pin too: a literal there drifts from the thing it is supposed to be checking
+the moment the pack moves, which is what just happened.
