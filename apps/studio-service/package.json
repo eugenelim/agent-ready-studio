@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/service.ts",
-    "./entry": "./dist/service.js"
+    "./entry": "./dist/service.js",
+    "./state-projection": "./src/state-projection.ts",
+    "./source-identity": "./src/source-identity.ts"
   },
   "dependencies": {
     "@agent-ready/blueprint-product-development": "workspace:*",

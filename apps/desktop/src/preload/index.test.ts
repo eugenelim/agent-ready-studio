@@ -36,7 +36,17 @@ describe("Studio preload boundary", () => {
       "artifact",
       "execution",
       "review",
+      "source",
       "workspace",
+    ]);
+    // The inspection surface's three methods, and no fourth. `connect` takes
+    // the submitted URL only: AC-0106 puts no credential on the form, so a
+    // credential-shaped parameter here would be the first place one could
+    // appear on the boundary.
+    expect(Object.keys(api.source).sort()).toEqual([
+      "cancel",
+      "connect",
+      "get",
     ]);
     expect(Object.keys(api.workspace).sort()).toEqual([
       "create",
