@@ -1,30 +1,29 @@
 /**
  * T13's live unauthenticated smoke. Skipped unless CONNECT_ORIENT_SMOKE=1, so
  * it never runs in the automated suite -- AC-0148 requires every test this
- * delivery adds to pass with no network, no credential and no remote service,
- * and a test that reached GitHub by default would break that for the suite.
+ * delivery adds to pass with no network, no credential and no remote service.
+ *
+ * An earlier version drove the transport through an executor running in this
+ * process, which put the git spawns outside the Runtime child's process group
+ * and outside its spawn audit -- the audit whose contents AC-0025's manual leg
+ * exists to read. The observations taken from it were retracted. This version
+ * resolves the ref here and hands the revision to the Runtime, which fetches
+ * and checks out, so every transport spawn is the child's own and appears in
+ * the child's audit.
  */
-
-import { execFile } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
-import { canonicalizeSource } from "../../source-identity.js";
-import {
-  createGitTransport,
-  materializeRevision,
-  resolveRevision,
-} from "./git-driver.js";
+import { buildFetchUrl, canonicalizeSource } from "../../source-identity.js";
+import { createDefaultTransport } from "../../source-inspection.js";
+import { pinnedGitConfigurationArgs, resolveRevision } from "./git-driver.js";
 import { startTrialInspection } from "./runtime-supervisor.js";
-
-const run = promisify(execFile);
 
 const enabled = process.env.CONNECT_ORIENT_SMOKE === "1";
 
 describe.skipIf(!enabled)("T13 live unauthenticated smoke", () => {
-  it("inspects a real public repository and records what it observed", async () => {
+  it("materializes a real public repository inside the Runtime", async () => {
     const identity = canonicalizeSource(
       process.env.CONNECT_ORIENT_SMOKE_URL ??
         "https://github.com/octocat/Hello-World",
@@ -33,86 +32,118 @@ describe.skipIf(!enabled)("T13 live unauthenticated smoke", () => {
 
     const domain = mkdtempSync(join(tmpdir(), "connect-orient-smoke-"));
     try {
-      const record = await startTrialInspection({
-        requestId: "smoke-0001",
-        identity: identity.identity,
-        sweepDomain: domain,
-      });
+      // Resolving reads a ref listing and writes no tree, so it stays here.
+      const resolution = await resolveRevision(
+        identity.identity,
+        createDefaultTransport(),
+      );
+      if (!resolution.ok) throw new Error(`resolve failed: ${resolution.code}`);
+      expect(resolution.resolvedSha).toMatch(/^[0-9a-f]{40}$/);
+
+      const record = await startTrialInspection(
+        {
+          requestId: "smoke-0001",
+          identity: identity.identity,
+          sweepDomain: domain,
+        },
+        {
+          revision: {
+            fetchUrl: buildFetchUrl(identity.identity),
+            resolvedSha: resolution.resolvedSha,
+          },
+          // AC-0025's manual leg is about the transport helper, and
+          // `git-remote-https` is a grandchild: git spawns it, so it is not in
+          // the child's direct audit. The descendant observer is the parent
+          // side of the boundary and is the only place it is visible.
+          observeEnvironmentTree: true,
+          samplingIntervalMs: 25,
+        },
+      );
       if (!("admitted" in record) || record.admitted !== true) {
         throw new Error(`inspection refused: ${JSON.stringify(record)}`);
       }
+
+      const audit = record.spawnAudit;
+      const gitArgsOf = (needle: string) =>
+        audit.filter((entry) => entry.args.includes(needle));
+
+      // AC-0009: redirect refusal on both network phases, observed in the
+      // child's own audit rather than inferred from a caller's vector.
+      // Scoped to the spawns that touch the network or the tree. The identity
+      // probes -- `--exec-path` and `--version` -- are not transport calls and
+      // legitimately carry no pinned configuration; asserting over every git
+      // spawn would be asserting the wrong property.
+      const transportPhases = ["init", "fetch", "checkout"] as const;
+      const transportSpawns = audit.filter((entry) =>
+        transportPhases.some((phase) => entry.args.includes(phase)),
+      );
+      expect(transportSpawns.length).toBeGreaterThan(0);
+      expect(gitArgsOf("fetch").length).toBeGreaterThan(0);
+      for (const entry of transportSpawns) {
+        expect(entry.args).toContain("http.followRedirects=false");
+        expect(entry.args).toContain("credential.helper=");
+      }
+
+      // AC-0025: the transport helper is a grandchild, so it is visible only
+      // to the descendant observer. Its admission is what the manual leg is
+      // about, and it is asserted rather than merely written to a file.
+      const descendants = [...record.observedProcesses.values()];
+      const helper = descendants.find((process) =>
+        process.executable.includes("git-remote-https"),
+      );
+      expect(helper, "git-remote-https was not observed").toBeDefined();
+
+      // AC-0024: the pinned configuration reaches the helper, compared as a
+      // parsed key/value set rather than as a substring of one string.
+      const pinned = new Map(
+        pinnedGitConfigurationArgs()
+          .filter((argument) => argument !== "-c")
+          .map((pair) => {
+            const split = pair.indexOf("=");
+            return [pair.slice(0, split), pair.slice(split + 1)] as const;
+          }),
+      );
+      const carried = new Map(
+        [
+          ...(helper?.environment?.GIT_CONFIG_PARAMETERS ?? "").matchAll(
+            /'([^']*)'='([^']*)'/g,
+          ),
+        ].map((match) => [match[1] as string, match[2] as string]),
+      );
+      for (const [key, value] of pinned) {
+        expect(carried.get(key), `${key} did not reach the helper`).toBe(value);
+      }
+      // And no credential can be prompted for anywhere on that path.
+      expect(helper?.environment?.GIT_ASKPASS).toBe("");
+      expect(helper?.environment?.SSH_ASKPASS).toBe("");
+      expect(helper?.environment?.GIT_TERMINAL_PROMPT).toBe("0");
+
       writeFileSync(
         process.env.CONNECT_ORIENT_SMOKE_OUT ?? "/tmp/smoke.json",
         `${JSON.stringify(
           {
-            requestId: record.requestId,
+            resolvedRef: resolution.resolvedRef,
+            resolvedSha: resolution.resolvedSha,
             servicePid: record.servicePid,
             childPid: record.childPid,
             childPgid: record.childPgid,
             environmentNames: Object.keys(record.environment).sort(),
-            gitIdentity: record.gitIdentity,
-            childArgs: record.childArgs,
-            spawnAudit: record.spawnAudit,
-            protocolLines: (record as unknown as { protocolLines?: unknown })
-              .protocolLines,
-            stateRoot: record.stateRoot,
+            askpass: {
+              GIT_ASKPASS: record.environment.GIT_ASKPASS,
+              SSH_ASKPASS: record.environment.SSH_ASKPASS,
+              GIT_TERMINAL_PROMPT: record.environment.GIT_TERMINAL_PROMPT,
+              GIT_CONFIG_PARAMETERS: record.environment.GIT_CONFIG_PARAMETERS,
+            },
+            spawnAudit: audit,
+            observedProcesses: descendants,
+            helperEnvironment: helper?.environment,
+            protocolLines: record.protocolLines,
           },
           null,
           2,
         )}\n`,
       );
       expect(record.childPid).toBeGreaterThan(0);
-
-      // The transport, driven for real. The Runtime run above reaches `git
-      // init` and stops, so the resolve and fetch phases -- where AC-0009's
-      // redirect refusal and AC-0024's helper environment are observable --
-      // are exercised here against the same remote and the same build.
-      const invocations: Array<{ args: readonly string[]; cwd?: string }> = [];
-      const transport = createGitTransport(
-        record.gitIdentity.executable,
-        async ({ executable, args, cwd }) => {
-          invocations.push({ args, cwd });
-          const out = await run(executable, [...args], {
-            cwd,
-            env: record.environment,
-          });
-          return { stdout: out.stdout, stderr: out.stderr, status: 0 };
-        },
-      );
-
-      const resolution = await resolveRevision(identity.identity, transport);
-      if (!resolution.ok) throw new Error(`resolve failed: ${resolution.code}`);
-
-      const tree = mkdtempSync(join(domain, "materialize-"));
-      const verification = await materializeRevision(
-        resolution,
-        tree,
-        transport,
-      );
-
-      writeFileSync(
-        (process.env.CONNECT_ORIENT_SMOKE_OUT ?? "/tmp/smoke.json").replace(
-          ".json",
-          "-transport.json",
-        ),
-        `${JSON.stringify(
-          {
-            resolvedRef: resolution.resolvedRef,
-            resolvedSha: resolution.resolvedSha,
-            verification,
-            invocations,
-            environmentNames: Object.keys(record.environment).sort(),
-            askpass: {
-              GIT_ASKPASS: record.environment.GIT_ASKPASS,
-              SSH_ASKPASS: record.environment.SSH_ASKPASS,
-              GIT_TERMINAL_PROMPT: record.environment.GIT_TERMINAL_PROMPT,
-            },
-          },
-          null,
-          2,
-        )}\n`,
-      );
-      expect(resolution.resolvedSha).toMatch(/^[0-9a-f]{40}$/);
     } finally {
       rmSync(domain, { recursive: true, force: true });
     }

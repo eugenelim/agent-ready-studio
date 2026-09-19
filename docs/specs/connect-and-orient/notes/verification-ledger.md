@@ -4658,3 +4658,61 @@ evidence:
 **A full 157-criterion audit has not been performed.** This list is what this round's review
 established, not a complete reconciliation, and saying so is the point: an unchecked box means
 "not audited here", and the list above means "known unmet".
+
+## t13-delivery-2026-09-19-remade
+
+**The delivery evidence, re-made after the retraction.** `pnpm verify` exit 0 — 50 files,
+**655 passed, 1 skipped**; `git diff --check` clean. The skip is the live smoke, gated behind
+`CONNECT_ORIENT_SMOKE=1`, which keeps AC-0148 true.
+
+### The four transport observations, now taken from the Runtime child
+
+The retracted versions were taken from git spawns this process made, outside the child's group and
+outside its audit. The transport now runs **inside the Runtime**, so the audit is where the
+criteria say to look. Observed against build `bfccb7c`, resolving
+`7fd1a60b01f91b314f59955a4e4d4e80d8edf11d` on `master`.
+
+| Criterion | Observed |
+| --- | --- |
+| **AC-0009** redirect refusal on both phases | `http.followRedirects=false` on every transport spawn the child made — `init`, `fetch`, `checkout`. **Scoped deliberately**: `git --exec-path` and `git --version` are identity probes, not transport calls, and carry no pinned configuration; asserting over every git spawn asserted the wrong property and failed on the first run |
+| **AC-0024** helper environment | The pinned configuration reaches `git-remote-https` as `GIT_CONFIG_PARAMETERS`, compared as a **parsed key/value set** against `pinnedGitConfigurationArgs()` — all thirteen pairs present with matching values, which is the comparison the plan asks for and the retracted row did not make. `GIT_ASKPASS` and `SSH_ASKPASS` are empty and `GIT_TERMINAL_PROMPT` is `0` **on the helper's own environment**, not merely on the child's |
+| **AC-0025** helper admission | `/Library/Developer/CommandLineTools/usr/libexec/git-core/git-remote-https` observed as a descendant. It is a **grandchild** — git spawns it — so it appears in no direct audit and is visible only to the descendant observer. That is why the retracted row could not have contained it |
+| **AC-0030** no surviving helper | `ps -g` on the child's own recorded pgid returned nothing after the run. The pgid is the one this run recorded, not another run's |
+
+**Every one of these is now asserted by the smoke rather than written to a file.** The earlier
+version captured them to JSON and asserted only a pid and a SHA shape, so a build that leaked a
+credential helper would have produced a green run and an evidence file nobody compared to
+anything.
+
+### Rendered evidence
+
+**56 scenarios**, eight of them the connect surface, all `problems: []` and zero horizontal
+overflow. Two scenarios were added because the retracted entry's evidence did not match the
+criteria:
+
+- **`narrow-900`** — AC-0130's floor is the *Minimum supported window width*, **900** CSS pixels.
+  The previous evidence was `narrow-1024`, which is wider than the criterion's own floor.
+- **`text-200`** — AC-0132's text-resize half. The previous evidence was `zoom-200`, a device
+  pixel ratio of 2, which enlarges the layout with the text. Text resize enlarges text against a
+  fixed layout, and that is the case that clips. The tool now sets a root font size instead.
+
+**AC-0114 has no browser capture, and this says so.** The role assignment is asserted in
+`VerdictSurface.test.tsx` — verdict primary with the condition secondary, condition primary when
+the verdict is `no-verdict`, identity subordinate to both. No capture exists because reaching the
+verdict surface needs a completed inspection, which the capture path deliberately does not
+perform. Evidenced at the component level, unevidenced in a browser.
+
+### Gate state, all four runs
+
+| Load average | Result |
+| --- | --- |
+| 13.48 | 651 of 656 — four failures across `disposal` and `sweep` |
+| 34.78 | 654 of 656 — one |
+| 22.20 | 654 of 656 — one, a different case |
+| 20.12 | **655 of 656, 1 skipped — exit 0** |
+
+Every failing file passed twice in isolation: `disposal.test.ts` 8 of 8 and `sweep.test.ts` 26 of
+26. Each failure was a 5,000 ms timeout in the trial-runtime harness with the cascade the backlog
+entry describes. **Three of four runs failed**, which is worse than the ratio earlier entries
+record, and the added end-to-end artifact spawns a real Service process of its own — so this
+session has again increased the load that harness runs under. Recorded rather than averaged away.
