@@ -92,7 +92,7 @@ than the criterion they serve. `AC-0134`, `AC-0135` and `AC-0137` are vacuous by
 never runs a smudge filter that was never configured — so the probe log is empty no matter what
 Studio does. **AC-0133 to AC-0139, AC-0141, AC-0142, AC-0145 to AC-0147, and AC-0069.**
 
-AC-0147 is the criterion that exists to catch exactly this, and it is green.
+AC-0147 is the criterion that exists to catch exactly this, and **its test is green** while the criterion itself is recorded not met — the distinction this document's Method section exists to draw.
 
 ### 5. The default test suite reaches github.com
 
@@ -111,7 +111,7 @@ defect rather than a missing test.**
 **This finding was wrong, and it is left here rather than deleted because it was reported as a
 finding and acted on.** It claimed that every `*-connect.png`, `narrow-900-*` and `text-200-*`
 was absent from the repository, and that the ledger's `#t13-delivery-2026-09-19-remade` and
-`#review-round-37` entries cited evidence nobody had committed.
+`#review-round-37-2026-09-19` entries cited evidence nobody had committed.
 
 `git ls-tree 3814102 docs/specs/connect-and-orient/notes/visual/` returns **57 entries** — 56
 PNGs and a manifest, including all eight `*-connect.png`, all seven `narrow-900-*` and all seven
@@ -399,7 +399,7 @@ re-implemented checkout, so removing a flag from `PINNED_GIT_CONFIGURATION` redd
 | --- | --- | --- | --- | --- |
 | AC-0148 | **not met** | N | e2e/connect-and-orient.test.ts:85-105 | **live defect.** Ungated accepted URL; the default `pnpm test` opens a connection to github.com. No assertion, hook or config anywhere enforces the property |
 | AC-0149 | met | S | test/hostile-fixture.test.ts:36-108 | corpus and mapping exhaustively pinned; the `.GIT` case is built through `mktree`/`commit-tree` and verified present before checkout |
-| AC-0150 | met | N | the evidence note, all thirteen headings present | satisfied on inspection; `tools/governance-gate.mjs:46-49` reads only `docs/adr` and `docs/rfc`, so it cannot regress detectably |
+| AC-0150 | met | N | the evidence note, all thirteen headings present | satisfied on inspection; `tools/governance-gate.mjs:46-49`, at the repository root rather than under the prefixes the table lists, reads only `docs/adr` and `docs/rfc`, so it cannot regress detectably |
 | AC-0151 | met | N | evidence note :58-65 | a Needed/Inherited column over six held things, each with an observation |
 | AC-0152 | met | N | evidence note :185-190 | states the property was mandated by the spec rather than discovered |
 | AC-0153 | met | N | evidence note :7-10,155-190 | each criterion carries an **Observed:** paragraph and no Pass/Fail token |

@@ -197,26 +197,31 @@ async function settleRender(
 ) {
   const until = Date.now() + deadlineMs;
   let previous = null;
-  let changed = false;
   for (;;) {
     if (plumbingFailure !== null) throw new Error(plumbingFailure);
     const now = await readRenderState(page);
-    if (now !== before) changed = true;
-    if ((changed || !changeRequired) && previous !== null && now === previous)
-      // Decided from the settled reading against `before`, not from the
-      // latched `changed` flag: a surface that flickers and settles back to
-      // exactly its pre-click state has not changed, and reporting a stale
-      // declaration there would redden the run with a claim this function's
-      // own reading contradicts.
-      return !changeRequired && now !== before
-        ? `${what} was declared a no-op click but settled to a different document, so its clickIsNoop property is stale`
-        : null;
+    const settled = previous !== null && now === previous;
+    // Both branches decide from the settled reading against `before`, never
+    // from a latched "it changed at some point" flag. A surface that renders
+    // a transient and settles back to exactly its pre-click state has not
+    // arrived, and a latch would have called that settled and published a
+    // capture of the previous surface with an empty problems list.
+    const moved = now !== before;
+    if (settled) {
+      if (!changeRequired)
+        return moved
+          ? `${what} was declared a no-op click but settled to a different document, so its clickIsNoop property is stale`
+          : null;
+      if (moved) return null;
+      // Settled back where it started, and a change was required: the click
+      // has not landed yet, so keep waiting rather than calling this done.
+    }
     previous = now;
     if (Date.now() >= until)
-      return changed || !changeRequired
+      return moved
         ? `${what} was still changing after ${deadlineMs / 1000}s`
         : `${what} never changed within ${deadlineMs / 1000}s, so the capture may show the previous surface`;
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 }
 
@@ -232,13 +237,19 @@ const PRODUCT_ROOT_FONT_PX = (() => {
     "apps/desktop/src/renderer/styles/tokens.css",
   );
   const root = /:root\s*\{([\s\S]*?)\n\}/.exec(readFileSync(tokens, "utf8"));
-  const sizes =
-    root === null ? [] : [...root[1].matchAll(/font-size:\s*([^;]+);/g)];
+  if (root === null)
+    fail(
+      `could not locate a \`:root { ... }\` block in ${tokens}. This tool reads the ` +
+        "product's root font size from there to prove the stylesheet applied to " +
+        "every capture.",
+    );
+  // `;?` so a final declaration without a trailing semicolon still parses.
+  const sizes = [...root[1].matchAll(/font-size:\s*([^;}\n]+);?/g)];
   if (sizes.length !== 1)
     fail(
-      `expected exactly one \`font-size\` in the :root block of ${tokens}, found ` +
-        `${sizes.length}. This value is what every capture is checked against to ` +
-        "prove the stylesheet applied, so it must be unambiguous.",
+      `found ${sizes.length} \`font-size\` declarations in the :root block of ` +
+        `${tokens}, expected exactly one. This value is what every capture is ` +
+        "checked against to prove the stylesheet applied, so it must be unambiguous.",
     );
   const declared = sizes[0][1].trim();
   const percent = /^([\d.]+)%$/.exec(declared);
@@ -911,7 +922,10 @@ try {
     if (Math.abs(mode.rootFontSizePx - expectedRoot) > 0.5)
       modeErrors.push(
         `root font-size is ${mode.rootFontSizePx}px, wanted ${expectedRoot}px ` +
-          `(tokens.css owns ${PRODUCT_ROOT_FONT_PX}px at scale ${scenario.textScale ?? 1})`,
+          `(tokens.css owns ${PRODUCT_ROOT_FONT_PX}px at scale ${scenario.textScale ?? 1}). ` +
+          "Either the stylesheet did not apply, or the built renderer is stale " +
+          "against an edited tokens.css — this pin is read from source and the " +
+          "page is served from apps/desktop/out/renderer, so run `pnpm build` first",
       );
     // Thrown rather than `fail()`ed. `fail` exits the process, and every abort
     // inside this `try` must instead unwind through the `finally` below —
@@ -1014,13 +1028,6 @@ try {
           // later click on the same surface with no wait at all -- `reviews`
           // clicks Home then Reviews -- and the recorded finding would name
           // the wrong one.
-          // Every click is settled, including one declared a no-op. The
-          // declaration only relaxes the "must have changed" requirement --
-          // it does not skip the wait, because a declaration is true of a
-          // list order rather than of the click, and reordering the surfaces
-          // would otherwise leave a real navigation with no post-condition.
-          // A declared no-op that *does* change is reported, so a stale
-          // declaration surfaces instead of hiding.
           const finding = await settleRender(
             page,
             `the ${surface.name} surface, after clicking "${label}"`,
