@@ -144,6 +144,7 @@ repository. A name resolves into exactly one of:
 | `git-driver`, `runtime-child`, `runtime-supervisor`, `runtime-environment`, `executable-identity`, `process-tree-observer`, `materialization`, `materialization-confinement`, `per-request-state-root`, `disposal`, `sweep`, `inspector-locator`, `declared-value-reader`, `inadmissible-keys`, `supervised-bounds`, `absence-proofs`, `live-smoke`, `test/hostile-fixture` | `apps/studio-service/src/trials/connect-and-orient-runtime/` |
 | `VerdictSurface`, `InspectionSurface`, `ConnectRepositoryForm`, `ProgressPulse`, `StateBadge`, `presentation`, `useInspection` | `apps/desktop/src/renderer/inspection/` |
 | `visual-evidence`, `delta-e2000`, `inspection-contrast`, `inspection-hue-separation` | `apps/desktop/tools/` |
+| `connect-and-orient-trial-runtime-evidence.md`, cited in rows as "the evidence note" | `docs/product/research/` |
 | `validator`, `contracts`, `state-vocabulary` | `packages/protocol/src/` |
 | `storage` | `packages/storage-sqlite/src/` |
 | `tokens.css` | `apps/desktop/src/renderer/styles/` |

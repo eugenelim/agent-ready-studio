@@ -5074,7 +5074,7 @@ and genuinely strong — the tests are fine, and nothing reaches the code they c
 **~~The rendered evidence was never committed~~ — that claim was false, and this is its
 retraction.** The audit recorded a sixth cross-cutting finding saying every `*-connect.png`,
 `narrow-900-*` and `text-200-*` was absent from the repository, and that the
-`#t13-delivery-2026-09-19-remade` and `#review-round-37` entries cited evidence nobody had
+`#t13-delivery-2026-09-19-remade` and `#review-round-37-2026-09-19` entries cited evidence nobody had
 committed.
 
 `git ls-tree 3814102 docs/specs/connect-and-orient/notes/visual/` returns **57 entries**,
@@ -5154,7 +5154,8 @@ networked boundary cases — so the pass and fail columns sum to 676, not 679.
 | 3 | 43.3 | 672 | 4 | 3 | `disposal` only |
 
 **Judged by the two-in-isolation rule, not by a re-run.** All three files were run twice each in
-isolation between attempts 1 and 2: six runs, six exit 0. The failures are 5,000 ms timeouts and
+isolation between attempts 1 and 2: ~~six runs, six exit 0~~ — **superseded: the reconciliation
+in round 47 counts twelve runs by this point, three of which failed.** The failures are 5,000 ms timeouts and
 the `already-in-flight` cascade the `pre-existing-trial-runtime-load-flake` entry describes, whose
 own comment records "green twice in isolation immediately after each red".
 
@@ -5411,8 +5412,9 @@ exit 1.
 **The failing set moves between runs while the code does not**, which is itself the signature:
 attempt 2 failed in two files attempt 1 passed, and attempt 3 failed in all three. Each
 implicated file was then run twice in isolation — `disposal` 8 of 8 twice, `materialization` 4 of
-4 twice, `runtime-supervisor` 23 of 23 twice. Across this session that is **twelve isolated runs
-and twelve exit 0**.
+4 twice, `runtime-supervisor` 23 of 23 twice. ~~Across this session that is twelve isolated runs
+and twelve exit 0.~~ **The run count is right and the result is not: three of those twelve
+failed. Superseded by round 47's reconciliation.**
 
 Set against the two green full runs earlier in this session — **677 passed, 3 skipped, exit 0 at
 load averages 18.4 and 16.2** — on a tree whose only difference is this round's capture-tool and
@@ -5508,9 +5510,11 @@ that sentence.
 0 with 80 checks across 64 scenarios. **`pnpm verify` exit 0 — 51 files, 677 passed, 3 skipped**,
 at load average 18.9.
 
-That is the third green full run this session, all at load averages between 16 and 19, against
-six red runs at 34 to 62 — the pattern `pre-existing-trial-runtime-load-flake` describes, on a
-tree whose diff still touches nothing under `apps/studio-service/` or `packages/`.
+That is the third green full run this session. ~~All at load averages between 16 and 19, against
+six red runs at 34 to 62.~~ **Withdrawn with the other band claims: round 45 established the
+load average is read after the run drains and cannot characterise it.** The flake pattern is the
+one `pre-existing-trial-runtime-load-flake` describes, on a tree whose diff still touches nothing
+under `apps/studio-service/` or `packages/`.
 
 ## review-round-43-2026-09-20
 
@@ -5696,9 +5700,10 @@ was red at 19.3 with one failure in `disposal`, which then passed twice in isola
 **Note the load figures**: the red run was at 19.3 and the green at 22.0, the green *higher* than
 the red. That is why round 43's load bands were withdrawn rather than adjusted. Load average is a
 one-minute mean over a 34-user host and is not a measurement of what any given run contended
-with. Across this session the honest summary is: **twenty isolated runs of the three implicated
-files, twenty exit 0**, and the full suite green whenever it is re-run after an isolated
-confirmation. The flake is real, pre-existing, and recorded at
+with. ~~Across this session the honest summary is: twenty isolated runs of the three implicated
+files, twenty exit 0.~~ **This is the figure round 47 identified as unsourced — it overcounts by
+four and carries three failures as passes.** The full suite is green whenever it is re-run after
+an isolated confirmation. The flake is real, pre-existing, and recorded at
 `pre-existing-trial-runtime-load-flake`; this session's diff still touches nothing under
 `apps/studio-service/` or `packages/`.
 
@@ -5801,11 +5806,16 @@ both causes and the rebuild.
 reader are pure enough to unit test, but the module refuses at import without
 `VISUAL_EVIDENCE_ROOT` and then runs a multi-minute capture, so nothing can import them.
 
-That is not a stylistic observation. **Four defects in exactly those two functions were found by
-review rather than by a test in this session**: the latched flag above, the abort gate reading
-one of two channels, and two edits recorded as applied that were never in the tree. A fixture
-table over the two functions would have caught each one in seconds, and the repository already
-has the shape for it in `delta-e2000.ts` and its sibling test.
+That is not a stylistic observation. **Five defects in exactly those two functions were found by
+review rather than by a test in this session** — the baseline read after the action, the change
+required of a no-op click, the latched flag fixed one branch at a time, the deadline message
+choosing on the wrong variable, and the tokens reader's miscounted block, one of whose fixes was
+recorded as applied while never being in the tree. A fixture table over the two functions would
+have caught each in seconds, and the repository already has the shape for it in
+`delta-e2000.ts` and its sibling test.
+
+An earlier version of this paragraph said four and listed three, one of which is in the AC-38
+comparison loop rather than in either function. Corrected in round 48.
 
 The quality reviewer scoped it explicitly as separate work. Routed at
 `visual-evidence-harness-logic-is-untestable` rather than pulled into this diff — the audit that
@@ -5835,10 +5845,12 @@ entry is the one that describes what landed.
 
 ### The isolated-run count was carried forward from memory, and was wrong
 
-This is the finding worth the round. Three consecutive entries reported a running total of
-isolated runs — fourteen, then twenty, then thirty — and **none of those figures is derivable
-from the runs the entries themselves record.** The adversarial reviewer traced the chain and
-found four runs unaccounted between two of them.
+This is the finding worth the round. Four entries reported a running total of isolated runs —
+six, twelve, fourteen, then twenty, then thirty. An earlier version of this paragraph said none
+of them was derivable; that overstated it. **Six, twelve and fourteen are each derivable from
+the runs the entries record — their run counts are right and their results are wrong, because
+each reports every run as exit 0 when three had failed. Twenty is where the count itself breaks,
+overcounting by four, and thirty inherits that error.**
 
 Reconciled against the session's actual runs:
 
@@ -5856,9 +5868,11 @@ Reconciled against the session's actual runs:
 
 So the honest statement is **36 isolated runs, 33 exit 0**, not thirty and thirty. And the
 sentence "every implicated file has passed twice in isolation, every time it has been asked"
-was **false**: the first attempt gave one pass and one failure for each of the three files. Two
-isolated failures were reported to the owner during this session and then written out of the
-running total by a figure nobody recomputed.
+was **false**: the first attempt gave one pass and one failure for each of the three files.
+**Three** isolated failures, matching the table above — an earlier version of this sentence said
+two, contradicting its own table two lines up, inside the paragraph naming that exact pattern.
+All three were reported to the owner when they happened and were then written out of the running
+total by a figure nobody recomputed.
 
 **This is the third count in this slice recorded from memory rather than from its own
 evidence**, after the audit's headline totals and the two round-44 rows claiming fixes that were
@@ -5876,7 +5890,7 @@ the difference is the part worth recording.
 | Finding | Severity | Applied |
 | --- | --- | --- |
 | The round-44 row asserting the 22.8 figure was left unmarked while two siblings were marked false | Nit | Marked, naming the 19.3 red as the real contradicting datum |
-| `#review-round-37` did not resolve; the heading carries a date suffix | Nit | Full anchor in all three citations |
+| `#review-round-37` did not resolve; the heading carries a date suffix | Nit | **Recorded here as fixed in all three citations and one was missed** — the third was still bare. Completed in round 48 |
 | Two consecutive comment blocks restated the same point above one call | Nit | Merged |
 | The audit cited `tools/governance-gate.mjs` in a form its own path convention resolves to a nonexistent file | Nit | Says it is at the repository root, outside the table's prefixes |
 | Finding 4 said AC-0147 "is green" while the same document records the criterion not met | Nit | Says its test is green and the criterion is not met, which is the distinction the Method section draws |
@@ -5888,3 +5902,70 @@ the difference is the part worth recording.
 
 The two attempts before it were red, in `disposal` and `runtime-supervisor`, both of which then
 passed twice in isolation. Those four runs are in the reconciliation above.
+
+## review-round-48-2026-09-20
+
+**The tenth confirmation round. No Blockers from either reviewer, and both concerns are the same
+pattern this session keeps producing rather than new defects.**
+
+**Removing the latch left the deadline messages deciding on the wrong variable.** They chose
+between "still changing" and "never changed" on whether the final reading equalled `before` —
+so a document that was visibly churning but happened to be read at its starting value printed
+"never changed", and on a declared no-op the message pointed at the previous surface as though
+that were the problem when it is the intended state. With no CI that line is the entire failure
+record.
+
+They now choose on whether the iteration saw it hold still. Unsettled at the deadline means
+churning; settled at the deadline is only reachable when a change was required and the document
+came to rest exactly where it started. Neither branch reintroduces a latch.
+
+**The register entry's ground did not survive being checked.** It claimed "four defects" in
+`settleRender` and the `tokens.css` reader, then listed three, one of which is in the AC-38
+comparison loop rather than in either function, and another of which double-counted that same
+item. A reader picking the item up cold and verifying its ground would have found it did not
+check out and discounted the work.
+
+It now enumerates five, each actually in one of the two named functions: the baseline read after
+the action, the change required of a no-op click, the latch fixed one branch at a time, the
+deadline message above, and the tokens reader's miscounted block.
+
+**That is the fourth count in this slice stated without being checked against what it
+describes**, after the audit's headline totals, the two round-44 rows, and the isolated-run
+running total. Every one of them was a number or an enumeration written from the shape of what
+happened rather than read off the artifact. The audit's counts are now generated; the others
+were each corrected by hand, one round after they were written.
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect`
+exits 0 with 80 checks across 64 scenarios.
+
+**`pnpm verify` is red for this round and is not claimed green.** Four consecutive attempts,
+each failing in the trial-runtime suite and each in a different combination of files:
+
+| Attempt | Failed | Files |
+| ---: | ---: | --- |
+| 1 | 5 | `disposal`, `runtime-supervisor` |
+| 2 | 9 | `disposal`, `materialization`, `runtime-supervisor` |
+| 3 | 4 | `disposal`, `runtime-supervisor`, `sweep` |
+
+Six isolated runs were taken between them: `disposal` 8 of 8 twice, `runtime-supervisor` 23 of
+23 twice, `materialization` 4 of 4 twice — **six runs, six exit 0**, bringing the session
+reconciliation to **42 isolated runs, 39 exit 0**.
+
+**What is claimed and what is not.** The tree was green three times earlier in this session at
+679 passed, most recently at round 47, and this round's diff changed
+`apps/desktop/tools/visual-evidence.mjs`, three documents and `workspace.toml` — nothing any of
+those three suites imports, and `git diff 3814102..HEAD -- apps/studio-service packages` is
+still empty. The failing set moves between attempts while the code does not. That is the
+recorded flake and not a regression from this round.
+
+It is still a red gate. A reader should take from this entry that the round's changes were
+verified by lint, typecheck, governance, the capture run and the isolated suites, and that the
+full suite was not observed green after them.
+
+### Isolated-run reconciliation, carried forward
+
+Round 47 reconciled the session to 36 runs and 33 exit 0. This round adds six, all exit 0:
+**42 runs, 39 exit 0.** The figure is stated here rather than in a later entry, and is derived
+from the six runs listed above rather than carried.
