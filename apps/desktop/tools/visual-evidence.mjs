@@ -116,6 +116,21 @@ globalThis.studio = (() => {
 })();
 `;
 
+// Both the overflow probe and the occlusion probe count "reachable controls",
+// and the occlusion vacuity guard compares one against the other. Two
+// hand-copied predicates would let an edit to one silently stop the guard
+// firing, so the definition lives here and is interpolated into both.
+const REACHABLE_CONTROLS_JS = `
+  const reachable = (el) => {
+    if (el.getClientRects().length === 0) return false;
+    const style = getComputedStyle(el);
+    return style.visibility !== "hidden" && style.display !== "none";
+  };
+  const controls = [
+    ...document.querySelectorAll("button, input, textarea, select, a[href]"),
+  ].filter(reachable);
+`;
+
 function fail(message) {
   console.error(`visual-evidence: ${message}`);
   process.exit(1);
@@ -769,19 +784,40 @@ try {
           throw new Error(
             `the ${surface.name} surface could not be driven to a diagnostic: ${submitted.result.value}`,
           );
-        await new Promise((r) => setTimeout(r, 1500));
-        // The diagnostic has to actually be on screen, or the occlusion check
-        // below runs against a surface with nothing that could obscure and
-        // passes for the wrong reason.
-        const shown = await page("Runtime.evaluate", {
-          expression:
-            "!!document.querySelector('[aria-invalid=\"true\"]') " +
-            "|| /cannot|refus|not use/i.test(document.body.textContent || '')",
-          returnByValue: true,
-        });
-        if (shown.result.value !== true)
+        // Poll for the state itself rather than sleeping a fixed span. The
+        // submission crosses IPC to the real service, and this surface runs
+        // under six scenarios, so one slow render on a loaded host would
+        // otherwise discard the whole run's evidence.
+        //
+        // The marker is the `url-rejected` state the form emits, not a
+        // substring of the body: the refusal text is "Studio connects to
+        // public github.com repositories only", which shares no word with a
+        // generic /cannot|refus/ probe, and the strings that DO match such a
+        // probe belong to the Studio-side failure state and the version
+        // qualifier -- so a body-text guard would pass on the wrong surface.
+        const deadline = Date.now() + 15_000;
+        let diagnostic = null;
+        while (Date.now() < deadline) {
+          const seen = await page("Runtime.evaluate", {
+            expression: `(() => {
+              const el = document.querySelector('[data-state="url-rejected"]');
+              return el === null ? null : (el.textContent || "").trim();
+            })()`,
+            returnByValue: true,
+          });
+          if (
+            typeof seen.result.value === "string" &&
+            seen.result.value !== ""
+          ) {
+            diagnostic = seen.result.value;
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 250));
+        }
+        if (diagnostic === null)
           throw new Error(
-            `the ${surface.name} surface rendered no diagnostic to obscure with`,
+            `the ${surface.name} surface showed no url-rejected diagnostic within 15s — ` +
+              `either the refusal did not render or the host was too slow to show it`,
           );
       }
 
@@ -793,14 +829,7 @@ try {
         // Reachable controls only. A control that is in the DOM but hidden or
         // zero-sized in this input mode is not an available action, so counting
         // it would let a hover-gated action pass the AC-38 comparison.
-        const reachable = (el) => {
-          if (el.getClientRects().length === 0) return false;
-          const style = getComputedStyle(el);
-          return style.visibility !== "hidden" && style.display !== "none";
-        };
-        const controls = [
-          ...document.querySelectorAll("button, input, textarea, select, a[href]"),
-        ].filter(reachable);
+        ${REACHABLE_CONTROLS_JS}
         const accessibleName = (el) =>
           (el.getAttribute("aria-label")
             ?? (el.labels && el.labels[0] && el.labels[0].textContent)
@@ -870,6 +899,14 @@ try {
       });
       const measured = JSON.parse(probe.result.value);
 
+      const shot = await page("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
+      // Held in memory, not written yet. Nothing lands in the retained evidence
+      // directory until the whole run has succeeded — see the publish step below.
+      const bytes = Buffer.from(shot.data, "base64");
+
       // AC-0130, the focus-obscuring clause. A still capture cannot show this:
       // it records one moment with whatever focus happened to be, and nothing
       // in an image says which element is focused or what is painted over it.
@@ -877,15 +914,22 @@ try {
       // If the topmost element there is neither the control nor related to it
       // by containment, something is painted over the focused control.
       //
+      // What this check cannot see, stated so the record does not overclaim:
+      //   - An overlay with `pointer-events: none` is painted over the control
+      //     but skipped by `elementFromPoint`, so it reads as clean.
+      //   - Only each control's centre is sampled, so a panel covering a
+      //     control's edges, its label or its focus ring while leaving the
+      //     middle clear reads as clean.
+      //   - A control an overlay prevents from taking focus is recorded as a
+      //     skip, not a failure; the vacuity guard below catches the case
+      //     where that happens to every control, not where it happens to some.
+      // The criterion's evidence is recorded as "centre not obscured by a
+      // hit-testable layer", which is what this actually proves.
+      //
       // Run after the screenshot so moving focus cannot change what was
       // captured.
       const occlusionProbe = await page("Runtime.evaluate", {
         expression: `JSON.stringify((() => {
-        const reachable = (el) => {
-          if (el.getClientRects().length === 0) return false;
-          const style = getComputedStyle(el);
-          return style.visibility !== "hidden" && style.display !== "none";
-        };
         const describe = (el) => {
           if (el === null) return "nothing";
           const tag = el.tagName.toLowerCase();
@@ -895,15 +939,19 @@ try {
             : "";
           return tag + id + cls;
         };
-        const named = (el) =>
-          (el.getAttribute("aria-label")
+        // textContent is "" rather than null for input and select, so a ??
+        // chain never reaches a fallback and the operator gets a message that
+        // names nothing. With no CI, that line is the whole failure record.
+        const named = (el) => {
+          const label = (el.getAttribute("aria-label")
             ?? (el.labels && el.labels[0] && el.labels[0].textContent)
             ?? el.textContent
-            ?? el.tagName).trim().slice(0, 40);
-        const controls = [
-          ...document.querySelectorAll("button, input, textarea, select, a[href]"),
-        ].filter(reachable);
+            ?? "").trim();
+          return label === "" ? describe(el) : label.slice(0, 40);
+        };
+        ${REACHABLE_CONTROLS_JS}
         const restore = document.activeElement;
+        const scroll = { x: window.scrollX, y: window.scrollY };
         const obscured = [];
         const skipped = [];
         let tested = 0;
@@ -921,31 +969,32 @@ try {
           const x = box.left + box.width / 2;
           const y = box.top + box.height / 2;
           if (x < 0 || y < 0
-            || x > document.documentElement.clientWidth
-            || y > document.documentElement.clientHeight) {
+            || x >= document.documentElement.clientWidth
+            || y >= document.documentElement.clientHeight) {
             skipped.push(named(el) + " (centre outside the viewport after focus)");
             continue;
           }
-          tested += 1;
           const top = document.elementFromPoint(x, y);
-          if (top === el || (top !== null && (el.contains(top) || top.contains(el))))
+          if (top === null) {
+            // Nothing hit-testable at the point. That is not an occlusion, and
+            // reporting it as one gives the operator a failure with no element
+            // to act on.
+            skipped.push(named(el) + " (centre is not hit-testable)");
             continue;
+          }
+          tested += 1;
+          if (top === el || el.contains(top) || top.contains(el)) continue;
           obscured.push(named(el) + " obscured by " + describe(top));
         }
-        if (restore instanceof HTMLElement) restore.focus();
+        if (restore instanceof HTMLElement) restore.focus({ preventScroll: true });
+        else if (document.activeElement instanceof HTMLElement)
+          document.activeElement.blur();
+        window.scrollTo(scroll.x, scroll.y);
         return { tested, obscured, skipped };
       })())`,
         returnByValue: true,
       });
       const occlusion = JSON.parse(occlusionProbe.result.value);
-
-      const shot = await page("Page.captureScreenshot", {
-        format: "png",
-        captureBeyondViewport: false,
-      });
-      // Held in memory, not written yet. Nothing lands in the retained evidence
-      // directory until the whole run has succeeded — see the publish step below.
-      const bytes = Buffer.from(shot.data, "base64");
 
       const problems = [];
       if (measured.horizontalOverflow > 1)
@@ -991,6 +1040,11 @@ try {
       results.push({
         image: bytes,
         scenario: `${scenario.name}-${surface.name}`,
+        // Recorded so the retained evidence shows what the obscuring check
+        // covered. A surface where every control was skipped would otherwise
+        // publish identically to one where all of them were hit-tested.
+        occlusionTested: occlusion.tested,
+        occlusionSkipped: occlusion.skipped,
         surface: surface.name,
         viewport: `${scenario.width}x${scenario.height}@${scenario.scale}x`,
         scheme: scenario.scheme,

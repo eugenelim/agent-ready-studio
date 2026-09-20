@@ -1,8 +1,10 @@
 {
-  "capturedAt": "2026-09-19T07:26:26.961Z",
+  "capturedAt": "2026-09-20T06:14:11.587Z",
   "results": [
     {
       "scenario": "desktop-light-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -29,11 +31,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "99c2e3c933f028bb",
+      "sha256": "b2720e5f70cf7fc8",
       "problems": []
     },
     {
       "scenario": "desktop-light-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -55,11 +59,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "19c895afe158cf25",
+      "sha256": "239f9996013b53a5",
       "problems": []
     },
     {
       "scenario": "desktop-light-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -81,11 +87,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "789705381624ecce",
+      "sha256": "241547c4f1886b2d",
       "problems": []
     },
     {
       "scenario": "desktop-light-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -108,11 +116,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "da955ade356e1eef",
+      "sha256": "2e916709f3705dea",
       "problems": []
     },
     {
       "scenario": "desktop-light-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -135,11 +145,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "dba46d63dff09afb",
+      "sha256": "485aaaa2d101c122",
       "problems": []
     },
     {
       "scenario": "desktop-light-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -177,11 +189,15 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "19b3e35ac2f62888",
+      "sha256": "ed00811e97764cb9",
       "problems": []
     },
     {
       "scenario": "desktop-light-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -206,11 +222,46 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fe5ffa83ac47a8a6",
+      "sha256": "3c5ed94a0d00243e",
+      "problems": []
+    },
+    {
+      "scenario": "desktop-light-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "surface": "connect-rejected",
+      "viewport": "1600x1000@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "72f805d1108f5f70",
       "problems": []
     },
     {
       "scenario": "desktop-dark-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
@@ -237,11 +288,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fa38d7c8782db582",
+      "sha256": "d72c7c2f92c05ba2",
       "problems": []
     },
     {
       "scenario": "desktop-dark-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
@@ -268,6 +321,8 @@
     },
     {
       "scenario": "desktop-dark-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
@@ -289,11 +344,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "8cbf91b6cd182b39",
+      "sha256": "d941443624b787d4",
       "problems": []
     },
     {
       "scenario": "desktop-dark-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
@@ -316,11 +373,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "22f58c533e16ed80",
+      "sha256": "8e98611b041cac38",
       "problems": []
     },
     {
       "scenario": "desktop-dark-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
@@ -343,11 +402,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "707285fa76b06d43",
+      "sha256": "82a549a0691eee5e",
       "problems": []
     },
     {
       "scenario": "desktop-dark-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
@@ -385,11 +446,15 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "a53021f7bc23170e",
+      "sha256": "c1c0a1a7e071448b",
       "problems": []
     },
     {
       "scenario": "desktop-dark-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
@@ -414,11 +479,46 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ae0a14eb773994f3",
+      "sha256": "180dfa4e50738b14",
+      "problems": []
+    },
+    {
+      "scenario": "desktop-dark-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "surface": "connect-rejected",
+      "viewport": "1600x1000@1x",
+      "scheme": "dark",
+      "motion": "no-preference",
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "0f3fca5b4428db1b",
       "problems": []
     },
     {
       "scenario": "narrow-900-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "900x720@1x",
       "scheme": "light",
@@ -450,6 +550,8 @@
     },
     {
       "scenario": "narrow-900-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "900x720@1x",
       "scheme": "light",
@@ -476,6 +578,8 @@
     },
     {
       "scenario": "narrow-900-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "900x720@1x",
       "scheme": "light",
@@ -497,11 +601,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "184f65b752ebc2e8",
+      "sha256": "2603baa1d30e788c",
       "problems": []
     },
     {
       "scenario": "narrow-900-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "900x720@1x",
       "scheme": "light",
@@ -524,11 +630,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "0610ee662b432304",
+      "sha256": "9d384dfd51eec200",
       "problems": []
     },
     {
       "scenario": "narrow-900-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "900x720@1x",
       "scheme": "light",
@@ -551,11 +659,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "804c833537860ba7",
+      "sha256": "bcf4566f89c6ae41",
       "problems": []
     },
     {
       "scenario": "narrow-900-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "900x720@1x",
       "scheme": "light",
@@ -593,11 +703,15 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "34ff8dae55fc3d2b",
+      "sha256": "525e278877a4ad03",
       "problems": []
     },
     {
       "scenario": "narrow-900-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "900x720@1x",
       "scheme": "light",
@@ -622,11 +736,46 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "60cad763f0fae552",
+      "sha256": "86701840d3d5a1e2",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-900-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "surface": "connect-rejected",
+      "viewport": "900x720@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "387a21e30edef4c0",
       "problems": []
     },
     {
       "scenario": "text-200-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -658,6 +807,8 @@
     },
     {
       "scenario": "text-200-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -679,11 +830,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "24d4041cae98f4b6",
+      "sha256": "84dfb28812ab91fe",
       "problems": []
     },
     {
       "scenario": "text-200-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -705,11 +858,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "716b17391150f33a",
+      "sha256": "269cd4b19acc0273",
       "problems": []
     },
     {
       "scenario": "text-200-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -732,11 +887,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "665197d8ee049974",
+      "sha256": "754fbd2b3e59ce38",
       "problems": []
     },
     {
       "scenario": "text-200-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -759,11 +916,15 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "38d208ae6b7d63c0",
+      "sha256": "f01dde6a670db8e7",
       "problems": []
     },
     {
       "scenario": "text-200-studio",
+      "occlusionTested": 28,
+      "occlusionSkipped": [
+        "Guardrails (centre outside the viewport after focus)"
+      ],
       "surface": "studio",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -801,11 +962,15 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "83b531024b360508",
+      "sha256": "fe0dab6a004744ef",
       "problems": []
     },
     {
       "scenario": "text-200-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -830,11 +995,46 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ad64fe86dde24506",
+      "sha256": "93eff30b6db6358d",
+      "problems": []
+    },
+    {
+      "scenario": "text-200-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "surface": "connect-rejected",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "c0b5f75a4a551b40",
       "problems": []
     },
     {
       "scenario": "narrow-1024-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -866,6 +1066,8 @@
     },
     {
       "scenario": "narrow-1024-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -892,6 +1094,8 @@
     },
     {
       "scenario": "narrow-1024-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -913,11 +1117,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "13b67136811c9c80",
+      "sha256": "4157189761f95de5",
       "problems": []
     },
     {
       "scenario": "narrow-1024-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -940,11 +1146,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "138dcb099f8ef360",
+      "sha256": "57672c73b17836ff",
       "problems": []
     },
     {
       "scenario": "narrow-1024-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -967,11 +1175,15 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "78530c8010157438",
+      "sha256": "5d9e2ccc0b409262",
       "problems": []
     },
     {
       "scenario": "narrow-1024-studio",
+      "occlusionTested": 28,
+      "occlusionSkipped": [
+        "Revision comment (centre outside the viewport after focus)"
+      ],
       "surface": "studio",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -1009,11 +1221,15 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3cdcf61867f5fcc8",
+      "sha256": "c877a8f14536fe64",
       "problems": []
     },
     {
       "scenario": "narrow-1024-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -1038,11 +1254,46 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "f72159a0859faf81",
+      "sha256": "02daf6e6cdab8ffa",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-1024-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "surface": "connect-rejected",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "2e46e52c3e281138",
       "problems": []
     },
     {
       "scenario": "zoom-200-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "720x640@2x",
       "scheme": "light",
@@ -1074,6 +1325,8 @@
     },
     {
       "scenario": "zoom-200-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "720x640@2x",
       "scheme": "light",
@@ -1100,6 +1353,8 @@
     },
     {
       "scenario": "zoom-200-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "720x640@2x",
       "scheme": "light",
@@ -1121,11 +1376,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "d5836c473a66a927",
+      "sha256": "3dc54af701f8bb67",
       "problems": []
     },
     {
       "scenario": "zoom-200-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "720x640@2x",
       "scheme": "light",
@@ -1148,11 +1405,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "5293a669e644a11b",
+      "sha256": "a85b1c3bf82d30c8",
       "problems": []
     },
     {
       "scenario": "zoom-200-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "720x640@2x",
       "scheme": "light",
@@ -1175,11 +1434,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "cb5d5a0148af61aa",
+      "sha256": "cfcc0e54a990f7b4",
       "problems": []
     },
     {
       "scenario": "zoom-200-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "720x640@2x",
       "scheme": "light",
@@ -1217,11 +1478,15 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "abed2d549a1e4afe",
+      "sha256": "490aad7bc6dd570f",
       "problems": []
     },
     {
       "scenario": "zoom-200-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "720x640@2x",
       "scheme": "light",
@@ -1246,11 +1511,46 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "4d400bd551d092c5",
+      "sha256": "2ed94087887f0d63",
+      "problems": []
+    },
+    {
+      "scenario": "zoom-200-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "surface": "connect-rejected",
+      "viewport": "720x640@2x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "56e0a363591bfdaf",
       "problems": []
     },
     {
       "scenario": "reduced-motion-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1277,11 +1577,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "6bdc2e2419903678",
+      "sha256": "016c5fc10cb9bab0",
       "problems": []
     },
     {
       "scenario": "reduced-motion-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1308,6 +1610,8 @@
     },
     {
       "scenario": "reduced-motion-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1329,11 +1633,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "b35526b9166b98d3",
+      "sha256": "41a1cd59600d7d43",
       "problems": []
     },
     {
       "scenario": "reduced-motion-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1356,11 +1662,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "89ee2f9ff2a5c8dd",
+      "sha256": "2019e6920965274a",
       "problems": []
     },
     {
       "scenario": "reduced-motion-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1383,11 +1691,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "09d95c0cde2a1826",
+      "sha256": "3b298f52e482b391",
       "problems": []
     },
     {
       "scenario": "reduced-motion-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1425,11 +1735,15 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "d65a45f29c1e80b7",
+      "sha256": "f9cfde3d2ef52444",
       "problems": []
     },
     {
       "scenario": "reduced-motion-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1454,11 +1768,46 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fe5ffa83ac47a8a6",
+      "sha256": "3c5ed94a0d00243e",
+      "problems": []
+    },
+    {
+      "scenario": "reduced-motion-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "surface": "connect-rejected",
+      "viewport": "1600x1000@1x",
+      "scheme": "light",
+      "motion": "reduce",
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "80177ef4487e50d5",
       "problems": []
     },
     {
       "scenario": "no-hover-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1485,11 +1834,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3d0ace8854bb6025",
+      "sha256": "70e6fb8e76c46898",
       "problems": []
     },
     {
       "scenario": "no-hover-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1516,6 +1867,8 @@
     },
     {
       "scenario": "no-hover-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1537,11 +1890,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "789705381624ecce",
+      "sha256": "241547c4f1886b2d",
       "problems": []
     },
     {
       "scenario": "no-hover-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1564,11 +1919,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "db290de890847cf6",
+      "sha256": "c68158d137234f0c",
       "problems": []
     },
     {
       "scenario": "no-hover-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1591,11 +1948,13 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "03ed42d0f6f178c4",
+      "sha256": "8f8957a3c48f2ae1",
       "problems": []
     },
     {
       "scenario": "no-hover-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1633,11 +1992,15 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "6026a7abc9637e53",
+      "sha256": "0d200da231311ee1",
       "problems": []
     },
     {
       "scenario": "no-hover-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1662,7 +2025,40 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fe5ffa83ac47a8a6",
+      "sha256": "3c5ed94a0d00243e",
+      "problems": []
+    },
+    {
+      "scenario": "no-hover-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "surface": "connect-rejected",
+      "viewport": "1600x1000@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "72f805d1108f5f70",
       "problems": []
     }
   ]

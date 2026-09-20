@@ -140,15 +140,45 @@ open = [
   # is recorded so the gap is not read as a defect in the derivation.
   # Evidence: notes/verification-ledger.md#t12-composition-2026-09-19.
   { slug = "connect-orient-no-inspector-runs", source = "connect-and-orient/2026-09-19" },
+  # AC-0088, AC-0091 and AC-0092 need the reason an inspection stopped to reach
+  # the surface. The field crosses the wire and the projection and renderer both
+  # consume it correctly -- two reasons under one condition render different
+  # attributions, which a case asserts. Nothing populates it: no production site
+  # maps a terminating condition to a `StopReasonKey`, and `trial-result.ts`
+  # carries a separate, unmapped `TrialStopReason` union. So a real stopped
+  # inspection reaches the lead with no attribution and no retryability.
+  # Found by the 157-criterion audit.
+  # Evidence: notes/acceptance-audit.md, finding 2.
+  { slug = "connect-orient-stop-reason-never-resolved", source = "connect-and-orient/2026-09-20" },
+  # AC-0148 says the default suite reaches no network, and it does.
+  # apps/desktop/src/e2e/connect-and-orient.test.ts submits an accepted URL with
+  # no `skipIf`, while that file's own docblock says accepted cases are gated
+  # behind CONNECT_ORIENT_E2E_NETWORK=1; its two networked siblings carry the
+  # gate. `connect` returns synchronously and runs the pipeline behind it, so
+  # the assertion passes while `git ls-remote` goes to github.com.
+  # Left open for an owner decision rather than fixed: gating it removes the
+  # only default-gate case binding accepted dispatch, which is the artifact the
+  # retraction exists to preserve, so keeping both properties needs a transport
+  # injected into the spawned service. That is a design call, not a one-line
+  # gate. Found by the 157-criterion audit.
+  # Evidence: notes/acceptance-audit.md, finding 5.
+  { slug = "connect-orient-default-suite-reaches-the-network", source = "connect-and-orient/2026-09-20" },
 ]
 closed = [
-  # Closed 2026-09-20. The five criteria this entry routed out -- AC-0088,
-  # AC-0091, AC-0092, AC-0097, AC-0099 -- were closed by the owner-approved
-  # protocol change recorded at
-  # notes/verification-ledger.md#t12-result-fields-2026-09-19: the three fields
-  # are on the canonical schema and its Zod mirror and reach the surface. The
-  # residue is persistence only, re-opened as
-  # `connect-orient-restored-result-drops-reason-and-wait-window`.
+  # Closed 2026-09-20, and narrower than first written. The owner-approved
+  # protocol change at notes/verification-ledger.md#t12-result-fields-2026-09-19
+  # put `stopReason`, `waitWindow` and `secondaryDiagnostic` on the canonical
+  # schema and its Zod mirror, and the surface renders them. That closes
+  # AC-0097 and AC-0099, which the 157-criterion audit confirms met.
+  # It does NOT close AC-0088, AC-0091 or AC-0092: those need a stop reason to
+  # actually arrive, and no production site maps a terminating condition to a
+  # `StopReasonKey` -- `source-inspection.ts` returns `inspection-stopped` with
+  # no reason at :296, :498 and :535, so the field is always null on the wire.
+  # The audit records all three not met and `spec.md` leaves them unchecked.
+  # An earlier version of this entry claimed all five; corrected after the
+  # adversarial reviewer caught the register contradicting the audit committed
+  # beside it. The unresolved half is tracked at
+  # `connect-orient-stop-reason-never-resolved` below.
   { slug = "connect-orient-result-carries-no-reason-or-wait-window", source = "connect-and-orient/2026-09-19" },
 ]
 

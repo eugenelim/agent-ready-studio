@@ -394,10 +394,15 @@ describe("AC-0103 the inspection time reaches the rendered result", () => {
     await userEvent.click(
       screen.getByRole("button", { name: /connect repository/i }),
     );
+    // Asserts the value that crossed the boundary, not how it is formatted --
+    // the rendered format is pinned once, in VerdictSurface.test.tsx, so a
+    // format change breaks one file rather than two.
     await waitFor(() =>
       expect(
-        document.querySelector('[data-identity="inspected-at"]')?.textContent,
-      ).toBe("19 Sep 2026, 14:05 UTC"),
+        document
+          .querySelector('[data-identity="inspected-at"] time')
+          ?.getAttribute("dateTime"),
+      ).toBe("2026-09-19T14:05:00.000Z"),
     );
   });
 });

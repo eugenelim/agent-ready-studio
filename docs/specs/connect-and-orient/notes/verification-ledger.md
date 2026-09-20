@@ -5029,10 +5029,12 @@ them is a storage-migration change this approval did not cover.
 ## acceptance-audit-2026-09-20
 
 **The full 157-criterion audit, run for the first time. 80 met, 72 not met, 5 not verifiable
-here at audit time**; AC-0103 was closed in the same session, so the spec now stands at **81
-checked and 76 open**. The per-criterion record, with the binding artifact and the reddening
-mutation for each, is [`acceptance-audit.md`](acceptance-audit.md). This entry records what the
-audit changed and what it cost to trust.
+here** — the spec stands at **80 checked and 77 open**. The per-criterion record, with the binding
+artifact and the reddening mutation for each, is
+[`acceptance-audit.md`](acceptance-audit.md); every count in it, including each group header, is
+generated from its rows rather than written by hand, because the first version of this entry and
+that document disagreed with their own tables. This entry records what the audit changed and what
+it cost to trust.
 
 **Every earlier "unmet" list in this ledger was round-scoped and understated the gap by roughly
 sixty criteria.** Those lists were accurate about what their round found. None of them was a
@@ -5075,12 +5077,32 @@ original walking-skeleton set. Every `*-connect.png`, every `narrow-900-*` and e
 was absent, including the captures `#t13-delivery-2026-09-19-remade` and `#review-round-37`
 describe in detail. The directory is not gitignored; the files were produced, read, described
 accurately, and never added. A reader following those entries to the evidence found the
-pre-slice baseline. All 64 scenarios are committed with this entry.
+pre-slice baseline.
 
-### AC-0103 closed, with the wiring bound
+**And it was never this slice's directory to publish into.** The first attempt at the fix
+regenerated all 64 scenarios under the default root, which is
+`docs/specs/product-development-walking-skeleton/notes/visual/` — a **Shipped** spec's notes — and
+publishing there is a whole-directory swap, so it replaced that spec's 36 retained baselines and
+added 28 files under it. The tool documents the rule it broke at
+`visual-evidence.mjs:33-38` ("A slice capturing its own surfaces passes its own root"), and
+`.gitignore:49-50` already carried staging entries for this slice's own directory, so the
+intended destination had been provided for in advance. Caught by the adversarial reviewer. The
+Shipped spec's directory is restored byte-for-byte to its state at `3814102`, and this slice's 64
+scenarios are published under `docs/specs/connect-and-orient/notes/visual/` via
+`VISUAL_EVIDENCE_ROOT`.
+
+### AC-0103's display built — and the criterion still open
 
 `inspectedAt` crossed the protocol and reached no surface. It is now rendered in the verdict
 surface's identity list.
+
+**This entry first recorded AC-0103 closed. That was wrong, and the quality reviewer caught it.**
+The criterion says a *restored* verdict is shown with its time, and the renderer has no path to a
+restored verdict at all: `useInspection.ts:74` mounts at `null`, `source.get` needs a `sourceId`
+already in memory, the preload exposes no list-or-latest call, and nothing persists the id —
+there is no `localStorage` or `sessionStorage` anywhere under `apps/desktop/src`. After a restart
+the surface shows `unconnected`. The display half is built and bound; the restore path does not
+exist, so the box is unchecked and the missing recovery path is named in the audit row.
 
 **Rendered from a pinned UTC table rather than through `Intl`.** `Intl` month abbreviations move
 with the host's ICU version — en-GB renders September as "Sept" on this Node and "Sep" on others
@@ -5090,10 +5112,11 @@ marker, one surface over.
 
 | Mutation | Result |
 | --- | --- |
-| baseline | 16 of 16 pass in `InspectionSurface`, 19 of 19 in `VerdictSurface` |
-| the identity row dropped | **2 failed** |
+| baseline | 36 of 36 pass |
+| the identity row dropped | **4 failed** |
 | the pinned month changed to `Sept` | **1 failed** |
-| `inspectedAt` dropped from `InspectionSurface`'s props | **1 failed** |
+| an unreadable instant rendered as "not inspected" | **1 failed** |
+| `inspectedAt` dropped from `InspectionSurface`'s props | **`pnpm typecheck` exit 2** — the prop was made required, so a missing hand-off is a type error rather than something one test happens to catch |
 
 **The last row is why there are two tests rather than one.** A component test of `VerdictSurface`
 alone left the wiring unbound: dropping the prop from `InspectionSurface` kept every test in the
@@ -5139,6 +5162,102 @@ own comment records "green twice in isolation immediately after each red".
 two renderer files, the capture tool, the spec, `workspace.toml` and these notes — so no failing
 file is in the diff. Two stray processes from this session's capture runs were found and killed
 between attempts 1 and 2, which is most of the improvement from 10 failures to 2. The host itself
-was the confound: endpoint-security scanning held the load average between 43 and 92 throughout,
-at 145 percent CPU for one process alone. **Recorded rather than averaged away, and `pnpm verify`
-is not claimed green.**
+was the confound: sustained external CPU contention unrelated to this repository held the load
+average between 43 and 92 throughout. **Recorded rather than averaged away, and `pnpm verify` is
+not claimed green.**
+
+## review-round-39-2026-09-20
+
+**The confirmation round on the audit. Three reviewers, five Blockers, and three of them are
+defects in the audit record itself** — which is the right place for them to be found, because
+that document's whole value is that its verdicts are trustworthy.
+
+**The audit's own counts contradicted its tables.** The headline said 80 met / 72 not met while
+the 157 rows said 81 / 71, two group headers disagreed with the rows beneath them, and the
+ledger carried a third, independently drifting copy. Every count in the document — the headline,
+the "what this changes" section and all fifteen group headers — is now **generated from the
+rows** rather than written by hand, and this entry's totals are taken from the same pass. Found
+independently by the adversarial and security reviewers.
+
+**Two criteria were checked that the audit's own rule says are not met.**
+
+- **AC-0103.** Recorded closed on the strength of the display being built. The criterion says a
+  *restored* verdict, and no restore path exists — see the corrected section above.
+- **AC-0051.** Recorded `met` with falsifiability `W` and a note saying its named clause is a
+  tautology, against the rule stated at line 36 of the same document. The assertion at
+  `supervised-bounds.test.ts:193-195` puts `boundValue` on **both sides**, so a further bound's
+  worth of overshoot passes, and `:190` pins `intervalMs` to 50 while the criterion names the
+  250 ms interval.
+
+The spec now stands at **80 checked, 77 open**.
+
+**`workspace.toml` asserted five criteria closed that the audit in the same commit recorded not
+met.** The `closed` entry claimed AC-0088, AC-0091, AC-0092, AC-0097 and AC-0099. Only the last
+two hold: the other three need a stop reason to actually arrive, and nothing resolves one. The
+entry now claims two, and the unresolved half has its own register slug.
+
+**AC-0148's egress was described in notes and routed nowhere** — the shape this slice has already
+been caught by. It now has a register entry carrying its ground and the reason it is an owner
+decision rather than a one-line gate.
+
+### The occlusion probe, corrected
+
+Three defects in the check this session added, all found by review rather than by running it.
+
+- **It ran before the screenshot, under a comment saying it ran after.** `el.focus()` scrolls
+  elements into view, so every capture in the first run was taken after the page had been driven
+  — precisely what the comment promised had not happened. The probe now runs after
+  `Page.captureScreenshot`, and restores focus with `preventScroll` and the prior scroll offsets.
+- **Its diagnostic guard matched the wrong states.** The guard tested the body against
+  `/cannot|refus|not use/i`; the refusal reads "Studio connects to public github.com repositories
+  only", which matches none of those, while "Studio cannot inspect" and "Version Studio cannot
+  confirm" — both *different* states — do. It now polls for the `url-rejected` state itself with
+  a 15 s deadline, which also removes the fixed `setTimeout` that would have discarded a whole
+  run's evidence on a slow host.
+- **A null hit-test was reported as an occlusion**, giving the operator a failure with no element
+  to act on; it is now a skip with its reason, and the viewport bound is exclusive at both edges.
+
+**What the check proves is now stated narrowly, in the tool and in the audit row:** the *centre*
+of each focused control is not covered by a *hit-testable* layer. It cannot see a
+`pointer-events: none` overlay, nor a panel covering a control's edges or label while the centre
+stays clear. The earlier wording implied the criterion's full clause.
+
+The manifest now records `occlusionTested` and `occlusionSkipped` per surface, so the retained
+evidence shows what the check covered — on `narrow-900-connect-rejected`, 15 of 16 controls
+hit-tested with the disabled Cancel named as the skip. Both probes now read **one** shared
+definition of a reachable control, because the vacuity guard compares one probe's count against
+the other's and two hand-copied predicates could drift apart silently.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| `inspectedAt` was an optional prop, the omission class the change exists to close | Concern | Made required, so a missing hand-off is a typecheck failure rather than something one test happens to catch |
+| An unreadable stored instant rendered as "not inspected", and `<time dateTime>` carried the invalid string | Concern | A distinct message, no machine-readable value, and a case covering it |
+| The wiring test restated the display format, breaking two files for one reason | Nit | It asserts the `dateTime` value that crossed the boundary; the format stays pinned in one place |
+| `named()` returned an empty string for unlabelled inputs, so the only failure record could be anonymous | Concern | Falls back to a structural descriptor |
+| The audit cited a line range holding a different criterion's test | Concern | Bindings cite basename and case rather than a range that moves as the file grows |
+| The ledger recorded the host's security-software load in a permanent record | Nit | Stated as sustained external CPU contention, which is the part that bears on the gate |
+
+### A measurement trap worth naming
+
+Three of this round's mutation runs reported nothing, and the reason was not the mutation. The
+test paths were held in a shell variable and passed unquoted; **zsh does not word-split an
+unquoted parameter**, so vitest received both paths as one filter, matched no files, and exited
+1 with "No test files found". A careless reading of that output as "no failures" would have
+recorded four mutations as proven when none of them ran. The numbers above are from runs with
+the paths written literally, each confirmed to have executed 36 cases.
+
+### Gate state
+
+**`pnpm verify` exit 0 — 51 files, 677 passed, 3 skipped**, at load average 18.4. `pnpm lint`,
+`pnpm typecheck` and `pnpm governance` all exit 0, and `pnpm visual-evidence` exits 0 with 64
+scenarios published under this slice's own root. The three skips are the live smoke and the two
+networked boundary cases.
+
+**This settles the previous entry's open question empirically.** That entry recorded `pnpm verify`
+red on three attempts at load averages of 43 to 62 and declined to claim it green, resting on the
+two-in-isolation rule. The same suite, unchanged in `apps/studio-service/` and `packages/`, is
+green on the first attempt once the host load fell to 18. The `pre-existing-trial-runtime-load-flake`
+entry's characterisation holds: it is host contention, not a code defect, and the honest thing was
+to say so rather than to average three red runs into a claim.

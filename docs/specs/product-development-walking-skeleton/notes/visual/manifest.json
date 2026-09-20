@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-20T05:27:40.379Z",
+  "capturedAt": "2026-09-11T04:18:05.358Z",
   "results": [
     {
       "scenario": "desktop-light-home",
@@ -7,11 +7,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 18,
+      "controls": 17,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Create workspace",
         "Delivery",
         "Description (optional)",
@@ -29,7 +28,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "e48865ffe162f373",
+      "sha256": "ff98d4ac1fc1230b",
       "problems": []
     },
     {
@@ -38,11 +37,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -55,7 +53,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "624a7efd6480a5f4",
+      "sha256": "0eb538f05659dd18",
       "problems": []
     },
     {
@@ -64,11 +62,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -81,7 +78,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "b6cbf43561fb44dd",
+      "sha256": "81cad9316ef9ef04",
       "problems": []
     },
     {
@@ -90,11 +87,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -108,7 +104,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "be6d030b8f9a7288",
+      "sha256": "74df077bfce173ec",
       "problems": []
     },
     {
@@ -117,11 +113,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -135,7 +130,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fe13de96f89e5f76",
+      "sha256": "f7c82327f566e511",
       "problems": []
     },
     {
@@ -144,7 +139,7 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 29,
+      "controls": 28,
       "names": [
         "Agent-Ready Studio",
         "Approve and advance",
@@ -152,7 +147,6 @@
         "Assumptions",
         "Back to all reviews",
         "Confidence",
-        "Connect",
         "Delivery",
         "Experience",
         "Guardrails",
@@ -177,65 +171,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "15e864e1e21e1373",
-      "problems": []
-    },
-    {
-      "scenario": "desktop-light-connect",
-      "surface": "connect",
-      "viewport": "1600x1000@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "3c5ed94a0d00243e",
-      "problems": []
-    },
-    {
-      "scenario": "desktop-light-connect-rejected",
-      "surface": "connect-rejected",
-      "viewport": "1600x1000@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "80177ef4487e50d5",
+      "sha256": "4a7ec1ee18c1e016",
       "problems": []
     },
     {
@@ -244,11 +180,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
-      "controls": 18,
+      "controls": 17,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Create workspace",
         "Delivery",
         "Description (optional)",
@@ -266,7 +201,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "7313be25af3efbbc",
+      "sha256": "f617322d6d486d00",
       "problems": []
     },
     {
@@ -275,11 +210,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -292,7 +226,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "0aa7cd09c9c2f388",
+      "sha256": "7234eb3a84685d09",
       "problems": []
     },
     {
@@ -301,11 +235,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -318,7 +251,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "1eef4e30ff7bbdc6",
+      "sha256": "c674561517e95a64",
       "problems": []
     },
     {
@@ -327,11 +260,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -345,7 +277,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "e26e2a7a51f59c6d",
+      "sha256": "0b3278bf76224851",
       "problems": []
     },
     {
@@ -354,11 +286,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -372,7 +303,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "60bdbde2efa07816",
+      "sha256": "47f92af94b5c0c8a",
       "problems": []
     },
     {
@@ -381,7 +312,7 @@
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
-      "controls": 29,
+      "controls": 28,
       "names": [
         "Agent-Ready Studio",
         "Approve and advance",
@@ -389,7 +320,6 @@
         "Assumptions",
         "Back to all reviews",
         "Confidence",
-        "Connect",
         "Delivery",
         "Experience",
         "Guardrails",
@@ -414,539 +344,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ae598813d8f273d2",
-      "problems": []
-    },
-    {
-      "scenario": "desktop-dark-connect",
-      "surface": "connect",
-      "viewport": "1600x1000@1x",
-      "scheme": "dark",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "180dfa4e50738b14",
-      "problems": []
-    },
-    {
-      "scenario": "desktop-dark-connect-rejected",
-      "surface": "connect-rejected",
-      "viewport": "1600x1000@1x",
-      "scheme": "dark",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "9b34aa37dcd09b63",
-      "problems": []
-    },
-    {
-      "scenario": "narrow-900-home",
-      "surface": "home",
-      "viewport": "900x720@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 18,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Connect",
-        "Create workspace",
-        "Delivery",
-        "Description (optional)",
-        "Experience",
-        "Home",
-        "Name",
-        "Open review",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Research",
-        "Reviews",
-        "Seed demo workspace",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "047556468e74c0f7",
-      "problems": []
-    },
-    {
-      "scenario": "narrow-900-overview",
-      "surface": "overview",
-      "viewport": "900x720@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 13,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Connect",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "8a48a0bd02f849ec",
-      "problems": []
-    },
-    {
-      "scenario": "narrow-900-module",
-      "surface": "module",
-      "viewport": "900x720@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 13,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Connect",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "65dd9bdb978eec2a",
-      "problems": []
-    },
-    {
-      "scenario": "narrow-900-strategy",
-      "surface": "strategy",
-      "viewport": "900x720@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 14,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Connect",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Open review",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "41193a3eed30f339",
-      "problems": []
-    },
-    {
-      "scenario": "narrow-900-reviews",
-      "surface": "reviews",
-      "viewport": "900x720@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 14,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Connect",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Open review",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "681c8cc8bcc31151",
-      "problems": []
-    },
-    {
-      "scenario": "narrow-900-studio",
-      "surface": "studio",
-      "viewport": "900x720@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 29,
-      "names": [
-        "Agent-Ready Studio",
-        "Approve and advance",
-        "Architecture",
-        "Assumptions",
-        "Back to all reviews",
-        "Confidence",
-        "Connect",
-        "Delivery",
-        "Experience",
-        "Guardrails",
-        "Home",
-        "Non-goals",
-        "Open questions",
-        "Opportunity",
-        "Outcome",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Request revision",
-        "Research",
-        "Reviews",
-        "Revision comment",
-        "Run details",
-        "Save Product Intent",
-        "Strategy",
-        "Target users",
-        "Title",
-        "Work item",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "bd42151cdaf7e457",
-      "problems": []
-    },
-    {
-      "scenario": "narrow-900-connect",
-      "surface": "connect",
-      "viewport": "900x720@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "86701840d3d5a1e2",
-      "problems": []
-    },
-    {
-      "scenario": "narrow-900-connect-rejected",
-      "surface": "connect-rejected",
-      "viewport": "900x720@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "387a21e30edef4c0",
-      "problems": []
-    },
-    {
-      "scenario": "text-200-home",
-      "surface": "home",
-      "viewport": "1024x768@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 18,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Connect",
-        "Create workspace",
-        "Delivery",
-        "Description (optional)",
-        "Experience",
-        "Home",
-        "Name",
-        "Open review",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Research",
-        "Reviews",
-        "Seed demo workspace",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "308ab5f60b2c9bd4",
-      "problems": []
-    },
-    {
-      "scenario": "text-200-overview",
-      "surface": "overview",
-      "viewport": "1024x768@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 13,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Connect",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "3495b304641406cb",
-      "problems": []
-    },
-    {
-      "scenario": "text-200-module",
-      "surface": "module",
-      "viewport": "1024x768@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 13,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Connect",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "48dbd036625147c3",
-      "problems": []
-    },
-    {
-      "scenario": "text-200-strategy",
-      "surface": "strategy",
-      "viewport": "1024x768@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 14,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Connect",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Open review",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "28b1f699c1fa5056",
-      "problems": []
-    },
-    {
-      "scenario": "text-200-reviews",
-      "surface": "reviews",
-      "viewport": "1024x768@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 14,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Connect",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Open review",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "999e5c4bebbc3c06",
-      "problems": []
-    },
-    {
-      "scenario": "text-200-studio",
-      "surface": "studio",
-      "viewport": "1024x768@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 29,
-      "names": [
-        "Agent-Ready Studio",
-        "Approve and advance",
-        "Architecture",
-        "Assumptions",
-        "Back to all reviews",
-        "Confidence",
-        "Connect",
-        "Delivery",
-        "Experience",
-        "Guardrails",
-        "Home",
-        "Non-goals",
-        "Open questions",
-        "Opportunity",
-        "Outcome",
-        "Outcomes",
-        "Overview",
-        "Release",
-        "Request revision",
-        "Research",
-        "Reviews",
-        "Revision comment",
-        "Run details",
-        "Save Product Intent",
-        "Strategy",
-        "Target users",
-        "Title",
-        "Work item",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "186ea055729c340f",
-      "problems": []
-    },
-    {
-      "scenario": "text-200-connect",
-      "surface": "connect",
-      "viewport": "1024x768@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "57eb6a7d1c6688aa",
-      "problems": []
-    },
-    {
-      "scenario": "text-200-connect-rejected",
-      "surface": "connect-rejected",
-      "viewport": "1024x768@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "a9bb7061fbe61db5",
+      "sha256": "81a963fa93a91d20",
       "problems": []
     },
     {
@@ -955,11 +353,10 @@
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 18,
+      "controls": 17,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Create workspace",
         "Delivery",
         "Description (optional)",
@@ -977,7 +374,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "a05ca7881c5b5bca",
+      "sha256": "1fbc0eed91927f8e",
       "problems": []
     },
     {
@@ -986,11 +383,10 @@
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1003,7 +399,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fe06b0255ff0f962",
+      "sha256": "5631c4c38122e589",
       "problems": []
     },
     {
@@ -1012,11 +408,10 @@
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1029,7 +424,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "f583be5760a0a1d8",
+      "sha256": "d33eceb25015fd32",
       "problems": []
     },
     {
@@ -1038,11 +433,10 @@
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1056,7 +450,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "1b3c540873cfecae",
+      "sha256": "9fbb0adb17faf3b4",
       "problems": []
     },
     {
@@ -1065,11 +459,10 @@
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1083,7 +476,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "397a50a1abf7a4f9",
+      "sha256": "2f038f26fee6fe8f",
       "problems": []
     },
     {
@@ -1092,7 +485,7 @@
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 29,
+      "controls": 28,
       "names": [
         "Agent-Ready Studio",
         "Approve and advance",
@@ -1100,7 +493,6 @@
         "Assumptions",
         "Back to all reviews",
         "Confidence",
-        "Connect",
         "Delivery",
         "Experience",
         "Guardrails",
@@ -1125,65 +517,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "121cae2e177b4d55",
-      "problems": []
-    },
-    {
-      "scenario": "narrow-1024-connect",
-      "surface": "connect",
-      "viewport": "1024x768@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "02daf6e6cdab8ffa",
-      "problems": []
-    },
-    {
-      "scenario": "narrow-1024-connect-rejected",
-      "surface": "connect-rejected",
-      "viewport": "1024x768@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "2e46e52c3e281138",
+      "sha256": "626c38096e7673c6",
       "problems": []
     },
     {
@@ -1192,11 +526,10 @@
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 18,
+      "controls": 17,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Create workspace",
         "Delivery",
         "Description (optional)",
@@ -1214,7 +547,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "cd15620ff676b37e",
+      "sha256": "35a462345606e504",
       "problems": []
     },
     {
@@ -1223,11 +556,10 @@
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1240,7 +572,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "d64c1fbac91b0950",
+      "sha256": "2525437d7fd3a5b8",
       "problems": []
     },
     {
@@ -1249,11 +581,10 @@
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1266,7 +597,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3dc54af701f8bb67",
+      "sha256": "d57ac88765de2666",
       "problems": []
     },
     {
@@ -1275,11 +606,10 @@
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1293,7 +623,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3c4115de7ece410e",
+      "sha256": "ef56ec43a8f9da30",
       "problems": []
     },
     {
@@ -1302,11 +632,10 @@
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1320,7 +649,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "f4403af6ff692cd0",
+      "sha256": "ad249f7ebfbde956",
       "problems": []
     },
     {
@@ -1329,7 +658,7 @@
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 29,
+      "controls": 28,
       "names": [
         "Agent-Ready Studio",
         "Approve and advance",
@@ -1337,7 +666,6 @@
         "Assumptions",
         "Back to all reviews",
         "Confidence",
-        "Connect",
         "Delivery",
         "Experience",
         "Guardrails",
@@ -1362,65 +690,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "32136c2801da2590",
-      "problems": []
-    },
-    {
-      "scenario": "zoom-200-connect",
-      "surface": "connect",
-      "viewport": "720x640@2x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "2ed94087887f0d63",
-      "problems": []
-    },
-    {
-      "scenario": "zoom-200-connect-rejected",
-      "surface": "connect-rejected",
-      "viewport": "720x640@2x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "56e0a363591bfdaf",
+      "sha256": "0d4d12c2b2db398e",
       "problems": []
     },
     {
@@ -1429,11 +699,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
-      "controls": 18,
+      "controls": 17,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Create workspace",
         "Delivery",
         "Description (optional)",
@@ -1451,7 +720,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "80f1ad916e4024ef",
+      "sha256": "d1a13a78810cf8ae",
       "problems": []
     },
     {
@@ -1460,11 +729,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1477,7 +745,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "9528d9d03ca7453e",
+      "sha256": "0eb538f05659dd18",
       "problems": []
     },
     {
@@ -1486,11 +754,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1503,7 +770,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3f8c4aeff70ef8f7",
+      "sha256": "2b3b1483eb72f2c5",
       "problems": []
     },
     {
@@ -1512,11 +779,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1530,7 +796,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "a6cd1a9c65c1b0f6",
+      "sha256": "89f557a398c74e51",
       "problems": []
     },
     {
@@ -1539,11 +805,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1557,7 +822,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "afc48630c94511b5",
+      "sha256": "2dd2e41e1b3bb2a8",
       "problems": []
     },
     {
@@ -1566,7 +831,7 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
-      "controls": 29,
+      "controls": 28,
       "names": [
         "Agent-Ready Studio",
         "Approve and advance",
@@ -1574,7 +839,6 @@
         "Assumptions",
         "Back to all reviews",
         "Confidence",
-        "Connect",
         "Delivery",
         "Experience",
         "Guardrails",
@@ -1599,65 +863,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "31fb4b96e220d824",
-      "problems": []
-    },
-    {
-      "scenario": "reduced-motion-connect",
-      "surface": "connect",
-      "viewport": "1600x1000@1x",
-      "scheme": "light",
-      "motion": "reduce",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "b44bb04cac188c55",
-      "problems": []
-    },
-    {
-      "scenario": "reduced-motion-connect-rejected",
-      "surface": "connect-rejected",
-      "viewport": "1600x1000@1x",
-      "scheme": "light",
-      "motion": "reduce",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "80177ef4487e50d5",
+      "sha256": "9f22820752fabf31",
       "problems": []
     },
     {
@@ -1666,11 +872,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 18,
+      "controls": 17,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Create workspace",
         "Delivery",
         "Description (optional)",
@@ -1688,7 +893,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "65c6e66c0f64e5e4",
+      "sha256": "089211bbbca9edeb",
       "problems": []
     },
     {
@@ -1697,11 +902,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1714,7 +918,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "624a7efd6480a5f4",
+      "sha256": "e908b2f990ce75e3",
       "problems": []
     },
     {
@@ -1723,11 +927,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 13,
+      "controls": 12,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1740,7 +943,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3f8c4aeff70ef8f7",
+      "sha256": "81cad9316ef9ef04",
       "problems": []
     },
     {
@@ -1749,11 +952,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1767,7 +969,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c0d70f372b9f3869",
+      "sha256": "c6150c26edee3593",
       "problems": []
     },
     {
@@ -1776,11 +978,10 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 14,
+      "controls": 13,
       "names": [
         "Agent-Ready Studio",
         "Architecture",
-        "Connect",
         "Delivery",
         "Experience",
         "Home",
@@ -1794,7 +995,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "42c51b420f918098",
+      "sha256": "989b6605d160324d",
       "problems": []
     },
     {
@@ -1803,7 +1004,7 @@
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
-      "controls": 29,
+      "controls": 28,
       "names": [
         "Agent-Ready Studio",
         "Approve and advance",
@@ -1811,7 +1012,6 @@
         "Assumptions",
         "Back to all reviews",
         "Confidence",
-        "Connect",
         "Delivery",
         "Experience",
         "Guardrails",
@@ -1836,65 +1036,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "4c9bda6fe621abe6",
-      "problems": []
-    },
-    {
-      "scenario": "no-hover-connect",
-      "surface": "connect",
-      "viewport": "1600x1000@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "3c5ed94a0d00243e",
-      "problems": []
-    },
-    {
-      "scenario": "no-hover-connect-rejected",
-      "surface": "connect-rejected",
-      "viewport": "1600x1000@1x",
-      "scheme": "light",
-      "motion": "no-preference",
-      "controls": 16,
-      "names": [
-        "Agent-Ready Studio",
-        "Architecture",
-        "Cancel inspection",
-        "Connect",
-        "Connect repository",
-        "Delivery",
-        "Experience",
-        "Home",
-        "Outcomes",
-        "Overview",
-        "Public GitHub repository URL",
-        "Release",
-        "Research",
-        "Reviews",
-        "Strategy",
-        "Workspace"
-      ],
-      "horizontalOverflow": 0,
-      "sha256": "80177ef4487e50d5",
+      "sha256": "e5e073617615ddf5",
       "problems": []
     }
   ]

@@ -503,7 +503,7 @@ assisted authoring and has known false negatives.
 - [x] **AC-0047.** When no trusted inspector is available, the result is `inspector-unavailable` and no repository-projected skill is used as a fallback.
 - [ ] **AC-0048.** When no conforming Python interpreter is found, the result is `inspector-unavailable` and names the interpreter requirement.
 - [x] **AC-0049.** Submodule content is neither fetched nor traversed.
-- [x] **AC-0051.** Materialization is killed by the Runtime supervisor when a sample observes the file-count bound crossed, within the tolerance the *Materialized file count* row in *Canonical values* records — the file count written in one 250 ms interval plus the measured worst-case duration of the sample itself.
+- [ ] **AC-0051.** Materialization is killed by the Runtime supervisor when a sample observes the file-count bound crossed, within the tolerance the *Materialized file count* row in *Canonical values* records — the file count written in one 250 ms interval plus the measured worst-case duration of the sample itself.
 - [x] **AC-0052.** Resolution is killed at its exact deadline with its own diagnostic.
 - [x] **AC-0053.** Inspection is killed at its exact deadline with its own diagnostic.
 
@@ -577,7 +577,7 @@ assisted authoring and has known false negatives.
 - [x] **AC-0100.** After a Studio restart, the canonical repository identity is still readable.
 - [x] **AC-0101.** After a Studio restart, the requested ref, the resolved SHA and the inspection time are still readable.
 - [ ] **AC-0102.** After a Studio restart, the last verdict and its diagnostics are still readable.
-- [x] **AC-0103.** A restored verdict is shown with the time it was inspected.
+- [ ] **AC-0103.** A restored verdict is shown with the time it was inspected.
 - [x] **AC-0104.** Total persisted repository-derived content for one connected source is bounded by the persisted repository-derived content value in *Canonical values*, enforced over every persisted repository-derived value and not one class of them.
 
 ### Desktop surface
