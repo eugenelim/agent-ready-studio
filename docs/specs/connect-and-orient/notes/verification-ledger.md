@@ -5612,9 +5612,12 @@ between the two bands and so contradicts nothing. Round 44 also deleted the clai
 marking it, unlike the corrections two rows above. It is restored and struck here so a reader
 sees what was withdrawn.
 
-Load correlates with the flake and does not predict it. What the observations support is the
+Load correlates with the flake and does not predict it. ~~What the observations support is the
 isolation rule: every implicated file has passed twice in isolation, every time it has been
-asked.
+asked.~~ **False, and marked here rather than only in round 47: the session's first isolation
+attempt gave one pass and one failure for each of `disposal`, `materialization` and
+`runtime-supervisor`. Three isolated runs have failed. The rule holds for every attempt after
+that first one.**
 
 ## review-round-44-2026-09-20
 
@@ -5702,8 +5705,9 @@ the red. That is why round 43's load bands were withdrawn rather than adjusted. 
 one-minute mean over a 34-user host and is not a measurement of what any given run contended
 with. ~~Across this session the honest summary is: twenty isolated runs of the three implicated
 files, twenty exit 0.~~ **This is the figure round 47 identified as unsourced — it overcounts by
-four and carries three failures as passes.** The full suite is green whenever it is re-run after
-an isolated confirmation. The flake is real, pre-existing, and recorded at
+four and carries three failures as passes.** ~~The full suite is green whenever it is re-run after
+an isolated confirmation.~~ **Contradicted by round 48, which records four consecutive red
+attempts with isolated confirmations taken between them.** The flake is real, pre-existing, and recorded at
 `pre-existing-trial-runtime-load-flake`; this session's diff still touches nothing under
 `apps/studio-service/` or `packages/`.
 
@@ -5830,7 +5834,10 @@ tenth review round to a tooling refactor is how that happens.
 
 ### Gate state
 
-Recorded with this round's run immediately below.
+**No `pnpm verify` run is recorded for this round.** An earlier version pointed at "this
+round's run immediately below", but what follows is round 47's heading and round 47 presents
+that run, with its own preceding reds, as its own. Round 46's changes were verified by lint,
+typecheck, governance and the capture run; the full suite was next observed green in round 47.
 
 ## review-round-47-2026-09-20
 
@@ -5845,8 +5852,8 @@ entry is the one that describes what landed.
 
 ### The isolated-run count was carried forward from memory, and was wrong
 
-This is the finding worth the round. Four entries reported a running total of isolated runs —
-six, twelve, fourteen, then twenty, then thirty. An earlier version of this paragraph said none
+This is the finding worth the round. Five entries reported a running total of isolated runs —
+six, twelve, fourteen, twenty, thirty. An earlier version of this paragraph said none
 of them was derivable; that overstated it. **Six, twelve and fourteen are each derivable from
 the runs the entries record — their run counts are right and their results are wrong, because
 each reports every run as exit 0 when three had failed. Twenty is where the count itself breaks,
@@ -5905,8 +5912,10 @@ passed twice in isolation. Those four runs are in the reconciliation above.
 
 ## review-round-48-2026-09-20
 
-**The tenth confirmation round. No Blockers from either reviewer, and both concerns are the same
-pattern this session keeps producing rather than new defects.**
+**The tenth confirmation round. The quality reviewer returned no Blockers and two concerns; the
+adversarial reviewer returned three Blockers, two concerns and two nits.** An earlier version of
+this line said neither reviewer found a Blocker, which was wrong, and the entry recorded only
+two of the nine findings. The rest are in the table below.
 
 **Removing the latch left the deadline messages deciding on the wrong variable.** They chose
 between "still changing" and "never changed" on whether the final reading equalled `before` —
@@ -5953,24 +5962,47 @@ honest picture and a single green would not be.
 | 4 | 4 | `disposal`, `runtime-supervisor` |
 | 5 | **0** | **exit 0, 679 passed** |
 
-Six isolated runs were taken between them: `disposal` 8 of 8 twice, `runtime-supervisor` 23 of
-23 twice, `materialization` 4 of 4 twice — **six runs, six exit 0**, bringing the session
-reconciliation to **42 isolated runs, 39 exit 0**.
+Eight isolated runs were taken: `disposal` 8 of 8 twice, `runtime-supervisor` 23 of 23 twice,
+`materialization` 4 of 4 twice and `sweep` 26 of 26 twice — **eight runs, eight exit 0**,
+bringing the session reconciliation to **44 isolated runs, 41 exit 0**.
 
-**What is claimed and what is not.** The tree was green three times earlier in this session at
-679 passed, most recently at round 47, and this round's diff changed
+`sweep` was added after the round-10 reviewer pointed out that it failed in attempt 3 and had
+never been isolated, while the entry rested its not-a-regression conclusion on the isolation
+rule. It is also not one of the three files the session's flake record names, so it is a fourth
+file now implicated.
+
+**What is claimed and what is not.** The tree was green four times earlier in this session at
+679 passed — rounds 43, 44, 45 and 47 — and this round's diff changed
 `apps/desktop/tools/visual-evidence.mjs`, three documents and `workspace.toml` — nothing any of
 those three suites imports, and `git diff 3814102..HEAD -- apps/studio-service packages` is
 still empty. The failing set moves between attempts while the code does not. That is the
 recorded flake and not a regression from this round.
 
-**And the green came at load 35.0 while three of the reds were at 13.9, 19.3 and 22.8.** That is
-the clearest single demonstration this session that the load figure predicts nothing: the
-highest-load run of the set is the one that passed. Load readings stay in this ledger as
-observations, and nothing rests on them.
+**The green came at load 35.0. No load was recorded for this round's four reds**, so the
+comparison has to reach back: the session's reds include readings of 13.9 (round 45), 19.3
+(round 44) and 22.8, against greens at 16.2, 18.9, 22.0, 22.2 and now 35.0. A green at the
+highest reading of the set is the plainest evidence that the figure predicts nothing. Load
+readings stay in this ledger as observations, and nothing rests on them.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The reconciliation prose said two isolated failures where its own table says three | Blocker | Says three, and names the contradiction |
+| The `#review-round-37` anchor was fixed in two of three citations while the row claimed all three | Blocker | Third citation fixed, row marked as having overclaimed |
+| Three superseded running totals stood unmarked while a fourth was struck | Blocker | All marked in place, each stating how it was wrong |
+| "None of those figures is derivable" overstated it | Concern | Six, twelve and fourteen are derivable and wrong only in their results; twenty is where the count breaks |
+| Round 42's load-band inference survived unmarked | Concern | Marked with its siblings |
+| The evidence note had no entry in the audit's basename convention table | Nit | Added |
+| Round 43's isolation claim, declared false by round 47, stood unmarked | Blocker | Marked in place with the three first-attempt failures |
+| The correction paragraph said four entries and listed five figures | Blocker | Says five |
+| Round 48 undercounted the earlier 679-passed greens | Blocker | Four, named by round |
+| Round 46's "green whenever re-run" claim was contradicted by this round | Concern | Marked against this round's attempt table |
+| The load figures cited as "the reds" belong to earlier rounds | Concern | Attributed by round; this round recorded no load for its reds |
+| The new deadline message asserted a transition the function cannot observe | Concern | States only that it held still at its pre-click value, and both branches print the duration |
+| Round 46's gate state claimed a run round 47 presents as its own | Nit | Round 46 records no verify run and says so |
 
 ### Isolated-run reconciliation, carried forward
 
-Round 47 reconciled the session to 36 runs and 33 exit 0. This round adds six, all exit 0:
-**42 runs, 39 exit 0.** The figure is stated here rather than in a later entry, and is derived
-from the six runs listed above rather than carried.
+Round 47 reconciled the session to 36 runs and 33 exit 0. This round adds eight, all exit 0:
+**44 runs, 41 exit 0.** Derived from the eight runs listed above rather than carried.
