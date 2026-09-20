@@ -5680,7 +5680,7 @@ is reported as a stale property.
 | The audit's AC-0103 row cited a case count that went stale when this round added two cases | Concern | Cites the describe block rather than a count |
 | Round 43 read as though the surface-versus-setup asymmetry had been repaired | Concern | Says only the orphaning was fixed, and defends the remaining asymmetry |
 | Round 43's "proven by watching it fire" credited both runs with proving the reporting path | Nit | Attributed to the run that published findings |
-| Round 43's load bands were contradicted by a later red run at 22.8 | — | Withdrawn: load correlates with the flake and does not predict it, and the threshold implied a precision the observations do not support |
+| Round 43's load bands were contradicted by a later red run at 22.8 | — | **The 22.8 figure is wrong — round 45 established it falls in the gap between the bands and contradicts nothing; the contradicting datum is this round's own red at 19.3.** Withdrawn: load correlates with the flake and does not predict it, and the threshold implied a precision the observations do not support |
 
 Contributor-facing: `CONTRIBUTING.md` now names both evidence commands, says publishing replaces
 a spec's retained set wholesale, and states what adding a third root requires.
@@ -5711,7 +5711,7 @@ cross-cutting audit finding that was simply false.**
 `git ls-tree 3814102 docs/specs/connect-and-orient/notes/visual/` returns 57 entries — 56 PNGs
 and a manifest, including every `*-connect.png`, `narrow-900-*` and `text-200-*` — added by
 `d28d022` on 2026-09-19, before the audit ran. The `#t13-delivery-2026-09-19-remade` and
-`#review-round-37` entries were accurate and their evidence was exactly where they said.
+`#review-round-37-2026-09-19` entries were accurate and their evidence was exactly where they said.
 
 **The mistake was reading the wrong directory.** The `git ls-tree HEAD` behind the claim was run
 against `docs/specs/product-development-walking-skeleton/notes/visual/` — a *different spec's*
@@ -5769,6 +5769,122 @@ was withdrawn in round 44 for being imprecise; it was worse than imprecise — t
 was the wrong measurement. Load figures are still recorded, as observations rather than as
 evidence of anything.
 
-The isolation rule is what carries the judgement, and it now stands at **thirty isolated runs
-across this session, thirty exit 0**, against a diff that touches nothing under
-`apps/studio-service/` or `packages/`.
+The isolation rule is what carries the judgement. ~~Thirty isolated runs across this session,
+thirty exit 0.~~ **That figure was carried forward from memory and is wrong; see the
+reconciliation in round 47.** The diff still touches nothing under `apps/studio-service/` or
+`packages/`.
+
+## review-round-46-2026-09-20
+
+**The eighth confirmation round. No Blockers — the first round where the quality reviewer found
+none — and the concerns are narrowing onto one structural point rather than fresh defects.**
+
+**The latch fix was half a fix.** Round 45 stopped the *no-op* branch trusting the latched
+`changed` flag and left the ordinary branch trusting it. So a click that rendered a transient
+and settled back to exactly its pre-click state still returned "settled", and the capture of the
+still-previous surface would publish with an empty problems list — the false verification record
+the function exists to refuse, surviving the round that was meant to remove it.
+
+Both branches now decide from the settled reading against `before`. A surface that ends where it
+started is never reported as having arrived; with a change required it keeps waiting and, at the
+deadline, says it never changed.
+
+**The root-size abort named one of its two causes.** The pin is read from source `tokens.css`
+while the run renders `apps/desktop/out/renderer`, so an edited base with a stale build aborts
+with a message asserting the stylesheet did not apply — pointing the operator at the renderer
+when the answer is `pnpm build`. With no CI, that line is the whole failure record. It now names
+both causes and the rebuild.
+
+### The structural finding, routed rather than absorbed
+
+**No test can reach any logic in the capture harness.** `settleRender` and the `tokens.css`
+reader are pure enough to unit test, but the module refuses at import without
+`VISUAL_EVIDENCE_ROOT` and then runs a multi-minute capture, so nothing can import them.
+
+That is not a stylistic observation. **Four defects in exactly those two functions were found by
+review rather than by a test in this session**: the latched flag above, the abort gate reading
+one of two channels, and two edits recorded as applied that were never in the tree. A fixture
+table over the two functions would have caught each one in seconds, and the repository already
+has the shape for it in `delta-e2000.ts` and its sibling test.
+
+The quality reviewer scoped it explicitly as separate work. Routed at
+`visual-evidence-harness-logic-is-untestable` rather than pulled into this diff — the audit that
+opened this session exists because work was declared done on untested paths, and widening a
+tenth review round to a tooling refactor is how that happens.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The strict `tokens.css` reader reported "found 0" for a `:root` block it never located | Nit | Distinguishes "could not locate the block" from "located it and found N", and a final declaration without a trailing semicolon now parses |
+
+### Gate state
+
+Recorded with this round's run immediately below.
+
+## review-round-47-2026-09-20
+
+**The ninth confirmation round. One Blocker, and it is the same half-fix twice.**
+
+**The latch fix covered one branch of two.** Round 45 stopped the `clickIsNoop` branch trusting
+the latched `changed` flag; the default branch still trusted it, so a click that rendered a
+transient and settled back to its pre-click reading returned "settled" while the deadline path
+names that same end state a finding. The round-45 ledger row and the code comment both claimed
+the general form. Both branches now decide from the settled reading against `before`, and this
+entry is the one that describes what landed.
+
+### The isolated-run count was carried forward from memory, and was wrong
+
+This is the finding worth the round. Three consecutive entries reported a running total of
+isolated runs — fourteen, then twenty, then thirty — and **none of those figures is derivable
+from the runs the entries themselves record.** The adversarial reviewer traced the chain and
+found four runs unaccounted between two of them.
+
+Reconciled against the session's actual runs:
+
+| When | Runs | Result |
+| --- | ---: | --- |
+| First isolation attempt, at the session's highest load | 6 | **3 exit 0, 3 exit 1** |
+| Second attempt, same three files | 6 | 6 exit 0 |
+| `disposal` | 2 | 2 exit 0 |
+| `materialization`, `runtime-supervisor` | 4 | 4 exit 0 |
+| `runtime-supervisor` | 2 | 2 exit 0 |
+| `disposal` | 2 | 2 exit 0 |
+| Five files after the 22-failure run | 10 | 10 exit 0 |
+| `disposal`, `runtime-supervisor` | 4 | 4 exit 0 |
+| **Total** | **36** | **33 exit 0, 3 exit 1** |
+
+So the honest statement is **36 isolated runs, 33 exit 0**, not thirty and thirty. And the
+sentence "every implicated file has passed twice in isolation, every time it has been asked"
+was **false**: the first attempt gave one pass and one failure for each of the three files. Two
+isolated failures were reported to the owner during this session and then written out of the
+running total by a figure nobody recomputed.
+
+**This is the third count in this slice recorded from memory rather than from its own
+evidence**, after the audit's headline totals and the two round-44 rows claiming fixes that were
+never applied. The pattern is specific: prose summarising a table two lines away, or a total
+carried between entries. The audit's counts were fixed by generating them; these were not, and
+this reconciliation is by hand because the runs are scattered across a transcript rather than
+held in one artifact.
+
+The isolation rule still carries the judgement — every failure has been reproduced clean in
+isolation on every attempt after the first — but it carries it on 33 of 36, not 36 of 36, and
+the difference is the part worth recording.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The round-44 row asserting the 22.8 figure was left unmarked while two siblings were marked false | Nit | Marked, naming the 19.3 red as the real contradicting datum |
+| `#review-round-37` did not resolve; the heading carries a date suffix | Nit | Full anchor in all three citations |
+| Two consecutive comment blocks restated the same point above one call | Nit | Merged |
+| The audit cited `tools/governance-gate.mjs` in a form its own path convention resolves to a nonexistent file | Nit | Says it is at the repository root, outside the table's prefixes |
+| Finding 4 said AC-0147 "is green" while the same document records the criterion not met | Nit | Says its test is green and the criterion is not met, which is the distinction the Method section draws |
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect` exits
+0 with 80 checks across 64 scenarios. **`pnpm verify` exit 0 — 679 passed, 3 skipped.**
+
+The two attempts before it were red, in `disposal` and `runtime-supervisor`, both of which then
+passed twice in isolation. Those four runs are in the reconciliation above.

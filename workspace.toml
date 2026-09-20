@@ -166,6 +166,21 @@ open = [
   # gate. Found by the 157-criterion audit.
   # Evidence: notes/acceptance-audit.md, finding 5.
   { slug = "connect-orient-default-suite-reaches-the-network", source = "connect-and-orient/2026-09-20" },
+  # No test can reach any logic inside apps/desktop/tools/visual-evidence.mjs.
+  # The module refuses at import without VISUAL_EVIDENCE_ROOT and then runs a
+  # multi-minute capture, so `settleRender` and the `tokens.css` reader --
+  # both pure enough to unit test -- are reachable only by running the whole
+  # harness. Four defects in them were found by review rather than by a test
+  # during 2026-09-20: a latched change flag that called a reverted transient
+  # "settled", an abort gate reading one of two channels, and two edits
+  # recorded as applied that were never in the tree. A fixture table over
+  # those two functions would have caught each in seconds.
+  # `apps/desktop/tools/delta-e2000.ts` with its sibling test is the shape
+  # this repository already uses for a tested tool module. Raised by the
+  # round-8 quality reviewer, who scoped it explicitly as separate work
+  # rather than part of that diff.
+  # Evidence: notes/verification-ledger.md#review-round-46-2026-09-20.
+  { slug = "visual-evidence-harness-logic-is-untestable", source = "connect-and-orient/2026-09-20" },
 ]
 closed = [
   # Closed 2026-09-20, and narrower than first written. The owner-approved
