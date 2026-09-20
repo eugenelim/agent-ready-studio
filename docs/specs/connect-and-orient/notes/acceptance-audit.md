@@ -5,9 +5,9 @@
 round found. This is the first pass that reconciles **every** criterion in
 [`spec.md`](../spec.md) against the tree.
 
-**Result at audit time: 80 met, 72 not met, 5 not verifiable here.** AC-0103 was closed in the
-same session, so the spec now carries **81 checked boxes and 76 open**. AC-0130 was materially
-advanced but remains open; its row says which clause is now bound and which is not.
+**Result: 80 met, 72 not met, 5 not verifiable here.** `spec.md`
+carries 80 checked boxes and 77 open. Every count in this document, including each
+group header, is generated from the rows below rather than written by hand.
 
 Before this audit, `spec.md` had 157 unchecked boxes and the ledger named roughly ten criteria as
 known-unmet. An unchecked box meant "not audited". It now means "audited and not met", except for
@@ -35,10 +35,10 @@ Each criterion carries three judgements:
 A criterion is recorded **not met** when any clause of its wording is unbound, even if the rest is
 strongly bound. Partial credit would reproduce the failure this audit exists to correct.
 
-## The five cross-cutting findings
+## The six cross-cutting findings
 
-Seventy-one criteria do not fail for seventy-one separate reasons. Five causes account for most
-of them, and four of the five are the same shape: **code that is written, tested, and reached by
+Seventy-one criteria do not fail for seventy-one separate reasons. Six causes account for most
+of them, and four of the six are the same shape: **code that is written, tested, and reached by
 nothing.**
 
 ### 1. Seventeen exported functions have zero production callers
@@ -124,8 +124,12 @@ pre-slice baseline instead. This session's run regenerates and commits all of it
 
 ## Per-criterion reconciliation
 
-`F` is falsifiability: **S** strong, **W** weak, **N** none. Paths are relative to the repository
-root; `apps/studio-service/src/trials/connect-and-orient-runtime/` is abbreviated `…runtime/`.
+`F` is falsifiability: **S** strong, **W** weak, **N** none.
+
+**Bindings are cited by basename and line**, not by full path, because each name is unique across
+this repository's test tree. They resolve into four directories: `apps/studio-service/src/`,
+`apps/studio-service/src/trials/connect-and-orient-runtime/`,
+`apps/desktop/src/renderer/inspection/` and `apps/desktop/tools/`.
 
 ### Source input and identity — 10 met
 
@@ -192,7 +196,7 @@ root; `apps/studio-service/src/trials/connect-and-orient-runtime/` is abbreviate
 | AC-0042 | met | S | trial-result.test.ts:334-372 | fixed four-field request plus its own positive control at :360-371 |
 | AC-0155 | **not met** | W | trial-result.test.ts:510-559 | `BoundedDiagnosticBuffer` unwired; the real stderr reader is unbounded at runtime-supervisor.ts:436 |
 
-### Trusted inspector — 5 met, 5 not met
+### Trusted inspector — 4 met, 6 not met
 
 | AC | Verdict | F | Binding | Note |
 | --- | --- | --- | --- | --- |
@@ -203,7 +207,7 @@ root; `apps/studio-service/src/trials/connect-and-orient-runtime/` is abbreviate
 | AC-0047 | met | S | source-inspection.test.ts:93-104 | holds because production unconditionally reports `inspector-unavailable` and no fallback executable path exists — the guarded leg is vacuous rather than guarded |
 | AC-0048 | **not met** | W | inspector-locator.test.ts:278-313 | the requirement string is the constant the test supplied; `MINIMUM_INTERPRETER_VERSION` is never compared against it |
 | AC-0049 | met | S | supervised-bounds.test.ts:233-243 | flag leg strong; the behavioural leg at absence-proofs.test.ts:304-314 is weak — the fixture omits `submodule.recurse=false` and git does not recurse by default |
-| AC-0051 | met | W | supervised-bounds.test.ts:152-225 | the kill is a real observed post-condition, but the **tolerance** clause the criterion names is a tautology at :191-195 |
+| AC-0051 | **not met** | W | supervised-bounds.test.ts:152-225 | the kill is a real observed post-condition, but the **tolerance** clause cannot fail: `boundValue` appears on both sides of the assertion at :193-195, so a further bound's worth of overshoot passes, and :190 pins `intervalMs` to 50 while the criterion names the 250 ms interval. Corrected from `met` after the adversarial reviewer applied this document's own rule at line 36 to it |
 | AC-0052 | met | S | supervised-bounds.test.ts:71-117 | real detached child, real 5 s hold against a 500 ms deadline |
 | AC-0053 | met | S | supervised-bounds.test.ts:125-148 | group-gone observed from the parent against a child holding itself open past its deadline |
 
@@ -242,7 +246,7 @@ derivation.
 | AC-0067 | met | S | trial-result.test.ts:468-507; validator.ts:37-43 | two separate fields in contract, record and store; `inspectorContractVersion` is populated in production |
 | AC-0068 | met | S | trial-result.test.ts:503-506 | an absence proof scoped to `observedVersions` only |
 
-### Path confinement and materialization safety — 7 met, 1 not met
+### Path confinement and materialization safety — 6 met, 2 not met
 
 | AC | Verdict | F | Binding | Note |
 | --- | --- | --- | --- | --- |
@@ -298,7 +302,7 @@ projection with no renderer assertion, or the reverse.
 | AC-0100 | met | S | source-inspection-storage.test.ts:84-85 | real adapter, genuine close/reopen |
 | AC-0101 | met | S | source-inspection-storage.test.ts:86-87; connected-source.test.ts:145-149 | the ref clause is bound only where the record is built directly, never through the full connect pipeline |
 | AC-0102 | **not met** | S | source-inspection-storage.test.ts:88-89 | the clean-verdict case is strong. "Its diagnostics" fails for a **degraded** result: no `stop_reason`, `wait_window` or `secondary_diagnostic` column exists (storage.ts:269), and every persistence test persists a clean `agent-ready` record, so the loss is invisible to the suite |
-| AC-0103 | met | S | VerdictSurface.tsx identity list, asserted VerdictSurface.test.tsx:325-353 and InspectionSurface.test.tsx:274-298 | **closed this session.** Audited as not met — `inspectedAt` reached no surface. Now rendered in the identity list from a pinned UTC format rather than through `Intl`, whose month abbreviations move with the host's ICU version. Three mutations proven: dropping the row reddens 2, changing the pinned month reddens 1, and dropping the prop from `InspectionSurface` reddens 1 — that last case was added because without it the wiring was unbound and the audit's own defect class would have repeated |
+| AC-0103 | **not met** | S for the display half | VerdictSurface.tsx identity list, asserted VerdictSurface.test.tsx (three cases) and InspectionSurface.test.tsx (the wiring case) | **display built this session, criterion still open.** `inspectedAt` reached no surface; it now renders in the identity list from a pinned UTC table rather than through `Intl`, whose month abbreviations move with the host ICU version. **But the criterion says a *restored* verdict**, and the renderer has no path to one: `useInspection.ts:74` mounts at `null`, `source.get` needs a `sourceId` held in memory, the preload exposes no list-or-latest call, and nothing persists the id — no `localStorage` or `sessionStorage` exists under apps/desktop/src. After a restart the surface shows `unconnected`. Found by the quality reviewer after this session first recorded the criterion closed |
 | AC-0104 | met | S | source-inspection-storage.test.ts:143-206 | a 300 KiB breaching write through the production `store.persist`, prior record intact; the provenance regression case is bound |
 
 ### Desktop surface — 8 met, 7 not met, 1 not verifiable here
@@ -341,12 +345,12 @@ behind `CONNECT_ORIENT_E2E_NETWORK=1`.
 | AC-0127 | **not met** | S | InspectionSurface.test.tsx:353-358 | only one adjacent pair is tabbed; the verdict surface's focus order is never exercised, and heading structure is bound only as existence, not level or nesting |
 | AC-0128 | met | S | InspectionSurface.test.tsx:239-253; presentation.test.ts:177-211 | the literal anchors carry the criterion independently of the tautological expectation at :136-143 |
 | AC-0129 | **not met** | S / N | ProgressPulse.test.tsx:15-48 | the text-channel half is sound; "state-change motion is omitted" is unbound — the `prefers-reduced-motion` block at tokens.css:762-769 is asserted by nothing and the capture only sees the pre-connection surface |
-| AC-0130 | **not met** | S for the focus clause | visual-evidence.mjs occlusion probe and its vacuity guard; `connect-rejected` surface | **materially advanced this session, not closed.** The tool now focuses every reachable control in turn and hit-tests its own centre, failing when the topmost element there is unrelated to the focused control; a new `connect-rejected` surface puts a real diagnostic on screen offline, since a refusal consults no transport. Proven by mutation: making `.connect-form__rejection` a fixed full-viewport overlay turns the run exit 1 and names the obscuring element on all three affected scenarios. A vacuity guard fails the run if a surface has controls but none could be focused and hit-tested. **Still open:** the criterion also names the longest fixture label, an enabled Cancel and a retry control, which need a completed inspection, and that needs the network AC-0148 forbids |
+| AC-0130 | **not met** | S for the focus clause | visual-evidence.mjs occlusion probe and its vacuity guard; `connect-rejected` surface | **materially advanced this session, not closed.** The tool focuses every reachable control in turn and hit-tests its own centre, failing when the topmost element there is unrelated to the focused control; a `connect-rejected` surface puts a real diagnostic on screen offline, since a refusal consults no transport. Mutation: making `.connect-form__rejection` a fixed full-viewport overlay turns the run exit 1 and names the obscuring element. A vacuity guard fails the run when a surface has controls but none could be hit-tested, and the manifest records the tested and skipped counts per surface. **What it proves is narrow** and the tool says so: the *centre* of each focused control is not covered by a *hit-testable* layer. It cannot see a `pointer-events: none` overlay, nor a panel covering a control's edges or label while its centre stays clear. **Still open:** the criterion also names the longest fixture label, an enabled Cancel and a retry control, which need a completed inspection and so the network AC-0148 forbids |
 | AC-0131 | not verifiable here | S | visual-evidence.mjs:765-779,844-853 | a real measured post-condition over a control set the run also requires to be non-empty, but it executes only against the built app under Chromium |
 | AC-0132 | **not met** | S / N | visual-evidence.mjs:427-435,601-617 | the text-resize half is sound and the earlier byte-identical defect is fixed with a probe. Two loose clauses: the narrowest viewport any scenario uses is 720 px, never the 320 px WCAG 2.2 1.4.10 names, and the verdict surface is captured in no scenario |
 | AC-0158 | met | S | InspectionSurface.test.tsx:256-273; presentation.test.ts:213-230 | literal strings against a rendered live region and against the pure function |
 
-### Security proofs — 4 met, 11 not met
+### Security proofs — 3 met, 12 not met
 
 Finding 4 governs this group. The absence proofs run against `test/hostile-fixture.ts`'s own
 re-implemented checkout, so removing a flag from `PINNED_GIT_CONFIGURATION` reddens none of them.
@@ -382,13 +386,13 @@ re-implemented checkout, so removing a flag from `PINNED_GIT_CONFIGURATION` redd
 
 ## What this changes
 
-- `spec.md` now carries 81 checked boxes. The remaining 76 are audited results, not unexamined
-  boxes.
+- `spec.md` now carries 80 checked boxes. The remaining 77 are audited results, not
+  unexamined boxes.
 - The spec stays **Implementing**. Per
   `.claude/skills/new-spec/references/spec-and-plan-contract.md:108-114`, a spec holds that status
   across sessions while required accepted work remains, and only an owner-agreed amendment moves
   work out of the AC set.
-- Four of the five cross-cutting findings are one defect class — a module written, tested, and
+- Four of the six cross-cutting findings are one defect class — a module written, tested, and
   called by nothing. Closing them is mostly wiring existing, already-tested code into the
   pipeline, not writing new behaviour.
 - `AC-0148` is the only finding that is a defect in something currently running rather than an

@@ -11,6 +11,7 @@ const defaults = {
   owner: "acme",
   repository: "widgets",
   resolvedSha: "abc1234def5678",
+  inspectedAt: null,
   diagnostics: "",
 } as const;
 
@@ -341,6 +342,24 @@ describe("AC-0103 a restored verdict is shown with the time it was inspected", (
     expect(inspected?.querySelector("time")?.getAttribute("dateTime")).toBe(
       "2026-09-19T14:05:00.000Z",
     );
+  });
+
+  it("distinguishes an unreadable instant from no inspection at all", () => {
+    render(
+      <VerdictSurface
+        {...defaults}
+        verdict="agent-ready"
+        condition={null}
+        inspectedAt="not-a-date"
+      />,
+    );
+    const inspected = document.querySelector('[data-identity="inspected-at"]');
+    // Saying "not inspected" here would tell the lead something false.
+    expect(inspected?.textContent).toBe(
+      "recorded at a time Studio cannot read",
+    );
+    // And no machine-readable value, because the string is not a datetime.
+    expect(inspected?.querySelector("time")).toBeNull();
   });
 
   it("says so plainly when no inspection has completed", () => {
