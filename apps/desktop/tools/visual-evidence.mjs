@@ -218,9 +218,15 @@ async function settleRender(
     }
     previous = now;
     if (Date.now() >= until)
-      return moved
-        ? `${what} was still changing after ${deadlineMs / 1000}s`
-        : `${what} never changed within ${deadlineMs / 1000}s, so the capture may show the previous surface`;
+      // Decided by whether this iteration saw it hold still, not by whether
+      // the reading matches `before`. Reaching here unsettled means the
+      // document is churning; reaching here settled is only possible when a
+      // change was required and it came to rest exactly where it started.
+      // Choosing on `moved` alone conflated the two and could print "never
+      // changed" for a surface that was visibly changing.
+      return settled
+        ? `${what} settled back to its pre-click state, so the capture may show the previous surface`
+        : `${what} was still changing after ${deadlineMs / 1000}s`;
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 }

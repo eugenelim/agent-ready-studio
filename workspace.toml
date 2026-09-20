@@ -170,11 +170,20 @@ open = [
   # The module refuses at import without VISUAL_EVIDENCE_ROOT and then runs a
   # multi-minute capture, so `settleRender` and the `tokens.css` reader --
   # both pure enough to unit test -- are reachable only by running the whole
-  # harness. Four defects in them were found by review rather than by a test
-  # during 2026-09-20: a latched change flag that called a reverted transient
-  # "settled", an abort gate reading one of two channels, and two edits
-  # recorded as applied that were never in the tree. A fixture table over
-  # those two functions would have caught each in seconds.
+  # harness. Five defects in those two functions were found by review rather
+  # than by a test on 2026-09-20, each of which a fixture table would have
+  # caught in seconds:
+  #   1. `settleRender` read its baseline after the action rather than before,
+  #      so it could not tell an arrived surface from a pending one.
+  #   2. It required a change from a click that correctly changes nothing.
+  #   3. It latched "changed", so a transient that settled back to the
+  #      pre-click state was reported as arrived -- fixed on one branch first
+  #      and on the other two rounds later.
+  #   4. Its deadline message chose on the wrong variable and could say
+  #      "never changed" for a document that was visibly churning.
+  #   5. The `tokens.css` reader said "found 0 declarations" for a `:root`
+  #      block it had never located, and a strictness edit for it was recorded
+  #      as applied while never being in the tree.
   # `apps/desktop/tools/delta-e2000.ts` with its sibling test is the shape
   # this repository already uses for a tested tool module. Raised by the
   # round-8 quality reviewer, who scoped it explicitly as separate work
