@@ -5147,11 +5147,14 @@ forbids, and no retry control exists in the renderer at all.
 672 to 674 of 679 passing and every failure inside
 `apps/studio-service/src/trials/connect-and-orient-runtime/`.
 
-| Attempt | Load average | Result |
-| --- | --- | --- |
-| 1 | 49.5 | 666 passed, 10 failed across `disposal`, `materialization`, `runtime-supervisor` |
-| 2 | 61.6 | 674 passed, 2 failed |
-| 3 | 43.3 | 672 passed, 4 failed, all in `disposal` |
+Each run reported 679 cases, of which **3 are the gated skips** — the live smoke and the two
+networked boundary cases — so the pass and fail columns sum to 676, not 679.
+
+| Attempt | Load average | Passed | Failed | Skipped | Where |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 1 | 49.5 | 666 | 10 | 3 | `disposal`, `materialization`, `runtime-supervisor` |
+| 2 | 61.6 | 674 | 2 | 3 | `disposal`, `runtime-supervisor` |
+| 3 | 43.3 | 672 | 4 | 3 | `disposal` only |
 
 **Judged by the two-in-isolation rule, not by a re-run.** All three files were run twice each in
 isolation between attempts 1 and 2: six runs, six exit 0. The failures are 5,000 ms timeouts and
@@ -5245,8 +5248,9 @@ Three of this round's mutation runs reported nothing, and the reason was not the
 test paths were held in a shell variable and passed unquoted; **zsh does not word-split an
 unquoted parameter**, so vitest received both paths as one filter, matched no files, and exited
 1 with "No test files found". A careless reading of that output as "no failures" would have
-recorded four mutations as proven when none of them ran. The numbers above are from runs with
-the paths written literally, each confirmed to have executed 36 cases.
+recorded four mutations as proven when none of them ran. The counts in the AC-0103 mutation
+table earlier in this entry are from runs with the paths written literally, each confirmed to
+have executed 36 cases.
 
 ### Gate state
 
@@ -5261,3 +5265,65 @@ two-in-isolation rule. The same suite, unchanged in `apps/studio-service/` and `
 green on the first attempt once the host load fell to 18. The `pre-existing-trial-runtime-load-flake`
 entry's characterisation holds: it is host contention, not a code defect, and the honest thing was
 to say so rather than to average three red runs into a claim.
+
+## review-round-40-2026-09-20
+
+**The second confirmation round. Both reviewers converged on the same Blocker, and it is the one
+the previous round only half-fixed.**
+
+**`pnpm visual-evidence` still destroyed a Shipped spec's evidence by default.** Round 39
+restored the walking-skeleton baselines by hand and left the destructive default in place, so the
+next bare invocation would have repeated it — a repair to the instance, not the generator. The
+tool's own comment had documented the rule since before this session and the overwrite happened
+anyway, which is the whole lesson: a comment does not defend against a reachable default.
+
+`VISUAL_EVIDENCE_ROOT` is now **required**. A bare `pnpm visual-evidence` refuses and names the
+two safe commands, `visual-evidence:skeleton` and `visual-evidence:connect`, which are new
+scripts in `package.json`. Naming the set you are about to replace is the only way to replace it.
+
+**The register still asserted the live half holds.** The
+`connect-orient-restored-result-drops-reason-and-wait-window` entry said AC-0088, AC-0091,
+AC-0092, AC-0097 and AC-0099 "hold for a result the lead is watching" — written before the audit
+established that nothing resolves a stop reason. It was corrected in the `closed` entry and
+missed in the `open` one directly above it, so the file contradicted itself in the same commit
+that fixed the contradiction. It now claims the two that hold.
+
+**Two hand-written counts survived the generation pass**, under a sentence claiming every count
+in the document is generated from the rows. Both are gone, and every count surface now
+cross-checks: 157 rows, 80 met, `spec.md` carrying exactly those 80 as checked, and the headline,
+the fifteen group headers, the closing section and this ledger all agreeing.
+
+### The occlusion probe, second pass
+
+- **The rejection poll accepted any refusal, from any element.** It matched a document-wide
+  `[data-state="url-rejected"]`, which `StateBadge` also emits, and its field selector took the
+  first input rather than the URL field. It now pins the field by `#connect-url`, scopes the
+  marker to the form's own rejection paragraph, and **asserts the diagnostic is the one this URL
+  should produce** rather than merely that some refusal rendered. The text is published in the
+  manifest, so the retained record shows which refusal each capture was taken against.
+- **A dead harness was reported as a slow host.** When the service child dies the renderer
+  absorbs a typed `disconnected` outcome, no rejection ever renders, and the poll's timeout
+  message blamed the page while `aborted ??= plumbingFailure` discarded the real cause. Both the
+  poll and the new click gate check `plumbingFailure` first.
+- **The fixed-sleep flake was fixed at one site and left at four.** The click gates still slept
+  1200–1500 ms and then aborted the whole run if the render was slow — on a host where this suite
+  has gone red at load averages of 43 to 62, that discards every capture taken so far. All of
+  them now go through one `clickWhenOffered` helper that polls to a deadline.
+- **Inner scroll is not restored**, and the tool now says so instead of implying otherwise. The
+  capture is already taken by the time the probe runs, so no published image is affected.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The audit's citation convention named four directories while rows cited into seven | Concern | A table mapping every cited basename to its directory |
+| Four tool bindings cited line ranges that the same commit moved | Concern | Cited by scenario and function name, which survive the file growing |
+| The flake table's rows summed to 676 against a 679-case suite | Nit | Each row states its skip count; the three gated skips are named |
+| `inspectedLabel` accepted `undefined`, which its required prop forbids | Nit | Narrowed to the type its single call site can supply |
+| The closed register entry pointed "below" to a slug in the array above it | Nit | Names the array instead of a direction |
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect` exits
+0 with 64 scenarios, and a bare `pnpm visual-evidence` now exits 1 with the two safe commands
+named. `pnpm verify` is recorded below.

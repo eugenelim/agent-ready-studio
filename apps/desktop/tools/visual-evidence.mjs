@@ -30,17 +30,66 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../../..");
 const rendererRoot = resolve(repoRoot, "apps/desktop/out/renderer");
 const serviceEntry = resolve(repoRoot, "apps/studio-service/dist/service.js");
-// Spec-selectable, defaulting to today's path so every existing reference is
-// unchanged. Publishing is a whole-directory swap, not an append: a run under
-// the default root replaces that directory's retained captures wholesale, and
-// that directory is a Shipped spec's notes. A slice capturing its own surfaces
-// passes its own root and brings its own `.gitignore` entries for the two
-// staging directories derived below.
-const outputRoot = resolve(
-  repoRoot,
-  process.env.VISUAL_EVIDENCE_ROOT ??
-    "docs/specs/product-development-walking-skeleton/notes/visual",
-);
+// Publishing is a whole-directory swap, not an append: a run replaces its
+// output directory's retained captures wholesale. There is deliberately **no
+// default**. This used to fall back to the walking-skeleton spec's notes, and
+// on 2026-09-20 a bare invocation from another slice replaced that Shipped
+// spec's 36 retained baselines -- the rule was documented in this comment and
+// the destructive default was reachable anyway, so the comment lost. Naming
+// the set you are about to replace is now the only way to replace it.
+//
+// Each root needs its own `.gitignore` entries for the two staging
+// directories derived below.
+function fail(message) {
+  console.error(`visual-evidence: ${message}`);
+  process.exit(1);
+}
+
+const KNOWN_ROOTS = [
+  "docs/specs/product-development-walking-skeleton/notes/visual",
+  "docs/specs/connect-and-orient/notes/visual",
+];
+if (process.env.VISUAL_EVIDENCE_ROOT === undefined) {
+  fail(
+    "VISUAL_EVIDENCE_ROOT is required, because publishing replaces that " +
+      "directory's retained captures wholesale.\n" +
+      "  Capture the walking-skeleton surfaces:  pnpm visual-evidence:skeleton\n" +
+      "  Capture the connect-and-orient slice:   pnpm visual-evidence:connect\n" +
+      `  Or set it yourself, e.g. VISUAL_EVIDENCE_ROOT=${KNOWN_ROOTS[1]}`,
+  );
+}
+const outputRoot = resolve(repoRoot, process.env.VISUAL_EVIDENCE_ROOT);
+
+/**
+ * Click a button by its exact label, waiting for it to appear.
+ *
+ * Every call site used to sleep a fixed 1200-1500 ms and then abort the whole
+ * run if the render had not landed, discarding every capture taken so far --
+ * on a host where this suite has gone red at load averages of 43 to 62. A
+ * deadline poll costs nothing when the render is fast and does not throw away
+ * an hour of work when it is slow. A harness failure is reported as itself
+ * rather than as a slow page.
+ */
+async function clickWhenOffered(page, label, what, deadlineMs = 15_000) {
+  const until = Date.now() + deadlineMs;
+  for (;;) {
+    if (plumbingFailure !== null) throw new Error(plumbingFailure);
+    const clicked = await page("Runtime.evaluate", {
+      expression:
+        "(() => { const el = [...document.querySelectorAll('button')]" +
+        ".find((candidate) => candidate.textContent.trim() === " +
+        JSON.stringify(label) +
+        "); if (!el) return false; el.click(); return true; })()",
+      returnByValue: true,
+    });
+    if (clicked.result.value === true) return;
+    if (Date.now() >= until)
+      throw new Error(
+        `${what} never offered "${label}" within ${deadlineMs / 1000}s`,
+      );
+    await new Promise((r) => setTimeout(r, 200));
+  }
+}
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -130,11 +179,6 @@ const REACHABLE_CONTROLS_JS = `
     ...document.querySelectorAll("button, input, textarea, select, a[href]"),
   ].filter(reachable);
 `;
-
-function fail(message) {
-  console.error(`visual-evidence: ${message}`);
-  process.exit(1);
-}
 
 // ---------------------------------------------------------------- service ---
 
@@ -697,20 +741,8 @@ try {
     // harness clicked through Reviews on its way to the Work Item Studio and
     // measured only where it landed.
     for (const label of ["Seed demo workspace", "Run transformation"]) {
-      const clicked = await page("Runtime.evaluate", {
-        expression: `(() => {
-          const el = [...document.querySelectorAll("button")].find(
-            (candidate) => candidate.textContent.trim() === ${JSON.stringify(label)},
-          );
-          if (!el) return false;
-          el.click();
-          return true;
-        })()`,
-        returnByValue: true,
-      });
-      if (clicked.result.value !== true)
-        throw new Error(`the rendered application never offered "${label}"`);
-      await new Promise((r) => setTimeout(r, 1500));
+      await clickWhenOffered(page, label, "the rendered application");
+      await new Promise((r) => setTimeout(r, 1200));
     }
 
     // Every surface the build renders is driven to and measured while it is on
@@ -748,25 +780,15 @@ try {
       },
     ]) {
       for (const label of surface.clicks) {
-        const clicked = await page("Runtime.evaluate", {
-          expression:
-            "(() => { const el = [...document.querySelectorAll('button')]" +
-            ".find((candidate) => candidate.textContent.trim() === " +
-            JSON.stringify(label) +
-            "); if (!el) return false; el.click(); return true; })()",
-          returnByValue: true,
-        });
-        if (clicked.result.value !== true)
-          throw new Error(
-            `the ${surface.name} surface never offered "${label}"`,
-          );
+        await clickWhenOffered(page, label, `the ${surface.name} surface`);
         await new Promise((r) => setTimeout(r, 1200));
       }
 
+      let surfaceDiagnostic = null;
       if (surface.submit !== undefined) {
         const submitted = await page("Runtime.evaluate", {
           expression: `(() => {
-            const field = document.querySelector('.inspection-surface input[type="url"], .inspection-surface input');
+            const field = document.getElementById("connect-url");
             if (!field) return "no url field";
             const setter = Object.getOwnPropertyDescriptor(
               window.HTMLInputElement.prototype, "value").set;
@@ -795,12 +817,23 @@ try {
         // generic /cannot|refus/ probe, and the strings that DO match such a
         // probe belong to the Studio-side failure state and the version
         // qualifier -- so a body-text guard would pass on the wrong surface.
+        // The marker is the form's own rejection paragraph, by id. A
+        // document-wide [data-state="url-rejected"] would also match a state
+        // badge, and the earlier body-text probe matched two unrelated states
+        // while missing this one -- the refusal reads "Studio connects to
+        // public github.com repositories only", which shares no word with a
+        // generic /cannot|refus/ pattern.
         const deadline = Date.now() + 15_000;
         let diagnostic = null;
         while (Date.now() < deadline) {
+          // A dead harness must be reported as itself. Without this the
+          // timeout below would attribute a crashed service child to a slow
+          // page and discard the real cause.
+          if (plumbingFailure !== null) throw new Error(plumbingFailure);
           const seen = await page("Runtime.evaluate", {
             expression: `(() => {
-              const el = document.querySelector('[data-state="url-rejected"]');
+              const el = document.querySelector(
+                '.connect-form__rejection[data-state="url-rejected"]');
               return el === null ? null : (el.textContent || "").trim();
             })()`,
             returnByValue: true,
@@ -816,9 +849,17 @@ try {
         }
         if (diagnostic === null)
           throw new Error(
-            `the ${surface.name} surface showed no url-rejected diagnostic within 15s — ` +
-              `either the refusal did not render or the host was too slow to show it`,
+            `the ${surface.name} surface showed no url-rejected diagnostic ` +
+              `within 15s`,
           );
+        // Which refusal, not merely that one rendered. A submission that lost
+        // its URL would otherwise publish a capture of a different diagnostic
+        // and nothing would say so.
+        if (!diagnostic.includes("public github.com repositories only"))
+          throw new Error(
+            `the ${surface.name} surface showed the wrong refusal: ${diagnostic}`,
+          );
+        surfaceDiagnostic = diagnostic;
       }
 
       // AC-37 assertion: decision controls must stay reachable without
@@ -989,6 +1030,10 @@ try {
         if (restore instanceof HTMLElement) restore.focus({ preventScroll: true });
         else if (document.activeElement instanceof HTMLElement)
           document.activeElement.blur();
+        // Window scroll only. Focusing also scrolls inner overflow
+        // containers, and those are not restored, so a later surface can be
+        // probed from a different internal scroll offset. The capture is
+        // already taken by this point, so no published image is affected.
         window.scrollTo(scroll.x, scroll.y);
         return { tested, obscured, skipped };
       })())`,
@@ -1045,6 +1090,12 @@ try {
         // publish identically to one where all of them were hit-tested.
         occlusionTested: occlusion.tested,
         occlusionSkipped: occlusion.skipped,
+        // The diagnostic that was on screen when this capture was taken, so
+        // the retained record shows which refusal the occlusion check ran
+        // against rather than only that some refusal did.
+        ...(surfaceDiagnostic === null
+          ? {}
+          : { diagnostic: surfaceDiagnostic }),
         surface: surface.name,
         viewport: `${scenario.width}x${scenario.height}@${scenario.scale}x`,
         scheme: scenario.scheme,

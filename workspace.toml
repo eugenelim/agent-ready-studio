@@ -118,8 +118,11 @@ open = [
   # A restored result loses the three fields the live result now carries. The
   # owner approved `stopReason`, `waitWindow` and `secondaryDiagnostic` onto
   # `sourceInspectionResultSchema` and the canonical schema, and they render --
-  # so AC-0088, AC-0091, AC-0092, AC-0097 and AC-0099 hold for a result the
-  # lead is watching. The stored record has no column for any of the three, so
+  # so AC-0097 and AC-0099 hold for a result the lead is watching. AC-0088,
+  # AC-0091 and AC-0092 do NOT: they need a stop reason to arrive, and nothing
+  # resolves one (see `connect-orient-stop-reason-never-resolved`). An earlier
+  # version of this comment claimed all five; corrected 2026-09-20 after the
+  # audit. The stored record has no column for any of the three, so
   # `createStorageStore`'s read sets them null explicitly and says why at the
   # site. After a restart the same five criteria degrade: the lead sees the
   # verdict and its diagnostics, and an `inspection-stopped` result loses the
@@ -178,7 +181,7 @@ closed = [
   # An earlier version of this entry claimed all five; corrected after the
   # adversarial reviewer caught the register contradicting the audit committed
   # beside it. The unresolved half is tracked at
-  # `connect-orient-stop-reason-never-resolved` below.
+  # `connect-orient-stop-reason-never-resolved` in the `open` array.
   { slug = "connect-orient-result-carries-no-reason-or-wait-window", source = "connect-and-orient/2026-09-19" },
 ]
 
