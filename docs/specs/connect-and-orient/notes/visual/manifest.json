@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-20T07:25:48.227Z",
+  "capturedAt": "2026-09-20T07:52:45.352Z",
   "results": [
     {
       "scenario": "desktop-light-home",
@@ -43,7 +43,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "246fe59de7b1e5a5",
+      "sha256": "9fc5294729d636e8",
       "problems": []
     },
     {
@@ -164,7 +164,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "2e6a2480221b86f1",
+      "sha256": "fb7a4fa1e9bbad3d",
       "problems": []
     },
     {
@@ -205,7 +205,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "d56228ce7da38e3d",
+      "sha256": "9bc7c4795d7616aa",
       "problems": []
     },
     {
@@ -261,7 +261,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "399ba807b3c7fb99",
+      "sha256": "bddebe0607a32b81",
       "problems": []
     },
     {
@@ -397,7 +397,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c38aae33df10b1be",
+      "sha256": "bf4c48a0f2b30f7d",
       "problems": []
     },
     {
@@ -437,7 +437,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3467dfd3b0548ec7",
+      "sha256": "b16f0d17b9a6cd82",
       "problems": []
     },
     {
@@ -518,7 +518,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "edc6324feb2e361b",
+      "sha256": "3f6fb6daccac4570",
       "problems": []
     },
     {
@@ -559,7 +559,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c0e92b9a7d728bae",
+      "sha256": "cd4fe20df4b53f09",
       "problems": []
     },
     {
@@ -615,7 +615,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "70c211db5678b1e6",
+      "sha256": "8cad4e3815381683",
       "problems": []
     },
     {
@@ -872,7 +872,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c2c432387cb25f3b",
+      "sha256": "a7ae781b66965a26",
       "problems": []
     },
     {
@@ -913,7 +913,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "f5f3c8ac05c2bcd7",
+      "sha256": "b14f4797d6f1bdc0",
       "problems": []
     },
     {
@@ -969,7 +969,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "698617229f5dd8c5",
+      "sha256": "b82834fd134d007a",
       "problems": []
     },
     {
@@ -1370,7 +1370,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "13b8a6555c2c3134",
+      "sha256": "2a0ee90d08030c21",
       "problems": []
     },
     {
@@ -1582,7 +1582,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "1246e06e64db4b5c",
+      "sha256": "ac1fb5dc71d12f83",
       "problems": []
     },
     {
@@ -1623,7 +1623,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "b093f03d06ffaf31",
+      "sha256": "643e90e872954f08",
       "problems": []
     },
     {
@@ -1681,7 +1681,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "b4323e9fa4de2003",
+      "sha256": "12a9e66c1f7f2def",
       "problems": []
     },
     {
@@ -1938,7 +1938,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "4f1899c4556d27be",
+      "sha256": "188bc45ae434b5db",
       "problems": []
     },
     {
@@ -1979,7 +1979,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "a046c62feb89d865",
+      "sha256": "8824b135dcffcbfc",
       "problems": []
     },
     {
@@ -2035,7 +2035,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "4a4564769c94c5db",
+      "sha256": "61dc5f1efba3b477",
       "problems": []
     },
     {
@@ -2171,7 +2171,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "64caaffeefa7e0ed",
+      "sha256": "31ce3666af4f30cf",
       "problems": []
     },
     {
@@ -2251,7 +2251,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "41a1cd59600d7d43",
+      "sha256": "4a0d9d64fc127fbc",
       "problems": []
     },
     {
@@ -2292,7 +2292,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "1cb3dc0c8da7a7b9",
+      "sha256": "d38760d13492d9c2",
       "problems": []
     },
     {
@@ -2333,7 +2333,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "e90d4b416f79ff0a",
+      "sha256": "bb03bd1cf1e4ffce",
       "problems": []
     },
     {
@@ -2389,7 +2389,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "f466ad4205385725",
+      "sha256": "8e5ddd1da5cc2530",
       "problems": []
     },
     {
@@ -2525,7 +2525,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ce6fb5cff4a70261",
+      "sha256": "89412ca046f33de5",
       "problems": []
     },
     {
@@ -2646,7 +2646,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "39978dbdfaa7150e",
+      "sha256": "5271b44272815cbd",
       "problems": []
     },
     {
@@ -2687,7 +2687,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3f1987cc5b3f9a6b",
+      "sha256": "afdd3b74664ff202",
       "problems": []
     },
     {
@@ -2743,7 +2743,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "873820a4c4aaa061",
+      "sha256": "9862737ba59c58af",
       "problems": []
     },
     {

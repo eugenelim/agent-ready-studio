@@ -5447,28 +5447,32 @@ a weaker one.
 A settle that expires is now a finding on that scenario, so it prints `FAIL`, lands in the
 retained manifest and reddens the run.
 
-**Proven by observing it fire, not by reasoning.** Two intermediate runs during this round
-returned findings for real: one reported "the Seed demo workspace step never changed within 10s"
-and aborted, the other reported the same for `connect-rejected` across all eight of its
-scenarios and exited 1 with the text in each result's `problems`. Both were **defects in the
-check, not in the product** — the first read its baseline after the settle sleep rather than
-before it, the second required a change from a navigation click that correctly does nothing
-because `connect-rejected` follows `connect` and both are reached by clicking Connect. Both are
-fixed. They are recorded because they are the evidence that the reporting path works end to end.
+**Proven by observing it fire, not by reasoning** — but by one of the two runs, not both.
+
+**The run that evidences the reporting path is the second.** It returned findings for
+`connect-rejected` across all eight of its scenarios, exited 1, and carried the text in each
+result's `problems`, so the manifest, the printed `FAIL` and the exit code were all exercised.
+
+The first run reported "the Seed demo workspace step never changed within 10s" and **aborted**,
+publishing no manifest at all. It evidences that the settle detects a non-arriving surface, and
+nothing about reporting.
+
+Both findings were **defects in the check, not in the product**: the first read its baseline
+after the settle sleep rather than before it, the second required a change from a navigation
+click that correctly does nothing. Both are fixed.
 
 **The settle now requires arrival, not just stillness.** Two identical readings cannot tell "the
 surface finished rendering" from "the click's handler is still awaiting IPC and the previous
 surface is still on screen". The baseline is read *before* the action and the settle is not
 satisfied until the document has both changed from it and then held still.
 
-`connect-rejected` skips the settle, and **not because its replacement is strictly stronger** —
-an earlier version of this entry said that and it was wrong. Its navigation click genuinely
-changes nothing, because the surface follows `connect` and both are reached by clicking Connect,
-so requiring a change would report a finding for a click that behaved correctly. What covers
-that surface is the field poll and the rejection poll, each waiting on a named element. Neither
-covers the navigation click, which is why the skip is now keyed on an explicit `clickIsNoop`
-property rather than inferred from the surface being driven: a future driven surface whose click
-does navigate gets the ordinary settle.
+`connect-rejected` declares `clickIsNoop`, because it follows `connect` and both are reached by
+clicking Connect, so requiring a change would report a finding for a click that behaved
+correctly. An earlier version of this entry said its replacement was "strictly stronger" than
+the settle; that was wrong, and **round 44 removed the skip entirely**. The declaration now
+relaxes the must-have-changed requirement without skipping the wait, and a declared no-op that
+*does* change is reported — so the property is observed rather than trusted, and reordering the
+surface list cannot silently leave a real navigation with no post-condition.
 
 ### `text-200` was never rendering at 200 percent
 
@@ -5525,8 +5529,11 @@ directory. The invariant is stated twice in the file, once as a rule and once as
 settle made that comment false. It now throws, so it unwinds through the one cleanup path, and
 both comments are true again.
 
-It was also inconsistent: the same event on a *surface* was recorded as a problem and published,
-while on a *setup step* it killed the run.
+**Only the orphaning was fixed.** A setup-step finding still throws, aborts and publishes
+nothing, while the same event on a *surface* is recorded as a problem and published. That
+asymmetry is deliberate — a setup step that never rendered means every later capture would show
+the wrong application state, so there is nothing worth publishing — but it is a live asymmetry,
+not a repaired one, and an earlier version of this entry read as though it had been fixed.
 
 **`settleFinding ??= await settleRender(...)` did not merely drop a message.** Logical assignment
 does not evaluate its right-hand side when the target is already set, so after one finding the
@@ -5570,7 +5577,7 @@ Found by review, not by running them.
 | Mutation | Result |
 | --- | --- |
 | baseline | 22 of 22 pass |
-| `getUTC*` swapped for local getters | **2 failed** |
+| `getUTC*` swapped for local getters | **2 failed** — *corrected in round 44: this number was produced by a TZ leak in the test itself; it is 3* |
 | one month abbreviation mistyped | **1 failed** |
 
 ### Also applied
@@ -5592,6 +5599,94 @@ exits 0 with 80 checks across 64 scenarios.
 cases this round, both renderer tests, so the total is 682 rather than 680.
 
 The attempt before it was red at load 28.6 — four failures, all in `runtime-supervisor`, which
-then passed twice in isolation at 23 of 23 each. That is the same flake, now recorded fourteen
-isolated runs deep across this session with fourteen exit 0, and four green full runs against
-seven red, the greens clustering at load 16 to 22 and the reds at 28 to 62.
+then passed twice in isolation at 23 of 23 each.
+
+**Corrected in round 44: the load bands stated here do not hold.** A later run went red at load
+22.8, inside the range this sentence called green. Load correlates with the flake and does not
+predict it, and stating a threshold implied a precision the observations do not support. What
+the observations do support is the isolation rule: every implicated file has passed twice in
+isolation, every time it has been asked.
+
+## review-round-44-2026-09-20
+
+**The sixth confirmation round, and the first with no Blocker from the quality reviewer.** Both
+reviewers converged on one defect, and it was in a test this session added to close a gap of
+exactly the same kind.
+
+**The forced-timezone test leaked a pseudo-UTC host into every later case.** It saved
+`process.env.TZ`, forced `Pacific/Kiritimati`, and restored with `process.env.TZ = original`.
+On a host with no `TZ` set — this one — `original` is `undefined` and the assignment writes the
+**literal string `"undefined"`**, which Node treats as an invalid zone and resolves to UTC.
+Confirmed directly: after that assignment `Intl.DateTimeFormat().resolvedOptions().timeZone` is
+`undefined`.
+
+So the case written to stop the UTC rendering passing for the wrong reason **made the case after
+it pass for the wrong reason**. The repository's own idiom, two files away at
+`per-request-state-root.test.ts:279-282`, deletes the key when it was absent; this now does the
+same.
+
+**The round-43 mutation number was produced by that leak.** It recorded "local getters redden 2".
+With the restore corrected it is **3** — the twelve-month case had lost its ability to fail. The
+adversarial reviewer measured this before this session did, and the round-43 row now carries a
+correction marker.
+
+| Mutation | Result |
+| --- | --- |
+| baseline | 22 of 22 pass |
+| `getUTC*` swapped for local getters | **3 failed** |
+| one month abbreviation mistyped | **1 failed** |
+| the renderer's stylesheet link broken so `tokens.css` never loads | **`visual-evidence` exit 1**, "root font-size is 16px, wanted 12px (tokens.css owns 12px at scale 1)" |
+
+### The root-size pin now covers every capture
+
+Round 43 added it inside the `textScale` branch, so it guarded one scenario of eight — a
+stylesheet that had not applied would publish the other 56 captures at the UA's 16 px with an
+empty problems list and exit 0. It is now part of the mode check that runs for every scenario,
+comparing the observed root size against the product's own base times that scenario's declared
+scale.
+
+**Proven by breaking the stylesheet link rather than by reasoning.** The first attempt at this
+proof was the wrong mutation: changing `tokens.css`'s own `font-size` moves *both* sides of the
+comparison, because the expected value is read from that file, so it proves nothing about this
+check. What it did surface was the target-size check firing on the smaller text, which is a
+different criterion doing its job.
+
+### `clickIsNoop` is now observed rather than trusted
+
+It was a declared property, true only because `connect-rejected` happens to follow `connect` in
+the surface list. Reordering that list would have made the declaration silently false and left a
+real navigation with no post-condition. The declaration now only relaxes the
+must-have-changed requirement; the wait still happens, and a declared no-op that *does* change
+is reported as a stale property.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The `tokens.css` pin took the first percentage `font-size` in the first `:root` block | Nit | Refuses anything but exactly one declaration, accepts a percentage or `px`, and says which forms it takes |
+| The field poll inlined its deadline twice and polled at a third interval | Nit | `CLICK_DEADLINE_MS` and `POLL_INTERVAL_MS` own both, and the comment says it still throws at the deadline |
+| The AC-38 comparison printed `ok` above a `plumbingFailure` abort | Nit | Gated on both abort channels, since `aborted` does not absorb `plumbingFailure` until after that loop |
+| The audit's AC-0103 row cited a case count that went stale when this round added two cases | Concern | Cites the describe block rather than a count |
+| Round 43 read as though the surface-versus-setup asymmetry had been repaired | Concern | Says only the orphaning was fixed, and defends the remaining asymmetry |
+| Round 43's "proven by watching it fire" credited both runs with proving the reporting path | Nit | Attributed to the run that published findings |
+| Round 43's load bands were contradicted by a later red run at 22.8 | — | Withdrawn: load correlates with the flake and does not predict it, and the threshold implied a precision the observations do not support |
+
+Contributor-facing: `CONTRIBUTING.md` now names both evidence commands, says publishing replaces
+a spec's retained set wholesale, and states what adding a third root requires.
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect`
+exits 0 with 80 checks across 64 scenarios.
+
+**`pnpm verify` exit 0 — 679 passed, 3 skipped**, at load average 22.0. The attempt before it
+was red at 19.3 with one failure in `disposal`, which then passed twice in isolation at 8 of 8.
+
+**Note the load figures**: the red run was at 19.3 and the green at 22.0, the green *higher* than
+the red. That is why round 43's load bands were withdrawn rather than adjusted. Load average is a
+one-minute mean over a 34-user host and is not a measurement of what any given run contended
+with. Across this session the honest summary is: **twenty isolated runs of the three implicated
+files, twenty exit 0**, and the full suite green whenever it is re-run after an isolated
+confirmation. The flake is real, pre-existing, and recorded at
+`pre-existing-trial-runtime-load-flake`; this session's diff still touches nothing under
+`apps/studio-service/` or `packages/`.

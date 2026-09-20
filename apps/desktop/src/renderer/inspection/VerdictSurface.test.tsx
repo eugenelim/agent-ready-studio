@@ -367,7 +367,13 @@ describe("AC-0103 a restored verdict is shown with the time it was inspected", (
         document.querySelector('[data-identity="inspected-at"]')?.textContent,
       ).toBe("19 Sep 2026, 14:05 UTC");
     } finally {
-      process.env.TZ = original;
+      // `process.env.TZ = undefined` writes the literal string "undefined",
+      // which Node treats as an invalid zone and resolves to UTC -- leaking a
+      // pseudo-UTC host into every later case in this worker and disarming
+      // the twelve-month case below. Same idiom as
+      // per-request-state-root.test.ts:279-282.
+      if (original === undefined) delete process.env.TZ;
+      else process.env.TZ = original;
     }
   });
 
