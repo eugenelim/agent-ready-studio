@@ -133,9 +133,15 @@ const PUBLIC_GITHUB_ONLY_REFUSAL = (() => {
     repoRoot,
     "packages/protocol/src/state-vocabulary.ts",
   );
-  const match = /publicGithubOnly:\s*\n?\s*"([^"]+)"/.exec(
-    readFileSync(vocabulary, "utf8"),
-  );
+  const source = readFileSync(vocabulary, "utf8");
+  // Anchored to the exported record, so a key of the same name elsewhere in
+  // the file cannot be mistaken for it.
+  const record =
+    /export const SOURCE_REJECTION_REASONS = \{([\s\S]*?)\n\}/.exec(source);
+  const match =
+    record === null
+      ? null
+      : /publicGithubOnly:\s*\n?\s*"([^"]+)"/.exec(record[1]);
   if (match === null)
     fail(
       `could not read SOURCE_REJECTION_REASONS.publicGithubOnly from ${vocabulary}; ` +
@@ -155,27 +161,46 @@ const PUBLIC_GITHUB_ONLY_REFUSAL = (() => {
  * is not. Two consecutive identical readings is a weak post-condition, but it
  * is a post-condition, where a sleep is none.
  */
-async function settleRender(page, what, deadlineMs = 10_000) {
+async function readRenderState(page) {
+  const reading = await page("Runtime.evaluate", {
+    expression: `(() => {
+      ${REACHABLE_CONTROLS_JS}
+      return document.body.innerHTML.length + ":" + controls.length;
+    })()`,
+    returnByValue: true,
+  });
+  return reading.result.value;
+}
+
+/**
+ * Wait until the surface the last action navigated to is on screen and has
+ * stopped changing. Returns null when it settled, or a finding string.
+ *
+ * `before` must be read **before** the action, because two identical readings
+ * alone cannot tell "finished rendering" from "the click's handler is still
+ * awaiting IPC and the previous surface is still up". The settle needs the
+ * document to have both changed from where it started and then held still.
+ *
+ * A finding is returned rather than thrown: a late render is still worth
+ * capturing and looking at. It is returned rather than merely logged because
+ * a capture the tool knows was taken mid-render must not publish with an
+ * empty problems list and exit 0 -- that is the false verification record
+ * this harness exists to refuse.
+ */
+async function settleRender(page, what, before, deadlineMs = 10_000) {
   const until = Date.now() + deadlineMs;
   let previous = null;
+  let changed = false;
   for (;;) {
     if (plumbingFailure !== null) throw new Error(plumbingFailure);
-    const reading = await page("Runtime.evaluate", {
-      expression:
-        "document.body.innerHTML.length + ':' + " +
-        "document.querySelectorAll('button, input, textarea, select, a[href]').length",
-      returnByValue: true,
-    });
-    const now = reading.result.value;
-    if (previous !== null && now === previous) return;
+    const now = await readRenderState(page);
+    if (now !== before) changed = true;
+    if (changed && previous !== null && now === previous) return null;
     previous = now;
-    if (Date.now() >= until) {
-      process.stderr.write(
-        `visual-evidence: ${what} was still changing after ${deadlineMs / 1000}s; ` +
-          "capturing anyway\n",
-      );
-      return;
-    }
+    if (Date.now() >= until)
+      return changed
+        ? `${what} was still changing after ${deadlineMs / 1000}s`
+        : `${what} never changed within ${deadlineMs / 1000}s, so the capture may show the previous surface`;
     await new Promise((r) => setTimeout(r, 250));
   }
 }
@@ -752,18 +777,35 @@ try {
     // byte-identical to their unscaled baseline and evidenced nothing. This is
     // the same failure the mode probe below was added for, on a new dimension.
     if (scenario.textScale !== undefined) {
+      // 200 percent of the **product's own** root size, not of the UA default.
+      // `tokens.css` sets `:root { font-size: 75% }`, so an inline
+      // `font-size: 200%` resolves against the UA's 16px and renders 32px --
+      // 2.67x the application's 12px base, not the 2x the criterion names.
+      // The baseline is measured first and the scale applied as a pixel value
+      // derived from it, so the factor is a property of the product rather
+      // than of the browser's default.
+      const baseline = await page("Runtime.evaluate", {
+        expression:
+          "Number.parseFloat(getComputedStyle(document.documentElement).fontSize)",
+        returnByValue: true,
+      });
+      const basePx = Number.parseFloat(baseline?.result?.value ?? "0");
+      if (!Number.isFinite(basePx) || basePx <= 0)
+        throw new Error(
+          `${scenario.name}: could not read the baseline root font size`,
+        );
+      const expected = basePx * scenario.textScale;
       const applied = await page("Runtime.evaluate", {
         expression: `(() => {
-          document.documentElement.style.fontSize = '${scenario.textScale * 100}%';
+          document.documentElement.style.fontSize = '${expected}px';
           return getComputedStyle(document.documentElement).fontSize;
         })()`,
         returnByValue: true,
       });
       const rendered = Number.parseFloat(applied?.result?.value ?? "0");
-      const expected = 16 * scenario.textScale;
       if (!Number.isFinite(rendered) || Math.abs(rendered - expected) > 1) {
         throw new Error(
-          `${scenario.name}: text scale did not take effect — root font-size is ${applied?.result?.value}, expected about ${expected}px`,
+          `${scenario.name}: text scale did not take effect — root font-size is ${applied?.result?.value}, expected about ${expected}px (${scenario.textScale}x the product's ${basePx}px base)`,
         );
       }
       await new Promise((r) => setTimeout(r, 300));
@@ -781,6 +823,9 @@ try {
         rootFontSizePx: Number.parseFloat(
           getComputedStyle(document.documentElement).fontSize,
         ),
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
       })`,
       returnByValue: true,
     });
@@ -833,6 +878,7 @@ try {
     // harness clicked through Reviews on its way to the Work Item Studio and
     // measured only where it landed.
     for (const label of ["Seed demo workspace", "Run transformation"]) {
+      const beforeSetup = await readRenderState(page);
       await clickWhenOffered(page, label, "the rendered application");
       // "Run transformation" is a real round trip to the service child, and
       // the walking-skeleton ledger records its slowness as the "never offered
@@ -840,7 +886,12 @@ try {
       // clock. The floor stays because the round trip can start after the
       // first settle reading.
       await new Promise((r) => setTimeout(r, 1500));
-      await settleRender(page, `the ${label} step`);
+      const setupFinding = await settleRender(
+        page,
+        `the ${label} step`,
+        beforeSetup,
+      );
+      if (setupFinding !== null) fail(setupFinding);
     }
 
     // Every surface the build renders is driven to and measured while it is on
@@ -877,9 +928,26 @@ try {
         submit: "https://example.com/acme/widgets",
       },
     ]) {
+      let settleFinding = null;
       for (const label of surface.clicks) {
+        const before = await readRenderState(page);
         await clickWhenOffered(page, label, `the ${surface.name} surface`);
-        await settleRender(page, `the ${surface.name} surface`);
+        if (surface.submit === undefined) {
+          settleFinding ??= await settleRender(
+            page,
+            `the ${surface.name} surface`,
+            before,
+          );
+        } else {
+          // A driven surface has a stronger post-condition than "the document
+          // changed": the rejection poll below waits for a specific element
+          // carrying specific text. The navigation click here is also a no-op
+          // whenever the loop is already on that surface -- `connect-rejected`
+          // follows `connect`, and both are reached by clicking Connect -- so
+          // requiring a change would report a finding for a click that
+          // correctly did nothing.
+          await new Promise((r) => setTimeout(r, 300));
+        }
       }
 
       let surfaceDiagnostic = null;
@@ -1175,6 +1243,7 @@ try {
       // Without this the check passes on any surface where every control was
       // skipped, which is the vacuous-negative shape this suite has been
       // caught by before. A surface with controls must hit-test at least one.
+      if (settleFinding !== null) problems.push(settleFinding);
       if (measured.controls > 0 && occlusion.tested === 0)
         problems.push(
           `no control could be focused and hit-tested, so the obscuring check proved nothing (skipped: ${occlusion.skipped.join("; ") || "none"})`,
@@ -1209,6 +1278,14 @@ try {
           hoverNone: mode.hoverNone,
           pointerCoarse: mode.pointerCoarse,
           rootFontSizePx: mode.rootFontSizePx,
+          // narrow-900, narrow-1024 and zoom-200 differ from the baseline by
+          // viewport and device pixel ratio alone. Without these two the
+          // observed block could not distinguish a dropped metrics override
+          // from a legitimately identical render -- the same declared-versus-
+          // observed gap this block exists to close.
+          innerWidth: mode.innerWidth,
+          innerHeight: mode.innerHeight,
+          devicePixelRatio: mode.devicePixelRatio,
         },
         controls: measured.controls,
         names: measured.names,
