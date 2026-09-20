@@ -139,8 +139,8 @@ repository. A name resolves into exactly one of:
 | `storage` | `packages/storage-sqlite/src/` |
 | `tokens.css` | `apps/desktop/src/renderer/styles/` |
 
-Citations that already carry a prefix — `e2e/connect-and-orient.test.ts`, `main/index.test.ts` —
-are relative to `apps/desktop/src/`.
+Citations that already carry a prefix — `e2e/connect-and-orient.test.ts`, `main/index.test.ts`,
+`renderer/App.tsx` — are relative to `apps/desktop/src/`.
 
 ### Source input and identity — 10 met
 
@@ -325,7 +325,7 @@ behind `CONNECT_ORIENT_E2E_NETWORK=1`.
 
 | AC | Verdict | F | Binding | Note |
 | --- | --- | --- | --- | --- |
-| AC-0105 | **not met** | S | InspectionSurface.test.tsx:61-64 | the clause "the **desktop** provides" is loose — every test renders `InspectionSurface` directly; deleting it from App.tsx:242 or the nav entry at App.tsx:94 reddens nothing |
+| AC-0105 | **not met** | S | InspectionSurface.test.tsx:61-64 | the clause "the **desktop** provides" is loose — every test renders `InspectionSurface` directly; deleting it from `renderer/App.tsx:242` or the nav entry at `renderer/App.tsx:94` reddens nothing |
 | AC-0106 | met | S | InspectionSurface.test.tsx:69,72 | a shape obligation over rendered DOM |
 | AC-0107 | met | S | InspectionSurface.test.tsx:77-78 | the badge label is read from the shared projection rather than restated |
 | AC-0108 | met | S | InspectionSurface.test.tsx:300-301,103-106; source-identity.test.ts:41-88; e2e:114-117,134-137 | the distinguishability half is bound for all five causes and the offline e2e covers two, so it does not depend on the network gate |
