@@ -175,8 +175,8 @@ const MONTHS = [
  * text a property of the machine. The pinned-rendering rule AC-0159 applies to
  * the liveness marker is the same concern, one surface over.
  */
-function inspectedLabel(instant: string | null | undefined): ReactNode {
-  if (instant === null || instant === undefined) return "not inspected";
+function inspectedLabel(instant: string | null): ReactNode {
+  if (instant === null) return "not inspected";
   const at = new Date(instant);
   // An unreadable stored instant is not the same as no inspection, and saying
   // "not inspected" for it would tell the lead something false. The

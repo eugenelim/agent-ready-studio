@@ -10,8 +10,8 @@ carries 80 checked boxes and 77 open. Every count in this document, including ea
 group header, is generated from the rows below rather than written by hand.
 
 Before this audit, `spec.md` had 157 unchecked boxes and the ledger named roughly ten criteria as
-known-unmet. An unchecked box meant "not audited". It now means "audited and not met", except for
-the 81 now checked.
+known-unmet. An unchecked box meant "not audited". Every box now carries an audited result: checked
+means met, and unchecked means not met or not verifiable here.
 
 ## Method
 
@@ -37,7 +37,7 @@ strongly bound. Partial credit would reproduce the failure this audit exists to 
 
 ## The six cross-cutting findings
 
-Seventy-one criteria do not fail for seventy-one separate reasons. Six causes account for most
+The criteria that fail do not fail for as many separate reasons. Six causes account for most
 of them, and four of the six are the same shape: **code that is written, tested, and reached by
 nothing.**
 
@@ -126,10 +126,21 @@ pre-slice baseline instead. This session's run regenerates and commits all of it
 
 `F` is falsifiability: **S** strong, **W** weak, **N** none.
 
-**Bindings are cited by basename and line**, not by full path, because each name is unique across
-this repository's test tree. They resolve into four directories: `apps/studio-service/src/`,
-`apps/studio-service/src/trials/connect-and-orient-runtime/`,
-`apps/desktop/src/renderer/inspection/` and `apps/desktop/tools/`.
+**Bindings are cited by basename**, not by full path, because each name is unique across this
+repository. A name resolves into exactly one of:
+
+| Basenames | Directory |
+| --- | --- |
+| `source-identity`, `source-inspection`, `source-inspection-storage`, `connected-source`, `service`, `state-projection`, `trial-result`, `trial-enrichment-seam` | `apps/studio-service/src/` |
+| `git-driver`, `runtime-child`, `runtime-supervisor`, `runtime-environment`, `executable-identity`, `process-tree-observer`, `materialization`, `materialization-confinement`, `per-request-state-root`, `disposal`, `sweep`, `inspector-locator`, `declared-value-reader`, `inadmissible-keys`, `supervised-bounds`, `absence-proofs`, `live-smoke`, `test/hostile-fixture` | `apps/studio-service/src/trials/connect-and-orient-runtime/` |
+| `VerdictSurface`, `InspectionSurface`, `ConnectRepositoryForm`, `ProgressPulse`, `StateBadge`, `presentation`, `useInspection` | `apps/desktop/src/renderer/inspection/` |
+| `visual-evidence`, `delta-e2000`, `inspection-contrast`, `inspection-hue-separation` | `apps/desktop/tools/` |
+| `validator`, `contracts`, `state-vocabulary` | `packages/protocol/src/` |
+| `storage` | `packages/storage-sqlite/src/` |
+| `tokens.css` | `apps/desktop/src/renderer/styles/` |
+
+Citations that already carry a prefix — `e2e/connect-and-orient.test.ts`, `main/index.test.ts` —
+are relative to `apps/desktop/src/`.
 
 ### Source input and identity — 10 met
 
@@ -346,8 +357,8 @@ behind `CONNECT_ORIENT_E2E_NETWORK=1`.
 | AC-0128 | met | S | InspectionSurface.test.tsx:239-253; presentation.test.ts:177-211 | the literal anchors carry the criterion independently of the tautological expectation at :136-143 |
 | AC-0129 | **not met** | S / N | ProgressPulse.test.tsx:15-48 | the text-channel half is sound; "state-change motion is omitted" is unbound — the `prefers-reduced-motion` block at tokens.css:762-769 is asserted by nothing and the capture only sees the pre-connection surface |
 | AC-0130 | **not met** | S for the focus clause | visual-evidence.mjs occlusion probe and its vacuity guard; `connect-rejected` surface | **materially advanced this session, not closed.** The tool focuses every reachable control in turn and hit-tests its own centre, failing when the topmost element there is unrelated to the focused control; a `connect-rejected` surface puts a real diagnostic on screen offline, since a refusal consults no transport. Mutation: making `.connect-form__rejection` a fixed full-viewport overlay turns the run exit 1 and names the obscuring element. A vacuity guard fails the run when a surface has controls but none could be hit-tested, and the manifest records the tested and skipped counts per surface. **What it proves is narrow** and the tool says so: the *centre* of each focused control is not covered by a *hit-testable* layer. It cannot see a `pointer-events: none` overlay, nor a panel covering a control's edges or label while its centre stays clear. **Still open:** the criterion also names the longest fixture label, an enabled Cancel and a retry control, which need a completed inspection and so the network AC-0148 forbids |
-| AC-0131 | not verifiable here | S | visual-evidence.mjs:765-779,844-853 | a real measured post-condition over a control set the run also requires to be non-empty, but it executes only against the built app under Chromium |
-| AC-0132 | **not met** | S / N | visual-evidence.mjs:427-435,601-617 | the text-resize half is sound and the earlier byte-identical defect is fixed with a probe. Two loose clauses: the narrowest viewport any scenario uses is 720 px, never the 320 px WCAG 2.2 1.4.10 names, and the verdict surface is captured in no scenario |
+| AC-0131 | not verifiable here | S | visual-evidence.mjs, the undersized-control collector and its assertion | a real measured post-condition over a control set the run also requires to be non-empty, but it executes only against the built app under Chromium |
+| AC-0132 | **not met** | S / N | visual-evidence.mjs, the `text-200` scenario and its post-navigation scale probe | the text-resize half is sound and the earlier byte-identical defect is fixed with a probe. Two loose clauses: the narrowest viewport any scenario uses is 720 px, never the 320 px WCAG 2.2 1.4.10 names, and the verdict surface is captured in no scenario |
 | AC-0158 | met | S | InspectionSurface.test.tsx:256-273; presentation.test.ts:213-230 | literal strings against a rendered live region and against the pure function |
 
 ### Security proofs — 3 met, 12 not met

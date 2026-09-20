@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-20T06:14:11.587Z",
+  "capturedAt": "2026-09-20T06:33:40.095Z",
   "results": [
     {
       "scenario": "desktop-light-home",
@@ -31,7 +31,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "b2720e5f70cf7fc8",
+      "sha256": "9e144ec22dd9cb67",
       "problems": []
     },
     {
@@ -116,7 +116,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "2e916709f3705dea",
+      "sha256": "1b016694f3480d68",
       "problems": []
     },
     {
@@ -145,7 +145,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "485aaaa2d101c122",
+      "sha256": "213ee84cf355f145",
       "problems": []
     },
     {
@@ -189,7 +189,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ed00811e97764cb9",
+      "sha256": "5e476facd5cdda05",
       "problems": []
     },
     {
@@ -231,6 +231,7 @@
       "occlusionSkipped": [
         "Cancel inspection (would not take focus)"
       ],
+      "diagnostic": "Studio connects to public github.com repositories only",
       "surface": "connect-rejected",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -288,7 +289,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "d72c7c2f92c05ba2",
+      "sha256": "b7daff9de589bb71",
       "problems": []
     },
     {
@@ -316,7 +317,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "b16f0d17b9a6cd82",
+      "sha256": "3467dfd3b0548ec7",
       "problems": []
     },
     {
@@ -373,7 +374,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "8e98611b041cac38",
+      "sha256": "0182f80edfb75ecf",
       "problems": []
     },
     {
@@ -402,7 +403,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "82a549a0691eee5e",
+      "sha256": "6355441efb5ea47e",
       "problems": []
     },
     {
@@ -446,7 +447,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c1c0a1a7e071448b",
+      "sha256": "a00cadaae964eea0",
       "problems": []
     },
     {
@@ -488,6 +489,7 @@
       "occlusionSkipped": [
         "Cancel inspection (would not take focus)"
       ],
+      "diagnostic": "Studio connects to public github.com repositories only",
       "surface": "connect-rejected",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
@@ -630,7 +632,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "9d384dfd51eec200",
+      "sha256": "cd810be0fcba039b",
       "problems": []
     },
     {
@@ -659,7 +661,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "bcf4566f89c6ae41",
+      "sha256": "8fd6464477906546",
       "problems": []
     },
     {
@@ -703,7 +705,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "525e278877a4ad03",
+      "sha256": "ecb1ab07d59cfcec",
       "problems": []
     },
     {
@@ -745,6 +747,7 @@
       "occlusionSkipped": [
         "Cancel inspection (would not take focus)"
       ],
+      "diagnostic": "Studio connects to public github.com repositories only",
       "surface": "connect-rejected",
       "viewport": "900x720@1x",
       "scheme": "light",
@@ -830,7 +833,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "84dfb28812ab91fe",
+      "sha256": "b8bb2148eea7b651",
       "problems": []
     },
     {
@@ -858,7 +861,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "269cd4b19acc0273",
+      "sha256": "072d6c2fa781aef8",
       "problems": []
     },
     {
@@ -962,7 +965,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fe0dab6a004744ef",
+      "sha256": "c9579f2670b68048",
       "problems": []
     },
     {
@@ -995,7 +998,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "93eff30b6db6358d",
+      "sha256": "08218aba8c55ec7f",
       "problems": []
     },
     {
@@ -1004,6 +1007,7 @@
       "occlusionSkipped": [
         "Cancel inspection (would not take focus)"
       ],
+      "diagnostic": "Studio connects to public github.com repositories only",
       "surface": "connect-rejected",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -1146,7 +1150,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "57672c73b17836ff",
+      "sha256": "3ca8c2cf9d431d81",
       "problems": []
     },
     {
@@ -1175,7 +1179,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "5d9e2ccc0b409262",
+      "sha256": "7d26e26e5adf6636",
       "problems": []
     },
     {
@@ -1221,7 +1225,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c877a8f14536fe64",
+      "sha256": "e4e2c93f1f0d18d7",
       "problems": []
     },
     {
@@ -1263,6 +1267,7 @@
       "occlusionSkipped": [
         "Cancel inspection (would not take focus)"
       ],
+      "diagnostic": "Studio connects to public github.com repositories only",
       "surface": "connect-rejected",
       "viewport": "1024x768@1x",
       "scheme": "light",
@@ -1405,7 +1410,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "a85b1c3bf82d30c8",
+      "sha256": "46e57acde8731224",
       "problems": []
     },
     {
@@ -1434,7 +1439,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "cfcc0e54a990f7b4",
+      "sha256": "d51aadadc13cd150",
       "problems": []
     },
     {
@@ -1478,7 +1483,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "490aad7bc6dd570f",
+      "sha256": "64da46100453845b",
       "problems": []
     },
     {
@@ -1520,6 +1525,7 @@
       "occlusionSkipped": [
         "Cancel inspection (would not take focus)"
       ],
+      "diagnostic": "Studio connects to public github.com repositories only",
       "surface": "connect-rejected",
       "viewport": "720x640@2x",
       "scheme": "light",
@@ -1577,7 +1583,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "016c5fc10cb9bab0",
+      "sha256": "6993c7076e482372",
       "problems": []
     },
     {
@@ -1662,7 +1668,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "2019e6920965274a",
+      "sha256": "0415979d3fe40644",
       "problems": []
     },
     {
@@ -1691,7 +1697,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3b298f52e482b391",
+      "sha256": "ea25f2993333917f",
       "problems": []
     },
     {
@@ -1735,7 +1741,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "f9cfde3d2ef52444",
+      "sha256": "3fb1b0339765a73d",
       "problems": []
     },
     {
@@ -1777,6 +1783,7 @@
       "occlusionSkipped": [
         "Cancel inspection (would not take focus)"
       ],
+      "diagnostic": "Studio connects to public github.com repositories only",
       "surface": "connect-rejected",
       "viewport": "1600x1000@1x",
       "scheme": "light",
@@ -1834,7 +1841,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "70e6fb8e76c46898",
+      "sha256": "f3440450fd28d286",
       "problems": []
     },
     {
@@ -1862,7 +1869,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "e4bf20aac26dc8ff",
+      "sha256": "19c895afe158cf25",
       "problems": []
     },
     {
@@ -1919,7 +1926,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c68158d137234f0c",
+      "sha256": "8ba031f7aa91d919",
       "problems": []
     },
     {
@@ -1948,7 +1955,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "8f8957a3c48f2ae1",
+      "sha256": "8c5d4ebdd75ec3d4",
       "problems": []
     },
     {
@@ -1992,7 +1999,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "0d200da231311ee1",
+      "sha256": "1f0c0993af231f9c",
       "problems": []
     },
     {
@@ -2034,6 +2041,7 @@
       "occlusionSkipped": [
         "Cancel inspection (would not take focus)"
       ],
+      "diagnostic": "Studio connects to public github.com repositories only",
       "surface": "connect-rejected",
       "viewport": "1600x1000@1x",
       "scheme": "light",
