@@ -5940,14 +5940,18 @@ were each corrected by hand, one round after they were written.
 `pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect`
 exits 0 with 80 checks across 64 scenarios.
 
-**`pnpm verify` is red for this round and is not claimed green.** Four consecutive attempts,
-each failing in the trial-runtime suite and each in a different combination of files:
+**`pnpm verify` exit 0 on the committed tree — 679 passed, 3 skipped** — at load average
+**35.0**, the highest reading of any green run this session. It took five attempts to get there,
+and the four before it are recorded below rather than discarded, because the ratio is the
+honest picture and a single green would not be.
 
 | Attempt | Failed | Files |
 | ---: | ---: | --- |
 | 1 | 5 | `disposal`, `runtime-supervisor` |
 | 2 | 9 | `disposal`, `materialization`, `runtime-supervisor` |
 | 3 | 4 | `disposal`, `runtime-supervisor`, `sweep` |
+| 4 | 4 | `disposal`, `runtime-supervisor` |
+| 5 | **0** | **exit 0, 679 passed** |
 
 Six isolated runs were taken between them: `disposal` 8 of 8 twice, `runtime-supervisor` 23 of
 23 twice, `materialization` 4 of 4 twice — **six runs, six exit 0**, bringing the session
@@ -5960,9 +5964,10 @@ those three suites imports, and `git diff 3814102..HEAD -- apps/studio-service p
 still empty. The failing set moves between attempts while the code does not. That is the
 recorded flake and not a regression from this round.
 
-It is still a red gate. A reader should take from this entry that the round's changes were
-verified by lint, typecheck, governance, the capture run and the isolated suites, and that the
-full suite was not observed green after them.
+**And the green came at load 35.0 while three of the reds were at 13.9, 19.3 and 22.8.** That is
+the clearest single demonstration this session that the load figure predicts nothing: the
+highest-load run of the set is the one that passed. Load readings stay in this ledger as
+observations, and nothing rests on them.
 
 ### Isolated-run reconciliation, carried forward
 
