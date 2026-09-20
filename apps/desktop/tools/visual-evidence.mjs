@@ -102,6 +102,11 @@ globalThis.studio = (() => {
           executorKind: "deterministic",
         }),
     }),
+    source: Object.freeze({
+      connect: (input) => call("source.connect", input),
+      get: (sourceId) => call("source.get", { sourceId }),
+      cancel: (sourceId) => call("source.cancel", { sourceId }),
+    }),
     review: Object.freeze({
       list: (workspaceId) => call("review.list", optionalWorkspace(workspaceId)),
       get: (id) => call("review.get", { id }),
@@ -715,6 +720,17 @@ try {
       // which is the state AC-0107 governs and the one a capture can show
       // without contacting a remote.
       { name: "connect", clicks: ["Connect"] },
+      // AC-0130's focus-obscuring clause needs a diagnostic surface on screen
+      // at the same time as a focused control. A refused URL produces one and
+      // reaches no remote -- the refusal is decided before any transport is
+      // consulted, which is the property AC-0108 rests on -- so this is the
+      // only connect-and-orient state a capture can show with a diagnostic in
+      // it while AC-0148 holds.
+      {
+        name: "connect-rejected",
+        clicks: ["Connect"],
+        submit: "https://example.com/acme/widgets",
+      },
     ]) {
       for (const label of surface.clicks) {
         const clicked = await page("Runtime.evaluate", {
@@ -730,6 +746,43 @@ try {
             `the ${surface.name} surface never offered "${label}"`,
           );
         await new Promise((r) => setTimeout(r, 1200));
+      }
+
+      if (surface.submit !== undefined) {
+        const submitted = await page("Runtime.evaluate", {
+          expression: `(() => {
+            const field = document.querySelector('.inspection-surface input[type="url"], .inspection-surface input');
+            if (!field) return "no url field";
+            const setter = Object.getOwnPropertyDescriptor(
+              window.HTMLInputElement.prototype, "value").set;
+            setter.call(field, ${JSON.stringify(surface.submit)});
+            field.dispatchEvent(new Event("input", { bubbles: true }));
+            const button = [...document.querySelectorAll("button")].find(
+              (el) => /connect repository/i.test(el.textContent || ""));
+            if (!button) return "no submit button";
+            button.click();
+            return true;
+          })()`,
+          returnByValue: true,
+        });
+        if (submitted.result.value !== true)
+          throw new Error(
+            `the ${surface.name} surface could not be driven to a diagnostic: ${submitted.result.value}`,
+          );
+        await new Promise((r) => setTimeout(r, 1500));
+        // The diagnostic has to actually be on screen, or the occlusion check
+        // below runs against a surface with nothing that could obscure and
+        // passes for the wrong reason.
+        const shown = await page("Runtime.evaluate", {
+          expression:
+            "!!document.querySelector('[aria-invalid=\"true\"]') " +
+            "|| /cannot|refus|not use/i.test(document.body.textContent || '')",
+          returnByValue: true,
+        });
+        if (shown.result.value !== true)
+          throw new Error(
+            `the ${surface.name} surface rendered no diagnostic to obscure with`,
+          );
       }
 
       // AC-37 assertion: decision controls must stay reachable without
@@ -817,6 +870,75 @@ try {
       });
       const measured = JSON.parse(probe.result.value);
 
+      // AC-0130, the focus-obscuring clause. A still capture cannot show this:
+      // it records one moment with whatever focus happened to be, and nothing
+      // in an image says which element is focused or what is painted over it.
+      // So each control is focused in turn and hit-tested at its own centre.
+      // If the topmost element there is neither the control nor related to it
+      // by containment, something is painted over the focused control.
+      //
+      // Run after the screenshot so moving focus cannot change what was
+      // captured.
+      const occlusionProbe = await page("Runtime.evaluate", {
+        expression: `JSON.stringify((() => {
+        const reachable = (el) => {
+          if (el.getClientRects().length === 0) return false;
+          const style = getComputedStyle(el);
+          return style.visibility !== "hidden" && style.display !== "none";
+        };
+        const describe = (el) => {
+          if (el === null) return "nothing";
+          const tag = el.tagName.toLowerCase();
+          const id = el.id ? "#" + el.id : "";
+          const cls = typeof el.className === "string" && el.className
+            ? "." + el.className.trim().split(/\\s+/).join(".")
+            : "";
+          return tag + id + cls;
+        };
+        const named = (el) =>
+          (el.getAttribute("aria-label")
+            ?? (el.labels && el.labels[0] && el.labels[0].textContent)
+            ?? el.textContent
+            ?? el.tagName).trim().slice(0, 40);
+        const controls = [
+          ...document.querySelectorAll("button, input, textarea, select, a[href]"),
+        ].filter(reachable);
+        const restore = document.activeElement;
+        const obscured = [];
+        const skipped = [];
+        let tested = 0;
+        for (const el of controls) {
+          el.focus();
+          if (document.activeElement !== el) {
+            skipped.push(named(el) + " (would not take focus)");
+            continue;
+          }
+          const box = el.getBoundingClientRect();
+          if (box.width === 0 || box.height === 0) {
+            skipped.push(named(el) + " (zero-sized)");
+            continue;
+          }
+          const x = box.left + box.width / 2;
+          const y = box.top + box.height / 2;
+          if (x < 0 || y < 0
+            || x > document.documentElement.clientWidth
+            || y > document.documentElement.clientHeight) {
+            skipped.push(named(el) + " (centre outside the viewport after focus)");
+            continue;
+          }
+          tested += 1;
+          const top = document.elementFromPoint(x, y);
+          if (top === el || (top !== null && (el.contains(top) || top.contains(el))))
+            continue;
+          obscured.push(named(el) + " obscured by " + describe(top));
+        }
+        if (restore instanceof HTMLElement) restore.focus();
+        return { tested, obscured, skipped };
+      })())`,
+        returnByValue: true,
+      });
+      const occlusion = JSON.parse(occlusionProbe.result.value);
+
       const shot = await page("Page.captureScreenshot", {
         format: "png",
         captureBeyondViewport: false,
@@ -852,6 +974,17 @@ try {
       if (measured.controls === 0)
         problems.push(
           "no interactive controls rendered — the page did not load",
+        );
+      if (occlusion.obscured.length > 0)
+        problems.push(
+          `focused control obscured: ${occlusion.obscured.join("; ")}`,
+        );
+      // Without this the check passes on any surface where every control was
+      // skipped, which is the vacuous-negative shape this suite has been
+      // caught by before. A surface with controls must hit-test at least one.
+      if (measured.controls > 0 && occlusion.tested === 0)
+        problems.push(
+          `no control could be focused and hit-tested, so the obscuring check proved nothing (skipped: ${occlusion.skipped.join("; ") || "none"})`,
         );
       if (problems.length > 0) failures += 1;
 
