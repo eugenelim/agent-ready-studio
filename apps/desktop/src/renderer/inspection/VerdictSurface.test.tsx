@@ -322,3 +322,33 @@ describe("the version qualifier composes rather than replaces", () => {
     expect(document.querySelector('[data-state="malformed"]')).not.toBeNull();
   });
 });
+
+describe("AC-0103 a restored verdict is shown with the time it was inspected", () => {
+  it("renders the inspection time in the identity list", () => {
+    render(
+      <VerdictSurface
+        {...defaults}
+        verdict="agent-ready"
+        condition={null}
+        inspectedAt="2026-09-19T14:05:00.000Z"
+      />,
+    );
+    const inspected = document.querySelector('[data-identity="inspected-at"]');
+    // Rendered in UTC from an explicit format, so the assertion is a literal
+    // rather than a restatement of whatever the host's locale would produce.
+    expect(inspected?.textContent).toBe("19 Sep 2026, 14:05 UTC");
+    // The machine-readable value stays the exact instant the service stored.
+    expect(inspected?.querySelector("time")?.getAttribute("dateTime")).toBe(
+      "2026-09-19T14:05:00.000Z",
+    );
+  });
+
+  it("says so plainly when no inspection has completed", () => {
+    render(
+      <VerdictSurface {...defaults} verdict="no-verdict" condition={null} />,
+    );
+    expect(
+      document.querySelector('[data-identity="inspected-at"]')?.textContent,
+    ).toBe("not inspected");
+  });
+});

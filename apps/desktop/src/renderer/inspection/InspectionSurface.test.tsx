@@ -374,3 +374,30 @@ describe("AC-0124 and AC-0127 keyboard operability and reading order", () => {
     );
   });
 });
+
+describe("AC-0103 the inspection time reaches the rendered result", () => {
+  it("carries inspectedAt from the inspection through to the surface", async () => {
+    // VerdictSurface renders the time, but a component test of it alone cannot
+    // show that InspectionSurface hands it over -- dropping the prop here left
+    // every other case green. This is that wire.
+    render(
+      <InspectionSurface
+        api={apiReturning({
+          ...base,
+          verdict: "agent-ready",
+          resolvedSha: "abc1234def",
+          inspectedAt: "2026-09-19T14:05:00.000Z",
+        })}
+      />,
+    );
+    await userEvent.type(screen.getByRole("textbox"), "https://github.com/a/b");
+    await userEvent.click(
+      screen.getByRole("button", { name: /connect repository/i }),
+    );
+    await waitFor(() =>
+      expect(
+        document.querySelector('[data-identity="inspected-at"]')?.textContent,
+      ).toBe("19 Sep 2026, 14:05 UTC"),
+    );
+  });
+});

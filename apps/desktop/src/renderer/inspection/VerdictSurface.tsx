@@ -27,6 +27,7 @@ export function VerdictSurface({
   owner,
   repository,
   resolvedSha,
+  inspectedAt,
   diagnostics,
   stopReason,
   waitWindow,
@@ -39,6 +40,8 @@ export function VerdictSurface({
   owner: string;
   repository: string;
   resolvedSha: string | null;
+  /** When the inspection that produced this result completed, as an instant. */
+  inspectedAt?: string | null;
   diagnostics: string;
   /** Which reason stopped it, where the condition is `inspection-stopped`. */
   stopReason?: StopReasonKey | null;
@@ -106,6 +109,14 @@ export function VerdictSurface({
         </dd>
         <dt>Commit</dt>
         <dd data-identity="resolved-sha">{resolvedSha ?? "not resolved"}</dd>
+        <dt>Inspected</dt>
+        <dd data-identity="inspected-at">
+          {inspectedAt === null || inspectedAt === undefined ? (
+            "not inspected"
+          ) : (
+            <time dateTime={inspectedAt}>{renderInstant(inspectedAt)}</time>
+          )}
+        </dd>
       </dl>
 
       {condition === "cancelled" && (
@@ -135,6 +146,42 @@ export function VerdictSurface({
       />
     </section>
   );
+}
+
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/**
+ * AC-0103. The instant the result was inspected, rendered in UTC from an
+ * explicit table rather than through `Intl`.
+ *
+ * The lead reads this to decide whether a restored verdict is still worth
+ * trusting, so it has to mean the same thing on every host. `Intl` month
+ * abbreviations move with the host's ICU version -- en-GB renders September as
+ * "Sept" on this Node and "Sep" on others -- which would make the displayed
+ * text a property of the machine. The pinned-rendering rule AC-0159 applies to
+ * the liveness marker is the same concern, one surface over.
+ */
+function renderInstant(instant: string): string {
+  const at = new Date(instant);
+  if (Number.isNaN(at.getTime())) return "not inspected";
+  const day = String(at.getUTCDate()).padStart(2, "0");
+  const month = MONTHS[at.getUTCMonth()];
+  const hour = String(at.getUTCHours()).padStart(2, "0");
+  const minute = String(at.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} ${at.getUTCFullYear()}, ${hour}:${minute} UTC`;
 }
 
 /**

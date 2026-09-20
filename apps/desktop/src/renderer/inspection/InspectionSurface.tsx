@@ -150,6 +150,7 @@ export function InspectionSurface({
             owner={inspection.owner}
             repository={inspection.repository}
             resolvedSha={inspection.resolvedSha}
+            inspectedAt={inspection.inspectedAt}
             diagnostics={inspection.diagnostics}
             stopReason={inspection.stopReason}
             waitWindow={inspection.waitWindow}
