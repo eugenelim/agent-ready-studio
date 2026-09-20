@@ -203,8 +203,13 @@ async function settleRender(
     const now = await readRenderState(page);
     if (now !== before) changed = true;
     if ((changed || !changeRequired) && previous !== null && now === previous)
-      return changed && !changeRequired
-        ? `${what} was declared a no-op click but changed the document, so its clickIsNoop property is stale`
+      // Decided from the settled reading against `before`, not from the
+      // latched `changed` flag: a surface that flickers and settles back to
+      // exactly its pre-click state has not changed, and reporting a stale
+      // declaration there would redden the run with a claim this function's
+      // own reading contradicts.
+      return !changeRequired && now !== before
+        ? `${what} was declared a no-op click but settled to a different document, so its clickIsNoop property is stale`
         : null;
     previous = now;
     if (Date.now() >= until)
@@ -227,9 +232,25 @@ const PRODUCT_ROOT_FONT_PX = (() => {
     "apps/desktop/src/renderer/styles/tokens.css",
   );
   const root = /:root\s*\{([\s\S]*?)\n\}/.exec(readFileSync(tokens, "utf8"));
-  const size = root === null ? null : /font-size:\s*([\d.]+)%/.exec(root[1]);
-  if (size === null) fail(`could not read :root font-size from ${tokens}`);
-  return (16 * Number.parseFloat(size[1])) / 100;
+  const sizes =
+    root === null ? [] : [...root[1].matchAll(/font-size:\s*([^;]+);/g)];
+  if (sizes.length !== 1)
+    fail(
+      `expected exactly one \`font-size\` in the :root block of ${tokens}, found ` +
+        `${sizes.length}. This value is what every capture is checked against to ` +
+        "prove the stylesheet applied, so it must be unambiguous.",
+    );
+  const declared = sizes[0][1].trim();
+  const percent = /^([\d.]+)%$/.exec(declared);
+  const pixels = /^([\d.]+)px$/.exec(declared);
+  if (percent === null && pixels === null)
+    fail(
+      `cannot derive a pixel value from \`font-size: ${declared}\` in ${tokens}. ` +
+        "Supported forms are a percentage of the 16px UA default, or px.",
+    );
+  return percent !== null
+    ? (16 * Number.parseFloat(percent[1])) / 100
+    : Number.parseFloat(pixels[1]);
 })();
 
 const MIME = {
@@ -1423,7 +1444,11 @@ for (const [scenarioName, label] of [
   // Skipped when the run aborted: reporting `ok` for whichever surfaces
   // happened to complete, above the error that stopped the rest, reads as a
   // partial pass of a comparison that never ran.
-  for (const surface of aborted === null ? capturedSurfaces : []) {
+  // `plumbingFailure` is checked here too: `aborted` does not absorb it until
+  // after this loop, so a late harness failure would otherwise print `ok`
+  // comparison lines above the error that stopped the run.
+  const comparable = aborted === null && plumbingFailure === null;
+  for (const surface of comparable ? capturedSurfaces : []) {
     // Compared surface by surface. Comparing the studio's action set against the
     // reviews list's would differ for reasons that have nothing to do with the
     // input mode under test.

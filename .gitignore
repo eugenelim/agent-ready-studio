@@ -42,7 +42,8 @@ build/
 dist/
 out/
 
-# Transient staging directories used by `pnpm visual-evidence` while it swaps
+# Transient staging directories used by `pnpm visual-evidence:skeleton` and
+# `pnpm visual-evidence:connect` while they swap
 # the retained evidence set. Present only between two renames.
 docs/specs/product-development-walking-skeleton/notes/visual.next/
 docs/specs/product-development-walking-skeleton/notes/visual.previous/

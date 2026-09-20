@@ -35,10 +35,10 @@ Each criterion carries three judgements:
 A criterion is recorded **not met** when any clause of its wording is unbound, even if the rest is
 strongly bound. Partial credit would reproduce the failure this audit exists to correct.
 
-## The six cross-cutting findings
+## The cross-cutting findings
 
-The criteria that fail do not fail for as many separate reasons. Six causes account for most
-of them, and four of the six are the same shape: **code that is written, tested, and reached by
+The criteria that fail do not fail for as many separate reasons. Five causes account for most of them, and four of the five are the same shape. A sixth was
+recorded and is withdrawn below as false: **code that is written, tested, and reached by
 nothing.**
 
 ### 1. Seventeen exported functions have zero production callers
@@ -106,21 +106,30 @@ networked siblings at `:163` and `:205` carry the gate; this one does not.
 `git ls-remote` goes to github.com in the background. **AC-0148 is not met, and this is a live
 defect rather than a missing test.**
 
-### 6. The rendered evidence was never committed
+### 6. ~~The rendered evidence was never committed~~ — withdrawn, it was false
 
-Found while regenerating captures for AC-0130, not by an auditor. `git ls-tree HEAD` on
-`docs/specs/product-development-walking-skeleton/notes/visual/` returns **36 PNGs and a
-manifest** — the original walking-skeleton set. Absent from the repository entirely:
+**This finding was wrong, and it is left here rather than deleted because it was reported as a
+finding and acted on.** It claimed that every `*-connect.png`, `narrow-900-*` and `text-200-*`
+was absent from the repository, and that the ledger's `#t13-delivery-2026-09-19-remade` and
+`#review-round-37` entries cited evidence nobody had committed.
 
-- every `*-connect.png`, the eight connect-surface captures
-  `#t13-delivery-2026-09-19-remade` cites as "56 scenarios, eight of them the connect surface";
-- every `narrow-900-*`, which is AC-0130's evidence;
-- every `text-200-*`, which is AC-0132's evidence and the subject of round 37's
-  "all three captures now differ from their baselines".
+`git ls-tree 3814102 docs/specs/connect-and-orient/notes/visual/` returns **57 entries** — 56
+PNGs and a manifest, including all eight `*-connect.png`, all seven `narrow-900-*` and all seven
+`text-200-*` — committed by `d28d022` on 2026-09-19, before this audit. Those ledger entries
+were accurate and their evidence was where they said it was.
 
-The directory is not gitignored. The captures were produced, read, and described accurately in
-the ledger, and then never added. A reader following those entries to the evidence finds the
-pre-slice baseline instead. This session's run regenerates and commits all of it.
+**The mistake was reading the wrong directory.** The `git ls-tree HEAD` that produced the claim
+was run against `docs/specs/product-development-walking-skeleton/notes/visual/`, a different
+spec's evidence set, which does hold exactly the 36 PNGs and manifest the finding described.
+
+The correction inverts the story. There was no missing-evidence defect. What actually happened
+is that this session regenerated captures under the tool's default root — the walking-skeleton
+spec's notes — and so damaged a **Shipped** spec's retained set, which the adversarial reviewer
+caught separately. That spec is restored byte-for-byte to `3814102`, and this slice's captures
+remain in their own directory, where they always were. The count there is now 65 rather than 57
+because this session added the eight `connect-rejected` scenarios.
+
+Found by the round-7 adversarial reviewer.
 
 ## Per-criterion reconciliation
 
@@ -403,7 +412,7 @@ re-implemented checkout, so removing a flag from `PINNED_GIT_CONFIGURATION` redd
   `.claude/skills/new-spec/references/spec-and-plan-contract.md:108-114`, a spec holds that status
   across sessions while required accepted work remains, and only an owner-agreed amendment moves
   work out of the AC set.
-- Four of the six cross-cutting findings are one defect class — a module written, tested, and
+- Four of the five standing cross-cutting findings are one defect class — a module written, tested, and
   called by nothing. Closing them is mostly wiring existing, already-tested code into the
   pipeline, not writing new behaviour.
 - `AC-0148` is the only finding that is a defect in something currently running rather than an

@@ -5071,25 +5071,21 @@ and genuinely strong — the tests are fine, and nothing reaches the code they c
   `nonProtocolStdoutLines`. The child materializes repository-controlled content, so its output
   volume is influenced from outside the trust boundary. **AC-0037 and AC-0155.**
 
-**The rendered evidence was never committed, and this was found by regenerating it rather than by
-an auditor.** `git ls-tree HEAD` on the visual directory returned 36 PNGs and a manifest — the
-original walking-skeleton set. Every `*-connect.png`, every `narrow-900-*` and every `text-200-*`
-was absent, including the captures `#t13-delivery-2026-09-19-remade` and `#review-round-37`
-describe in detail. The directory is not gitignored; the files were produced, read, described
-accurately, and never added. A reader following those entries to the evidence found the
-pre-slice baseline.
+**~~The rendered evidence was never committed~~ — that claim was false, and this is its
+retraction.** The audit recorded a sixth cross-cutting finding saying every `*-connect.png`,
+`narrow-900-*` and `text-200-*` was absent from the repository, and that the
+`#t13-delivery-2026-09-19-remade` and `#review-round-37` entries cited evidence nobody had
+committed.
 
-**And it was never this slice's directory to publish into.** The first attempt at the fix
-regenerated all 64 scenarios under the default root, which is
-`docs/specs/product-development-walking-skeleton/notes/visual/` — a **Shipped** spec's notes — and
-publishing there is a whole-directory swap, so it replaced that spec's 36 retained baselines and
-added 28 files under it. The tool documents the rule it broke at
-`visual-evidence.mjs:33-38` ("A slice capturing its own surfaces passes its own root"), and
-`.gitignore:49-50` already carried staging entries for this slice's own directory, so the
-intended destination had been provided for in advance. Caught by the adversarial reviewer. The
-Shipped spec's directory is restored byte-for-byte to its state at `3814102`, and this slice's 64
-scenarios are published under `docs/specs/connect-and-orient/notes/visual/` via
-`VISUAL_EVIDENCE_ROOT`.
+`git ls-tree 3814102 docs/specs/connect-and-orient/notes/visual/` returns **57 entries**,
+committed by `d28d022` on 2026-09-19. Those entries were accurate. The `git ls-tree HEAD` behind
+the claim was run against the **walking-skeleton** spec's directory, which is a different
+evidence set and does hold exactly the 36 PNGs the finding described.
+
+The correction inverts it: there was no missing-evidence defect, and the real defect was this
+session regenerating captures under the tool's default root and damaging a Shipped spec's
+retained set. See `#review-round-45-2026-09-20`. Left struck rather than deleted so a reader
+following this entry lands on the retraction.
 
 ### AC-0103's display built — and the criterion still open
 
@@ -5601,11 +5597,20 @@ cases this round, both renderer tests, so the total is 682 rather than 680.
 The attempt before it was red at load 28.6 — four failures, all in `runtime-supervisor`, which
 then passed twice in isolation at 23 of 23 each.
 
-**Corrected in round 44: the load bands stated here do not hold.** A later run went red at load
-22.8, inside the range this sentence called green. Load correlates with the flake and does not
-predict it, and stating a threshold implied a precision the observations do not support. What
-the observations do support is the isolation rule: every implicated file has passed twice in
-isolation, every time it has been asked.
+~~That is the same flake, now recorded fourteen isolated runs deep across this session with
+fourteen exit 0, and four green full runs against seven red, the greens clustering at load 16 to
+22 and the reds at 28 to 62.~~
+
+**Corrected in round 44 and re-corrected in round 45: the load bands do not hold.** The
+contradicting observation is round 44's own red at load **19.3**, which falls inside the band
+this sentence called green; round 44 cited a red at 22.8, which actually falls in the gap
+between the two bands and so contradicts nothing. Round 44 also deleted the claim instead of
+marking it, unlike the corrections two rows above. It is restored and struck here so a reader
+sees what was withdrawn.
+
+Load correlates with the flake and does not predict it. What the observations support is the
+isolation rule: every implicated file has passed twice in isolation, every time it has been
+asked.
 
 ## review-round-44-2026-09-20
 
@@ -5645,6 +5650,12 @@ empty problems list and exit 0. It is now part of the mode check that runs for e
 comparing the observed root size against the product's own base times that scenario's declared
 scale.
 
+**It aborts rather than reports**, which is a third abort site alongside the mode errors and the
+setup-step settle, and unlike a surface-level settle finding. That is deliberate: a root size
+that disagrees with the stylesheet means the page is not rendering the product, so every capture
+in the run shows the wrong thing and there is nothing worth publishing. The asymmetry defended
+in round 43 covers this site too.
+
 **Proven by breaking the stylesheet link rather than by reasoning.** The first attempt at this
 proof was the wrong mutation: changing `tokens.css`'s own `font-size` moves *both* sides of the
 comparison, because the expected value is read from that file, so it proves nothing about this
@@ -5663,9 +5674,9 @@ is reported as a stale property.
 
 | Finding | Severity | Applied |
 | --- | --- | --- |
-| The `tokens.css` pin took the first percentage `font-size` in the first `:root` block | Nit | Refuses anything but exactly one declaration, accepts a percentage or `px`, and says which forms it takes |
+| The `tokens.css` pin took the first percentage `font-size` in the first `:root` block | Nit | **Recorded here as applied and was not** — the edit never landed. Applied in round 45 |
 | The field poll inlined its deadline twice and polled at a third interval | Nit | `CLICK_DEADLINE_MS` and `POLL_INTERVAL_MS` own both, and the comment says it still throws at the deadline |
-| The AC-38 comparison printed `ok` above a `plumbingFailure` abort | Nit | Gated on both abort channels, since `aborted` does not absorb `plumbingFailure` until after that loop |
+| The AC-38 comparison printed `ok` above a `plumbingFailure` abort | Nit | **Recorded here as applied and was not** — the edit never landed. Applied in round 45 |
 | The audit's AC-0103 row cited a case count that went stale when this round added two cases | Concern | Cites the describe block rather than a count |
 | Round 43 read as though the surface-versus-setup asymmetry had been repaired | Concern | Says only the orphaning was fixed, and defends the remaining asymmetry |
 | Round 43's "proven by watching it fire" credited both runs with proving the reporting path | Nit | Attributed to the run that published findings |
@@ -5689,4 +5700,75 @@ with. Across this session the honest summary is: **twenty isolated runs of the t
 files, twenty exit 0**, and the full suite green whenever it is re-run after an isolated
 confirmation. The flake is real, pre-existing, and recorded at
 `pre-existing-trial-runtime-load-flake`; this session's diff still touches nothing under
+`apps/studio-service/` or `packages/`.
+
+## review-round-45-2026-09-20
+
+**The seventh confirmation round, and it found the worst error in this whole slice's record: a
+cross-cutting audit finding that was simply false.**
+
+**Finding 6 said the rendered evidence was never committed. It was committed all along.**
+`git ls-tree 3814102 docs/specs/connect-and-orient/notes/visual/` returns 57 entries — 56 PNGs
+and a manifest, including every `*-connect.png`, `narrow-900-*` and `text-200-*` — added by
+`d28d022` on 2026-09-19, before the audit ran. The `#t13-delivery-2026-09-19-remade` and
+`#review-round-37` entries were accurate and their evidence was exactly where they said.
+
+**The mistake was reading the wrong directory.** The `git ls-tree HEAD` behind the claim was run
+against `docs/specs/product-development-walking-skeleton/notes/visual/` — a *different spec's*
+evidence set, which does hold precisely the 36 PNGs and manifest the finding described. Every
+number in the finding was real; none of them was about this slice.
+
+The correction inverts the story. There was no missing-evidence defect. The real defect was this
+session regenerating captures under the tool's default root and destroying a **Shipped** spec's
+retained baselines — which is what prompted the wrong-directory look in the first place. The
+finding is struck in both `acceptance-audit.md` and the `#acceptance-audit-2026-09-20` entry
+rather than deleted, because it was reported and acted on.
+
+**This is the audit's own failure mode, committed by the audit.** The document exists because
+eleven tasks were marked complete on evidence nobody had checked against the tree. Finding 6 was
+recorded from a command whose output was never checked against the claim it was used to make.
+
+### Two fixes recorded as applied that were never in the tree
+
+Round 44's "Also applied" table claimed the `tokens.css` pin refused ambiguous declarations and
+that the AC-38 comparison was gated on both abort channels. **Neither edit had landed.** The pin
+was byte-identical to the previous commit, and the comparison loop still read `aborted === null`
+while `plumbingFailure` is not absorbed until 35 lines later.
+
+Both rows were written from a memory of composing the edits. Both are now marked as false in
+that table and applied here, with each change confirmed present by grepping the tree rather than
+by recalling the edit.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| `settleRender` latched `changed`, so a no-op click that flickered and settled back reported a stale declaration the tool's own reading contradicts | Concern | The report is decided from the settled reading against `before`, not from the latch |
+| Round 44's load-band correction cited a red at 22.8, which falls in the gap between the bands and contradicts nothing | Concern | Cites round 44's own red at 19.3, which is inside the withdrawn green band |
+| Round 44 deleted the band sentence instead of marking it, unlike the corrections two rows above | Concern | Restored, struck, and marked in place |
+| Round 44 did not record that the new root-size check aborts rather than reports | Nit | Stated, with why every capture is worthless when it fires |
+| `.gitignore`'s comment named a command that now refuses to run | Nit | Names the two scoped commands |
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect`
+exits 0 with 80 checks across 64 scenarios.
+
+**`pnpm verify` exit 0 — 679 passed, 3 skipped.** The attempt before it was the worst of the
+session: **22 failed** across five files, with the recorded signature — fifteen 5,000 ms
+timeouts, six `already-in-flight` cascades and one `expected 1 to be greater than 1`, which is a
+positive control going vacuous under contention. No stray processes were present. All five
+files then passed twice each in isolation: 8, 4, 20, 23 and 26 cases, ten runs, ten exit 0.
+
+**That run settles the load question the last three rounds kept circling.** It failed at a load
+average of **13.9**, the lowest reading of the session, and the green run after it was at 19.6.
+The reason the figure keeps misleading is that it is a one-minute mean read *after* the run
+ends, while the contention that matters is the suite's own concurrency during it. A number
+sampled after the load has drained cannot characterise the run that caused it. The band claim
+was withdrawn in round 44 for being imprecise; it was worse than imprecise — the measurement
+was the wrong measurement. Load figures are still recorded, as observations rather than as
+evidence of anything.
+
+The isolation rule is what carries the judgement, and it now stands at **thirty isolated runs
+across this session, thirty exit 0**, against a diff that touches nothing under
 `apps/studio-service/` or `packages/`.
