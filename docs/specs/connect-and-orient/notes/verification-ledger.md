@@ -5025,3 +5025,120 @@ could do. Now rendered on the result too.
 restored result carries the verdict and its diagnostics but **not** the stop reason, wait window or
 secondary diagnostic. The read sets them to `null` explicitly and says why at the site. Persisting
 them is a storage-migration change this approval did not cover.
+
+## acceptance-audit-2026-09-20
+
+**The full 157-criterion audit, run for the first time. 80 met, 72 not met, 5 not verifiable
+here at audit time**; AC-0103 was closed in the same session, so the spec now stands at **81
+checked and 76 open**. The per-criterion record, with the binding artifact and the reddening
+mutation for each, is [`acceptance-audit.md`](acceptance-audit.md). This entry records what the
+audit changed and what it cost to trust.
+
+**Every earlier "unmet" list in this ledger was round-scoped and understated the gap by roughly
+sixty criteria.** Those lists were accurate about what their round found. None of them was a
+reconciliation, and each said so. This is the reconciliation.
+
+**Method.** Ten auditors, one per criterion group, each given the group's criteria, the
+*Canonical values* table and the group's own *Testing Strategy* line, and each told to assume
+nothing from this ledger, from code comments, or from the spec's prose about what is tested.
+Every binding is cited `file:line`. The load-bearing cross-cutting claims were then re-verified
+directly rather than taken from the auditors: the zero-caller inventory by grep, the unbounded
+stdout and stderr accumulation by reading `runtime-supervisor.ts:395-436`, the absent
+`stop_reason` column by reading `storage.ts:269`, and the ungated network case by reading
+`connect-and-orient.test.ts:85-105`.
+
+**Four of the five cross-cutting findings are one defect class**, and it is the retraction's:
+a module written, tested, and called by nothing. Seventeen exported functions have zero
+production callers. That is why so many criteria are *not met* while their unit tests are green
+and genuinely strong — the tests are fine, and nothing reaches the code they cover.
+
+**Two findings are live defects rather than absences.**
+
+- **`AC-0148`: the default test suite reaches github.com.**
+  `apps/desktop/src/e2e/connect-and-orient.test.ts:85-105` submits an accepted URL with no
+  `skipIf`, while the same file's docblock at `:12-15` states that accepted cases are gated. Its
+  two networked siblings at `:163` and `:205` carry the gate. `connect` returns synchronously and
+  runs the pipeline behind it, so the assertion passes while `git ls-remote` goes out. **Left
+  open deliberately**: gating it removes the only default-gate case binding accepted dispatch,
+  which is the artifact the retraction exists to preserve, and keeping both properties needs a
+  transport injected into the spawned service. That is a design call for the owner, not a
+  one-line gate.
+- **Two resource bounds are absent from the running product.** `BoundedResultReader` and
+  `BoundedDiagnosticBuffer` are unwired; the real readers at `runtime-supervisor.ts:404` and
+  `:436` accumulate without limit, alongside unbounded `protocolLines` and
+  `nonProtocolStdoutLines`. The child materializes repository-controlled content, so its output
+  volume is influenced from outside the trust boundary. **AC-0037 and AC-0155.**
+
+**The rendered evidence was never committed, and this was found by regenerating it rather than by
+an auditor.** `git ls-tree HEAD` on the visual directory returned 36 PNGs and a manifest — the
+original walking-skeleton set. Every `*-connect.png`, every `narrow-900-*` and every `text-200-*`
+was absent, including the captures `#t13-delivery-2026-09-19-remade` and `#review-round-37`
+describe in detail. The directory is not gitignored; the files were produced, read, described
+accurately, and never added. A reader following those entries to the evidence found the
+pre-slice baseline. All 64 scenarios are committed with this entry.
+
+### AC-0103 closed, with the wiring bound
+
+`inspectedAt` crossed the protocol and reached no surface. It is now rendered in the verdict
+surface's identity list.
+
+**Rendered from a pinned UTC table rather than through `Intl`.** `Intl` month abbreviations move
+with the host's ICU version — en-GB renders September as "Sept" on this Node and "Sep" on others
+— which would make the displayed text a property of the machine and the test a property of the
+toolchain. This is the concern AC-0159's pinned rendering environment answers for the liveness
+marker, one surface over.
+
+| Mutation | Result |
+| --- | --- |
+| baseline | 16 of 16 pass in `InspectionSurface`, 19 of 19 in `VerdictSurface` |
+| the identity row dropped | **2 failed** |
+| the pinned month changed to `Sept` | **1 failed** |
+| `inspectedAt` dropped from `InspectionSurface`'s props | **1 failed** |
+
+**The last row is why there are two tests rather than one.** A component test of `VerdictSurface`
+alone left the wiring unbound: dropping the prop from `InspectionSurface` kept every test in the
+repository green. That is this audit's own defect class, and it was caught here only because the
+mutation was actually run rather than reasoned about.
+
+### AC-0130 advanced, and deliberately not checked
+
+The criterion's focus-obscuring clause now has a real binding.
+`apps/desktop/tools/visual-evidence.mjs` focuses every reachable control in turn and hit-tests
+its own centre, failing when the topmost element there is neither the control nor related to it
+by containment. A new `connect-rejected` surface drives a refused URL so a real diagnostic is on
+screen while a control holds focus — a refusal consults no transport, so this reaches no remote
+and AC-0148's property is not made worse.
+
+**Mutation: making `.connect-form__rejection` a fixed full-viewport overlay turns the run exit 1**
+and names the obscuring element on `desktop-light`, `desktop-dark` and `narrow-900`. A vacuity
+guard fails the run when a surface has controls but none could be focused and hit-tested, because
+a negative over an empty set is the shape this suite has been caught by before.
+
+**It stays unchecked** because the criterion also names the longest fixture label, an enabled
+Cancel and a retry control. Those need a completed inspection, which needs the network AC-0148
+forbids, and no retry control exists in the renderer at all.
+
+### Gate state
+
+`pnpm lint` and `pnpm typecheck` exit 0. **`pnpm verify` exit 1 on all three attempts**, with
+672 to 674 of 679 passing and every failure inside
+`apps/studio-service/src/trials/connect-and-orient-runtime/`.
+
+| Attempt | Load average | Result |
+| --- | --- | --- |
+| 1 | 49.5 | 666 passed, 10 failed across `disposal`, `materialization`, `runtime-supervisor` |
+| 2 | 61.6 | 674 passed, 2 failed |
+| 3 | 43.3 | 672 passed, 4 failed, all in `disposal` |
+
+**Judged by the two-in-isolation rule, not by a re-run.** All three files were run twice each in
+isolation between attempts 1 and 2: six runs, six exit 0. The failures are 5,000 ms timeouts and
+the `already-in-flight` cascade the `pre-existing-trial-runtime-load-flake` entry describes, whose
+own comment records "green twice in isolation immediately after each red".
+
+**This session's diff touches nothing under `apps/studio-service/` or `packages/`** — only the
+two renderer files, the capture tool, the spec, `workspace.toml` and these notes — so no failing
+file is in the diff. Two stray processes from this session's capture runs were found and killed
+between attempts 1 and 2, which is most of the improvement from 10 failures to 2. The host itself
+was the confound: endpoint-security scanning held the load average between 43 and 92 throughout,
+at 145 percent CPU for one process alone. **Recorded rather than averaged away, and `pnpm verify`
+is not claimed green.**

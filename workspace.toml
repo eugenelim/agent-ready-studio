@@ -115,22 +115,22 @@ open = [
   # recorded as an accepted residual with its ground, and which is the owner's
   # choice. Evidence: notes/verification-ledger.md#review-round-36-2026-09-18.
   { slug = "connect-orient-sweep-walk-depth-bound", source = "connect-and-orient/2026-09-18" },
-  # The result carries no stop reason, wait window or secondary diagnostic, so
-  # five criteria are verified at the projection and have no user-visible
-  # realization. Found by the T12/T13 review of Package 4 and routed out rather
-  # than widening that slice, because carrying them needs fields on
-  # `sourceInspectionResultSchema` and the canonical schema, which is the
-  # protocol approval path T8 straddles. Specifically: AC-0088's human reason is
-  # never composed with the `inspection-stopped` label, though the spec requires
-  # it "in both the rendered surface and the announcement"; AC-0091 and AC-0092
-  # fall away for that state, because `project()` supplies attribution and
-  # retryability only when a reason is passed; AC-0097's wait window is never
-  # shown; and AC-0099's `secondaryDiagnostic` reaches no surface. The
-  # projection already computes all four -- `state-vocabulary.ts` STOP_REASONS
-  # and the `waitWindow`/`secondaryDiagnostic` fields -- so the work is carrying
-  # them over the boundary, not deriving them.
-  # Evidence: notes/verification-ledger.md#t12-composition-2026-09-19.
-  { slug = "connect-orient-result-carries-no-reason-or-wait-window", source = "connect-and-orient/2026-09-19" },
+  # A restored result loses the three fields the live result now carries. The
+  # owner approved `stopReason`, `waitWindow` and `secondaryDiagnostic` onto
+  # `sourceInspectionResultSchema` and the canonical schema, and they render --
+  # so AC-0088, AC-0091, AC-0092, AC-0097 and AC-0099 hold for a result the
+  # lead is watching. The stored record has no column for any of the three, so
+  # `createStorageStore`'s read sets them null explicitly and says why at the
+  # site. After a restart the same five criteria degrade: the lead sees the
+  # verdict and its diagnostics, and an `inspection-stopped` result loses the
+  # reason that distinguishes a resolution timeout from an unusable branch
+  # name. Closing it is a storage migration -- three columns, a schema version
+  # and a read-back across a reopened database -- which the owner's protocol
+  # approval did not cover. Owner routed it here on 2026-09-20 rather than
+  # widening this slice.
+  # Evidence: notes/verification-ledger.md#t12-result-fields-2026-09-19 and
+  # notes/verification-ledger.md#acceptance-audit-2026-09-20.
+  { slug = "connect-orient-restored-result-drops-reason-and-wait-window", source = "connect-and-orient/2026-09-20" },
   # No trusted inspector runs against the materialized tree, so the verdict
   # derivation (AC-0061 to AC-0068) is composed and unit-tested but unexercised
   # end to end: every real inspection returns `inspector-unavailable`. The
@@ -141,7 +141,16 @@ open = [
   # Evidence: notes/verification-ledger.md#t12-composition-2026-09-19.
   { slug = "connect-orient-no-inspector-runs", source = "connect-and-orient/2026-09-19" },
 ]
-closed = []
+closed = [
+  # Closed 2026-09-20. The five criteria this entry routed out -- AC-0088,
+  # AC-0091, AC-0092, AC-0097, AC-0099 -- were closed by the owner-approved
+  # protocol change recorded at
+  # notes/verification-ledger.md#t12-result-fields-2026-09-19: the three fields
+  # are on the canonical schema and its Zod mirror and reach the surface. The
+  # residue is persistence only, re-opened as
+  # `connect-orient-restored-result-drops-reason-and-wait-window`.
+  { slug = "connect-orient-result-carries-no-reason-or-wait-window", source = "connect-and-orient/2026-09-19" },
+]
 
 ["ini-001"]
 name      = "Studio Foundation and Workspace Kernel"
