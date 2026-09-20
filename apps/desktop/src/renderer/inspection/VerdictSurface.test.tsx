@@ -344,6 +344,68 @@ describe("AC-0103 a restored verdict is shown with the time it was inspected", (
     );
   });
 
+  it("renders in UTC on a host that is not in UTC", () => {
+    // Without forcing a zone, a swap of the getUTC* accessors for their local
+    // equivalents stays green on any runner whose local time happens to equal
+    // UTC, and nothing in vitest.config.ts pins TZ. Forcing one makes the
+    // regression fail everywhere. Same reason AC-0159 forces a zone for the
+    // liveness marker.
+    const original = process.env.TZ;
+    process.env.TZ = "Pacific/Kiritimati"; // UTC+14
+    try {
+      render(
+        <VerdictSurface
+          {...defaults}
+          verdict="agent-ready"
+          condition={null}
+          inspectedAt="2026-09-19T14:05:00.000Z"
+        />,
+      );
+      // Local time there is the 20th at 04:05. The surface must still say the
+      // 19th at 14:05.
+      expect(
+        document.querySelector('[data-identity="inspected-at"]')?.textContent,
+      ).toBe("19 Sep 2026, 14:05 UTC");
+    } finally {
+      process.env.TZ = original;
+    }
+  });
+
+  it("names every month from its pinned table, not from the host's ICU", () => {
+    // The table was hand-written to escape ICU variance, and only September
+    // is exercised by the cases above, so an off-by-one or a typo anywhere
+    // else in it would ship silently.
+    const expected = [
+      "15 Jan 2026, 00:00 UTC",
+      "15 Feb 2026, 00:00 UTC",
+      "15 Mar 2026, 00:00 UTC",
+      "15 Apr 2026, 00:00 UTC",
+      "15 May 2026, 00:00 UTC",
+      "15 Jun 2026, 00:00 UTC",
+      "15 Jul 2026, 00:00 UTC",
+      "15 Aug 2026, 00:00 UTC",
+      "15 Sep 2026, 00:00 UTC",
+      "15 Oct 2026, 00:00 UTC",
+      "15 Nov 2026, 00:00 UTC",
+      "15 Dec 2026, 00:00 UTC",
+    ];
+    for (const [index, label] of expected.entries()) {
+      const month = String(index + 1).padStart(2, "0");
+      render(
+        <VerdictSurface
+          {...defaults}
+          verdict="agent-ready"
+          condition={null}
+          inspectedAt={`2026-${month}-15T00:00:00.000Z`}
+        />,
+      );
+      expect(
+        document.querySelector('[data-identity="inspected-at"]')?.textContent,
+      ).toBe(label);
+      cleanup();
+    }
+  });
+
   it("distinguishes an unreadable instant from no inspection at all", () => {
     render(
       <VerdictSurface
