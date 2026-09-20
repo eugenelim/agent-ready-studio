@@ -37,9 +37,12 @@ strongly bound. Partial credit would reproduce the failure this audit exists to 
 
 ## The cross-cutting findings
 
-The criteria that fail do not fail for as many separate reasons. Five causes account for most of them, and four of the five are the same shape. A sixth was
-recorded and is withdrawn below as false: **code that is written, tested, and reached by
-nothing.**
+The criteria that fail do not fail for as many separate reasons; five causes account for most
+of them. **Three of the five are one shape — a module written, tested, and called by nothing.**
+Findings 1, 2 and 3 are that shape. Finding 4 is not: its subject `pinnedGitConfigurationArgs()`
+has two production callers, `git-driver.ts:89` and `runtime-supervisor.ts:328`, so the defect is
+a test fixture re-implementing a live function rather than dead code. Finding 5 is a missing
+gate. A sixth finding was recorded and is withdrawn below as false.
 
 ### 1. Seventeen exported functions have zero production callers
 
@@ -413,8 +416,9 @@ re-implemented checkout, so removing a flag from `PINNED_GIT_CONFIGURATION` redd
   `.claude/skills/new-spec/references/spec-and-plan-contract.md:108-114`, a spec holds that status
   across sessions while required accepted work remains, and only an owner-agreed amendment moves
   work out of the AC set.
-- Four of the five standing cross-cutting findings are one defect class — a module written, tested, and
+- Three of the five standing cross-cutting findings are one defect class — a module written, tested, and
   called by nothing. Closing them is mostly wiring existing, already-tested code into the
-  pipeline, not writing new behaviour.
+  pipeline, not writing new behaviour. Finding 4's subject has live callers — its defect is a
+  fixture re-implementing them — and finding 5 is a missing gate.
 - `AC-0148` is the only finding that is a defect in something currently running rather than an
   absence.

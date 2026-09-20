@@ -220,12 +220,13 @@ async function settleRender(
     if (Date.now() >= until)
       // Decided by whether this iteration saw it hold still, not by whether
       // the reading matches `before`. Reaching here unsettled means the
-      // document is churning; reaching here settled means it is at its
-      // pre-click value, which is all the readings support -- without the
-      // latch this cannot tell a document that moved and returned from one
-      // that never moved, so the message claims neither.
+      // document is churning; reaching here settled means the last two
+      // readings matched and equal `before`. The message states only that:
+      // it does not claim the document was still for the whole window, which
+      // the loop cannot know, nor that it moved and returned, which without
+      // the latch it also cannot know.
       return settled
-        ? `${what} held still at its pre-click value for the full ${deadlineMs / 1000}s, so the capture may show the previous surface`
+        ? `${what} reached its ${deadlineMs / 1000}s deadline with the document at its pre-click value, so the capture may show the previous surface`
         : `${what} was still changing after ${deadlineMs / 1000}s`;
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }

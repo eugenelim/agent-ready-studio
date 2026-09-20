@@ -170,7 +170,7 @@ open = [
   # The module refuses at import without VISUAL_EVIDENCE_ROOT and then runs a
   # multi-minute capture, so `settleRender` and the `tokens.css` reader --
   # both pure enough to unit test -- are reachable only by running the whole
-  # harness. Five defects in those two functions were found by review rather
+  # harness. Six defects in those two functions were found by review rather
   # than by a test on 2026-09-20, each of which a fixture table would have
   # caught in seconds:
   #   1. `settleRender` read its baseline after the action rather than before,
