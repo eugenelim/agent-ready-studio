@@ -205,6 +205,23 @@ async function settleRender(page, what, before, deadlineMs = 10_000) {
   }
 }
 
+// The root font size `tokens.css` owns, as a CSS pixel value. `text-200`
+// derives its target from the page's measured baseline, and a baseline read
+// before the stylesheet applied would read the UA's 16px and silently
+// redefine the target to 32px -- the exact 2.67x miscalibration that check
+// was added to catch. Pinning it here means a pre-stylesheet reading fails
+// the run instead of moving the goalposts.
+const PRODUCT_ROOT_FONT_PX = (() => {
+  const tokens = resolve(
+    repoRoot,
+    "apps/desktop/src/renderer/styles/tokens.css",
+  );
+  const root = /:root\s*\{([\s\S]*?)\n\}/.exec(readFileSync(tokens, "utf8"));
+  const size = root === null ? null : /font-size:\s*([\d.]+)%/.exec(root[1]);
+  if (size === null) fail(`could not read :root font-size from ${tokens}`);
+  return (16 * Number.parseFloat(size[1])) / 100;
+})();
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -794,6 +811,15 @@ try {
         throw new Error(
           `${scenario.name}: could not read the baseline root font size`,
         );
+      // The baseline has to be the product's, not the UA's. Without this the
+      // target is derived from whatever was measured, so a stylesheet that
+      // had not applied yet would pass its own wrong value straight through.
+      if (Math.abs(basePx - PRODUCT_ROOT_FONT_PX) > 0.5)
+        throw new Error(
+          `${scenario.name}: root font size is ${basePx}px, but tokens.css owns ` +
+            `${PRODUCT_ROOT_FONT_PX}px — the stylesheet had not applied, so the ` +
+            "text scale would have been derived from the wrong baseline",
+        );
       const expected = basePx * scenario.textScale;
       const applied = await page("Runtime.evaluate", {
         expression: `(() => {
@@ -891,7 +917,10 @@ try {
         `the ${label} step`,
         beforeSetup,
       );
-      if (setupFinding !== null) fail(setupFinding);
+      // Thrown, not `fail()`ed, for the reason stated at the mode check: a
+      // `fail()` here exits the process from inside the try, orphaning the
+      // browser, the service child, the server and the temp directory.
+      if (setupFinding !== null) throw new Error(setupFinding);
     }
 
     // Every surface the build renders is driven to and measured while it is on
@@ -925,37 +954,64 @@ try {
       {
         name: "connect-rejected",
         clicks: ["Connect"],
+        // The loop reaches this surface straight after `connect`, which is
+        // also reached by clicking Connect, so this click correctly changes
+        // nothing. Stated as its own property rather than inferred from
+        // `submit`, so a future driven surface whose click *does* navigate
+        // gets the ordinary settle instead of inheriting this one's skip.
+        clickIsNoop: true,
         submit: "https://example.com/acme/widgets",
       },
     ]) {
-      let settleFinding = null;
+      const settleFindings = [];
       for (const label of surface.clicks) {
         const before = await readRenderState(page);
         await clickWhenOffered(page, label, `the ${surface.name} surface`);
-        if (surface.submit === undefined) {
-          settleFinding ??= await settleRender(
+        if (surface.clickIsNoop !== true) {
+          // Every click is settled, and every finding is kept. `??=` would
+          // short-circuit the call itself, so one slow click would leave each
+          // later click on the same surface with no wait at all -- `reviews`
+          // clicks Home then Reviews -- and the recorded finding would name
+          // the wrong one.
+          const finding = await settleRender(
             page,
-            `the ${surface.name} surface`,
+            `the ${surface.name} surface, after clicking "${label}"`,
             before,
           );
+          if (finding !== null) settleFindings.push(finding);
         } else {
-          // A driven surface has a stronger post-condition than "the document
-          // changed": the rejection poll below waits for a specific element
-          // carrying specific text. The navigation click here is also a no-op
-          // whenever the loop is already on that surface -- `connect-rejected`
-          // follows `connect`, and both are reached by clicking Connect -- so
-          // requiring a change would report a finding for a click that
-          // correctly did nothing.
+          // A no-op click has nothing to settle. What this surface is
+          // actually waited on is the field poll and the rejection poll
+          // below, both of which wait for a named element.
           await new Promise((r) => setTimeout(r, 300));
         }
       }
 
       let surfaceDiagnostic = null;
       if (surface.submit !== undefined) {
+        // The field has to be there before it can be driven. Polled rather
+        // than looked at once: a hard throw here discards every capture taken
+        // so far, which is the failure the presence gates were converted away
+        // from.
+        const fieldDeadline = Date.now() + 15_000;
+        for (;;) {
+          if (plumbingFailure !== null) throw new Error(plumbingFailure);
+          const present = await page("Runtime.evaluate", {
+            expression: 'document.getElementById("connect-url") !== null',
+            returnByValue: true,
+          });
+          if (present.result.value === true) break;
+          if (Date.now() >= fieldDeadline)
+            throw new Error(
+              `the ${surface.name} surface never offered the URL field within 15s`,
+            );
+          await new Promise((r) => setTimeout(r, 250));
+        }
         const submitted = await page("Runtime.evaluate", {
           expression: `(() => {
             const field = document.getElementById("connect-url");
             if (!field) return "no url field";
+
             const setter = Object.getOwnPropertyDescriptor(
               window.HTMLInputElement.prototype, "value").set;
             setter.call(field, ${JSON.stringify(surface.submit)});
@@ -1240,10 +1296,10 @@ try {
         problems.push(
           `focused control obscured: ${occlusion.obscured.join("; ")}`,
         );
+      for (const finding of settleFindings) problems.push(finding);
       // Without this the check passes on any surface where every control was
       // skipped, which is the vacuous-negative shape this suite has been
       // caught by before. A surface with controls must hit-test at least one.
-      if (settleFinding !== null) problems.push(settleFinding);
       if (measured.controls > 0 && occlusion.tested === 0)
         problems.push(
           `no control could be focused and hit-tested, so the obscuring check proved nothing (skipped: ${occlusion.skipped.join("; ") || "none"})`,
@@ -1287,6 +1343,11 @@ try {
           innerHeight: mode.innerHeight,
           devicePixelRatio: mode.devicePixelRatio,
         },
+        // Declared beside its observed effect, like every other dimension:
+        // `observed.rootFontSizePx` alone asks the reader to already know the
+        // product's base to judge whether the number is right.
+        textScale: scenario.textScale ?? 1,
+        productRootFontPx: PRODUCT_ROOT_FONT_PX,
         controls: measured.controls,
         names: measured.names,
         horizontalOverflow: measured.horizontalOverflow,
@@ -1334,7 +1395,10 @@ for (const [scenarioName, label] of [
   const capturedSurfaces = [
     ...new Set(results.map((result) => result.surface)),
   ];
-  for (const surface of capturedSurfaces) {
+  // Skipped when the run aborted: reporting `ok` for whichever surfaces
+  // happened to complete, above the error that stopped the rest, reads as a
+  // partial pass of a comparison that never ran.
+  for (const surface of aborted === null ? capturedSurfaces : []) {
     // Compared surface by surface. Comparing the studio's action set against the
     // reviews list's would differ for reasons that have nothing to do with the
     // input mode under test.

@@ -5373,6 +5373,8 @@ number, and says what went wrong.
   result now carries what the page reported — scheme, reduced motion, hover, pointer and the
   measured root font size. `desktop-light-connect` and `reduced-motion-connect` still share a
   SHA, and the manifest now shows they were rendered under genuinely different preferences.
+  **Corrected in round 42 below:** that pair is a group of three, and there are four such groups
+  spanning nine results. The count in this sentence was wrong when written.
 - **A disabled button counted as clicked.** `el.click()` on a disabled control is a no-op that
   returned `true`, so the helper reported success and the real failure surfaced later as an
   unrelated timeout. The helper now uses the file's one shared definition of a reachable control
@@ -5457,9 +5459,16 @@ fixed. They are recorded because they are the evidence that the reporting path w
 **The settle now requires arrival, not just stillness.** Two identical readings cannot tell "the
 surface finished rendering" from "the click's handler is still awaiting IPC and the previous
 surface is still on screen". The baseline is read *before* the action and the settle is not
-satisfied until the document has both changed from it and then held still. A driven surface
-skips this and relies on its rejection poll, which is strictly stronger: it waits for a specific
-element carrying specific text.
+satisfied until the document has both changed from it and then held still.
+
+`connect-rejected` skips the settle, and **not because its replacement is strictly stronger** —
+an earlier version of this entry said that and it was wrong. Its navigation click genuinely
+changes nothing, because the surface follows `connect` and both are reached by clicking Connect,
+so requiring a change would report a finding for a click that behaved correctly. What covers
+that surface is the field poll and the rejection poll, each waiting on a named element. Neither
+covers the navigation click, which is why the skip is now keyed on an explicit `clickIsNoop`
+property rather than inferred from the surface being driven: a future driven surface whose click
+does navigate gets the ordinary settle.
 
 ### `text-200` was never rendering at 200 percent
 
@@ -5483,7 +5492,8 @@ byte-identical capture whose observed block was *also* identical. It now carries
 
 The published set has **four duplicate-digest groups spanning nine results** — `module` (2),
 `connect` (3), `connect-rejected` (2) and `overview` (2) — and the observed block distinguishes
-every one of them. An earlier version of this ledger named a single pair.
+every one of them. The round-41 entry above named a single pair; a correction marker now sits at
+that sentence.
 
 ### Also applied
 
@@ -5501,3 +5511,87 @@ at load average 18.9.
 That is the third green full run this session, all at load averages between 16 and 19, against
 six red runs at 34 to 62 — the pattern `pre-existing-trial-runtime-load-flake` describes, on a
 tree whose diff still touches nothing under `apps/studio-service/` or `packages/`.
+
+## review-round-43-2026-09-20
+
+**The fifth confirmation round. Both reviewers independently returned the same Blocker and the
+same two concerns**, which is the clearest signal yet that they are real rather than stylistic.
+
+**A settle finding in the setup loop called `fail()`, which is `process.exit(1)` from inside the
+`try`.** That skips the `finally` that terminates Chromium — which this file records as
+SIGTERM-resistant — along with the service child, the HTTP server and the temp profile
+directory. The invariant is stated twice in the file, once as a rule and once as the claim
+"There are no `fail()` calls between the `try` and the `finally`", and the change that added the
+settle made that comment false. It now throws, so it unwinds through the one cleanup path, and
+both comments are true again.
+
+It was also inconsistent: the same event on a *surface* was recorded as a problem and published,
+while on a *setup step* it killed the run.
+
+**`settleFinding ??= await settleRender(...)` did not merely drop a message.** Logical assignment
+does not evaluate its right-hand side when the target is already set, so after one finding the
+settle was **never called again** for the remaining clicks on that surface. On `reviews`, which
+clicks Home then Reviews, the second click would have had no wait at all before the probe, the
+screenshot and the occlusion pass — the post-condition-free state the settle exists to remove.
+Every click is now settled, every finding is kept, and each names the click it came from.
+
+**The driven surface's only pre-submit wait was a 300 ms sleep.** If the form were not yet on
+screen the submit probe returned `"no url field"` and threw, discarding every capture in the
+run — the failure the deadline polls exist to prevent. The field is now polled to a deadline like
+everything else, and the settle skip is keyed on an explicit `clickIsNoop` property rather than
+inferred from the surface being driven, so a future driven surface whose click does navigate
+gets the ordinary settle.
+
+### `text-200`'s check could not fail for the defect it was added to catch
+
+Round 42 derived the text scale from the page's measured baseline. But the baseline was read
+after a fixed post-navigate sleep with no settle, so if `tokens.css` had not applied, `basePx`
+read the UA's 16 and `expected` became 32 — **the exact 2.67x miscalibration round 42 fixed** —
+and the assertion still passed, because both sides came from the same unpinned reading. Only
+"the inline style did not apply at all" remained detectable.
+
+The product's root size is now read from `tokens.css` itself, and a measured baseline that
+disagrees with it fails the run. The manifest carries the declared scale, the product's base and
+the observed root size together, so the numbers are readable without knowing the product:
+`textScale: 2`, `productRootFontPx: 12`, `observed.rootFontSizePx: 24`.
+
+### Two renderer tests that could not fail
+
+Found by review, not by running them.
+
+- **The UTC rendering was only pinned on a UTC host.** Nothing in `vitest.config.ts` sets `TZ`,
+  so swapping `getUTCDate` and friends for their local equivalents stays green wherever local
+  time equals UTC. A case now forces `Pacific/Kiritimati`, where the instant falls on the next
+  day, and asserts the surface still says the 19th.
+- **The hand-written month table was exercised for one month.** `MONTHS` exists specifically to
+  escape ICU variance, and only `Sep` was ever rendered, so a typo anywhere else shipped
+  silently. A table-driven case pins all twelve.
+
+| Mutation | Result |
+| --- | --- |
+| baseline | 22 of 22 pass |
+| `getUTC*` swapped for local getters | **2 failed** |
+| one month abbreviation mistyped | **1 failed** |
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The ledger called the driven path "strictly stronger" than the settle | Concern | Corrected: it covers the diagnostic, not the navigation click, and the entry now says which is which |
+| "Proven by watching it fire" credited both observed runs; only one exercised the reporting path | Nit | Attributed to the run that produced it; the aborting run is recorded for what it did show |
+| Round 41 named one duplicate-digest pair where there were four groups | Nit | A correction marker now sits at that sentence, pointing forward |
+| The vacuity-guard comment had drifted from its guard | Nit | Moved back |
+| The AC-38 comparison printed `ok` lines during an aborted run | Nit | Skipped when the run aborted |
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect`
+exits 0 with 80 checks across 64 scenarios.
+
+**`pnpm verify` exit 0 — 679 passed, 3 skipped**, at load average 22.2. The suite grew by two
+cases this round, both renderer tests, so the total is 682 rather than 680.
+
+The attempt before it was red at load 28.6 — four failures, all in `runtime-supervisor`, which
+then passed twice in isolation at 23 of 23 each. That is the same flake, now recorded fourteen
+isolated runs deep across this session with fourteen exit 0, and four green full runs against
+seven red, the greens clustering at load 16 to 22 and the reds at 28 to 62.
