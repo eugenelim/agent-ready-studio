@@ -5605,7 +5605,9 @@ then passed twice in isolation at 23 of 23 each.
 fourteen exit 0, and four green full runs against seven red, the greens clustering at load 16 to
 22 and the reds at 28 to 62.~~
 
-**Corrected in round 44 and re-corrected in round 45: the load bands do not hold.** The
+**Two errors here, not one. The load bands do not hold — corrected in round 44 and re-corrected
+in round 45 — and "fourteen exit 0" is also wrong: the run count is right, but three of those
+fourteen failed in the session's first isolation attempt.** The
 contradicting observation is round 44's own red at load **19.3**, which falls inside the band
 this sentence called green; round 44 cited a red at 22.8, which actually falls in the gap
 between the two bands and so contradicts nothing. Round 44 also deleted the claim instead of
@@ -5752,7 +5754,7 @@ by recalling the edit.
 
 | Finding | Severity | Applied |
 | --- | --- | --- |
-| `settleRender` latched `changed`, so a no-op click that flickered and settled back reported a stale declaration the tool's own reading contradicts | Concern | The report is decided from the settled reading against `before`, not from the latch |
+| `settleRender` latched `changed`, so a no-op click that flickered and settled back reported a stale declaration the tool's own reading contradicts | Concern | ~~The report is decided from the settled reading against `before`.~~ **Only the `clickIsNoop` branch landed; the default branch still trusted the latch. Completed in round 47** |
 | Round 44's load-band correction cited a red at 22.8, which falls in the gap between the bands and contradicts nothing | Concern | Cites round 44's own red at 19.3, which is inside the withdrawn green band |
 | Round 44 deleted the band sentence instead of marking it, unlike the corrections two rows above | Concern | Restored, struck, and marked in place |
 | Round 44 did not record that the new root-size check aborts rather than reports | Nit | Stated, with why every capture is worthless when it fires |
@@ -5795,8 +5797,9 @@ still-previous surface would publish with an empty problems list — the false v
 the function exists to refuse, surviving the round that was meant to remove it.
 
 Both branches now decide from the settled reading against `before`. A surface that ends where it
-started is never reported as having arrived; with a change required it keeps waiting and, at the
-deadline, says it never changed.
+started is never reported as having arrived; with a change required it keeps waiting and, at
+the deadline, ~~says it never changed~~ **— superseded: round 48 found that message decided on
+the wrong variable, and it now reports that the document held still at its pre-click value.**
 
 **The root-size abort named one of its two causes.** The pin is read from source `tokens.css`
 while the run renders `apps/desktop/out/renderer`, so an edited base with a stale build aborts
@@ -5810,11 +5813,12 @@ both causes and the rebuild.
 reader are pure enough to unit test, but the module refuses at import without
 `VISUAL_EVIDENCE_ROOT` and then runs a multi-minute capture, so nothing can import them.
 
-That is not a stylistic observation. **Five defects in exactly those two functions were found by
+That is not a stylistic observation. **Six defects in exactly those two functions were found by
 review rather than by a test in this session** — the baseline read after the action, the change
 required of a no-op click, the latched flag fixed one branch at a time, the deadline message
-choosing on the wrong variable, and the tokens reader's miscounted block, one of whose fixes was
-recorded as applied while never being in the tree. A fixture table over the two functions would
+choosing on the wrong variable, the tokens reader's miscounted block, one of whose fixes was
+recorded as applied while never being in the tree, and the replacement deadline message
+asserting a transition the function cannot observe. A fixture table over the two functions would
 have caught each in seconds, and the repository already has the shape for it in
 `delta-e2000.ts` and its sibling test.
 
@@ -5912,10 +5916,11 @@ passed twice in isolation. Those four runs are in the reconciliation above.
 
 ## review-round-48-2026-09-20
 
-**The tenth confirmation round. The quality reviewer returned no Blockers and two concerns; the
-adversarial reviewer returned three Blockers, two concerns and two nits.** An earlier version of
-this line said neither reviewer found a Blocker, which was wrong, and the entry recorded only
-two of the nine findings. The rest are in the table below.
+**This entry covers two review rounds.** Round 9: no Blockers from the quality reviewer, two
+concerns; three Blockers, two concerns and two nits from the adversarial reviewer. Round 10
+returned five Blockers, three concerns and one nit against the result. Two findings are
+narrated below; the rest are in the table, labelled by round. An earlier version said neither
+reviewer found a Blocker, and counted nine findings against a table holding two rounds' rows.
 
 **Removing the latch left the deadline messages deciding on the wrong variable.** They chose
 between "still changing" and "never changed" on whether the final reading equalled `before` —
@@ -5966,10 +5971,15 @@ Eight isolated runs were taken: `disposal` 8 of 8 twice, `runtime-supervisor` 23
 `materialization` 4 of 4 twice and `sweep` 26 of 26 twice — **eight runs, eight exit 0**,
 bringing the session reconciliation to **44 isolated runs, 41 exit 0**.
 
-`sweep` was added after the round-10 reviewer pointed out that it failed in attempt 3 and had
-never been isolated, while the entry rested its not-a-regression conclusion on the isolation
-rule. It is also not one of the three files the session's flake record names, so it is a fourth
-file now implicated.
+`sweep` was added after the round-10 reviewer pointed out it had failed in attempt 3 without
+being isolated in this round. **The reviewer's framing was wrong and was accepted here without
+checking, which is the defect this slice keeps repeating.** `sweep` had been isolated before —
+round 45 records all five files from the 22-failure run passing twice, "8, 4, 20, 23 and 26
+cases", and the 26 is `sweep`. It is also not a fourth file outside the flake record:
+`pre-existing-trial-runtime-load-flake` scopes the whole
+`apps/studio-service/src/trials/connect-and-orient-runtime/` directory, not three named files.
+What is true is narrow — `sweep` failed in this round's attempt 3 and had not been isolated
+*in this round* until now.
 
 **What is claimed and what is not.** The tree was green four times earlier in this session at
 679 passed — rounds 43, 44, 45 and 47 — and this round's diff changed
@@ -5980,29 +5990,82 @@ recorded flake and not a regression from this round.
 
 **The green came at load 35.0. No load was recorded for this round's four reds**, so the
 comparison has to reach back: the session's reds include readings of 13.9 (round 45), 19.3
-(round 44) and 22.8, against greens at 16.2, 18.9, 22.0, 22.2 and now 35.0. A green at the
+(round 44) and 22.8, against greens at 18.4 (round 42), 16.2 and 18.9 (round 43), 22.0
+(round 44), 19.6 (round 45), 22.2 (round 47) and now 35.0. A green at the
 highest reading of the set is the plainest evidence that the figure predicts nothing. Load
 readings stay in this ledger as observations, and nothing rests on them.
 
 ### Also applied
 
-| Finding | Severity | Applied |
-| --- | --- | --- |
-| The reconciliation prose said two isolated failures where its own table says three | Blocker | Says three, and names the contradiction |
-| The `#review-round-37` anchor was fixed in two of three citations while the row claimed all three | Blocker | Third citation fixed, row marked as having overclaimed |
-| Three superseded running totals stood unmarked while a fourth was struck | Blocker | All marked in place, each stating how it was wrong |
-| "None of those figures is derivable" overstated it | Concern | Six, twelve and fourteen are derivable and wrong only in their results; twenty is where the count breaks |
-| Round 42's load-band inference survived unmarked | Concern | Marked with its siblings |
-| The evidence note had no entry in the audit's basename convention table | Nit | Added |
-| Round 43's isolation claim, declared false by round 47, stood unmarked | Blocker | Marked in place with the three first-attempt failures |
-| The correction paragraph said four entries and listed five figures | Blocker | Says five |
-| Round 48 undercounted the earlier 679-passed greens | Blocker | Four, named by round |
-| Round 46's "green whenever re-run" claim was contradicted by this round | Concern | Marked against this round's attempt table |
-| The load figures cited as "the reds" belong to earlier rounds | Concern | Attributed by round; this round recorded no load for its reds |
-| The new deadline message asserted a transition the function cannot observe | Concern | States only that it held still at its pre-click value, and both branches print the duration |
-| Round 46's gate state claimed a run round 47 presents as its own | Nit | Round 46 records no verify run and says so |
+Rows are labelled with the round that raised them. This entry covers two rounds, which an
+earlier version left unmarked while claiming a single round's nine findings.
+
+| Round | Finding | Severity | Applied |
+| ---: | --- | --- | --- |
+| 10 | The reconciliation prose said two isolated failures where its own table says three | Blocker | Says three, and names the contradiction |
+| 10 | The `#review-round-37` anchor was fixed in two of three citations while the row claimed all three | Blocker | Third citation fixed, row marked as having overclaimed |
+| 10 | Three superseded running totals stood unmarked while a fourth was struck | Blocker | All marked in place, each stating how it was wrong |
+| 10 | "None of those figures is derivable" overstated it | Concern | Six, twelve and fourteen are derivable and wrong only in their results; twenty is where the count breaks |
+| 10 | Round 42's load-band inference survived unmarked | Concern | Marked with its siblings |
+| 10 | The evidence note had no entry in the audit's basename convention table | Nit | Added |
+| 10 | Round 43's isolation claim, declared false by round 47, stood unmarked | Blocker | Marked in place with the three first-attempt failures |
+| 10 | The correction paragraph said four entries and listed five figures | Blocker | Says five |
+| 10 | Round 48 undercounted the earlier 679-passed greens | Blocker | Four, named by round |
+| 10 | The "green whenever re-run after an isolated confirmation" claim was contradicted by this round | Concern | Marked against this round's attempt table. **It lives in round 44's gate state, not round 46's — an earlier version of this row named the wrong entry** |
+| 10 | The load figures cited as "the reds" belong to earlier rounds | Concern | Attributed by round; this round recorded no load for its reds |
+| 10 | The new deadline message asserted a transition the function cannot observe | Concern | States only that it held still at its pre-click value, and both branches print the duration |
+| 10 | Round 46's gate state claimed a run round 47 presents as its own | Nit | Round 46 records no verify run and says so |
 
 ### Isolated-run reconciliation, carried forward
 
 Round 47 reconciled the session to 36 runs and 33 exit 0. This round adds eight, all exit 0:
 **44 runs, 41 exit 0.** Derived from the eight runs listed above rather than carried.
+
+## review-round-49-2026-09-20
+
+**Eight findings, and the first Blocker is a reviewer's premise this session accepted without
+checking.**
+
+**The round-10 reviewer said `sweep` had never been isolated and was a fourth implicated file.
+Both are false, and round 48 recorded them as fact.** Round 45 already logged all five files
+from the 22-failure run passing twice — "8, 4, 20, 23 and 26 cases" — and the 26 is `sweep`.
+The flake register scopes the whole `connect-and-orient-runtime/` directory, not three named
+files, so `sweep` was never outside it. What is true is narrow: `sweep` failed in round 48's
+attempt 3 and had not been isolated *in that round*.
+
+This is the same defect as every count in this slice, arriving from the other direction. A
+reviewer's claim is evidence to check, not a finding to transcribe — and the whole reason this
+session's audit exists is that records were trusted over the tree.
+
+**Round 45's `settleRender` row still read as a completed general fix** that round 47 had
+declared partial. The code comment was corrected then and the row was not, so the sweep meant to
+mark every known-false claim at its own site left this one standing. Marked.
+
+**Round 48's own accounting did not reconcile.** It claimed nine findings with two narrated and
+"the rest" in a table that actually held rows from two rounds, so 2 + 6 ≠ 9. The table now
+carries a round column and the opening states both rounds' counts.
+
+### Also applied
+
+| Round | Finding | Severity | Applied |
+| ---: | --- | --- | --- |
+| 11 | The "fourteen isolated runs" strike was marked only for the load bands, while the row claimed every total stated how it was wrong | Concern | The site now says three of those fourteen failed |
+| 11 | The "green whenever re-run" row named round 46; the sentence lives in round 44 | Concern | Attributed to round 44 |
+| 11 | The green load readings were presented as the comparison set while omitting 18.4 and 19.6, and were unattributed beside named reds | Concern | All seven greens listed and attributed by round |
+| 11 | Round 46's description of the deadline branch was false of the tree and unmarked | Concern | Marked against round 48's correction |
+| 11 | The register's defect ground was one behind again | Nit | Six, with a note that the count has now been behind twice |
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect`
+exits 0 with 80 checks across 64 scenarios.
+
+**`pnpm verify` exit 0 on the third attempt — 679 passed, 3 skipped**, at load 28.1. The two
+before it failed in `disposal` only, 5 then 6 cases, at loads 30.5 and 23.6; `disposal` passed
+twice in isolation between them at 8 of 8.
+
+Two more isolated runs, both exit 0: the session reconciliation is **46 runs, 43 exit 0**.
+
+Ten of the session's full-suite runs have now been green and the reds have all been in
+`connect-and-orient-runtime/`. The diff still touches nothing under `apps/studio-service/` or
+`packages/`.

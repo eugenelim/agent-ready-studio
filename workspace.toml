@@ -184,6 +184,12 @@ open = [
   #   5. The `tokens.css` reader said "found 0 declarations" for a `:root`
   #      block it had never located, and a strictness edit for it was recorded
   #      as applied while never being in the tree.
+  #   6. The replacement deadline message asserted a transition the function
+  #      cannot observe once the latch is gone -- that the document had
+  #      settled *back* to its pre-click state, which it cannot distinguish
+  #      from never having moved.
+  # Six, and the count has been one behind twice; a fixture table would make
+  # it unnecessary to count at all.
   # `apps/desktop/tools/delta-e2000.ts` with its sibling test is the shape
   # this repository already uses for a tested tool module. Raised by the
   # round-8 quality reviewer, who scoped it explicitly as separate work
