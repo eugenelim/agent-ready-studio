@@ -5424,3 +5424,80 @@ still touches nothing under `apps/studio-service/` or `packages/`.
 `pnpm verify` is **not** claimed green for this round. The honest statement is that the gate is
 green on this tree when the host is quiet and red when it is not, which is what
 `pre-existing-trial-runtime-load-flake` records.
+
+## review-round-42-2026-09-20
+
+**The fourth confirmation round. The reviewer verified the previous round's seven fixes against
+the tree and confirmed them**, including running the evidence-root guard itself with six
+hazardous values and checking `git status` was byte-identical before and after. It also
+re-derived, independently: 157 audit rows at 80 / 72 / 5, the spec's 80 checked boxes being the
+*same* 80 identifiers, all fifteen group headers matching their own rows, every ledger anchor in
+`workspace.toml` resolving, all 64 manifest digests matching the files on disk with no orphans,
+and `git diff 3814102..HEAD -- apps/studio-service packages` empty.
+
+**One Blocker, and it is this session's own recurring shape.** `settleRender` returned on a
+deadline having written a line to stderr, interleaved with minutes of subprocess output, and
+reaching neither the scenario's `problems` array nor the exit code. A capture the tool *knew*
+was taken mid-render published with `"problems": []` and the run exited 0 — the false
+verification record this harness exists to refuse, added by the change that was meant to remove
+a weaker one.
+
+A settle that expires is now a finding on that scenario, so it prints `FAIL`, lands in the
+retained manifest and reddens the run.
+
+**Proven by observing it fire, not by reasoning.** Two intermediate runs during this round
+returned findings for real: one reported "the Seed demo workspace step never changed within 10s"
+and aborted, the other reported the same for `connect-rejected` across all eight of its
+scenarios and exited 1 with the text in each result's `problems`. Both were **defects in the
+check, not in the product** — the first read its baseline after the settle sleep rather than
+before it, the second required a change from a navigation click that correctly does nothing
+because `connect-rejected` follows `connect` and both are reached by clicking Connect. Both are
+fixed. They are recorded because they are the evidence that the reporting path works end to end.
+
+**The settle now requires arrival, not just stillness.** Two identical readings cannot tell "the
+surface finished rendering" from "the click's handler is still awaiting IPC and the previous
+surface is still on screen". The baseline is read *before* the action and the settle is not
+satisfied until the document has both changed from it and then held still. A driven surface
+skips this and relies on its rejection poll, which is strictly stronger: it waits for a specific
+element carrying specific text.
+
+### `text-200` was never rendering at 200 percent
+
+The scenario set an inline `font-size: 200%` on the root element. That resolves against the
+**UA's** 16 px and overrides `tokens.css`'s `:root { font-size: 75% }`, so it rendered 32 px —
+**2.67 times** the application's own 12 px base, not the 2x AC-0132 names. The direction was
+conservative, so nothing passed falsely, but the audit row said "the text-resize half is sound"
+and named two loose clauses where there were three.
+
+The scale is now derived from the measured baseline, and `text-200-*` renders 24 px. **The
+observed block added this same round is what made it visible** — the first run after adding it
+reported `rootFontSizePx: 32` against a `12` baseline, in a manifest a reader could compare.
+
+### The observed block, completed
+
+It recorded scheme, motion, hover, pointer and root font size, but left `viewport` a declared
+string — so for `narrow-900`, `narrow-1024` and `zoom-200`, which differ from the baseline by
+viewport and device pixel ratio alone, a dropped metrics override would have produced a
+byte-identical capture whose observed block was *also* identical. It now carries `innerWidth`,
+`innerHeight` and `devicePixelRatio`.
+
+The published set has **four duplicate-digest groups spanning nine results** — `module` (2),
+`connect` (3), `connect-rejected` (2) and `overview` (2) — and the observed block distinguishes
+every one of them. An earlier version of this ledger named a single pair.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| `settleRender` hand-copied the control selector the file centralises | Nit | Reads through `REACHABLE_CONTROLS_JS`, the file's one definition |
+| The refusal-copy regex matched `publicGithubOnly:` anywhere in a 370-line file | Nit | Anchored to the `SOURCE_REJECTION_REASONS` record it names |
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect` exits
+0 with 80 checks across 64 scenarios. **`pnpm verify` exit 0 — 51 files, 677 passed, 3 skipped**,
+at load average 18.9.
+
+That is the third green full run this session, all at load averages between 16 and 19, against
+six red runs at 34 to 62 — the pattern `pre-existing-trial-runtime-load-flake` describes, on a
+tree whose diff still touches nothing under `apps/studio-service/` or `packages/`.

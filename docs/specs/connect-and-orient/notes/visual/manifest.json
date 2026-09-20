@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-20T06:47:42.904Z",
+  "capturedAt": "2026-09-20T07:12:33.869Z",
   "results": [
     {
       "scenario": "desktop-light-home",
@@ -14,7 +14,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 18,
       "names": [
@@ -38,7 +41,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "48647915cd9cab86",
+      "sha256": "f32371b2f995574c",
       "problems": []
     },
     {
@@ -54,7 +57,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -73,7 +79,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "699deab1735f2c1c",
+      "sha256": "239f9996013b53a5",
       "problems": []
     },
     {
@@ -89,7 +95,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -124,7 +133,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -144,7 +156,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "e041900cc8920e43",
+      "sha256": "96c1caba97d04472",
       "problems": []
     },
     {
@@ -160,7 +172,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -180,7 +195,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "bf053172160cc38a",
+      "sha256": "6e4e6d50885e45ee",
       "problems": []
     },
     {
@@ -196,7 +211,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 29,
       "names": [
@@ -231,7 +249,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "4c27d68d3d7c06a7",
+      "sha256": "8791d3b52a3f6b0e",
       "problems": []
     },
     {
@@ -249,7 +267,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -290,7 +311,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -328,7 +352,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 18,
       "names": [
@@ -352,7 +379,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "94981009c7c44785",
+      "sha256": "ec3ac20a60722bdb",
       "problems": []
     },
     {
@@ -368,7 +395,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -403,7 +433,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -438,7 +471,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -458,7 +494,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "e71ca7d5a0e77523",
+      "sha256": "837b08cdcec42d59",
       "problems": []
     },
     {
@@ -474,7 +510,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -494,7 +533,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3cdd3146d87e183b",
+      "sha256": "b0ab05baf7ab79c7",
       "problems": []
     },
     {
@@ -510,7 +549,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 29,
       "names": [
@@ -545,7 +587,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "5686917abb22045e",
+      "sha256": "452d248b02f33821",
       "problems": []
     },
     {
@@ -563,7 +605,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -604,7 +649,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -642,7 +690,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
       },
       "controls": 18,
       "names": [
@@ -682,7 +733,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -717,7 +771,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -752,7 +809,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -772,7 +832,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "f9dd1a39286c8b2f",
+      "sha256": "0851cca600debb2f",
       "problems": []
     },
     {
@@ -788,7 +848,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -808,7 +871,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ce2b9dffabc944bf",
+      "sha256": "460a6e6224bfcd63",
       "problems": []
     },
     {
@@ -824,7 +887,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
       },
       "controls": 29,
       "names": [
@@ -859,7 +925,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fea577cd1db9231f",
+      "sha256": "b731cfa92c57b854",
       "problems": []
     },
     {
@@ -877,7 +943,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -918,7 +987,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -956,7 +1028,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 32
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 18,
       "names": [
@@ -980,7 +1055,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "7be1c2a395966297",
+      "sha256": "d89c97089041b012",
       "problems": []
     },
     {
@@ -996,7 +1071,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 32
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -1015,7 +1093,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ab4a3316b5c7093c",
+      "sha256": "a69ce3d06920f73d",
       "problems": []
     },
     {
@@ -1031,7 +1109,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 32
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -1050,7 +1131,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "072d6c2fa781aef8",
+      "sha256": "f5e84399bd631565",
       "problems": []
     },
     {
@@ -1066,7 +1147,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 32
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -1086,7 +1170,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "754fbd2b3e59ce38",
+      "sha256": "b2cc762b9264455d",
       "problems": []
     },
     {
@@ -1102,7 +1186,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 32
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -1122,14 +1209,14 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "f01dde6a670db8e7",
+      "sha256": "279672689957cb46",
       "problems": []
     },
     {
       "scenario": "text-200-studio",
       "occlusionTested": 28,
       "occlusionSkipped": [
-        "Guardrails (centre outside the viewport after focus)"
+        "Target users (centre outside the viewport after focus)"
       ],
       "surface": "studio",
       "viewport": "1024x768@1x",
@@ -1140,7 +1227,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 32
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 29,
       "names": [
@@ -1175,7 +1265,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "2eb0747f15788332",
+      "sha256": "849bc361b637aac8",
       "problems": []
     },
     {
@@ -1193,7 +1283,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 32
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -1215,7 +1308,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "7ea5e2ce4f7a5465",
+      "sha256": "13b8a6555c2c3134",
       "problems": []
     },
     {
@@ -1234,7 +1327,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 32
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -1256,7 +1352,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c0b5f75a4a551b40",
+      "sha256": "bbae7ba058603024",
       "problems": []
     },
     {
@@ -1272,7 +1368,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 18,
       "names": [
@@ -1312,7 +1411,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -1347,7 +1449,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -1382,7 +1487,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -1402,7 +1510,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "5e9396cba89f7740",
+      "sha256": "b27de83703289386",
       "problems": []
     },
     {
@@ -1418,7 +1526,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -1438,7 +1549,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "7f4738fe8395111c",
+      "sha256": "1a7c9197a3413937",
       "problems": []
     },
     {
@@ -1456,7 +1567,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 29,
       "names": [
@@ -1491,7 +1605,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "2cb7785e31212174",
+      "sha256": "f08978b79ed20699",
       "problems": []
     },
     {
@@ -1509,7 +1623,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -1550,7 +1667,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -1588,7 +1708,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
       },
       "controls": 18,
       "names": [
@@ -1628,7 +1751,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
       },
       "controls": 13,
       "names": [
@@ -1663,7 +1789,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
       },
       "controls": 13,
       "names": [
@@ -1698,7 +1827,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
       },
       "controls": 14,
       "names": [
@@ -1718,7 +1850,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "5839905d905fafa1",
+      "sha256": "4ae3fa43b696c3af",
       "problems": []
     },
     {
@@ -1734,7 +1866,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
       },
       "controls": 14,
       "names": [
@@ -1754,7 +1889,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "250a173218e52516",
+      "sha256": "aca9078669481ec7",
       "problems": []
     },
     {
@@ -1770,7 +1905,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
       },
       "controls": 29,
       "names": [
@@ -1805,7 +1943,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3c47ebfab384f474",
+      "sha256": "82eda57d6de49c71",
       "problems": []
     },
     {
@@ -1823,7 +1961,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
       },
       "controls": 16,
       "names": [
@@ -1864,7 +2005,10 @@
         "reducedMotion": false,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
       },
       "controls": 16,
       "names": [
@@ -1902,7 +2046,10 @@
         "reducedMotion": true,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 18,
       "names": [
@@ -1926,7 +2073,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c18bff6428c0e137",
+      "sha256": "336f9343c2e670e5",
       "problems": []
     },
     {
@@ -1942,7 +2089,10 @@
         "reducedMotion": true,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -1977,7 +2127,10 @@
         "reducedMotion": true,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -1996,7 +2149,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "4a0d9d64fc127fbc",
+      "sha256": "41a1cd59600d7d43",
       "problems": []
     },
     {
@@ -2012,7 +2165,10 @@
         "reducedMotion": true,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -2032,7 +2188,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c1ce325b406c78ea",
+      "sha256": "9078b593687578b1",
       "problems": []
     },
     {
@@ -2048,7 +2204,10 @@
         "reducedMotion": true,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -2068,7 +2227,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "29a62b46bf38f5c7",
+      "sha256": "2c2a5a6e4e14a035",
       "problems": []
     },
     {
@@ -2084,7 +2243,10 @@
         "reducedMotion": true,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 29,
       "names": [
@@ -2119,7 +2281,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "8b7c1cbe6cfa6ccf",
+      "sha256": "b002fe6b0c6ba565",
       "problems": []
     },
     {
@@ -2137,7 +2299,10 @@
         "reducedMotion": true,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -2178,7 +2343,10 @@
         "reducedMotion": true,
         "hoverNone": false,
         "pointerCoarse": false,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -2216,7 +2384,10 @@
         "reducedMotion": false,
         "hoverNone": true,
         "pointerCoarse": true,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 18,
       "names": [
@@ -2240,7 +2411,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "8c7c8eff1f3486bf",
+      "sha256": "726a4be455ee2511",
       "problems": []
     },
     {
@@ -2256,7 +2427,10 @@
         "reducedMotion": false,
         "hoverNone": true,
         "pointerCoarse": true,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -2291,7 +2465,10 @@
         "reducedMotion": false,
         "hoverNone": true,
         "pointerCoarse": true,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 13,
       "names": [
@@ -2326,7 +2503,10 @@
         "reducedMotion": false,
         "hoverNone": true,
         "pointerCoarse": true,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -2346,7 +2526,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3bf3b6d64fdd4c89",
+      "sha256": "c78a01a0c617a0ae",
       "problems": []
     },
     {
@@ -2362,7 +2542,10 @@
         "reducedMotion": false,
         "hoverNone": true,
         "pointerCoarse": true,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 14,
       "names": [
@@ -2382,7 +2565,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "c69531044f08a0cd",
+      "sha256": "fc8f1561399c7c55",
       "problems": []
     },
     {
@@ -2398,7 +2581,10 @@
         "reducedMotion": false,
         "hoverNone": true,
         "pointerCoarse": true,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 29,
       "names": [
@@ -2433,7 +2619,7 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "e4e57f08c1a0ee17",
+      "sha256": "46280275339e512c",
       "problems": []
     },
     {
@@ -2451,7 +2637,10 @@
         "reducedMotion": false,
         "hoverNone": true,
         "pointerCoarse": true,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
@@ -2492,7 +2681,10 @@
         "reducedMotion": false,
         "hoverNone": true,
         "pointerCoarse": true,
-        "rootFontSizePx": 12
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
       },
       "controls": 16,
       "names": [
