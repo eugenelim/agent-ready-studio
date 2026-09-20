@@ -39,7 +39,7 @@ If you would rather look at the production build than the dev server:
 
 ```bash
 pnpm build
-pnpm visual-evidence     # re-captures notes/visual/ headlessly, exits 0 or 1
+pnpm visual-evidence:skeleton   # re-captures this spec's notes/visual/, exits 0 or 1
 ```
 
 ## Reaching something worth looking at

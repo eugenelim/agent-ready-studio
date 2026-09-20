@@ -45,20 +45,40 @@ function fail(message) {
   process.exit(1);
 }
 
+// The only directories this tool may publish into. This is an allowlist, not
+// a hint: publishing renames the output directory aside and then deletes the
+// retired copy, so an unintended value does not merely write in the wrong
+// place, it destroys what was there. An earlier version of this guard only
+// checked that the variable was set -- under which `VISUAL_EVIDENCE_ROOT=`
+// resolves to the repository root and the swap deletes the whole worktree,
+// and a typo of `.../notes` for `.../notes/visual` deletes a directory of
+// hand-written notes. Each entry also has to carry its own `.gitignore`
+// entries for the two staging directories derived below, which is a second
+// reason membership is decided here rather than by the caller.
 const KNOWN_ROOTS = [
   "docs/specs/product-development-walking-skeleton/notes/visual",
   "docs/specs/connect-and-orient/notes/visual",
 ];
-if (process.env.VISUAL_EVIDENCE_ROOT === undefined) {
+const requestedRoot = process.env.VISUAL_EVIDENCE_ROOT;
+if (requestedRoot === undefined || requestedRoot.trim() === "") {
   fail(
     "VISUAL_EVIDENCE_ROOT is required, because publishing replaces that " +
       "directory's retained captures wholesale.\n" +
       "  Capture the walking-skeleton surfaces:  pnpm visual-evidence:skeleton\n" +
-      "  Capture the connect-and-orient slice:   pnpm visual-evidence:connect\n" +
-      `  Or set it yourself, e.g. VISUAL_EVIDENCE_ROOT=${KNOWN_ROOTS[1]}`,
+      "  Capture the connect-and-orient slice:   pnpm visual-evidence:connect",
   );
 }
-const outputRoot = resolve(repoRoot, process.env.VISUAL_EVIDENCE_ROOT);
+const outputRoot = resolve(repoRoot, requestedRoot);
+if (!KNOWN_ROOTS.some((known) => resolve(repoRoot, known) === outputRoot)) {
+  fail(
+    `VISUAL_EVIDENCE_ROOT resolved to ${outputRoot}, which is not an evidence ` +
+      "directory this tool may publish into. Publishing deletes what is " +
+      "already there, so only these are accepted:\n" +
+      KNOWN_ROOTS.map((known) => `  ${known}`).join("\n") +
+      "\nAdding a root means adding it here and adding its .next/.previous " +
+      "staging directories to .gitignore.",
+  );
+}
 
 /**
  * Click a button by its exact label, waiting for it to appear.
@@ -70,24 +90,93 @@ const outputRoot = resolve(repoRoot, process.env.VISUAL_EVIDENCE_ROOT);
  * an hour of work when it is slow. A harness failure is reported as itself
  * rather than as a slow page.
  */
-async function clickWhenOffered(page, label, what, deadlineMs = 15_000) {
-  const until = Date.now() + deadlineMs;
+const CLICK_DEADLINE_MS = 15_000;
+
+async function clickWhenOffered(page, label, what) {
+  const until = Date.now() + CLICK_DEADLINE_MS;
   for (;;) {
     if (plumbingFailure !== null) throw new Error(plumbingFailure);
     const clicked = await page("Runtime.evaluate", {
-      expression:
-        "(() => { const el = [...document.querySelectorAll('button')]" +
-        ".find((candidate) => candidate.textContent.trim() === " +
-        JSON.stringify(label) +
-        "); if (!el) return false; el.click(); return true; })()",
+      expression: `(() => {
+        ${REACHABLE_CONTROLS_JS}
+        const el = controls.find(
+          (candidate) =>
+            candidate.tagName === "BUTTON" &&
+            candidate.textContent.trim() === ${JSON.stringify(label)},
+        );
+        // A disabled button swallows .click() and reports nothing, so treating
+        // it as offered would report a click that did not happen and surface
+        // the real failure later as an unrelated timeout.
+        if (!el || el.disabled) return false;
+        el.click();
+        return true;
+      })()`,
       returnByValue: true,
     });
     if (clicked.result.value === true) return;
     if (Date.now() >= until)
       throw new Error(
-        `${what} never offered "${label}" within ${deadlineMs / 1000}s`,
+        `${what} never offered "${label}" within ${CLICK_DEADLINE_MS / 1000}s`,
       );
     await new Promise((r) => setTimeout(r, 200));
+  }
+}
+
+// The refusal the `connect-rejected` surface must show, read from the module
+// that owns the copy rather than hand-copied here. `@agent-ready/protocol` is
+// not resolvable from this plain .mjs tool, so the source is read directly and
+// a failure to find the key is loud: a silent fallback would turn a copy edit
+// into a confusing "showed the wrong refusal" abort at the end of a
+// multi-minute run.
+const PUBLIC_GITHUB_ONLY_REFUSAL = (() => {
+  const vocabulary = resolve(
+    repoRoot,
+    "packages/protocol/src/state-vocabulary.ts",
+  );
+  const match = /publicGithubOnly:\s*\n?\s*"([^"]+)"/.exec(
+    readFileSync(vocabulary, "utf8"),
+  );
+  if (match === null)
+    fail(
+      `could not read SOURCE_REJECTION_REASONS.publicGithubOnly from ${vocabulary}; ` +
+        "the connect-rejected surface asserts that exact copy",
+    );
+  return match[1];
+})();
+
+/**
+ * Wait until the rendered document stops changing, or the deadline passes.
+ *
+ * Every surface used to be measured a fixed 1200-1500 ms after the click that
+ * navigated to it, with no post-condition. On a host where this suite goes red
+ * at load averages of 43 to 62, that publishes a capture of a surface that has
+ * not finished rendering -- and the AC-38 name-set comparison then reports a
+ * false pass when every scenario is equally early, or a false failure when one
+ * is not. Two consecutive identical readings is a weak post-condition, but it
+ * is a post-condition, where a sleep is none.
+ */
+async function settleRender(page, what, deadlineMs = 10_000) {
+  const until = Date.now() + deadlineMs;
+  let previous = null;
+  for (;;) {
+    if (plumbingFailure !== null) throw new Error(plumbingFailure);
+    const reading = await page("Runtime.evaluate", {
+      expression:
+        "document.body.innerHTML.length + ':' + " +
+        "document.querySelectorAll('button, input, textarea, select, a[href]').length",
+      returnByValue: true,
+    });
+    const now = reading.result.value;
+    if (previous !== null && now === previous) return;
+    previous = now;
+    if (Date.now() >= until) {
+      process.stderr.write(
+        `visual-evidence: ${what} was still changing after ${deadlineMs / 1000}s; ` +
+          "capturing anyway\n",
+      );
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 250));
   }
 }
 
@@ -689,6 +778,9 @@ try {
         reduce: matchMedia("(prefers-reduced-motion: reduce)").matches,
         hoverNone: matchMedia("(hover: none)").matches,
         pointerCoarse: matchMedia("(pointer: coarse)").matches,
+        rootFontSizePx: Number.parseFloat(
+          getComputedStyle(document.documentElement).fontSize,
+        ),
       })`,
       returnByValue: true,
     });
@@ -742,7 +834,13 @@ try {
     // measured only where it landed.
     for (const label of ["Seed demo workspace", "Run transformation"]) {
       await clickWhenOffered(page, label, "the rendered application");
-      await new Promise((r) => setTimeout(r, 1200));
+      // "Run transformation" is a real round trip to the service child, and
+      // the walking-skeleton ledger records its slowness as the "never offered
+      // Open review" failure, so this waits on the render rather than on a
+      // clock. The floor stays because the round trip can start after the
+      // first settle reading.
+      await new Promise((r) => setTimeout(r, 1500));
+      await settleRender(page, `the ${label} step`);
     }
 
     // Every surface the build renders is driven to and measured while it is on
@@ -781,7 +879,7 @@ try {
     ]) {
       for (const label of surface.clicks) {
         await clickWhenOffered(page, label, `the ${surface.name} surface`);
-        await new Promise((r) => setTimeout(r, 1200));
+        await settleRender(page, `the ${surface.name} surface`);
       }
 
       let surfaceDiagnostic = null;
@@ -817,12 +915,12 @@ try {
         // generic /cannot|refus/ probe, and the strings that DO match such a
         // probe belong to the Studio-side failure state and the version
         // qualifier -- so a body-text guard would pass on the wrong surface.
-        // The marker is the form's own rejection paragraph, by id. A
-        // document-wide [data-state="url-rejected"] would also match a state
-        // badge, and the earlier body-text probe matched two unrelated states
-        // while missing this one -- the refusal reads "Studio connects to
-        // public github.com repositories only", which shares no word with a
-        // generic /cannot|refus/ pattern.
+        // Wait for the form's own rejection paragraph, then check the text is
+        // the refusal this URL should produce. Both halves were wrong before:
+        // a document-wide [data-state="url-rejected"] also matches a state
+        // badge, and an earlier /cannot|refus/ body probe matched two
+        // unrelated states while missing this one, because the refusal shares
+        // no word with that pattern.
         const deadline = Date.now() + 15_000;
         let diagnostic = null;
         while (Date.now() < deadline) {
@@ -855,9 +953,10 @@ try {
         // Which refusal, not merely that one rendered. A submission that lost
         // its URL would otherwise publish a capture of a different diagnostic
         // and nothing would say so.
-        if (!diagnostic.includes("public github.com repositories only"))
+        if (diagnostic !== PUBLIC_GITHUB_ONLY_REFUSAL)
           throw new Error(
-            `the ${surface.name} surface showed the wrong refusal: ${diagnostic}`,
+            `the ${surface.name} surface showed "${diagnostic}", expected ` +
+              `"${PUBLIC_GITHUB_ONLY_REFUSAL}"`,
           );
         surfaceDiagnostic = diagnostic;
       }
@@ -1100,6 +1199,17 @@ try {
         viewport: `${scenario.width}x${scenario.height}@${scenario.scale}x`,
         scheme: scenario.scheme,
         motion: scenario.motion,
+        // What the page actually reported for each emulated feature. The
+        // declared values alone cannot distinguish a legitimately identical
+        // render from the "silently reran the baseline" defect the mode probe
+        // was added to catch.
+        observed: {
+          scheme: mode.scheme,
+          reducedMotion: mode.reduce,
+          hoverNone: mode.hoverNone,
+          pointerCoarse: mode.pointerCoarse,
+          rootFontSizePx: mode.rootFontSizePx,
+        },
         controls: measured.controls,
         names: measured.names,
         horizontalOverflow: measured.horizontalOverflow,

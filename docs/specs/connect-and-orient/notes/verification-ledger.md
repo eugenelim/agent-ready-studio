@@ -5144,8 +5144,9 @@ forbids, and no retry control exists in the renderer at all.
 ### Gate state
 
 `pnpm lint` and `pnpm typecheck` exit 0. **`pnpm verify` exit 1 on all three attempts**, with
-672 to 674 of 679 passing and every failure inside
-`apps/studio-service/src/trials/connect-and-orient-runtime/`.
+every failure inside `apps/studio-service/src/trials/connect-and-orient-runtime/`. The table
+below carries the per-attempt counts; no range is restated here, because a hand-written summary
+of a table two lines away is exactly the drift this session kept producing.
 
 Each run reported 679 cases, of which **3 are the gated skips** — the live smoke and the two
 networked boundary cases — so the pass and fail columns sum to 676, not 679.
@@ -5307,8 +5308,10 @@ the fifteen group headers, the closing section and this ledger all agreeing.
   poll and the new click gate check `plumbingFailure` first.
 - **The fixed-sleep flake was fixed at one site and left at four.** The click gates still slept
   1200–1500 ms and then aborted the whole run if the render was slow — on a host where this suite
-  has gone red at load averages of 43 to 62, that discards every capture taken so far. All of
-  them now go through one `clickWhenOffered` helper that polls to a deadline.
+  has gone red at load averages of 43 to 62, that discards every capture taken so far. The
+  button-presence gates now go through one `clickWhenOffered` helper that polls to a deadline.
+  **The post-action settles were still fixed sleeps after this round** and are addressed in
+  round 41 below.
 - **Inner scroll is not restored**, and the tool now says so instead of implying otherwise. The
   capture is already taken by the time the probe runs, so no published image is affected.
 
@@ -5326,4 +5329,98 @@ the fifteen group headers, the closing section and this ledger all agreeing.
 
 `pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect` exits
 0 with 64 scenarios, and a bare `pnpm visual-evidence` now exits 1 with the two safe commands
-named. `pnpm verify` is recorded below.
+named. **`pnpm verify` exit 0 — 51 files, 677 passed, 3 skipped**, at load average 16.2.
+
+An earlier version of this section said "`pnpm verify` is recorded below" and the entry then
+ended, so the round carried no test result at all. The run had happened; the sentence pointing at
+it had not been replaced. Caught by the adversarial reviewer.
+
+## review-round-41-2026-09-20
+
+**The third confirmation round. Both reviewers converged on one Blocker, and it is a destructive
+defect this session introduced while fixing a destructive defect.**
+
+**Requiring the evidence root made the tool more dangerous, not less.** Round 40 refused a
+*missing* `VISUAL_EVIDENCE_ROOT` and validated nothing else. `VISUAL_EVIDENCE_ROOT=` — an
+exported-but-empty shell or CI variable — passed that check, `resolve(repoRoot, "")` returns the
+**repository root**, and the publish step renames the output directory aside, replaces it, and
+then deletes the retired copy. A single empty variable would have deleted the entire worktree.
+One omitted path segment, `.../notes` for `.../notes/visual`, would have deleted this ledger and
+the audit beside it. `KNOWN_ROOTS` existed and was used only to build the error message.
+
+The allowlist is now a check. A root that is empty, that escapes the repository, or that is not
+one of the two accepted evidence directories is refused before anything is created, and the
+refusal names the accepted set. Verified by running the tool with an empty value, a one-segment
+typo, a traversal, and an absolute path outside the repository: all four refuse.
+
+**The round-40 entry asserted a `pnpm verify` record that did not exist.** Its gate state said
+"`pnpm verify` is recorded below" and the entry ended there. The run had happened and was green;
+the sentence pointing at it was never replaced with the result. That section now carries the
+number, and says what went wrong.
+
+### The capture tool, third pass
+
+- **A surface was measured on a clock, not on a post-condition.** Round 40 converted the
+  button-presence gates to deadline polls and left every post-action settle a fixed 1200–1500 ms,
+  so a capture could be taken before the surface finished rendering — and the AC-38 accessible-name
+  comparison would then report a false pass when every scenario is equally early. A new
+  `settleRender` waits for two consecutive identical readings of the document's size and control
+  count, with a deadline, a warning when it expires, and the same dead-harness check. A weak
+  post-condition, but a post-condition where there was none.
+- **The manifest recorded the modes the run declared, not the modes it observed.** The published
+  set contains byte-identical captures across different scenarios, which is indistinguishable in
+  the artifact from the "silently reran the baseline" defect the mode probe exists to catch. Each
+  result now carries what the page reported — scheme, reduced motion, hover, pointer and the
+  measured root font size. `desktop-light-connect` and `reduced-motion-connect` still share a
+  SHA, and the manifest now shows they were rendered under genuinely different preferences.
+- **A disabled button counted as clicked.** `el.click()` on a disabled control is a no-op that
+  returned `true`, so the helper reported success and the real failure surfaced later as an
+  unrelated timeout. The helper now uses the file's one shared definition of a reachable control
+  and treats a disabled match as not yet offered.
+- **The expected refusal was hand-copied.** The text is now read at startup from
+  `packages/protocol/src/state-vocabulary.ts`, the module that owns the copy, and a failure to
+  find the key is loud — a silent fallback would turn a copy edit into a confusing abort at the
+  end of a multi-minute run.
+- **A settle was silently shortened** from 1500 ms to 1200 ms on the "Run transformation" step,
+  whose slowness the walking-skeleton ledger records as its own failure mode. Restored, with the
+  reason stated, and now followed by a settle check.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| A published operator instruction told the reader to run a command that now always fails | Concern | `headful-session-checklist.md:42` names `visual-evidence:skeleton`, which captures that spec's own set |
+| A prose pass range contradicted the flake table two lines beneath it | Concern | Removed; the table carries the counts, because a hand-written summary of an adjacent table is the drift this session kept producing |
+| `App.tsx` was cited in a row but covered by no line of the citation table | Concern | Cited as `renderer/App.tsx` and added to the prefixed-citation sentence |
+| The round-40 entry claimed all fixed sleeps now poll | Nit | Narrowed to the presence gates, pointing here for the settles |
+| `clickWhenOffered` took a `deadlineMs` parameter no caller supplied | Nit | A module constant |
+| The rejection poll carried its rationale twice, the older half contradicting the code | Nit | One paragraph describing the check as written |
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect` exits
+0 with 64 scenarios; a bare `pnpm visual-evidence` and the four hazardous root values above all
+exit 1.
+
+**`pnpm verify` exit 1 on all three attempts this round, and it is the load flake again.**
+
+| Attempt | Load average | Passed | Failed | Skipped | Where |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 1 | 39.9 | 675 | 2 | 3 | `disposal` |
+| 2 | 33.9 | 675 | 2 | 3 | `materialization`, `runtime-supervisor` |
+| 3 | 49.0 | 670 | 7 | 3 | all three |
+
+**The failing set moves between runs while the code does not**, which is itself the signature:
+attempt 2 failed in two files attempt 1 passed, and attempt 3 failed in all three. Each
+implicated file was then run twice in isolation — `disposal` 8 of 8 twice, `materialization` 4 of
+4 twice, `runtime-supervisor` 23 of 23 twice. Across this session that is **twelve isolated runs
+and twelve exit 0**.
+
+Set against the two green full runs earlier in this session — **677 passed, 3 skipped, exit 0 at
+load averages 18.4 and 16.2** — on a tree whose only difference is this round's capture-tool and
+documentation changes, neither of which any of those three suites imports. This session's diff
+still touches nothing under `apps/studio-service/` or `packages/`.
+
+`pnpm verify` is **not** claimed green for this round. The honest statement is that the gate is
+green on this tree when the host is quiet and red when it is not, which is what
+`pre-existing-trial-runtime-load-flake` records.
