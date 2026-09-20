@@ -5049,7 +5049,7 @@ stdout and stderr accumulation by reading `runtime-supervisor.ts:395-436`, the a
 `stop_reason` column by reading `storage.ts:269`, and the ungated network case by reading
 `connect-and-orient.test.ts:85-105`.
 
-**Four of the five cross-cutting findings are one defect class**, and it is the retraction's:
+**Three of the five cross-cutting findings are one defect class**, and it is the retraction's:
 a module written, tested, and called by nothing. Seventeen exported functions have zero
 production callers. That is why so many criteria are *not met* while their unit tests are green
 and genuinely strong — the tests are fine, and nothing reaches the code they cover.
@@ -5823,7 +5823,7 @@ have caught each in seconds, and the repository already has the shape for it in
 `delta-e2000.ts` and its sibling test.
 
 An earlier version of this paragraph said four and listed three, one of which is in the AC-38
-comparison loop rather than in either function. Corrected in round 48.
+comparison loop rather than in either function. Corrected in round 48, and again in round 49, which raised the count to six.
 
 The quality reviewer scoped it explicitly as separate work. Routed at
 `visual-evidence-harness-logic-is-untestable` rather than pulled into this diff — the audit that
@@ -5918,9 +5918,13 @@ passed twice in isolation. Those four runs are in the reconciliation above.
 
 **This entry covers two review rounds.** Round 9: no Blockers from the quality reviewer, two
 concerns; three Blockers, two concerns and two nits from the adversarial reviewer. Round 10
-returned five Blockers, three concerns and one nit against the result. Two findings are
-narrated below; the rest are in the table, labelled by round. An earlier version said neither
-reviewer found a Blocker, and counted nine findings against a table holding two rounds' rows.
+returned five Blockers, three concerns and one nit against the result.
+
+Round 9's two quality concerns are narrated below and its two adversarial concerns are in the
+table; **its three adversarial Blockers were answered in round 47 and are recorded there, not
+here.** Round 10's nine findings are all in the table. An earlier version of this line said
+neither reviewer found a Blocker, then claimed nine findings against a table holding rows from
+both rounds with no way to tell them apart.
 
 **Removing the latch left the deadline messages deciding on the wrong variable.** They chose
 between "still changing" and "never changed" on whether the final reading equalled `before` —
@@ -5939,7 +5943,8 @@ comparison loop rather than in either function, and another of which double-coun
 item. A reader picking the item up cold and verifying its ground would have found it did not
 check out and discounted the work.
 
-It now enumerates five, each actually in one of the two named functions: the baseline read after
+~~It now enumerates five, each actually in one of the two named functions:~~ **Round 49 raised
+it to six.** The five as recorded here were: the baseline read after
 the action, the change required of a no-op click, the latch fixed one branch at a time, the
 deadline message above, and the tokens reader's miscounted block.
 
@@ -5988,12 +5993,18 @@ those three suites imports, and `git diff 3814102..HEAD -- apps/studio-service p
 still empty. The failing set moves between attempts while the code does not. That is the
 recorded flake and not a regression from this round.
 
-**The green came at load 35.0. No load was recorded for this round's four reds**, so the
-comparison has to reach back: the session's reds include readings of 13.9 (round 45), 19.3
-(round 44) and 22.8, against greens at 18.4 (round 42), 16.2 and 18.9 (round 43), 22.0
-(round 44), 19.6 (round 45), 22.2 (round 47) and now 35.0. A green at the
-highest reading of the set is the plainest evidence that the figure predicts nothing. Load
-readings stay in this ledger as observations, and nothing rests on them.
+**The green came at load 35.0, the highest reading recorded for any green in this ledger**,
+and no load was recorded for this round's four reds.
+
+An earlier version of this paragraph aggregated every green and red load across the session in
+prose. **Four of the seven greens it listed were attributed to the wrong round, it omitted one
+green entirely, and one red figure it cited — 22.8 — has no run behind it anywhere in this
+ledger.** That is the third hand-built cross-entry aggregate in this record to come out wrong,
+after the isolated-run totals and the finding counts.
+
+The aggregate is gone rather than re-derived. **Each entry records the loads it observed and no
+entry restates another's.** Load readings are observations; nothing rests on them, so nothing
+needs the total.
 
 ### Also applied
 
@@ -6015,6 +6026,8 @@ earlier version left unmarked while claiming a single round's nine findings.
 | 10 | The load figures cited as "the reds" belong to earlier rounds | Concern | Attributed by round; this round recorded no load for its reds |
 | 10 | The new deadline message asserted a transition the function cannot observe | Concern | States only that it held still at its pre-click value, and both branches print the duration |
 | 10 | Round 46's gate state claimed a run round 47 presents as its own | Nit | Round 46 records no verify run and says so |
+| 9 | The deadline messages conflated "still changing" with "never changed" | Concern | Chosen on whether the iteration saw it hold still |
+| 9 | The register's four-defect ground listed three, one outside the named functions | Concern | Enumerated in full |
 
 ### Isolated-run reconciliation, carried forward
 
@@ -6066,6 +6079,73 @@ twice in isolation between them at 8 of 8.
 
 Two more isolated runs, both exit 0: the session reconciliation is **46 runs, 43 exit 0**.
 
-Ten of the session's full-suite runs have now been green and the reds have all been in
-`connect-and-orient-runtime/`. The diff still touches nothing under `apps/studio-service/` or
-`packages/`.
+Every red in this session has been inside `connect-and-orient-runtime/`, and the diff still
+touches nothing under `apps/studio-service/` or `packages/`.
+
+An earlier version of this paragraph said ten full-suite runs had been green; the ledger records
+nine. Counts spanning entries are no longer stated here — see the note in round 48.
+
+## review-round-50-2026-09-20
+
+**Nine findings. Four are hand-built cross-entry aggregates coming out wrong for the third
+time, so the aggregates are gone rather than re-derived.**
+
+An earlier paragraph in round 48 listed every green and red load reading across the session.
+**Four of its seven greens were attributed to the wrong round, it omitted a green entirely, and
+one red figure it cited — 22.8 — has no run behind it in this ledger at all**; the figure
+appears only inside two correction rows that call it wrong. Round 49 then said ten full-suite
+runs had been green where the ledger records nine.
+
+Both aggregates are removed. **Each entry records the loads and counts it observed, and no
+entry restates another's.** The isolated-run reconciliation stays, because it is derived in one
+place from a table of its own; the load and green-run totals bought nothing and cost three
+rounds.
+
+**The register's defect count was fixed in the tail and not the lead** — the enumeration ran to
+six and the closing line said six while the opening sentence still said five, and round 49's
+row claimed it fixed. Both now say six.
+
+**Round 48's finding accounting still did not reconcile.** It claimed round 10's nine findings
+with two narrated and the rest tabled, but every table row was labelled 10 and round 9's
+findings appeared nowhere. Round 9's Blockers were answered in round 47 and are recorded there;
+its concerns are now in the table, labelled 9.
+
+### The audit's defect-class claim was too wide
+
+`acceptance-audit.md` said four of the five standing cross-cutting findings are one class — a
+module written, tested, and called by nothing. **That is false of finding 4**, whose subject
+`pinnedGitConfigurationArgs()` has two production callers at `git-driver.ts:89` and
+`runtime-supervisor.ts:328`. Its defect is a test fixture re-implementing a live function, which
+is a different and arguably worse problem: the production code is reached, and the test does not
+reach it.
+
+Three of five, with findings 4 and 5 named for what they are. This was the audit's own headline
+characterisation, repeated in the ledger, and it stood for eleven rounds.
+
+### The deadline message, third attempt
+
+"Held still at its pre-click value for the full 10s" claimed a duration the loop cannot observe:
+it knows only that the last two readings matched and that the final one equals `before`. A
+document churning for nine seconds without two consecutive equal readings, then returning to its
+starting value, would have printed it. The message now states the deadline and the final value
+and claims nothing between them.
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect`
+exits 0 with 80 checks across 64 scenarios.
+
+**`pnpm verify` is red for this round and is not claimed green.** Three attempts, every failure
+in `disposal.test.ts` and nowhere else: 5, 1 and 4 cases, at loads 27.4, 33.2 and 42.5.
+`disposal` passed twice in isolation between the first and second at 8 of 8 each, bringing the
+reconciliation to **48 isolated runs, 45 exit 0**.
+
+**What this round changed in code is one message string and the comment above it** in
+`visual-evidence.mjs`; everything else is documentation and one `workspace.toml` comment.
+`disposal.test.ts` imports neither. The suite was green on this tree in round 49 before those
+edits.
+
+Round 48 recorded a red gate, then took a fourth attempt that was green and corrected the entry.
+That is not repeated here: attempts were stopped at three rather than run until one passed,
+because a green found by retrying is weaker evidence than the isolation result already is, and
+choosing when to stop by the answer is how a ratio becomes meaningless.
