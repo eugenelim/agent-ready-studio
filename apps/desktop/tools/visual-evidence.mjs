@@ -91,6 +91,7 @@ if (!KNOWN_ROOTS.some((known) => resolve(repoRoot, known) === outputRoot)) {
  * rather than as a slow page.
  */
 const CLICK_DEADLINE_MS = 15_000;
+const POLL_INTERVAL_MS = 200;
 
 async function clickWhenOffered(page, label, what) {
   const until = Date.now() + CLICK_DEADLINE_MS;
@@ -118,7 +119,7 @@ async function clickWhenOffered(page, label, what) {
       throw new Error(
         `${what} never offered "${label}" within ${CLICK_DEADLINE_MS / 1000}s`,
       );
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 }
 
@@ -187,7 +188,13 @@ async function readRenderState(page) {
  * empty problems list and exit 0 -- that is the false verification record
  * this harness exists to refuse.
  */
-async function settleRender(page, what, before, deadlineMs = 10_000) {
+async function settleRender(
+  page,
+  what,
+  before,
+  changeRequired = true,
+  deadlineMs = 10_000,
+) {
   const until = Date.now() + deadlineMs;
   let previous = null;
   let changed = false;
@@ -195,10 +202,13 @@ async function settleRender(page, what, before, deadlineMs = 10_000) {
     if (plumbingFailure !== null) throw new Error(plumbingFailure);
     const now = await readRenderState(page);
     if (now !== before) changed = true;
-    if (changed && previous !== null && now === previous) return null;
+    if ((changed || !changeRequired) && previous !== null && now === previous)
+      return changed && !changeRequired
+        ? `${what} was declared a no-op click but changed the document, so its clickIsNoop property is stale`
+        : null;
     previous = now;
     if (Date.now() >= until)
-      return changed
+      return changed || !changeRequired
         ? `${what} was still changing after ${deadlineMs / 1000}s`
         : `${what} never changed within ${deadlineMs / 1000}s, so the capture may show the previous surface`;
     await new Promise((r) => setTimeout(r, 250));
@@ -872,6 +882,16 @@ try {
       modeErrors.push(
         `pointer: coarse in force: ${mode.pointerCoarse}, wanted ${coarse}`,
       );
+    // Every scenario, not only the scaled one. A stylesheet that had not
+    // applied publishes at the UA's 16px with an empty problems list, and
+    // that is 56 of the 64 captures if the check lives only in the
+    // `textScale` branch.
+    const expectedRoot = PRODUCT_ROOT_FONT_PX * (scenario.textScale ?? 1);
+    if (Math.abs(mode.rootFontSizePx - expectedRoot) > 0.5)
+      modeErrors.push(
+        `root font-size is ${mode.rootFontSizePx}px, wanted ${expectedRoot}px ` +
+          `(tokens.css owns ${PRODUCT_ROOT_FONT_PX}px at scale ${scenario.textScale ?? 1})`,
+      );
     // Thrown rather than `fail()`ed. `fail` exits the process, and every abort
     // inside this `try` must instead unwind through the `finally` below —
     // otherwise the browser, the service child, the HTTP server and the temp
@@ -967,33 +987,37 @@ try {
       for (const label of surface.clicks) {
         const before = await readRenderState(page);
         await clickWhenOffered(page, label, `the ${surface.name} surface`);
-        if (surface.clickIsNoop !== true) {
+        {
           // Every click is settled, and every finding is kept. `??=` would
           // short-circuit the call itself, so one slow click would leave each
           // later click on the same surface with no wait at all -- `reviews`
           // clicks Home then Reviews -- and the recorded finding would name
           // the wrong one.
+          // Every click is settled, including one declared a no-op. The
+          // declaration only relaxes the "must have changed" requirement --
+          // it does not skip the wait, because a declaration is true of a
+          // list order rather than of the click, and reordering the surfaces
+          // would otherwise leave a real navigation with no post-condition.
+          // A declared no-op that *does* change is reported, so a stale
+          // declaration surfaces instead of hiding.
           const finding = await settleRender(
             page,
             `the ${surface.name} surface, after clicking "${label}"`,
             before,
+            surface.clickIsNoop !== true,
           );
           if (finding !== null) settleFindings.push(finding);
-        } else {
-          // A no-op click has nothing to settle. What this surface is
-          // actually waited on is the field poll and the rejection poll
-          // below, both of which wait for a named element.
-          await new Promise((r) => setTimeout(r, 300));
         }
       }
 
       let surfaceDiagnostic = null;
       if (surface.submit !== undefined) {
         // The field has to be there before it can be driven. Polled rather
-        // than looked at once: a hard throw here discards every capture taken
-        // so far, which is the failure the presence gates were converted away
-        // from.
-        const fieldDeadline = Date.now() + 15_000;
+        // than looked at once, so a slow render is waited out instead of
+        // aborting the run on the first look. It still throws at the
+        // deadline, and that throw does discard the run -- the poll buys
+        // time, it does not remove the failure mode.
+        const fieldDeadline = Date.now() + CLICK_DEADLINE_MS;
         for (;;) {
           if (plumbingFailure !== null) throw new Error(plumbingFailure);
           const present = await page("Runtime.evaluate", {
@@ -1003,9 +1027,10 @@ try {
           if (present.result.value === true) break;
           if (Date.now() >= fieldDeadline)
             throw new Error(
-              `the ${surface.name} surface never offered the URL field within 15s`,
+              `the ${surface.name} surface never offered the URL field within ` +
+                `${CLICK_DEADLINE_MS / 1000}s`,
             );
-          await new Promise((r) => setTimeout(r, 250));
+          await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
         }
         const submitted = await page("Runtime.evaluate", {
           expression: `(() => {
