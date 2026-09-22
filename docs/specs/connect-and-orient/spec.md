@@ -485,14 +485,14 @@ assisted authoring and has known false negatives.
 - [ ] **AC-0034.** A result whose request identifier does not match the request is refused.
 - [ ] **AC-0035.** The trial result is validated in full against the trial contract before any part of it is normalized or persisted.
 - [ ] **AC-0036.** A trial result that is well-named and well-identified but does not conform is refused with a distinct diagnostic and is not partially consumed.
-- [ ] **AC-0037.** A trial result exceeding the result-bytes bound is refused while being read, before a full buffer exists.
+- [x] **AC-0037.** A trial result exceeding the result-bytes bound is refused while being read, before a full buffer exists.
 - [ ] **AC-0038.** The trial result reports the resolved SHA, an inspection status, the inspector's diagnostics, the declared workspace version marker or its absence, and a removal outcome.
 - [ ] **AC-0039.** Every repository-derived value in the trial result carries a provenance marker, where repository-derived means any value whose content originates in the inspected repository, whether Studio extracted it or the inspector echoed it.
 - [x] **AC-0040.** The provenance marker survives normalization into the persisted representation.
 - [x] **AC-0041.** The Studio-Service half of the enrichment seam lives in one named module that no non-seam surface imports, so removing the seam requires editing no code outside it.
 - [x] **AC-0042.** The northbound request contains no field whose value is a local filesystem path.
 
-- [ ] **AC-0155.** Diagnostic bytes the Studio Service accepts from one child are bounded by the child-diagnostic-bytes value in *Canonical values*, enforced while reading and before a full buffer exists. On breach the Service retains the leading and trailing halves, records an explicit elision marker naming the discarded byte count, and the inspection result is unaffected.
+- [x] **AC-0155.** Diagnostic bytes the Studio Service accepts from one child are bounded by the child-diagnostic-bytes value in *Canonical values*, enforced while reading and before a full buffer exists. On breach the Service retains the leading and trailing halves, records an explicit elision marker naming the discarded byte count, and the inspection result is unaffected.
 
 ### Trusted inspector
 
