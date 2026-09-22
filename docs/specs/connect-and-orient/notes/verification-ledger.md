@@ -4,6 +4,21 @@ Execution observations for run `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d`. This file
 records observed behaviour; it holds no obligations. The approved `spec.md` and
 `plan.md` retain the obligations, and this ledger is deliberately not hash-pinned.
 
+> **How to read this file.** Entries are a contemporaneous record, appended per round and never
+> rewritten. A claim later found wrong is struck and marked at its own site with a pointer
+> forward, so the correction is visible where a reader lands rather than only where it was made.
+>
+> **Obligations do not live here.** They live in [`../spec.md`](../spec.md) (acceptance
+> criteria), [`acceptance-audit.md`](acceptance-audit.md) (their reconciliation against the
+> tree) and `workspace.toml` (routed work). Where this file and one of those disagree, those are
+> authoritative and this is a note about how the work went.
+>
+> **Counts spanning entries are not restated.** Three separate hand-built cross-entry
+> aggregates — isolated-run totals, green-run totals, load readings — each came out wrong and
+> were each corrected a round later. Each entry now records only what it observed. The one
+> surviving aggregate, the isolated-run reconciliation, is derived in one place from a table of
+> its own.
+
 ## t1-evidence
 
 **T1 — the hostile corpus exists and every probe is proven non-vacuous.** Gates AC-0149.
@@ -6149,3 +6164,71 @@ Round 48 recorded a red gate, then took a fourth attempt that was green and corr
 That is not repeated here: attempts were stopped at three rather than run until one passed,
 because a green found by retrying is weaker evidence than the isolation result already is, and
 choosing when to stop by the answer is how a ratio becomes meaningless.
+
+## review-round-51-2026-09-22
+
+**The owner narrowed the review scope to the code, `spec.md`, `acceptance-audit.md` and
+`workspace.toml`, and froze this narrative as a contemporaneous record.** The rationale is in
+the note at the head of this file. The narrowing was the right call and it immediately paid:
+with the reviewers' attention off the round-by-round prose, both returned Blockers in the audit
+itself, which is the artifact that carries the obligations.
+
+### AC-0014 was met on a false premise for twelve rounds
+
+The row said "the copy proviso is untriggered — no clipboard affordance exists in
+apps/desktop/src". **An abbreviated SHA is displayed.** `state-vocabulary.ts:145` defines the
+`inspecting` label as "Inspecting <short-sha>" and `presentation.ts:98` substitutes
+`resolvedSha.slice(0, 7)` into it. The criterion permits an abbreviated form only if the exact
+value "can be copied", and by the audit's own finding nothing offers that. **AC-0014 is not
+met**, and the spec now stands at **79 checked, 78 open**.
+
+The original audit noticed the missing copy affordance and drew the wrong conclusion from it —
+it treated the absence of a clipboard as evidence the proviso did not apply, when the proviso is
+what the clipboard would have satisfied.
+
+### AC-0148 has two ungated network cases, not one
+
+`e2e/connect-and-orient.test.ts` submits an accepted URL with no `skipIf` at **`:86-103` and
+`:140-161`**. Finding 5, the AC-0148 row, the Desktop-surface preamble and the register entry
+all named one and asserted the other siblings were gated. The register's design rationale rested
+on that undercount — "gating it removes the *only* default-gate case binding accepted dispatch"
+— and now rests on two.
+
+### Two counts in the audit were not reproducible from their own searches
+
+- **"Seventeen exported functions have zero production callers"** does not survive the grep the
+  finding describes: `apps/studio-service/src` alone returns at least twenty, and the declared
+  scope is wider. The number is gone; the finding states the class and names the examples the
+  eighteen attributed criteria rest on.
+- **"Six of the fourteen positive controls remove no guard and observe at a different level"**
+  is a conjunction no row carries. The table records two disjoint sets of three.
+
+### The capture tool
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| Every in-page exception was swallowed: `exceptionDetails` was never read, so a throw inside any probe surfaced as a missing button, a settle deadline, or `JSON.parse(undefined)` | Concern | The CDP wrapper rejects with the thrown description, naming the method |
+| The cross-mode comparison could match no surface pair and still exit 0 | Concern | Counts matched pairs and fails the run at zero, the guard the occlusion check already had |
+| The setup driver discarded its own `"no create form"` sentinel, so a missing form failed 15 s later naming the wrong element | Concern | Checked, and fails naming the form |
+| A deadline reached before a second reading asserted the document "was still changing" | Nit | Says nothing about the render was observed |
+| The `tokens.css` scan matched `font-size` inside a custom property | Nit | Anchored to a declaration start |
+| The output-root policy comment sat above `fail()` and restated the `.gitignore` rule twice | Nit | Stated once, beside the guard it governs |
+
+The register entry for the untestable harness now names the two highest-cost untested units —
+the server's directory-confinement check and the publish swap, which is the destructive path
+that replaced a Shipped spec's captures — and names module-scope execution as the seam that
+blocks extraction.
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect` exits
+0 with 80 checks across 64 scenarios.
+
+`pnpm verify` before this round's edits: **exit 0 on the seventh attempt — 679 passed, 3
+skipped**, at load 33.1, after six reds at loads 33-52 on a host with 45 users. Every failure
+was in `connect-and-orient-runtime/`. The owner asked for the ratio rather than a single pass,
+so it is recorded as **1 green in 7**, the worst of the session, on a machine substantially
+busier than the earlier rounds ran on.
+
+**This round's verify: exit 0 on the second attempt — 679 passed, 3 skipped**, at load 34.4.
+The first failed 5 cases in `disposal` and `materialization`. 1 green in 2.
