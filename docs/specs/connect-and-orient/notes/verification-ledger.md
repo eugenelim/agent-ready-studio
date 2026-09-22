@@ -6281,3 +6281,51 @@ stale refs in the sweep entry are repointed.
 
 **`pnpm verify` exit 0 on the second attempt — 679 passed, 3 skipped**; the first failed 5 cases
 in the trial-runtime suite.
+
+## review-round-53-2026-09-22
+
+**Three more false `met` verdicts, found by reading the criterion wording instead of the row's
+reasoning.** That was the route this round was aimed at, after AC-0014 and AC-0067 both survived
+because their notes asserted product facts nobody tested. It worked, and it says something about
+the first pass: **the audit's failure mode was reading its own rows.**
+
+| Criterion | Why it was false |
+| --- | --- |
+| **AC-0029** | A four-way universal — "every deadline, bound breach, cancellation **and shutdown** signals the whole group". Three limbs are strongly bound. The shutdown limb is false in the tree: `service.close()` closes storage only and `cancel("shutdown")` has no production caller — the same ground on which AC-0085's process clause is already not met |
+| **AC-0065** | `versionUnverified: declared !== null` is computed only inside the zero-caller `normalizeTrialResult`, while the live record hardcodes `false` and nothing reads either permitted file. The mirror of AC-0064, which is not met on the adjacent hardcode |
+| **AC-0106** | Opens "The desktop provides", the clause that makes AC-0105 not met, and rests on the same direct `render(<InspectionSurface />)` in the same describe block |
+
+**The spec now stands at 75 checked, 82 open.** It has moved 82 → 81 → 80 → 79 → 78 → 75 across
+five rounds, every step downward, and every step because a `met` was tested rather than read.
+
+### Two that stay met, with the reason stated
+
+The reviewer asked why AC-0068 and AC-0073 are met when their subjects are zero-caller modules,
+while AC-0045 and AC-0054 are not met on that exact ground. They differ in kind:
+
+- **AC-0068 and AC-0073 are negative obligations** — "no value is compared", "no byte of
+  repository content is read from outside the root". Code that never runs compares no value and
+  reads no byte, so absence genuinely satisfies them.
+- **AC-0045 and AC-0054 are positive obligations** — Studio *refuses* something. A refusal needs
+  a live path to refuse on, and there is none.
+
+Both rows now say so, rather than leaving a reader to infer it from four verdicts that look
+inconsistent.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The AC-0067 row said `inspectInRuntime` returns `ok: false` on "all four paths"; there are five such returns | Concern | Says it has no `ok: true` return at all, which is the reproducible claim |
+| A repointed sweep citation gave a bare `:269-282` after a sentence establishing a different file | Nit | Names `runtime-child.ts` |
+| The disabled-button comment was duplicated, the first copy above the *absent* branch | Nit | One copy, on the branch it describes |
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect` exits
+0 with 80 checks across 64 scenarios.
+
+**`pnpm verify` exit 0 on the fourth attempt — 679 passed, 3 skipped.** The three before it
+failed 3, 1 and 6 cases, all inside `connect-and-orient-runtime/`. **1 green in 4**, on a host
+whose load average read 96 at the end of the sequence — the busiest this session has run on.
+This round changed no product code: three audit verdicts, a register citation and two comments.

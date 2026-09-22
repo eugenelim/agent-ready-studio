@@ -102,12 +102,10 @@ async function clickWhenOffered(page, label, what) {
             candidate.tagName === "BUTTON" &&
             candidate.textContent.trim() === ${JSON.stringify(label)},
         );
-        // A disabled button swallows .click() and reports nothing, so treating
-        // it as offered would report a click that did not happen and surface
-        // the real failure later as an unrelated timeout.
         if (!el) return "absent";
         // A disabled button swallows .click() and reports nothing, so
-        // treating it as offered would report a click that did not happen.
+        // treating it as offered would report a click that did not happen
+        // and surface the real failure later as an unrelated timeout.
         if (el.disabled) return "disabled";
         el.click();
         return "clicked";

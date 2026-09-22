@@ -472,7 +472,7 @@ assisted authoring and has known false negatives.
 - [x] **AC-0026.** `git` is resolved by absolute path, verified by the identity check in *Canonical values*, and its exec-path directory recorded once and not re-read at a later spawn.
 - [x] **AC-0027.** The Python interpreter is resolved by walking the enumerated search list in *Canonical values* in order, never through `PATH`.
 - [ ] **AC-0028.** Both identity probes run under the pinned environment, so no ambient variable can redirect what is resolved or recorded.
-- [x] **AC-0029.** The Runtime child is started as a process-group leader, and every deadline, bound breach, cancellation and shutdown signals the whole group.
+- [ ] **AC-0029.** The Runtime child is started as a process-group leader, and every deadline, bound breach, cancellation and shutdown signals the whole group.
 - [ ] **AC-0030.** No descendant survives a deadline, a bound breach, a cancellation or an ordinary shutdown. A transport helper holding an open connection is the hardest instance and is not automatically observable, because producing one requires an https endpoint AC-0148 forbids; it is recorded by the manual smoke in *Testing Strategy*.
 - [x] **AC-0031.** Aggregate resident memory across the Runtime's group crossing the child resident memory bound in *Canonical values* is observed to be terminated, within one sampling interval of the breach **plus the sample's own duration**, on the same terms as the file-count bound. The read that observes the breach signals the group with no interval of its own, which is the part Studio owns; the gap from the earliest breaching read to the acting one is that read's cost plus sampler scheduling, which the host owns. The criterion claims observed termination and bounded detection latency; it does not claim a bound on peak resident memory, which the sampler cannot reach.
 
@@ -523,7 +523,7 @@ assisted authoring and has known false negatives.
 - [x] **AC-0062.** A verdict is never derived from a value Studio read itself.
 - [x] **AC-0063.** An `invalid_workspace` finding from the inspector yields the `malformed` condition, and the `malformed` condition is produced by nothing else.
 - [ ] **AC-0064.** A repository declaring no workspace version marker carries no `version-unverified` qualifier, and its result reports that it declares no version. Like AC-0065, the qualifier clause asserts nothing about the condition value. Separately, and on the condition axis: a completed inspection that raises no condition-bearing finding carries the `ok` condition, which is what `ok` means — nothing qualifies the result.
-- [x] **AC-0065.** A repository declaring a workspace version marker in either permitted file carries the `version-unverified` qualifier, whatever its verdict and whatever its condition. The qualifier is orthogonal: it never replaces, suppresses or is suppressed by a condition value.
+- [ ] **AC-0065.** A repository declaring a workspace version marker in either permitted file carries the `version-unverified` qualifier, whatever its verdict and whatever its condition. The qualifier is orthogonal: it never replaces, suppresses or is suppressed by a condition value.
 - [x] **AC-0066.** A result carrying the `version-unverified` qualifier states that Studio cannot confirm the inspection covers the declared version, composed with — never in place of — whatever verdict and condition the result reached. The rendered role each element takes is owned solely by AC-0114 and the composition rule.
 - [ ] **AC-0067.** Studio reports the target's declared version marker and the version the trusted inspector reports for its own output contract as two separate observed values.
 - [x] **AC-0068.** No value is compared against a version set that neither the target nor the inspector declared.
@@ -583,7 +583,7 @@ assisted authoring and has known false negatives.
 ### Desktop surface
 
 - [ ] **AC-0105.** The desktop provides a Connect repository action.
-- [x] **AC-0106.** The desktop provides a single-field public GitHub URL form carrying no credential, token, or password input.
+- [ ] **AC-0106.** The desktop provides a single-field public GitHub URL form carrying no credential, token, or password input.
 - [x] **AC-0107.** Before any repository is connected, the surface renders the `unconnected` state naming what connecting will do.
 - [x] **AC-0108.** When a submitted URL is refused before an inspection starts, the form renders `url-rejected` with a human reason, and each pre-submission refusal cause in AC-0002 through AC-0007 maps to a reason distinguishable from every other.
 - [x] **AC-0109.** The rejection message is programmatically associated with the URL field, the field is marked invalid, and focus returns to it.
