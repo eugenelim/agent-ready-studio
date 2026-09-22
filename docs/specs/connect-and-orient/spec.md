@@ -453,7 +453,7 @@ assisted authoring and has known false negatives.
 - [x] **AC-0011.** Before inspection begins, Studio resolves the repository's default branch or an explicitly supported ref to an exact 40-character commit SHA.
 - [ ] **AC-0012.** Studio verifies that the materialized working tree's `HEAD` equals the resolved SHA, performed by the Runtime inside the materialization root.
 - [x] **AC-0013.** The requested ref and the resolved SHA are stored as separate values, and a branch name never occupies the resolved-SHA value.
-- [x] **AC-0014.** The exact inspected SHA is shown wherever the verdict is shown; an abbreviated form may be displayed provided the exact value is available on demand and can be copied.
+- [ ] **AC-0014.** The exact inspected SHA is shown wherever the verdict is shown; an abbreviated form may be displayed provided the exact value is available on demand and can be copied.
 
 ### Process boundary, argument vector and environment
 

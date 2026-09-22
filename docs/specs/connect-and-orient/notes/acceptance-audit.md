@@ -5,8 +5,8 @@
 round found. This is the first pass that reconciles **every** criterion in
 [`spec.md`](../spec.md) against the tree.
 
-**Result: 80 met, 72 not met, 5 not verifiable here.** `spec.md`
-carries 80 checked boxes and 77 open. Every count in this document, including each
+**Result: 79 met, 73 not met, 5 not verifiable here.** `spec.md`
+carries 79 checked boxes and 78 open. Every count in this document, including each
 group header, is generated from the rows below rather than written by hand.
 
 Before this audit, `spec.md` had 157 unchecked boxes and the ledger named roughly ten criteria as
@@ -44,13 +44,17 @@ has two production callers, `git-driver.ts:89` and `runtime-supervisor.ts:328`, 
 a test fixture re-implementing a live function rather than dead code. Finding 5 is a missing
 gate. A sixth finding was recorded and is withdrawn below as false.
 
-### 1. Seventeen exported functions have zero production callers
+### 1. Exported functions with zero production callers
 
-Verified by grep across `apps/` and `packages/`, excluding tests. `locateTrustedInspector`,
+Verified by grep across `apps/` and `packages/`, excluding tests. **No count is given here.**
+An earlier version said seventeen; a scan of `apps/studio-service/src` alone returns at least
+twenty, and the finding's declared scope is wider, so the number was both wrong and not
+reproducible from the search the finding describes. The named examples below are the ones the
+eighteen attributed criteria rest on. `locateTrustedInspector`,
 `readDeclaredValues`, `selectConformingInterpreter`, `normalizeTrialResult`,
 `buildNorthboundRequest`, `BoundedResultReader`, `BoundedDiagnosticBuffer`, `observedVersions`,
 `materializeRevision` and others are defined, unit-tested, and imported by no production module.
-`parseGuardedToml` has exactly one caller, `locateTrustedInspector`, which itself has none.
+`parseGuardedToml` has exactly one caller, the module-private `readPackVersion` at inspector-locator.ts:128, which `locateTrustedInspector` reaches at :251 — and that has none.
 
 This is the retraction's defect, still present in four more modules. It accounts for
 **AC-0032, AC-0034 to AC-0038, AC-0043 to AC-0046, AC-0048, AC-0054 to AC-0057, AC-0059, AC-0060,
@@ -89,8 +93,10 @@ instead of calling `pinnedGitConfigurationArgs()`. Deleting `core.hooksPath=/dev
 `core.symlinks=false` or `core.protectHFS=true` from `PINNED_GIT_CONFIGURATION` reddens **no
 absence proof** — the fixture supplies its own copy of each flag.
 
-Worse, six of the fourteen positive controls remove no guard and observe at a different level
-than the criterion they serve. `AC-0134`, `AC-0135` and `AC-0137` are vacuous by construction:
+Worse, the positive controls fail in two distinct ways, which an earlier version of this
+finding stated as one conjunction over six controls. **Three remove no guard** — AC-0134,
+AC-0135 and AC-0137 — and **three observe at a different level than their criterion** —
+AC-0136, AC-0138 and AC-0139. Three more are tautologies and one is narrowed to `"main"`. `AC-0134`, `AC-0135` and `AC-0137` are vacuous by construction:
 `git checkout` never runs a `package.json` script, never executes a file under `.agents/`, and
 never runs a smudge filter that was never configured — so the probe log is empty no matter what
 Studio does. **AC-0133 to AC-0139, AC-0141, AC-0142, AC-0145 to AC-0147, and AC-0069.**
@@ -99,10 +105,11 @@ AC-0147 is the criterion that exists to catch exactly this, and **its test is gr
 
 ### 5. The default test suite reaches github.com
 
-`apps/desktop/src/e2e/connect-and-orient.test.ts:85-105` submits
-`https://github.com/octocat/Hello-World` with **no `skipIf` gate**, while the same file's docblock
-at `:12-15` states that accepted cases are gated behind `CONNECT_ORIENT_E2E_NETWORK=1`. Its two
-networked siblings at `:163` and `:205` carry the gate; this one does not.
+**Two** cases in `apps/desktop/src/e2e/connect-and-orient.test.ts` submit
+`https://github.com/octocat/Hello-World` with **no `skipIf` gate** — `:86-103` and `:140-161` —
+while the same file's docblock at `:12-15` states that accepted cases are gated behind
+`CONNECT_ORIENT_E2E_NETWORK=1`. Only the two at `:163` and `:205` carry it. An earlier version of
+this finding named one ungated case and asserted the other two siblings were gated.
 
 `connect` returns `resolving` synchronously and runs the pipeline behind it
 (`source-inspection.ts:204`), so the assertion passes on the synchronous return while
@@ -170,14 +177,14 @@ Citations that already carry a prefix — `e2e/connect-and-orient.test.ts`, `mai
 | AC-0009 | met | S | git-driver.test.ts:207-219 | git-driver.ts:17 remove `GIT_REDIRECT_REFUSAL` from the pinned array |
 | AC-0010 | met | S | git-driver.test.ts:264-273; source-identity.test.ts:102-115 | git-driver.ts:180 pass the submitted string instead of `buildFetchUrl` |
 
-### Exact revision — 3 met, 1 not met
+### Exact revision — 2 met, 2 not met
 
 | AC | Verdict | F | Binding | Note |
 | --- | --- | --- | --- | --- |
 | AC-0011 | met | S | git-driver.test.ts:83-91 against `EXACT_COMMIT_SHA` | the positive case only echoes the fake's SHA; the three reject cases carry it |
 | AC-0012 | **not met** | W | git-driver.test.ts:110-153 against `materializeRevision` | that function has **no production caller**. The shipped HEAD check is runtime-child.ts:955-985, consumed at source-inspection.ts:537-539, and no test references `verify-head`, the `materialized` line, or `head-unreadable` |
 | AC-0013 | met | S | git-driver.ts:193-195; storage.ts:269,287 | carried structurally by the 40-hex guard; `not.toBe("feature/one")` alone is a tautology |
-| AC-0014 | met | S | VerdictSurface.tsx:108 at VerdictSurface.test.tsx:56-58 | the criterion's own labelled test is a tautology on a 40-character constant; the renderer carries it. The copy proviso is untriggered — no clipboard affordance exists in apps/desktop/src |
+| AC-0014 | **not met** | S for the display, NONE for the proviso | VerdictSurface.tsx:108 asserted VerdictSurface.test.tsx:56-58 | the exact SHA is shown on the verdict surface and that half is strongly bound. **The proviso is triggered and unsatisfied**: `state-vocabulary.ts:145` defines the `inspecting` label as "Inspecting <short-sha>" and `presentation.ts:98` substitutes `resolvedSha.slice(0, 7)` into it, so an abbreviated form *is* displayed — and the criterion allows that only if the exact value "can be copied", which nothing in apps/desktop/src offers. **Recorded met for twelve rounds on the false premise that no abbreviated form was rendered.** Found by the round-13 adversarial reviewer |
 
 ### Process boundary, argument vector and environment — 12 met, 4 not met, 3 not verifiable here
 
@@ -333,8 +340,9 @@ projection with no renderer assertion, or the reverse.
 
 A renderer test with a fake preload still strongly binds a **rendering** obligation. It cannot
 bind an obligation about the lead actually receiving the right data — only
-`apps/desktop/src/e2e/connect-and-orient.test.ts` does, and its accepted-URL cases are gated
-behind `CONNECT_ORIENT_E2E_NETWORK=1`.
+`apps/desktop/src/e2e/connect-and-orient.test.ts` does. **Two of its accepted-URL cases are
+gated behind `CONNECT_ORIENT_E2E_NETWORK=1` and two are not**, which is AC-0148's defect; an
+earlier version of this preamble said all of them were gated.
 
 | AC | Verdict | F | Binding | Note |
 | --- | --- | --- | --- | --- |
@@ -395,13 +403,13 @@ re-implemented checkout, so removing a flag from `PINNED_GIT_CONFIGURATION` redd
 | AC-0144 | met | S | **same level** | the static import audit over runtime-child.ts is the load-bearing leg |
 | AC-0145 | **not met** | W | literal tautology | the header channel is stubbed over a code path that never uses `globalThis.fetch` |
 | AC-0146 | **not met** | W | tautology | the credential never enters the persistence path, so the negative is over a string that could not contain it |
-| AC-0147 | **not met** | W | n/a — this **is** the control obligation | six of fourteen controls remove no guard and observe at a different level than their criterion, so the clause this criterion exists to enforce is unenforced while the test is green |
+| AC-0147 | **not met** | W | n/a — this **is** the control obligation | three of fourteen controls remove no guard and three observe at a different level than their criterion, so the clause this criterion exists to enforce is unenforced while the test is green |
 
 ### Suite-level and evidence — 5 met, 1 not met
 
 | AC | Verdict | F | Binding | Note |
 | --- | --- | --- | --- | --- |
-| AC-0148 | **not met** | N | e2e/connect-and-orient.test.ts:85-105 | **live defect.** Ungated accepted URL; the default `pnpm test` opens a connection to github.com. No assertion, hook or config anywhere enforces the property |
+| AC-0148 | **not met** | N | e2e/connect-and-orient.test.ts:86-103 and :140-161 | **live defect.** **Two** ungated accepted URLs; the default `pnpm test` opens connections to github.com. No assertion, hook or config anywhere enforces the property |
 | AC-0149 | met | S | test/hostile-fixture.test.ts:36-108 | corpus and mapping exhaustively pinned; the `.GIT` case is built through `mktree`/`commit-tree` and verified present before checkout |
 | AC-0150 | met | N | the evidence note, all thirteen headings present | satisfied on inspection; `tools/governance-gate.mjs:46-49`, at the repository root rather than under the prefixes the table lists, reads only `docs/adr` and `docs/rfc`, so it cannot regress detectably |
 | AC-0151 | met | N | evidence note :58-65 | a Needed/Inherited column over six held things, each with an observation |
@@ -410,7 +418,7 @@ re-implemented checkout, so removing a flag from `PINNED_GIT_CONFIGURATION` redd
 
 ## What this changes
 
-- `spec.md` now carries 80 checked boxes. The remaining 77 are audited results, not
+- `spec.md` now carries 79 checked boxes. The remaining 78 are audited results, not
   unexamined boxes.
 - The spec stays **Implementing**. Per
   `.claude/skills/new-spec/references/spec-and-plan-contract.md:108-114`, a spec holds that status

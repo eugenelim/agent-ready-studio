@@ -30,16 +30,6 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../../..");
 const rendererRoot = resolve(repoRoot, "apps/desktop/out/renderer");
 const serviceEntry = resolve(repoRoot, "apps/studio-service/dist/service.js");
-// Publishing is a whole-directory swap, not an append: a run replaces its
-// output directory's retained captures wholesale. There is deliberately **no
-// default**. This used to fall back to the walking-skeleton spec's notes, and
-// on 2026-09-20 a bare invocation from another slice replaced that Shipped
-// spec's 36 retained baselines -- the rule was documented in this comment and
-// the destructive default was reachable anyway, so the comment lost. Naming
-// the set you are about to replace is now the only way to replace it.
-//
-// Each root needs its own `.gitignore` entries for the two staging
-// directories derived below.
 function fail(message) {
   console.error(`visual-evidence: ${message}`);
   process.exit(1);
@@ -55,6 +45,13 @@ function fail(message) {
 // hand-written notes. Each entry also has to carry its own `.gitignore`
 // entries for the two staging directories derived below, which is a second
 // reason membership is decided here rather than by the caller.
+// Publishing is a whole-directory swap, not an append: a run replaces its
+// output directory's retained captures wholesale. There is deliberately **no
+// default**. This used to fall back to the walking-skeleton spec's notes, and
+// on 2026-09-20 a bare invocation from another slice replaced that Shipped
+// spec's 36 retained baselines -- the rule was documented in this comment and
+// the destructive default was reachable anyway, so the comment lost. Naming
+// the set you are about to replace is now the only way to replace it.
 const KNOWN_ROOTS = [
   "docs/specs/product-development-walking-skeleton/notes/visual",
   "docs/specs/connect-and-orient/notes/visual",
@@ -227,7 +224,9 @@ async function settleRender(
       // the latch it also cannot know.
       return settled
         ? `${what} reached its ${deadlineMs / 1000}s deadline with the document at its pre-click value, so the capture may show the previous surface`
-        : `${what} was still changing after ${deadlineMs / 1000}s`;
+        : previous === null
+          ? `${what} did not complete a second reading within ${deadlineMs / 1000}s, so nothing about the render was observed`
+          : `${what} was still changing after ${deadlineMs / 1000}s`;
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 }
@@ -251,10 +250,15 @@ const PRODUCT_ROOT_FONT_PX = (() => {
         "every capture.",
     );
   // `;?` so a final declaration without a trailing semicolon still parses.
-  const sizes = [...root[1].matchAll(/font-size:\s*([^;}\n]+);?/g)];
+  // Anchored to a declaration start, so a custom property such as
+  // `--control-font-size` is not counted as a second `font-size` and does not
+  // abort every capture with a duplicate the operator cannot find.
+  const sizes = [
+    ...root[1].matchAll(/(?:^|[;{])\s*font-size:\s*([^;}\n]+);?/g),
+  ];
   if (sizes.length !== 1)
     fail(
-      `found ${sizes.length} \`font-size\` declarations in the :root block of ` +
+      `found ${sizes.length} own \`font-size\` declarations in the :root block of ` +
         `${tokens}, expected exactly one. This value is what every capture is ` +
         "checked against to prove the stylesheet applied, so it must be unambiguous.",
     );
@@ -618,11 +622,28 @@ function cdp(socket) {
     new Promise((settle, reject) => {
       nextId += 1;
       const id = nextId;
-      pending.set(id, (message) =>
-        message.error
-          ? reject(new Error(`${method}: ${message.error.message}`))
-          : settle(message.result),
-      );
+      pending.set(id, (message) => {
+        if (message.error)
+          return reject(new Error(`${method}: ${message.error.message}`));
+        // A throw inside an evaluated page script arrives as a successful
+        // CDP reply carrying `exceptionDetails`, with `result.value`
+        // undefined. Settling on that makes every probe mis-report it: the
+        // click gate says the button was never offered, the settle says it
+        // reached its deadline, and the occlusion probe tries to
+        // `JSON.parse(undefined)`. With no CI those lines are the whole
+        // failure record, so the exception is raised as itself.
+        const thrown = message.result?.exceptionDetails;
+        if (thrown)
+          return reject(
+            new Error(
+              `${method}: the page script threw: ` +
+                (thrown.exception?.description ??
+                  thrown.text ??
+                  "no description"),
+            ),
+          );
+        return settle(message.result);
+      });
       socket.send(
         JSON.stringify({ id, method, params: params ?? {}, sessionId }),
       );
@@ -947,7 +968,7 @@ try {
     // Drive the real flow through the rendered UI: create a workspace, seed it,
     // run the transformation, then open the review that produces. AC-26 is a
     // claim about a review surface, so an empty Home would not evidence it.
-    await page("Runtime.evaluate", {
+    const created = await page("Runtime.evaluate", {
       expression: `(() => {
         const field = document.querySelector("#workspace-name");
         if (!field) return "no create form";
@@ -960,6 +981,13 @@ try {
       })()`,
       returnByValue: true,
     });
+    // The sentinel was previously discarded, so a page without the create
+    // form fell through and failed 15s later on "Seed demo workspace",
+    // naming the wrong missing element.
+    if (created.result.value !== "submitted")
+      throw new Error(
+        `the workspace could not be created: ${created.result.value}`,
+      );
     await new Promise((r) => setTimeout(r, 1500));
     // Setup only. The surfaces themselves are measured one at a time below:
     // visiting a surface is not measuring it, and an earlier version of this
@@ -1462,6 +1490,7 @@ for (const [scenarioName, label] of [
   // after this loop, so a late harness failure would otherwise print `ok`
   // comparison lines above the error that stopped the run.
   const comparable = aborted === null && plumbingFailure === null;
+  let comparedPairs = 0;
   for (const surface of comparable ? capturedSurfaces : []) {
     // Compared surface by surface. Comparing the studio's action set against the
     // reviews list's would differ for reasons that have nothing to do with the
@@ -1473,6 +1502,7 @@ for (const [scenarioName, label] of [
       (r) => r.scenario === `${scenarioName}-${surface}`,
     );
     if (!baseline || !candidate) continue;
+    comparedPairs += 1;
     const missing = baseline.names.filter(
       (name) => !candidate.names.includes(name),
     );
@@ -1489,6 +1519,17 @@ for (const [scenarioName, label] of [
         `ok   AC-38 ${label} retains all ${candidate.names.length} actions unchanged on ${surface}`,
       );
     }
+  }
+  // The baseline is found by a hard-coded scenario name. Renaming or dropping
+  // that scenario would leave every pair unmatched, with no `ok` line, no
+  // problem entry and a zero exit -- the vacuous pass the occlusion check
+  // already guards against.
+  if (comparable && comparedPairs === 0) {
+    console.error(
+      "visual-evidence: the cross-mode comparison matched no surface pair, so " +
+        "it proved nothing; check the baseline scenario name it looks for",
+    );
+    failures += 1;
   }
 }
 

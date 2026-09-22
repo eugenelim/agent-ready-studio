@@ -159,11 +159,15 @@ open = [
   # behind CONNECT_ORIENT_E2E_NETWORK=1; its two networked siblings carry the
   # gate. `connect` returns synchronously and runs the pipeline behind it, so
   # the assertion passes while `git ls-remote` goes to github.com.
-  # Left open for an owner decision rather than fixed: gating it removes the
-  # only default-gate case binding accepted dispatch, which is the artifact the
-  # retraction exists to preserve, so keeping both properties needs a transport
-  # injected into the spawned service. That is a design call, not a one-line
-  # gate. Found by the 157-criterion audit.
+  # There are TWO such cases, not one: `:86-103` and `:140-161`. An earlier
+  # version of this entry and of the audit named only the first, and rested
+  # the rationale below on it being the only one.
+  # Left open for an owner decision rather than fixed: gating both removes the
+  # only default-gate cases binding accepted dispatch, which is the artifact
+  # the retraction exists to preserve, so keeping both properties needs a
+  # transport injected into the spawned service. That is a design call, not a
+  # two-line gate. Found by the 157-criterion audit; the undercount was found
+  # by the round-13 adversarial reviewer.
   # Evidence: notes/acceptance-audit.md, finding 5.
   { slug = "connect-orient-default-suite-reaches-the-network", source = "connect-and-orient/2026-09-20" },
   # No test can reach any logic inside apps/desktop/tools/visual-evidence.mjs.
@@ -190,6 +194,19 @@ open = [
   #      from never having moved.
   # Six, and the count has been one behind twice; a fixture table would make
   # it unnecessary to count at all.
+  #
+  # Those two functions are not the whole of it. Also untested, and higher
+  # cost: the server's directory-confinement check (visual-evidence.mjs
+  # :492-501) and the publish swap with its stranded-set recovery and
+  # rollback (:1526-1590) -- the destructive path that actually replaced a
+  # Shipped spec's retained captures on 2026-09-20 and still has no test.
+  #
+  # The seam that blocks extraction is module-scope execution: the env guard,
+  # PUBLIC_GITHUB_ONLY_REFUSAL, PRODUCT_ROOT_FONT_PX, `mkdtempSync` and both
+  # `spawn` calls all run at import, so nothing in the file can be imported
+  # at all. The first enabling move is to lift the pure units into sibling
+  # modules and leave the runner as composition, which is the shape
+  # `apps/desktop/tools/delta-e2000.ts` and its test already use.
   # `apps/desktop/tools/delta-e2000.ts` with its sibling test is the shape
   # this repository already uses for a tested tool module. Raised by the
   # round-8 quality reviewer, who scoped it explicitly as separate work
