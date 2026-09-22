@@ -6329,3 +6329,57 @@ inconsistent.
 failed 3, 1 and 6 cases, all inside `connect-and-orient-runtime/`. **1 green in 4**, on a host
 whose load average read 96 at the end of the sequence — the busiest this session has run on.
 This round changed no product code: three audit verdicts, a register citation and two comments.
+
+## slice-decision-2026-09-22
+
+**The owner read the audit's clusters and chose the next slice. This entry records the analysis
+and the decision, and closes this unit.**
+
+### The open criteria cluster, and the checked ones do not form a slice
+
+82 open. **36 fall under the audit's five cross-cutting findings** — 19 under finding 1 (a
+module written, tested and called by nothing), 13 under finding 4 (hostile proofs testing a
+fixture's re-implementation), 3 under finding 2, 2 under finding 3, 1 under finding 5. The
+other 46 concentrate in four groups: Honest states 9, Desktop surface 9, Process boundary 8,
+Quality floor 8.
+
+**Shipping what is checked was considered and rejected, on two grounds that are the same
+ground.** Split by half, the trust and plumbing criteria are 52 met of 100 and the user-facing
+ones 23 of 57. Neither cut yields a slice:
+
+- **The user-facing cut fails because AC-0105 and AC-0106 are open.** "The desktop provides a
+  Connect repository action" and "a single-field form" are both unbound — every test renders
+  `InspectionSurface` directly and deleting it from `App.tsx:242` reddens nothing. The checked
+  set does not contain "the feature exists in the product".
+- **The trust-boundary cut fails because Security proofs is 3 met of 15.** `Source input and
+  identity` is 10 of 10 and `Path confinement` 6 of 8, but the criteria that *evidence* the
+  isolation claim are the open ones.
+
+In both cuts the checked set holds the mechanism and the open set holds its proof. That is not
+a slice; it is a substrate.
+
+### The chosen slice
+
+**Wire the modules that nothing calls** — routed at
+`connect-orient-wire-the-uncalled-modules`. 23 distinct criteria: finding 1's 19, finding 2's
+three once a terminating condition resolves to a `StopReasonKey`, and AC-0148, which is adjacent
+because the e2e cases that would exercise the wired path are the ungated ones.
+
+It was chosen over the renderer cluster and over the hostile-proof rewrite for a reason worth
+recording: **it retires the defect class that caused the retraction this whole audit descends
+from.** Ten exported functions are written, unit-tested, and reached by nothing. Two of them are
+resource bounds at a trust boundary, so this is not purely a wiring exercise — the Service's
+real readers accumulate child stdout and stderr without limit while the child materializes
+repository-controlled content.
+
+### Closing this unit
+
+The product change on this branch is small and settled: the inspection-time display, the
+focus-occlusion check and its `connect-rejected` surface, and the evidence-root allowlist. Its
+substance is the reconciliation.
+
+**The verdicts are marked as of this commit and are still moving.** Five consecutive rounds that
+tested `met` verdicts rather than reading their rows each found more: the spec went 82 → 81 →
+80 → 79 → 78 → 75 checked. Round 15 changed no product code and still found three. A reader
+should treat 75 as a floor established by fifteen rounds, not as a settled number, and the
+audit's Method section says how to re-test a row.
