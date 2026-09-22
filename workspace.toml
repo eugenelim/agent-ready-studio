@@ -102,12 +102,12 @@ open = [
   # secure-design review of Package 4 and routed out by owner decision rather
   # than widening that amendment. removeEntry in per-request-state-root.ts
   # recurses per directory level with try blocks wrapping only the syscalls,
-  # and the recursive call in the loop at :356-358 is outside them, so a
+  # and the recursive call in the loop at :362-364 is outside them, so a
   # RangeError from stack exhaustion on a sufficiently deep tree escapes
   # removePerRequestStateRoot and sweepDomain, abandoning the remaining
   # candidates and their AC-0083 diagnostics unswept. The child's mirrored
   # recursion does NOT carry this: its recursion sits inside the try at
-  # :245-260 and degrades to intact = false. Pre-existing -- limbs 1 and 2
+  # :269-282 and degrades to intact = false. Pre-existing -- limbs 1 and 2
   # already traversed arbitrary trees -- and it needs the sweep domain's own
   # uid, which is a path that can already write the tree. Adjudication recorded
   # the proposed mechanism as absent: the required outcome is that stack
@@ -196,10 +196,14 @@ open = [
   # it unnecessary to count at all.
   #
   # Those two functions are not the whole of it. Also untested, and higher
-  # cost: the server's directory-confinement check (visual-evidence.mjs
-  # :492-501) and the publish swap with its stranded-set recovery and
-  # rollback (:1526-1590) -- the destructive path that actually replaced a
-  # Shipped spec's retained captures on 2026-09-20 and still has no test.
+  # cost, both in visual-evidence.mjs and named by function rather than by
+  # line, because the line numbers written for them in an earlier version had
+  # already drifted by the same commit that wrote them: the evidence server's
+  # directory-confinement check on a requested path, and the publish sequence
+  # -- the swap of `<root>.next` into place, its stranded-set recovery on a
+  # prior interrupted run, and its rollback. That publish path is the one
+  # that actually replaced a Shipped spec's retained captures on 2026-09-20
+  # and it still has no test.
   #
   # The seam that blocks extraction is module-scope execution: the env guard,
   # PUBLIC_GITHUB_ONLY_REFUSAL, PRODUCT_ROOT_FONT_PX, `mkdtempSync` and both

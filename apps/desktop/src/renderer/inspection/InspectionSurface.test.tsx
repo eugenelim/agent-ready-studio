@@ -377,9 +377,12 @@ describe("AC-0124 and AC-0127 keyboard operability and reading order", () => {
 
 describe("AC-0103 the inspection time reaches the rendered result", () => {
   it("carries inspectedAt from the inspection through to the surface", async () => {
-    // VerdictSurface renders the time, but a component test of it alone cannot
-    // show that InspectionSurface hands it over -- dropping the prop here left
-    // every other case green. This is that wire.
+    // `inspectedAt` is a required prop, so simply omitting it here is a
+    // typecheck failure and needs no test. What the type does not catch is
+    // this call site wiring the *wrong* field -- passing `resolvedSha`, or a
+    // stale local -- which stays green everywhere else because every other
+    // case renders VerdictSurface directly. This asserts the value that
+    // crossed the boundary is the one the inspection carried.
     render(
       <InspectionSurface
         api={apiReturning({

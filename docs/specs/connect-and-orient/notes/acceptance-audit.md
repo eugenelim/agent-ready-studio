@@ -5,8 +5,8 @@
 round found. This is the first pass that reconciles **every** criterion in
 [`spec.md`](../spec.md) against the tree.
 
-**Result: 79 met, 73 not met, 5 not verifiable here.** `spec.md`
-carries 79 checked boxes and 78 open. Every count in this document, including each
+**Result: 78 met, 74 not met, 5 not verifiable here.** `spec.md`
+carries 78 checked boxes and 79 open. Every count in this document, including each
 group header, is generated from the rows below rather than written by hand.
 
 Before this audit, `spec.md` had 157 unchecked boxes and the ledger named roughly ten criteria as
@@ -258,7 +258,7 @@ read at all**.
 | AC-0059 | **not met** | S | declared-value-reader.test.ts:268-322 | the three-row routing is bound as a pure mapping; no production code parses a declaration file, so no real failure reaches it |
 | AC-0060 | **not met** | W | declared-value-reader.test.ts:326-353 | the property follows from the field list the test passes in; the renderer never renders `declaredVersionMarker` |
 
-### Version honesty and the verdict — 7 met, 1 not met
+### Version honesty and the verdict — 6 met, 2 not met
 
 The pure derivation is total and strongly bound. What is unexercised is the phrase "from trusted
 inspector output": production's `inspect` never returns any, so every real inspection is
@@ -274,7 +274,7 @@ derivation.
 | AC-0064 | **not met** | W | trial-result.test.ts:424-428 | the qualifier half is bound; **nothing reports that a repository declares no version**, and production hardcodes `declaredVersionMarker: null` at source-inspection.ts:152 |
 | AC-0065 | met | S | trial-result.test.ts:430-464 | orthogonality bound as a pure derivation |
 | AC-0066 | met | S | VerdictSurface.test.tsx:306-323 | composition rule bound against the rendered component |
-| AC-0067 | met | S | trial-result.test.ts:468-507; validator.ts:37-43 | two separate fields in contract, record and store; `inspectorContractVersion` is populated in production |
+| AC-0067 | **not met** | S for the shape, NONE for the observation | trial-result.test.ts:468-507; validator.ts:37-43 | the two values are separate fields in contract, record and store, and that shape is strongly bound. **But the criterion says two separate *observed* values, and neither is ever observed**: source-inspection.ts:152 hardcodes `declaredVersionMarker: null` — the reason AC-0064 is not met — and `:153` hardcodes `inspectorContractVersion: null` on the adjacent line, while `inspectInRuntime` returns `ok: false` on all four paths so `:287` resolves to null too. **Recorded met, then corrected twice**: the note first claimed the field was populated in production, then was narrowed to say it was wired not populated, and the verdict itself was only re-tested against this document's own rule at line 35 when the round-14 reviewer asked for it |
 | AC-0068 | met | S | trial-result.test.ts:503-506 | an absence proof scoped to `observedVersions` only |
 
 ### Path confinement and materialization safety — 6 met, 2 not met
@@ -418,7 +418,7 @@ re-implemented checkout, so removing a flag from `PINNED_GIT_CONFIGURATION` redd
 
 ## What this changes
 
-- `spec.md` now carries 79 checked boxes. The remaining 78 are audited results, not
+- `spec.md` now carries 78 checked boxes. The remaining 79 are audited results, not
   unexamined boxes.
 - The spec stays **Implementing**. Per
   `.claude/skills/new-spec/references/spec-and-plan-contract.md:108-114`, a spec holds that status
