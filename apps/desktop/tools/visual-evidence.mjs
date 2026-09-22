@@ -105,16 +105,24 @@ async function clickWhenOffered(page, label, what) {
         // A disabled button swallows .click() and reports nothing, so treating
         // it as offered would report a click that did not happen and surface
         // the real failure later as an unrelated timeout.
-        if (!el || el.disabled) return false;
+        if (!el) return "absent";
+        // A disabled button swallows .click() and reports nothing, so
+        // treating it as offered would report a click that did not happen.
+        if (el.disabled) return "disabled";
         el.click();
-        return true;
+        return "clicked";
       })()`,
       returnByValue: true,
     });
-    if (clicked.result.value === true) return;
+    if (clicked.result.value === "clicked") return;
     if (Date.now() >= until)
+      // The probe knows which of the two it is, and "missing" and "present
+      // but still disabled" call for different next steps. With no CI this
+      // line is the whole failure record.
       throw new Error(
-        `${what} never offered "${label}" within ${CLICK_DEADLINE_MS / 1000}s`,
+        clicked.result.value === "disabled"
+          ? `${what} left "${label}" disabled for ${CLICK_DEADLINE_MS / 1000}s`
+          : `${what} never offered "${label}" within ${CLICK_DEADLINE_MS / 1000}s`,
       );
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
@@ -213,20 +221,21 @@ async function settleRender(
       // Settled back where it started, and a change was required: the click
       // has not landed yet, so keep waiting rather than calling this done.
     }
+    const hadPrior = previous !== null;
     previous = now;
     if (Date.now() >= until)
-      // Decided by whether this iteration saw it hold still, not by whether
-      // the reading matches `before`. Reaching here unsettled means the
-      // document is churning; reaching here settled means the last two
-      // readings matched and equal `before`. The message states only that:
-      // it does not claim the document was still for the whole window, which
-      // the loop cannot know, nor that it moved and returned, which without
-      // the latch it also cannot know.
+      // Three outcomes, each claiming only what was observed. Unsettled with
+      // no prior reading means one round trip alone exceeded the deadline, so
+      // nothing about the render was seen -- asserting churn there was an
+      // earlier defect, and the branch added to fix it was placed after
+      // `previous = now` and could never run. Unsettled with a prior reading
+      // means two readings differed. Settled means the last two matched and
+      // equal `before`.
       return settled
         ? `${what} reached its ${deadlineMs / 1000}s deadline with the document at its pre-click value, so the capture may show the previous surface`
-        : previous === null
-          ? `${what} did not complete a second reading within ${deadlineMs / 1000}s, so nothing about the render was observed`
-          : `${what} was still changing after ${deadlineMs / 1000}s`;
+        : hadPrior
+          ? `${what} was still changing after ${deadlineMs / 1000}s`
+          : `${what} did not complete a second reading within ${deadlineMs / 1000}s, so nothing about the render was observed`;
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 }

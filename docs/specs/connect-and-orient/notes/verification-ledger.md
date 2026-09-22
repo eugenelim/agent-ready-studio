@@ -6232,3 +6232,52 @@ busier than the earlier rounds ran on.
 
 **This round's verify: exit 0 on the second attempt — 679 passed, 3 skipped**, at load 34.4.
 The first failed 5 cases in `disposal` and `materialization`. 1 green in 2.
+
+## review-round-52-2026-09-22
+
+**AC-0067 is the second false `met` found in two rounds, and it was found by applying the
+audit's own rule to a row that had just been corrected.**
+
+Round 13 flipped AC-0014 after its note asserted an unchecked product fact. Between rounds this
+session sampled the other eight `met` rows whose notes assert product facts; seven held, and
+**AC-0067's note claimed `inspectorContractVersion` "is populated in production"**, which is
+false — `inspectInRuntime` returns `ok: false` on all four paths, so `source-inspection.ts:287`
+resolves to null every time. The note was narrowed to "wired, not populated".
+
+**Narrowing the note was not enough, and the round-14 reviewer said so.** The criterion asks for
+two separate **observed** values. Neither is ever observed: `:152` hardcodes
+`declaredVersionMarker: null` — the exact reason AC-0064 is recorded not met — and `:153`
+hardcodes `inspectorContractVersion: null` on the adjacent line. By the rule at line 35 of the
+audit, any unbound clause makes the criterion not met. **AC-0067 is not met.**
+
+The sequence is worth recording: the note was wrong, the note was corrected, and the verdict the
+note supported was left standing until someone asked whether it still followed. Correcting
+evidence without re-testing the conclusion it supported is its own defect, and it is the third
+variant of this session's recurring one.
+
+**The spec now stands at 78 checked, 79 open.**
+
+### The register's own citations had drifted
+
+Two line ranges written into `workspace.toml` by the previous commit were already wrong when
+written, because the same commit grew `visual-evidence.mjs` from 1,055 to 1,649 lines. The
+range given for the directory-confinement check landed on an unrelated handler, and the range
+for the publish swap started 36 lines early and ended before the rollback — the destructive path
+the entry exists to flag as untested. Both are now named by function rather than by line. Two
+stale refs in the sweep entry are repointed.
+
+### Also applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The settle deadline's "no second reading" branch sat after `previous = now` and could never run, so a deadline hit on the first round trip still asserted churn nothing observed | Concern | The prior-reading state is captured before the assignment; three outcomes, each claiming only what was seen |
+| A click deadline could not distinguish an absent button from a disabled one, though the probe computes it | Nit | The probe returns `absent`/`disabled`/`clicked` and the message says which |
+| The wiring test's stated ground contradicted the required-prop contract added beside it | Nit | Restated as the gap the type cannot close — a call site wiring the wrong field. **Mutation: pointing it at `resolvedSha` reddens 1** |
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm visual-evidence:connect` exits
+0 with 80 checks across 64 scenarios. 65 renderer tests pass.
+
+**`pnpm verify` exit 0 on the second attempt — 679 passed, 3 skipped**; the first failed 5 cases
+in the trial-runtime suite.

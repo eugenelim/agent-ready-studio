@@ -525,7 +525,7 @@ assisted authoring and has known false negatives.
 - [ ] **AC-0064.** A repository declaring no workspace version marker carries no `version-unverified` qualifier, and its result reports that it declares no version. Like AC-0065, the qualifier clause asserts nothing about the condition value. Separately, and on the condition axis: a completed inspection that raises no condition-bearing finding carries the `ok` condition, which is what `ok` means — nothing qualifies the result.
 - [x] **AC-0065.** A repository declaring a workspace version marker in either permitted file carries the `version-unverified` qualifier, whatever its verdict and whatever its condition. The qualifier is orthogonal: it never replaces, suppresses or is suppressed by a condition value.
 - [x] **AC-0066.** A result carrying the `version-unverified` qualifier states that Studio cannot confirm the inspection covers the declared version, composed with — never in place of — whatever verdict and condition the result reached. The rendered role each element takes is owned solely by AC-0114 and the composition rule.
-- [x] **AC-0067.** Studio reports the target's declared version marker and the version the trusted inspector reports for its own output contract as two separate observed values.
+- [ ] **AC-0067.** Studio reports the target's declared version marker and the version the trusted inspector reports for its own output contract as two separate observed values.
 - [x] **AC-0068.** No value is compared against a version set that neither the target nor the inspector declared.
 
 ### Path confinement and materialization safety
