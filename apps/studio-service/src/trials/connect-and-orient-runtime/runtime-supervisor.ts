@@ -4,6 +4,11 @@ import { fileURLToPath } from "node:url";
 
 import type { CanonicalSourceIdentity } from "../../source-identity.js";
 import {
+  BoundedDiagnosticBuffer,
+  BoundedResultReader,
+  type TrialStopReason,
+} from "../../trial-result.js";
+import {
   type GitIdentity,
   MINIMUM_INTERPRETER_VERSION,
   PYTHON_INTERPRETER_SEARCH_LIST,
@@ -131,6 +136,20 @@ export interface TrialInspectionOptions {
     readonly files: number;
     readonly intervalMs: number;
   };
+  /**
+   * Lowers AC-0037's and AC-0155's byte bounds so a test can reach the refusal
+   * and the elision without emitting 8 MiB. Production never sets either; the
+   * defaults in `trial-result.ts` are the contract.
+   */
+  readonly resultByteBound?: number;
+  readonly diagnosticByteBound?: number;
+  /**
+   * Makes the child emit that many bytes on stdout or stderr, so the two
+   * bounds above have something to refuse and elide. Production never sets
+   * them, on the precedent `descendantHoldMs` and `materializationWriter` set.
+   */
+  readonly noiseStdoutBytes?: number;
+  readonly noiseStderrBytes?: number;
 }
 
 export type TerminationReason =
@@ -179,6 +198,21 @@ export interface TrialInspectionRecord {
   readonly protocolStdout: string;
   readonly nonProtocolStdoutLines: readonly string[];
   readonly diagnostics: string;
+  /**
+   * AC-0037. Whether the result was refused while being read, the reason it
+   * carries, and the byte count reached. `protocolStdout` is empty on a
+   * refusal: the point of counting each chunk is that no full buffer of an
+   * oversized result ever exists.
+   */
+  readonly resultRefused: boolean;
+  readonly resultStopReason: TrialStopReason | undefined;
+  readonly resultBytesSeen: number;
+  /**
+   * AC-0155. Diagnostics are truncated, never refused — refusing them would
+   * let a repository suppress its own verdict by emitting warnings.
+   */
+  readonly diagnosticsElided: boolean;
+  readonly diagnosticsDiscardedBytes: number;
   readonly observedProcesses: ReadonlyMap<number, ObservedProcess>;
   readonly observedEnvByPid: ReadonlyMap<number, Record<string, string>>;
   readonly samples: readonly GroupSample[];
@@ -344,6 +378,12 @@ export function beginTrialInspection(
     ...(options.materializationWriter === undefined
       ? {}
       : { materializationWriter: options.materializationWriter }),
+    ...(options.noiseStdoutBytes === undefined
+      ? {}
+      : { noiseStdoutBytes: options.noiseStdoutBytes }),
+    ...(options.noiseStderrBytes === undefined
+      ? {}
+      : { noiseStderrBytes: options.noiseStderrBytes }),
     markerlessReclaimAgeMs:
       options.markerlessReclaimAgeMs ?? MARKERLESS_RECLAIM_AGE_MS,
     // AC-0082: the Service invokes the sweep. It does not perform it, because
@@ -385,8 +425,13 @@ export function beginTrialInspection(
   // observation is kept only once two reads agree on it. That rejects such a
   // read without assuming anything about what a correct one should contain.
   const unconfirmed = new Map<number, string>();
-  let protocolStdout = "";
-  let diagnostics = "";
+  // AC-0037 and AC-0155. These replace two unbounded `+=` accumulations. The
+  // child materializes repository-controlled content, so the volume of what it
+  // writes is influenced from outside the trust boundary.
+  const resultReader = new BoundedResultReader(options.resultByteBound);
+  const diagnosticBuffer = new BoundedDiagnosticBuffer(
+    options.diagnosticByteBound,
+  );
   let stdoutTail = "";
   let termination: TerminationReason | undefined;
   let attemptedGroupSignal = false;
@@ -401,7 +446,11 @@ export function beginTrialInspection(
   }
 
   function consumeStdout(chunk: string): void {
-    protocolStdout += chunk;
+    if (!resultReader.push(chunk)) {
+      // Refused while reading. Nothing further is retained, and the lines
+      // already parsed stay: they are what says why the run stopped.
+      return;
+    }
     stdoutTail += chunk;
     const lines = stdoutTail.split("\n");
     stdoutTail = lines.pop() ?? "";
@@ -433,7 +482,7 @@ export function beginTrialInspection(
   });
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", (chunk: string) => {
-    diagnostics += chunk;
+    diagnosticBuffer.push(chunk);
   });
 
   const exited = new Promise<{ code: number | null; signal: string | null }>(
@@ -551,6 +600,8 @@ export function beginTrialInspection(
     clearInterval(sampler);
     inFlight = undefined;
 
+    const boundedDiagnostics = diagnosticBuffer.finish();
+    const refusalOutcome = resultReader.outcome();
     return {
       admitted: true,
       requestId: request.requestId,
@@ -565,9 +616,15 @@ export function beginTrialInspection(
       spawnAudit: [...spawnAudit, ...childSpawnAudit(protocolLines)],
       completedResponse,
       protocolLines,
-      protocolStdout,
+      protocolStdout: resultReader.text(),
+      resultRefused: resultReader.refused,
+      resultStopReason:
+        refusalOutcome?.ok === false ? refusalOutcome.stopReason : undefined,
+      resultBytesSeen: resultReader.bytesSeen,
+      diagnosticsElided: boundedDiagnostics.elided,
+      diagnosticsDiscardedBytes: boundedDiagnostics.discardedBytes,
       nonProtocolStdoutLines,
-      diagnostics,
+      diagnostics: boundedDiagnostics.text,
       observedProcesses,
       observedEnvByPid,
       samples: samples.toSorted((left, right) => left.at - right.at),

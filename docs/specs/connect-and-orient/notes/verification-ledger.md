@@ -6383,3 +6383,58 @@ tested `met` verdicts rather than reading their rows each found more: the spec w
 80 → 79 → 78 → 75 checked. Round 15 changed no product code and still found three. A reader
 should treat 75 as a floor established by fifteen rounds, not as a settled number, and the
 audit's Method section says how to re-test a row.
+
+## slice-f1-step-a-2026-09-22
+
+**The two resource bounds, wired. First step of `connect-orient-wire-the-uncalled-modules`, and
+the one that was an actual security gap rather than a missing test.**
+
+`runtime-supervisor.ts` accumulated the child's stdout into `protocolStdout += chunk` and its
+stderr into `diagnostics += chunk`, neither bounded, while `BoundedResultReader` and
+`BoundedDiagnosticBuffer` sat in `trial-result.ts` written, unit-tested and called by nothing.
+The child materializes repository-controlled content, so the volume of what it writes is
+influenced from outside the trust boundary.
+
+Both readers are now the accumulation. The supervisor's record carries `resultRefused`,
+`resultStopReason`, `resultBytesSeen`, `diagnosticsElided` and `diagnosticsDiscardedBytes`.
+
+**Refusing the result stops consumption**, which is the behaviour that distinguishes this from
+counting bytes and carrying on: the child writes its `completed` line after the oversized
+payload, and a refused run must not parse it and report the inspection completed.
+
+**Diagnostics are elided, never refused.** Refusing them would let a repository suppress its own
+verdict by emitting warnings, which the *Child diagnostic bytes* row states as the reason.
+
+### The first version of the AC-0037 test passed with the guard deleted
+
+Worth recording because it is this audit's own defect class, committed while closing it.
+
+The test asserted `record.resultRefused`. That flips inside the reader as soon as `push()`
+counts past the bound, **whether or not the supervisor acts on the return value** — so removing
+the `if (!resultReader.push(chunk)) return;` guard left all three cases green. The mutation run
+caught it; reasoning about the test did not.
+
+It now asserts what the guard does: no `completed` line is parsed after a refusal.
+
+| Mutation | Result |
+| --- | --- |
+| baseline | 3 of 3 pass |
+| the stdout guard removed | **1 failed** |
+| the stderr push dropped | **1 failed** |
+| ~~the stdout guard removed, against the first version of the test~~ | ~~3 passed~~ — the defect above |
+
+A third case is the positive control: an ordinary run reports neither refused nor elided, so a
+harness that always reported both could not pass all three.
+
+**Test-only plan hooks.** `resultByteBound` and `diagnosticByteBound` lower the 8 MiB and 256 KiB
+contract bounds so a test need not emit 8 MiB; `noiseStdoutBytes` and `noiseStderrBytes` make the
+child emit something to refuse. All four follow the precedent `descendantHoldMs`,
+`retainStateRoot` and `materializationWriter` set, and production sets none of them.
+
+**AC-0037 and AC-0155 are met. The spec stands at 77 checked, 80 open.**
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. **`pnpm verify` exit 0 on the second
+attempt — 682 passed, 3 skipped**; the suite grew by three cases. The first attempt failed 3 in
+the trial-runtime suite.

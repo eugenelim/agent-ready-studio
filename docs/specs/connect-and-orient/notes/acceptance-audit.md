@@ -5,8 +5,8 @@
 round found. This is the first pass that reconciles **every** criterion in
 [`spec.md`](../spec.md) against the tree.
 
-**Result: 75 met, 77 not met, 5 not verifiable here.** `spec.md`
-carries 75 checked boxes and 82 open. Every count in this document, including each
+**Result: 77 met, 75 not met, 5 not verifiable here.** `spec.md`
+carries 77 checked boxes and 80 open. Every count in this document, including each
 group header, is generated from the rows below rather than written by hand.
 
 Before this audit, `spec.md` had 157 unchecked boxes and the ledger named roughly ten criteria as
@@ -210,7 +210,7 @@ Citations that already carry a prefix — `e2e/connect-and-orient.test.ts`, `mai
 | AC-0154 | met | S | runtime-supervisor.test.ts:876-967 | the surviving descendant is timer-held with stdin on /dev/null, so reclaim is attributable |
 | AC-0159 | met | S | per-request-state-root.test.ts:203-215,243-287 | the Runtime-side call site (runtime-child.ts:157-163) is bound by no case; the forcing case needs a host resolving `Pacific/Kiritimati` |
 
-### Provisional contract — 4 met, 8 not met
+### Provisional contract — 6 met, 6 not met
 
 | AC | Verdict | F | Binding | Note |
 | --- | --- | --- | --- | --- |
@@ -219,13 +219,13 @@ Citations that already carry a prefix — `e2e/connect-and-orient.test.ts`, `mai
 | AC-0034 | **not met** | W | trial-result.test.ts:93-104 | child echoes the id (runtime-child.ts:1054), supervisor reports its own input (runtime-supervisor.ts:556), nothing compares them |
 | AC-0035 | **not met** | W | trial-result.test.ts:113-123 | full-shape validation lives only in the unwired `normalizeTrialResult` |
 | AC-0036 | **not met** | W | trial-result.test.ts:108-162 | same; the "not partially consumed" clause is a key count, which does not observe consumption |
-| AC-0037 | **not met** | W | trial-result.test.ts:165-196 | `BoundedResultReader` unwired; the real reader is unbounded at runtime-supervisor.ts:404 |
+| AC-0037 | met | S | runtime-supervisor.test.ts, the `resource bounds on what the child reports` block | **closed 2026-09-22.** `BoundedResultReader` is wired into `consumeStdout`, replacing an unbounded `protocolStdout += chunk`. A refusal stops consumption, so the retained text is empty and the child's later `completed` line is never parsed. **Mutation: removing the guard reddens 1.** The first version of this test asserted only `resultRefused`, which the reader sets whether or not the supervisor acts on it, and passed with the guard deleted — caught by running the mutation |
 | AC-0038 | **not met** | W | trial-result.test.ts:202-227 | no producer emits the five-element result; the child writes discrete protocol lines and only `materialized` is read |
 | AC-0039 | **not met** | S | source-inspection-storage.test.ts:187-206 | markers are strongly bound but come from a literal in `createStorageStore`, not from any value the Runtime reported |
 | AC-0040 | met | S | connected-source.test.ts:180-191; storage.ts:322 | write/close/reopen through real SQLite |
 | AC-0041 | met | S | trial-result.test.ts:307-332 | real filesystem importer walk with exact equality; walks only `apps/studio-service/src` |
 | AC-0042 | met | S | trial-result.test.ts:334-372 | fixed four-field request plus its own positive control at :360-371 |
-| AC-0155 | **not met** | W | trial-result.test.ts:510-559 | `BoundedDiagnosticBuffer` unwired; the real stderr reader is unbounded at runtime-supervisor.ts:436 |
+| AC-0155 | met | S | runtime-supervisor.test.ts, the `resource bounds on what the child reports` block | **closed 2026-09-22.** `BoundedDiagnosticBuffer` is wired into the stderr handler, replacing an unbounded `diagnostics += chunk`. Diagnostics are elided with the discarded byte count, never refused, so a repository cannot suppress its own verdict by emitting warnings. **Mutation: dropping the push reddens 1**, and a positive control asserts an ordinary run reports neither refused nor elided |
 
 ### Trusted inspector — 4 met, 6 not met
 
@@ -418,7 +418,7 @@ re-implemented checkout, so removing a flag from `PINNED_GIT_CONFIGURATION` redd
 
 ## What this changes
 
-- `spec.md` now carries 75 checked boxes. The remaining 82 are audited results, not
+- `spec.md` now carries 77 checked boxes. The remaining 80 are audited results, not
   unexamined boxes.
 - The spec stays **Implementing**. Per
   `.claude/skills/new-spec/references/spec-and-plan-contract.md:108-114`, a spec holds that status

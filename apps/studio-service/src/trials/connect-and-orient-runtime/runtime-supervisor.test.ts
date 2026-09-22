@@ -967,3 +967,66 @@ describe("the Studio Service's outer liveness obligation", () => {
     }
   });
 });
+
+describe("resource bounds on what the child reports", () => {
+  it("AC-0037 refuses an oversized result while reading it, so no full buffer exists", async () => {
+    // The bound is 8 MiB in production. Overriding it keeps the test from
+    // having to emit 8 MiB to reach the branch that matters, on the precedent
+    // the other test-only supervision knobs set.
+    const record = await runTrialRuntime({
+      request: validRequest(),
+      supervision: {
+        resultByteBound: 4096,
+        noiseStdoutBytes: 64 * 1024,
+      },
+    });
+
+    expect(record.resultRefused, "an oversized result was accepted").toBe(true);
+    expect(record.resultStopReason).toBe("result-too-large");
+    // The point of refusing while reading: the retained text is empty rather
+    // than a truncated copy of an oversized payload.
+    expect(record.protocolStdout).toBe("");
+    expect(record.resultBytesSeen).toBeGreaterThan(4096);
+    // The load-bearing assertion, and the one the reader's own state cannot
+    // supply. `refused` flips inside the reader whether or not the supervisor
+    // acts on it, so asserting it alone passes with the guard deleted. What
+    // the guard does is stop consuming: the child writes its `completed` line
+    // after the noise, and a refused run must not go on to parse it and
+    // report the inspection as completed.
+    expect(
+      record.completedResponse,
+      "consumption continued past the refusal",
+    ).toBe(false);
+    expect(record.protocolLines.some((line) => line.type === "completed")).toBe(
+      false,
+    );
+  }, 30_000);
+
+  it("AC-0155 elides oversized diagnostics and leaves the inspection unaffected", async () => {
+    const record = await runTrialRuntime({
+      request: validRequest(),
+      supervision: {
+        diagnosticByteBound: 4096,
+        noiseStderrBytes: 64 * 1024,
+      },
+    });
+
+    expect(record.diagnosticsElided, "diagnostics were not elided").toBe(true);
+    expect(record.diagnosticsDiscardedBytes).toBeGreaterThan(0);
+    expect(record.diagnostics).toContain("bytes elided");
+    // Truncated, never refused: a repository must not be able to suppress its
+    // own verdict by emitting warnings.
+    expect(record.resultRefused).toBe(false);
+    expect(record.completedResponse).toBe(true);
+  }, 30_000);
+
+  it("leaves both unbounded-looking fields clean on an ordinary run", async () => {
+    // The positive control for the two above: without it, a harness that
+    // always reported `refused` and `elided` would pass them both.
+    const record = await runTrialRuntime({ request: validRequest() });
+
+    expect(record.resultRefused).toBe(false);
+    expect(record.diagnosticsElided).toBe(false);
+    expect(record.diagnosticsDiscardedBytes).toBe(0);
+  }, 30_000);
+});

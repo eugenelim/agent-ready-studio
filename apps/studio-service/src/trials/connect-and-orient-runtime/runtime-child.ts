@@ -87,6 +87,13 @@ interface RuntimeChildPlan {
    * network, and the sampler observes the tree rather than the writer, so what
    * writes the files does not change what the bound observes.
    */
+  /**
+   * Bytes to write on stdout or stderr so the Service's AC-0037 and AC-0155
+   * bounds have something to refuse and elide. Production never sets either,
+   * on the precedent `materializationWriter` sets below.
+   */
+  readonly noiseStdoutBytes?: number;
+  readonly noiseStderrBytes?: number;
   readonly materializationWriter?: {
     readonly files: number;
     readonly intervalMs: number;
@@ -1035,6 +1042,15 @@ async function main(): Promise<void> {
       status: held.status,
       args,
     });
+  }
+
+  // Written before the completed line, so the Service reads it as part of the
+  // same run rather than after the response it would have bounded.
+  if (plan.noiseStdoutBytes !== undefined && plan.noiseStdoutBytes > 0) {
+    process.stdout.write(`${"n".repeat(plan.noiseStdoutBytes)}\n`);
+  }
+  if (plan.noiseStderrBytes !== undefined && plan.noiseStderrBytes > 0) {
+    process.stderr.write(`${"d".repeat(plan.noiseStderrBytes)}\n`);
   }
 
   if (plan.holdMs !== undefined && plan.holdMs > 0) {
