@@ -107,7 +107,7 @@ open = [
   # removePerRequestStateRoot and sweepDomain, abandoning the remaining
   # candidates and their AC-0083 diagnostics unswept. The child's mirrored
   # recursion does NOT carry this: its recursion sits inside the try at
-  # :269-282 and degrades to intact = false. Pre-existing -- limbs 1 and 2
+  # runtime-child.ts:269-282 and degrades to intact = false. Pre-existing -- limbs 1 and 2
   # already traversed arbitrary trees -- and it needs the sweep domain's own
   # uid, which is a path that can already write the tree. Adjudication recorded
   # the proposed mechanism as absent: the required outcome is that stack

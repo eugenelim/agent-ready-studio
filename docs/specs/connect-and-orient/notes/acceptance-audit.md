@@ -5,8 +5,8 @@
 round found. This is the first pass that reconciles **every** criterion in
 [`spec.md`](../spec.md) against the tree.
 
-**Result: 78 met, 74 not met, 5 not verifiable here.** `spec.md`
-carries 78 checked boxes and 79 open. Every count in this document, including each
+**Result: 75 met, 77 not met, 5 not verifiable here.** `spec.md`
+carries 75 checked boxes and 82 open. Every count in this document, including each
 group header, is generated from the rows below rather than written by hand.
 
 Before this audit, `spec.md` had 157 unchecked boxes and the ledger named roughly ten criteria as
@@ -186,7 +186,7 @@ Citations that already carry a prefix — `e2e/connect-and-orient.test.ts`, `mai
 | AC-0013 | met | S | git-driver.ts:193-195; storage.ts:269,287 | carried structurally by the 40-hex guard; `not.toBe("feature/one")` alone is a tautology |
 | AC-0014 | **not met** | S for the display, NONE for the proviso | VerdictSurface.tsx:108 asserted VerdictSurface.test.tsx:56-58 | the exact SHA is shown on the verdict surface and that half is strongly bound. **The proviso is triggered and unsatisfied**: `state-vocabulary.ts:145` defines the `inspecting` label as "Inspecting <short-sha>" and `presentation.ts:98` substitutes `resolvedSha.slice(0, 7)` into it, so an abbreviated form *is* displayed — and the criterion allows that only if the exact value "can be copied", which nothing in apps/desktop/src offers. **Recorded met for twelve rounds on the false premise that no abbreviated form was rendered.** Found by the round-13 adversarial reviewer |
 
-### Process boundary, argument vector and environment — 12 met, 4 not met, 3 not verifiable here
+### Process boundary, argument vector and environment — 11 met, 5 not met, 3 not verifiable here
 
 | AC | Verdict | F | Binding | Note |
 | --- | --- | --- | --- | --- |
@@ -204,7 +204,7 @@ Citations that already carry a prefix — `e2e/connect-and-orient.test.ts`, `mai
 | AC-0026 | met | S | runtime-supervisor.test.ts:628-645 | the not-re-read loop carries its own non-emptiness control |
 | AC-0027 | met | S | runtime-supervisor.test.ts:664-694 | the absent-search-list case makes "never through `PATH`" an observation |
 | AC-0028 | **not met** | W | runtime-supervisor.test.ts:710-714 | compares environment **names, never values**, so it cannot catch the redirection the criterion names. A second probe site, `createDefaultTransport` (source-inspection.ts:561-576), widens `PATH` and omits `LANG`/`LC_ALL`/`TZ`/`GIT_ALLOW_PROTOCOL` with no test |
-| AC-0029 | met | S | runtime-supervisor.test.ts:727-767 | asserted against separately-verified-alive descendants |
+| AC-0029 | **not met** | S for three limbs of four | runtime-supervisor.test.ts:727-767 | deadline, bound breach and cancellation each signal the group and are strongly bound against separately-verified-alive descendants. **The shutdown limb is unbound and false in the tree**: `service.close()` (service.ts:731-733) closes storage only, and `cancel("shutdown")` (runtime-supervisor.ts:521) has no production caller — the same ground on which AC-0085's process clause is recorded not met. Found by the round-15 reviewer testing the criterion's four-way universal against the tree rather than reading the row |
 | AC-0030 | not verifiable here | S for shutdown | runtime-supervisor.test.ts:780-795; live-smoke.test.ts:126-139 | the smoke asserts the empty group against the pgid it recorded |
 | AC-0031 | met | S | runtime-supervisor.test.ts:806-851 | aggregate cross-checked against the member sum; the latency ceiling at :840-842 is 2000 ms against a 100 ms interval, looser than the criterion's |
 | AC-0154 | met | S | runtime-supervisor.test.ts:876-967 | the surviving descendant is timer-held with stdin on /dev/null, so reclaim is attributable |
@@ -258,7 +258,7 @@ read at all**.
 | AC-0059 | **not met** | S | declared-value-reader.test.ts:268-322 | the three-row routing is bound as a pure mapping; no production code parses a declaration file, so no real failure reaches it |
 | AC-0060 | **not met** | W | declared-value-reader.test.ts:326-353 | the property follows from the field list the test passes in; the renderer never renders `declaredVersionMarker` |
 
-### Version honesty and the verdict — 6 met, 2 not met
+### Version honesty and the verdict — 5 met, 3 not met
 
 The pure derivation is total and strongly bound. What is unexercised is the phrase "from trusted
 inspector output": production's `inspect` never returns any, so every real inspection is
@@ -272,10 +272,10 @@ derivation.
 | AC-0062 | met | S | trial-result.test.ts:408-420 | differential control: marker present versus absent, verdict unchanged |
 | AC-0063 | met | S | trial-result.test.ts:387-390; source-inspection.test.ts:148-149 | "produced by nothing else" holds — `malformed` is assigned in production only at trial-result.ts:160 |
 | AC-0064 | **not met** | W | trial-result.test.ts:424-428 | the qualifier half is bound; **nothing reports that a repository declares no version**, and production hardcodes `declaredVersionMarker: null` at source-inspection.ts:152 |
-| AC-0065 | met | S | trial-result.test.ts:430-464 | orthogonality bound as a pure derivation |
+| AC-0065 | **not met** | S as a derivation, NONE in production | trial-result.test.ts:430-464 | the orthogonality is strongly bound as a pure derivation. **But a declaring repository never carries the qualifier**: `versionUnverified: declared !== null` is computed only at trial-result.ts:254, inside the zero-caller `normalizeTrialResult`, while the live record hardcodes `versionUnverified: false` at source-inspection.ts:146 and nothing reads either permitted file. This is the mirror of AC-0064, recorded not met on the adjacent hardcode; the two now agree |
 | AC-0066 | met | S | VerdictSurface.test.tsx:306-323 | composition rule bound against the rendered component |
-| AC-0067 | **not met** | S for the shape, NONE for the observation | trial-result.test.ts:468-507; validator.ts:37-43 | the two values are separate fields in contract, record and store, and that shape is strongly bound. **But the criterion says two separate *observed* values, and neither is ever observed**: source-inspection.ts:152 hardcodes `declaredVersionMarker: null` — the reason AC-0064 is not met — and `:153` hardcodes `inspectorContractVersion: null` on the adjacent line, while `inspectInRuntime` returns `ok: false` on all four paths so `:287` resolves to null too. **Recorded met, then corrected twice**: the note first claimed the field was populated in production, then was narrowed to say it was wired not populated, and the verdict itself was only re-tested against this document's own rule at line 35 when the round-14 reviewer asked for it |
-| AC-0068 | met | S | trial-result.test.ts:503-506 | an absence proof scoped to `observedVersions` only |
+| AC-0067 | **not met** | S for the shape, NONE for the observation | trial-result.test.ts:468-507; validator.ts:37-43 | the two values are separate fields in contract, record and store, and that shape is strongly bound. **But the criterion says two separate *observed* values, and neither is ever observed**: source-inspection.ts:152 hardcodes `declaredVersionMarker: null` — the reason AC-0064 is not met — and `:153` hardcodes `inspectorContractVersion: null` on the adjacent line, while `inspectInRuntime` has no `ok: true` return at all, so `:287` resolves to null too. **Recorded met, then corrected twice**: the note first claimed the field was populated in production, then was narrowed to say it was wired not populated, and the verdict itself was only re-tested against this document's own rule at line 35 when the round-14 reviewer asked for it |
+| AC-0068 | met | S | trial-result.test.ts:503-506 | an absence proof scoped to `observedVersions` only. **Met although its subject is a zero-caller module, unlike AC-0045 and AC-0054**: this criterion is a negative obligation — *no* value is compared — which code that never runs genuinely satisfies. Those two are positive obligations ("refuses X"), and a refusal needs a live path to refuse on |
 
 ### Path confinement and materialization safety — 6 met, 2 not met
 
@@ -285,7 +285,7 @@ derivation.
 | AC-0070 | met | S | per-request-state-root.test.ts:87-140 | all four clauses read as on-disk post-conditions |
 | AC-0071 | met | S | disposal.test.ts:171-173 | against a real spawned Runtime's `sweep` protocol line |
 | AC-0072 | met | S | per-request-state-root.test.ts:52-85 | existence, link, kind, ownership and mode each fail closed, checked per use |
-| AC-0073 | met | S | materialization-confinement.test.ts:50-83 | both halves bound, but the only reader routing through it, `readDeclaredValues`, has no production caller |
+| AC-0073 | met | S | materialization-confinement.test.ts:50-83 | both halves bound — the segment boundary and the resolved-real-path comparison. The only reader routing through it, `readDeclaredValues`, has no production caller. **Met on the same ground as AC-0068 and not AC-0045's**: "no byte of repository content is read from outside the root" is a negative obligation, and a reader that never runs reads no byte. The method clause it carries describes how a read must be guarded, not a refusal Studio owes on a live path |
 | AC-0074 | met | S | materialization-confinement.test.ts:95-111 | the device case asserts `outside-materialization-root`, so no assertion reaches the device or socket kind through this guard |
 | AC-0075 | **not met** | W | materialization-confinement.test.ts:124-143 | the "checked **before** the read" clause — the criterion's whole point — has no assertion that can fail; moving the check after the read keeps every case green |
 | AC-0076 | met | S | per-request-state-root.test.ts:322-340 | a planted link at depth and a surviving external witness |
@@ -336,7 +336,7 @@ projection with no renderer assertion, or the reverse.
 | AC-0103 | **not met** | S for the display half | VerdictSurface.tsx identity list, asserted the `AC-0103` describe block in VerdictSurface.test.tsx and the wiring case in InspectionSurface.test.tsx | **display built this session, criterion still open.** `inspectedAt` reached no surface; it now renders in the identity list from a pinned UTC table rather than through `Intl`, whose month abbreviations move with the host ICU version. **But the criterion says a *restored* verdict**, and the renderer has no path to one: `useInspection.ts:74` mounts at `null`, `source.get` needs a `sourceId` held in memory, the preload exposes no list-or-latest call, and nothing persists the id — no `localStorage` or `sessionStorage` exists under apps/desktop/src. After a restart the surface shows `unconnected`. Found by the quality reviewer after this session first recorded the criterion closed |
 | AC-0104 | met | S | source-inspection-storage.test.ts:143-206 | a 300 KiB breaching write through the production `store.persist`, prior record intact; the provenance regression case is bound |
 
-### Desktop surface — 8 met, 7 not met, 1 not verifiable here
+### Desktop surface — 7 met, 8 not met, 1 not verifiable here
 
 A renderer test with a fake preload still strongly binds a **rendering** obligation. It cannot
 bind an obligation about the lead actually receiving the right data — only
@@ -347,7 +347,7 @@ earlier version of this preamble said all of them were gated.
 | AC | Verdict | F | Binding | Note |
 | --- | --- | --- | --- | --- |
 | AC-0105 | **not met** | S | InspectionSurface.test.tsx:61-64 | the clause "the **desktop** provides" is loose — every test renders `InspectionSurface` directly; deleting it from `renderer/App.tsx:242` or the nav entry at `renderer/App.tsx:94` reddens nothing |
-| AC-0106 | met | S | InspectionSurface.test.tsx:69,72 | a shape obligation over rendered DOM |
+| AC-0106 | **not met** | S for the rendered shape | InspectionSurface.test.tsx:69,72 | the single-field, no-credential shape is a real post-condition over rendered DOM. **But the criterion opens "The desktop provides", the same clause that makes AC-0105 not met**, and the binding is the same direct `render(<InspectionSurface … />)` in the same describe block — deleting the surface from `renderer/App.tsx:242` or its nav entry at `:94` reddens neither criterion. The two now agree |
 | AC-0107 | met | S | InspectionSurface.test.tsx:77-78 | the badge label is read from the shared projection rather than restated |
 | AC-0108 | met | S | InspectionSurface.test.tsx:300-301,103-106; source-identity.test.ts:41-88; e2e:114-117,134-137 | the distinguishability half is bound for all five causes and the offline e2e covers two, so it does not depend on the network gate |
 | AC-0109 | met | S | InspectionSurface.test.tsx:100-120 | association, invalid marking and focus are DOM post-conditions |
@@ -418,7 +418,7 @@ re-implemented checkout, so removing a flag from `PINNED_GIT_CONFIGURATION` redd
 
 ## What this changes
 
-- `spec.md` now carries 78 checked boxes. The remaining 79 are audited results, not
+- `spec.md` now carries 75 checked boxes. The remaining 82 are audited results, not
   unexamined boxes.
 - The spec stays **Implementing**. Per
   `.claude/skills/new-spec/references/spec-and-plan-contract.md:108-114`, a spec holds that status
