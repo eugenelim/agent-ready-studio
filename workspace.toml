@@ -217,6 +217,33 @@ open = [
   # rather than part of that diff.
   # Evidence: notes/verification-ledger.md#review-round-46-2026-09-20.
   { slug = "visual-evidence-harness-logic-is-untestable", source = "connect-and-orient/2026-09-20" },
+  # The next connect-and-orient slice, chosen by the owner on 2026-09-22 from
+  # the 157-criterion audit's clusters. Wire the modules that are written,
+  # unit-tested and reached by nothing, which is the defect class that caused
+  # the T12/T13 retraction and is still the largest single cause of unmet
+  # criteria.
+  #
+  # Closes 19 open criteria directly -- AC-0012, AC-0032, AC-0034 to AC-0038,
+  # AC-0043 to AC-0046, AC-0048, AC-0054 to AC-0057, AC-0059, AC-0060,
+  # AC-0155 -- plus AC-0088, AC-0091 and AC-0092 once a terminating condition
+  # resolves to a StopReasonKey, and AC-0148 is adjacent because the e2e
+  # cases that would exercise the wired path are the ungated ones. 23
+  # distinct criteria.
+  #
+  # The modules: locateTrustedInspector and selectConformingInterpreter
+  # (inspector-locator.ts), readDeclaredValues and normalizeDeclared
+  # (declared-value-reader.ts), normalizeTrialResult, BoundedResultReader,
+  # BoundedDiagnosticBuffer and observedVersions (trial-result.ts),
+  # buildNorthboundRequest (trial-enrichment-seam.ts), and materializeRevision
+  # (git-driver.ts). Each has zero production callers today.
+  #
+  # Two of them are resource bounds at a trust boundary and are the reason
+  # this is not purely a wiring exercise: the Service's real readers
+  # accumulate child stdout and stderr without limit while the child
+  # materializes repository-controlled content.
+  #
+  # Evidence: notes/acceptance-audit.md, findings 1, 2, 3 and 5.
+  { slug = "connect-orient-wire-the-uncalled-modules", source = "connect-and-orient/2026-09-22" },
 ]
 closed = [
   # Closed 2026-09-20, and narrower than first written. The owner-approved
