@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createStudioService,
+  dispatchRequest,
   type ExecutionStartResult,
   type IdFactory,
   type NotificationPublisher,
@@ -563,6 +564,78 @@ describe("Studio Service persistence integration", () => {
       },
     ]);
     harness.service.close();
+  });
+
+  it("refuses a revision base that is not a Product Intent, with its id", () => {
+    // Reachable through the public protocol: nothing requires a stored
+    // revision's content to be a Product Intent, so `artifact.revise` against
+    // one maps the base through `domainRevision` and refuses. The payload is
+    // `resourceErrorData`, which the contract binds to -32002 -- it carried
+    // that shape under -32004 for a while, and the transport's normalization
+    // discards a payload its code's declared shape does not admit, so the
+    // revision id reached no caller at all.
+    const harness = createHarness();
+    const workspace = harness.service.createWorkspace({
+      name: "Not an intent",
+    });
+    harness.storage.transaction((tx) => {
+      tx.createArtifact({
+        id: "artifact-not-intent",
+        workspaceId: workspace.id,
+        artifactType: "product-intent",
+        title: "Stored as something else",
+        seedKey: null,
+        acceptedRevisionId: null,
+      });
+      tx.insertRevision({
+        id: "revision-not-intent",
+        artifactId: "artifact-not-intent",
+        schemaVersion: "1",
+        content: { openQuestions: [] },
+        producer: "human",
+        transformationId: null,
+        inputRevisionIds: [],
+        createdAt: timestamp,
+      });
+      tx.appendLifecycleState({
+        revisionId: "revision-not-intent",
+        status: "proposed",
+        occurredAt: timestamp,
+      });
+    });
+
+    const response = dispatchRequest(harness.service, {
+      jsonrpc: "2.0",
+      id: "revise-not-intent",
+      method: "artifact.revise",
+      params: {
+        artifactId: "artifact-not-intent",
+        baseRevisionId: "revision-not-intent",
+        content: {
+          title: "A valid intent",
+          outcome: "An outcome",
+          opportunity: "An opportunity",
+          targetUsers: ["someone"],
+          assumptions: [],
+          guardrails: [],
+          nonGoals: [],
+          confidence: "low",
+          openQuestions: [],
+        },
+      },
+    });
+
+    expect(response).toMatchObject({
+      id: "revise-not-intent",
+      error: {
+        code: -32002,
+        data: {
+          kind: "resource",
+          resourceType: "artifact-revision",
+          id: "revision-not-intent",
+        },
+      },
+    });
   });
 
   it("AC-14 states a missing initiative rather than inventing one", () => {
