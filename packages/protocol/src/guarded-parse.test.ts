@@ -1,16 +1,19 @@
 /**
- * The northbound transport site's guards, AC-0056 and AC-0057.
+ * The northbound guards themselves, AC-0056 and AC-0057.
  *
- * `guarded-parse.ts` carries the helper's own unit coverage. These cases bind
- * the **transport call site** in `validator.ts`, because a guard proven only
- * for the helper is not proven where it is used — which is the defect class
- * this whole slice exists to close.
+ * These cases bind the **helper**: each control, and each branch of the text
+ * scan the depth control rests on. The two **call sites** are bound elsewhere,
+ * because a guard proven only for the helper is not proven where it is used —
+ * which is the defect class this whole slice exists to close.
+ * `validator.test.ts` carries the transport site; `northbound-guard.test.ts`
+ * in the trial module carries the protocol-line site.
  */
 import { describe, expect, it } from "vitest";
 
 import {
   GuardedParseError,
   INADMISSIBLE_PARSE_KEYS,
+  jsonTextNestingDepth,
   PARSE_NESTING_DEPTH_BOUND,
   parseGuardedJson,
 } from "./guarded-parse.js";
@@ -40,6 +43,44 @@ describe("AC-0056 the depth bound is enforced before the parse it guards", () =>
     expect(
       parseGuardedJson(deeplyNestedJson(PARSE_NESTING_DEPTH_BOUND)),
     ).toBeDefined();
+  });
+
+  it("counts a closed container as closed, not as one more level", () => {
+    // Without the close-bracket decrement the scan measures total containers
+    // rather than depth. This line is 3 levels deep and holds
+    // PARSE_NESTING_DEPTH_BOUND + 20 sibling objects; the mutant measures 65
+    // and refuses it, which at the transport site disconnects over a
+    // well-formed message.
+    const flatSiblings = JSON.stringify({
+      type: "flat-siblings",
+      v: Array.from({ length: PARSE_NESTING_DEPTH_BOUND + 20 }, (_, i) => ({
+        i,
+      })),
+    });
+
+    expect(jsonTextNestingDepth(flatSiblings, PARSE_NESTING_DEPTH_BOUND)).toBe(
+      3,
+    );
+    expect(parseGuardedJson(flatSiblings)).toBeDefined();
+  });
+
+  it("reads a bracket inside a string value as text, not as structure", () => {
+    // The scan walks characters, so without the string-literal arm a bracket
+    // a repository put inside a *value* counts as nesting. The escaped quote
+    // is what separates the arm from a naive quote toggle: it must not end the
+    // string. This line is 1 level deep; the mutant measures 65 and refuses.
+    const bracketsInString = JSON.stringify({
+      type: "brackets-in-string",
+      v: `${"[".repeat(PARSE_NESTING_DEPTH_BOUND + 10)}"${"]".repeat(
+        PARSE_NESTING_DEPTH_BOUND + 10,
+      )}`,
+    });
+
+    expect(bracketsInString).toContain('\\"');
+    expect(
+      jsonTextNestingDepth(bracketsInString, PARSE_NESTING_DEPTH_BOUND),
+    ).toBe(1);
+    expect(parseGuardedJson(bracketsInString)).toBeDefined();
   });
 
   it("measures the text, not the parsed value", () => {

@@ -16,7 +16,7 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { STOP_REASONS } from "@agent-ready/protocol";
+import { parseGuardedJson, STOP_REASONS } from "@agent-ready/protocol";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
@@ -599,6 +599,40 @@ describe("the Service checks the line rather than trusting it", () => {
     // declares nothing.
     expect(report?.reads[0]?.refusal).toBe("unreadable");
     expect(report?.reads[0]?.value).toBeUndefined();
+  });
+
+  it("skips a read whose name is not a name, and keeps the one beside it", () => {
+    // Driven through the real guard rather than an object literal, because
+    // the defect is a property of what the guard yields: it rebuilds each
+    // object with a null prototype, so `String(read.name)` on a name that
+    // arrived as an object throws `TypeError` instead of producing
+    // "[object Object]". That throw escaped into the `settled` builder and
+    // discarded an otherwise completed inspection. The permitted read beside
+    // them is what separates a selective skip from a whole-line discard.
+    const line = parseGuardedJson(
+      JSON.stringify({
+        type: "declared",
+        reads: [
+          { name: { nested: "workspace.toml" }, encoding: "base64", text: "" },
+          null,
+          42,
+          {
+            name: STATE_DECLARATION_NAME,
+            encoding: "base64",
+            text: Buffer.from('schema-version = "7"\n', "utf8").toString(
+              "base64",
+            ),
+          },
+        ],
+      }),
+    ) as Record<string, unknown>;
+
+    const report = declaredFromProtocol([line]);
+
+    expect(report?.reads.map((read) => read.name)).toEqual([
+      STATE_DECLARATION_NAME,
+    ]);
+    expect(report?.versionMarker).toBe("7");
   });
 });
 

@@ -77,8 +77,10 @@ export function withoutInadmissibleKeys(document: unknown): unknown {
  * run. Counting brackets outside string literals is the only check that
  * precedes it.
  *
- * The scan stops as soon as the bound is exceeded, so a hostile document costs
- * no more than the prefix it takes to refuse it.
+ * The scan stops as soon as the bound is exceeded, so a document that breaches
+ * the depth bound costs no more than the prefix it takes to refuse it. A
+ * document that stays within the bound is walked in full, which is the same
+ * single pass over the text that the parse behind it already makes.
  */
 export function jsonTextNestingDepth(text: string, stopAt: number): number {
   let depth = 0;

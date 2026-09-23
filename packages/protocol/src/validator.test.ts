@@ -78,8 +78,19 @@ describe("StudioTransport guards the northbound envelope", () => {
     );
 
     const seen: Record<string, unknown>[] = [];
-    transport.subscribe("workspace.created", (params) => {
-      seen.push(params as unknown as Record<string, unknown>);
+    const sentinelArrived = new Promise<void>((settle) => {
+      transport.subscribe("workspace.created", (params) => {
+        const received = params as unknown as Record<string, unknown>;
+        seen.push(received);
+        // Settle on the stream rather than on a fixed delay. The two
+        // notifications are written to one stream in order, so the second
+        // arriving means the first was already admitted or rejected; keying on
+        // the sentinel rather than on a count keeps a removed guard a failed
+        // assertion below instead of a timeout.
+        if (received.workspaceId === "clean") {
+          settle();
+        }
+      });
     });
 
     const base = {
@@ -109,7 +120,7 @@ describe("StudioTransport guards the northbound envelope", () => {
         params: { ...base, workspaceId: "clean" },
       })}\n`,
     );
-    await new Promise((settle) => setTimeout(settle, 30));
+    await sentinelArrived;
 
     const ids = seen.map((params) => params.workspaceId);
     expect(ids).toContain("clean");
@@ -118,6 +129,64 @@ describe("StudioTransport guards the northbound envelope", () => {
       expect(Object.hasOwn(params, "__proto__")).toBe(false);
     }
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    transport.shutdown();
+  });
+
+  it("AC-0057 delivers a freshly normalized envelope, not the parsed line", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    let delivered: Record<string, unknown> | undefined;
+    const arrived = new Promise<void>((settle) => {
+      transport.subscribe("workspace.created", (params) => {
+        delivered = params as unknown as Record<string, unknown>;
+        settle();
+      });
+    });
+
+    responses.write(
+      `${JSON.stringify({
+        jsonrpc: "2.0",
+        method: "workspace.created",
+        params: {
+          protocolVersion: "1",
+          occurredAt: "2026-09-23T12:00:00.000Z",
+          workspaceId: "fresh",
+          invented: "carried nowhere",
+        },
+      })}\n`,
+    );
+    responses.write(
+      `${JSON.stringify({
+        jsonrpc: "2.0",
+        method: "workspace.created",
+        params: {
+          protocolVersion: "1",
+          occurredAt: "2026-09-23T12:00:00.000Z",
+          workspaceId: "fresh-2",
+        },
+      })}\n`,
+    );
+    await arrived;
+
+    // AC-0057's third clause at this site. The guard rebuilds the parsed line
+    // with a null prototype, and strict validation then builds the envelope a
+    // subscriber receives from the schema's named fields alone. So the
+    // delivered object carrying an ordinary prototype is what proves it is a
+    // fresh construction rather than the parsed line handed on: handing
+    // `message.params` to the listener instead of the validated value reddens
+    // here, and nothing a line invented beyond the named fields can travel.
+    expect(delivered).toBeDefined();
+    expect(Object.getPrototypeOf(delivered as object)).not.toBeNull();
+    expect(Object.keys(delivered as object)).not.toContain("invented");
+    // The first notification is the one that carried the invented field, and
+    // strict validation refused the whole envelope rather than trimming it, so
+    // the subscriber's first delivery is the clean one.
+    expect(delivered?.workspaceId).toBe("fresh-2");
     transport.shutdown();
   });
 });

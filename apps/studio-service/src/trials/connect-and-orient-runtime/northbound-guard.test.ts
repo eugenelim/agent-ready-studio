@@ -3,11 +3,11 @@
  * own call site.
  *
  * `guarded-parse.test.ts` in `@agent-ready/protocol` carries the helper's unit
- * coverage and the transport site's cases. This file carries the other
- * northbound site: the protocol line a real Runtime child writes and
- * `runtime-supervisor.ts` parses. A guard proven only for the helper is not
- * proven where it is used, which is the defect class this slice exists to
- * close.
+ * coverage and `validator.test.ts` carries the transport site. This file
+ * carries the other northbound site: the protocol line a real Runtime child
+ * writes and `runtime-supervisor.ts` parses. A guard proven only for the
+ * helper is not proven where it is used, which is the defect class this slice
+ * exists to close.
  *
  * Every test spawns a real detached process group, so this file carries the
  * same allowance, and the same reason, as the other process-tree suites.
@@ -79,11 +79,14 @@ describe("AC-0056 at the northbound protocol line", () => {
 
   it("admits a line at exactly the bound", async () => {
     // Paired with the case above, so the comparison itself is bound rather
-    // than only its far side.
+    // than only its far side. The interior array carries `bound - 1` brackets
+    // because the enclosing object is the first level, which makes the line's
+    // measured text depth exactly the bound; at `bound - 2` it measured 63 and
+    // a `>` turned `>=` was admitted at both ends and survived here.
     const depth = PARSE_NESTING_DEPTH_BOUND;
     const atBound = JSON.stringify({
       type: "at-bound",
-      deep: JSON.parse(`${"[".repeat(depth - 2)}1${"]".repeat(depth - 2)}`),
+      deep: JSON.parse(`${"[".repeat(depth - 1)}1${"]".repeat(depth - 1)}`),
     });
     const record = await run("northbound-at-bound", {
       rawStdoutLines: [atBound],
@@ -167,5 +170,83 @@ describe("AC-0057 at the northbound protocol line", () => {
     );
     expect(audited).toBeDefined();
     expect(Object.hasOwn(audited as object, "invented")).toBe(false);
+  });
+
+  describe("a line that under-supplies a criterion-named field", () => {
+    // One run serves all three cases: each spawns a real detached process
+    // group.
+    // The three hostile lines sit beside one well-formed line, which is what
+    // separates a selective skip from a discard of the whole audit.
+    let record: TrialInspectionRecord;
+
+    beforeAll(async () => {
+      record = await run("northbound-named-field-types", {
+        rawStdoutLines: [
+          // A named field arriving as an object: the guard rebuilt it with a
+          // null prototype, so coercing it throws rather than yielding
+          // "[object Object]".
+          JSON.stringify({
+            type: "spawn",
+            entry: {
+              executable: { nested: 1 },
+              args: [],
+              environmentNames: [],
+            },
+          }),
+          // A named field arriving as a structured argument vector.
+          JSON.stringify({
+            type: "spawn",
+            entry: {
+              executable: "/usr/bin/false",
+              args: [{ nested: 1 }],
+              environmentNames: [],
+            },
+          }),
+          // No entry at all.
+          JSON.stringify({ type: "spawn" }),
+          JSON.stringify({
+            type: "spawn",
+            entry: {
+              executable: "/usr/bin/env",
+              args: ["-0"],
+              environmentNames: ["PATH"],
+            },
+          }),
+        ],
+      });
+    });
+
+    it("still completes the inspection", () => {
+      // The lines are parsed inside the `settled` builder, so a `TypeError`
+      // raised while normalizing one of them rejected `settled` and discarded
+      // an otherwise completed inspection -- the guard turning a hostile line
+      // into a denial of the whole run.
+      expect(record.completedResponse).toBe(true);
+    });
+
+    it("contributes no audit entry for any of them", () => {
+      // Filling the entry in would put an empty executable, or a coerced
+      // object, into the record as Studio's own account of what it spawned.
+      expect(record.spawnAudit.map((entry) => entry.executable)).not.toContain(
+        "/usr/bin/false",
+      );
+      for (const entry of record.spawnAudit) {
+        expect(typeof entry.executable).toBe("string");
+        expect(entry.executable).not.toBe("");
+        expect(entry.executable).not.toContain("[object");
+        for (const argument of entry.args) {
+          expect(typeof argument).toBe("string");
+        }
+      }
+    });
+
+    it("keeps the well-formed line beside them", () => {
+      const audited = record.spawnAudit.find(
+        (entry) => entry.executable === "/usr/bin/env",
+      );
+      expect(audited).toBeDefined();
+      expect(audited?.args).toEqual(["-0"]);
+      expect(audited?.environmentNames).toEqual(["PATH"]);
+    });
   });
 });
