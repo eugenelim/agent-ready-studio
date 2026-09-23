@@ -66,9 +66,12 @@ describe("AC-0056 the depth bound is enforced before the parse it guards", () =>
 
   it("reads a bracket inside a string value as text, not as structure", () => {
     // The scan walks characters, so without the string-literal arm a bracket
-    // a repository put inside a *value* counts as nesting. The escaped quote
-    // is what separates the arm from a naive quote toggle: it must not end the
-    // string. This line is 1 level deep; the mutant measures 65 and refuses.
+    // a repository put inside a *value* counts as nesting. This line is 1
+    // level deep; that mutant measures 65 and refuses it. The escape arms are
+    // bound by the case below, not here: this fixture's quote flips are even,
+    // so a naive toggle leaves the string at the escaped quote, the closing
+    // brackets only decrement, the trailing quote re-enters, and the measured
+    // depth is 1 either way.
     const bracketsInString = JSON.stringify({
       type: "brackets-in-string",
       v: `${"[".repeat(PARSE_NESTING_DEPTH_BOUND + 10)}"${"]".repeat(
@@ -81,6 +84,25 @@ describe("AC-0056 the depth bound is enforced before the parse it guards", () =>
       jsonTextNestingDepth(bracketsInString, PARSE_NESTING_DEPTH_BOUND),
     ).toBe(1);
     expect(parseGuardedJson(bracketsInString)).toBeDefined();
+  });
+
+  it("does not let an escaped quote end a string value", () => {
+    // The escape arms are the scan's third structural branch. Without them a
+    // naive quote toggle treats the escaped quote as the end of the string, so
+    // everything after it is read as structure. The brackets sit *after* an
+    // odd escaped quote for exactly that reason -- with an even number of
+    // flips the toggle re-enters a string and measures the same depth the real
+    // scan does, which is how the fixture above misses this branch.
+    const escapedQuote = JSON.stringify({
+      type: "escaped-quote",
+      v: `a"${"[".repeat(PARSE_NESTING_DEPTH_BOUND + 10)}`,
+    });
+
+    expect(escapedQuote).toContain('\\"');
+    expect(jsonTextNestingDepth(escapedQuote, PARSE_NESTING_DEPTH_BOUND)).toBe(
+      1,
+    );
+    expect(parseGuardedJson(escapedQuote)).toBeDefined();
   });
 
   it("measures the text, not the parsed value", () => {
