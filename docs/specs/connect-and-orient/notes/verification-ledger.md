@@ -6687,3 +6687,93 @@ Each was adjudicated as determined by the tree with nothing to choose, three of 
 this notes file rather than in contract, and none is a Blocker. That is the reason they were
 applied rather than carried; it is not a claim that they are reviewed. **A later round should
 read these four first.**
+
+## t15-evidence
+
+T15, the northbound result line guarded at both parse sites. Revision
+`4d0fef73b69ca080d6db7ef37a1e9ded748f6731`.
+
+### What moved, and why it had to
+
+`packages/protocol` now hosts `INADMISSIBLE_PARSE_KEYS`, `isInadmissibleKey`,
+`withoutInadmissibleKeys`, both depth scans, `PARSE_NESTING_DEPTH_BOUND` and a new
+`parseGuardedJson`. One of the two northbound sites is `validator.ts` inside that package,
+which cannot import from `apps/`, so a guard hosted in the trial module could not reach it.
+`apps/studio-service` already depends on the protocol package, so no workspace dependency was
+added. The bound moved with the scans rather than being copied, so one canonical 64 reaches both
+sites; the trial module re-exports exactly the surface that path carried before, and the two new
+names are not given a second home there.
+
+### Mutation proof
+
+| Mutant | Result |
+| --- | --- |
+| protocol-line site guarded | **killed** |
+| transport site guarded | **killed** |
+| depth bound fires before the parse | **killed** |
+| rebuild supplies null prototypes | **killed** |
+| spawn-audit normalization copies named fields only | **killed** |
+| inadmissible keys, **both** limbs removed | **killed**, 8 of 65 |
+| inadmissible keys, reviver alone | survives |
+| inadmissible keys, rebuild alone | survives |
+
+The last two are redundancy, not weak assertions: the reviver drops a key as the parse produces
+it and the rebuild drops it again, so removing either alone is unobservable while removing both
+reddens eight cases. The control is bound; neither limb is individually necessary. Both stay,
+because a trust boundary is not where a second answer gets cut.
+
+### Two defects the new cases found
+
+**The first transport case was vacuous.** It wrote a deeply nested *array*, which is also an
+invalid protocol message, so the pre-existing shape check disconnected whether or not the guard
+existed — replacing `parseGuardedJson` with `JSON.parse` left all seventeen cases green. It now
+sends a structurally valid `workspace.created` notification whose params nest past the bound;
+without the guard that parses, fails strict validation, is dropped silently, and the pending
+request times out instead of rejecting as `disconnected`. The inadmissible-key case binds the
+same way round: the guard drops the key, which makes the notification valid, so its **arrival**
+is the proof.
+
+**`childSpawnAudit` consumed the parsed object's shape.** It returned `line.entry` wholesale, so
+a field a protocol line invented travelled into the record a reader treats as Studio's own
+account of what it spawned — AC-0057's third clause, unmet at that site. It now copies only the
+five criterion-named fields onto a freshly constructed object.
+
+## t13-evidence-2026-09-23
+
+T13's **mechanical half only**, re-taken against `4d0fef7` because T15 changed
+`packages/protocol` and `apps/studio-service` after the previous delivery evidence was recorded.
+The amendment reordered T13 behind T15 for exactly this reason.
+
+### What was observed
+
+- `git diff --check` clean, on the working tree and across the last two commits.
+- **Full test suite green: 731 passed, 3 skipped of 734**, at load average 93.
+- `pnpm lint`, `pnpm typecheck`, `pnpm governance` and `pnpm build` each exit 0.
+- **Live smoke, networked:** `CONNECT_ORIENT_E2E_NETWORK=1` against the real built Runtime child,
+  **7 of 7 cases**, including the two normally skipped. Upstream HEAD resolved was
+  `7fd1a60b01f91b314f59955a4e4d4e80d8edf11d`; the projection reached is `inspector-unavailable`,
+  which is what the case asserts and is the honest terminal state for a slice that runs no
+  inspector.
+
+### What was not observed, and why
+
+`pnpm verify` as a **single invocation** did not exit 0 in four attempts — 5, 11, 7 and 7
+failures, every one in `disposal.test.ts` or `runtime-supervisor.test.ts`. Both pass twice in
+isolation on this revision, as do the other suites this change touches. `pnpm verify` runs lint,
+typecheck, governance and a build before the tests, so it loads the host harder than a bare run,
+which is consistent with the bare run going green minutes earlier. This is
+`pre-existing-trial-runtime-load-flake`; see
+`slice-f1-step-b-2026-09-22` for the parallel-versus-serial experiment that rules out file
+parallelism and identifies host load as the predictor.
+
+**Three of T13's obligations are not discharged and remain open:**
+
+- the recorded gesture and observed outcome for each Visual / manual QA criterion — AC-0114,
+  AC-0129, AC-0130, AC-0131, AC-0132 — which need a rendered desktop app and a human observation;
+- the four manual-QA transport observations, AC-0009's redirect refusal on both phases, AC-0024's
+  helper environment, AC-0025's helper admission and AC-0030's absence of a surviving helper,
+  which *Follow-ons* records as carried by T13's manual smoke because they need an https endpoint
+  AC-0148 forbids;
+- the Stage 2 visual evidence, which is published by a whole-directory swap. It was not run.
+
+T13 therefore stays open. Nothing here claims otherwise, and no acceptance verdict moved.
