@@ -5,11 +5,13 @@ import ajvFormatsModule from "ajv-formats";
 import { describe, expect, it } from "vitest";
 
 import {
+  validErrorFixtures,
   validNotificationFixtures,
   validRequestFixtures,
   validResultFixtures,
 } from "./fixtures.js";
 import {
+  errorDataSchemas,
   notificationSchemas,
   requestSchemas,
   resultSchemas,
@@ -23,6 +25,7 @@ type CanonicalProtocolSchema = AnySchemaObject & {
   $id: string;
   "x-studio": {
     methodResults: Record<StudioMethod, string>;
+    errorCodes: Record<string, string>;
   };
 };
 
@@ -92,6 +95,51 @@ describe("protocol contract fixtures", () => {
         method,
         params,
       });
+  });
+
+  it("AC-0057 keeps the error-data mirror and the canonical schema in step", () => {
+    // The transport rebuilds an error payload from the fields its code
+    // declares and discards one its declared shape does not admit, so a zod
+    // table that drifts from the contract silently deletes a valid diagnostic
+    // or admits what the contract forbids. Nothing bound the two together,
+    // and that drift had already happened on the emitting side unobserved.
+    const canonicalCodes = Object.keys(
+      canonicalProtocolSchema["x-studio"].errorCodes,
+    ).sort();
+    expect(Object.keys(errorDataSchemas).sort()).toEqual(canonicalCodes);
+    expect(Object.keys(validErrorFixtures).sort()).toEqual(canonicalCodes);
+
+    for (const [code, data] of Object.entries(validErrorFixtures)) {
+      // Both directions for every code: the canonical schema admits the whole
+      // envelope, and the zod mirror admits its payload.
+      expectCanonicalValid(validateCanonicalProtocol, {
+        jsonrpc: "2.0",
+        id: "request-1",
+        error: { code: Number(code), message: "Error", data },
+      });
+      expect(
+        errorDataSchemas[code as keyof typeof errorDataSchemas].safeParse(data)
+          .success,
+      ).toBe(true);
+    }
+
+    // The rejection half, which is what catches a widening. A `-32004` payload
+    // carrying a `resource` kind is exactly the divergence the Service shipped:
+    // the contract forbids it for that code, and the mirror must too, or the
+    // transport starts admitting a shape the contract does not declare.
+    const forbidden = {
+      kind: "resource",
+      resourceType: "artifact-revision",
+      id: "ar-1",
+    };
+    expect(errorDataSchemas["-32004"].safeParse(forbidden).success).toBe(false);
+    expect(
+      validateCanonicalProtocol({
+        jsonrpc: "2.0",
+        id: "request-1",
+        error: { code: -32004, message: "Error", data: forbidden },
+      }),
+    ).toBe(false);
   });
 
   it("AC-14 rejects the removed Home variants in the Zod mirror and canonical schema", () => {

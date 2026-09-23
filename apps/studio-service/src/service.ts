@@ -147,7 +147,7 @@ export function dispatchRequest(
   if (
     isRecord(request) &&
     typeof request.method === "string" &&
-    !(request.method in requestSchemas)
+    !Object.hasOwn(requestSchemas, request.method)
   )
     return errorResponse(id, -32601, "Method not found", {
       kind: "resource",
@@ -825,9 +825,16 @@ function domainRevision(revision: {
   // mapping and land in the catch-all as an opaque internal error.
   if (!content.success)
     throw new DispatchFailure(-32004, "Revision base is not a Product Intent", {
-      kind: "resource",
+      // `-32004` is `conflictError` in the contract, whose payload is
+      // `conflictErrorData`: a `conflict` kind and a `currentStatus`. This
+      // carried a `resource` kind, which the contract forbids for this code,
+      // and the transport's normalization refuses a payload its declared
+      // shape does not admit -- so the revision id was being dropped on an
+      // ordinary `artifact.revise` against a non-Product-Intent artifact.
+      kind: "conflict",
       resourceType: "artifact-revision",
       id: revision.id,
+      currentStatus: revision.status,
     });
   return { ...revision, content: content.data };
 }
