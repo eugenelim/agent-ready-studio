@@ -179,6 +179,43 @@ describe("StudioTransport guards the northbound envelope", () => {
     transport.shutdown();
   });
 
+  it("AC-0057 resolves a method name only against declared methods", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      // `toString` is an own property of no schema table and an inherited
+      // property of every object literal. With `in`, this passed the
+      // membership test and `safeParse` was then read off
+      // `Object.prototype.toString` -- a function with no such method. The
+      // throw left `consume` inside the readable's data listener, which the
+      // repository installs no `uncaughtException` handler for, so it ended
+      // the host process rather than taking this site's disconnected outcome.
+      responses.write('{"jsonrpc":"2.0","method":"toString","params":{}}\n');
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          result: { kind: "health", status: "ok", protocolVersion: "1" },
+        })}\n`,
+      );
+    });
+
+    // The pending request is the observable: an undeclared method name is
+    // ignored quietly, so the result written behind it still resolves. Under
+    // the `in` form the throw aborts the consume loop before that line is
+    // read, and the request settles as a timeout instead.
+    await expect(transport.request("health.get", {})).resolves.toMatchObject({
+      kind: "health",
+    });
+    transport.shutdown();
+  });
+
   it("AC-0057 rebuilds the error payload a caller receives", async () => {
     const responses = new PassThrough();
     const requests = new PassThrough();
@@ -208,13 +245,58 @@ describe("StudioTransport guards the northbound envelope", () => {
     );
 
     // The transport's second consumer boundary. `error.data` resolves to the
-    // caller of `request`, so the guard's rebuild is observable here even
-    // though it is not at the subscriber boundary, where strict validation
-    // replaces the envelope first. This is the assertion that binds AC-0057's
-    // null-prototype clause at this site: removing the rebuild leaves the
-    // parsed subtree with an ordinary prototype and reddens it.
-    expect(refusal?.data).toBeDefined();
-    expect(Object.getPrototypeOf(refusal?.data as object)).toBeNull();
+    // caller of `request` and to the desktop IPC reply, and it used to be the
+    // parsed subtree itself. AC-0057's third clause at this site: what leaves
+    // is built from the fields the contract declares for this code, so an
+    // ordinary prototype is what proves the caller holds a fresh construction
+    // rather than the guarded parse -- forwarding `message.error.data` again
+    // reddens this, because the guard nulls that object's prototype.
+    expect(refusal?.data).toMatchObject({ kind: "validation" });
+    expect(Object.getPrototypeOf(refusal?.data as object)).not.toBeNull();
+    transport.shutdown();
+  });
+
+  it("AC-0057 yields no error payload a declared shape does not admit", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32602,
+            message: "Invalid params",
+            data: {
+              kind: "validation",
+              issues: [],
+              invented: "carried nowhere",
+            },
+          },
+        })}\n`,
+      );
+    });
+
+    const refusal = await transport.request("health.get", {}).then(
+      () => undefined,
+      (cause: unknown) =>
+        cause as { kind?: string; code?: number; data?: unknown },
+    );
+
+    // Refused whole rather than trimmed, which is how this site answers every
+    // other payload that does not match its declared shape. The code and
+    // message still reach the caller, so the refusal costs only the payload.
+    // `null`, not `undefined`: that is this class's own absent value for the
+    // field, which its constructor defaults to.
+    expect(refusal?.data).toBeNull();
+    expect(refusal?.kind).toBe("service");
+    expect(refusal?.code).toBe(-32602);
     transport.shutdown();
   });
 
