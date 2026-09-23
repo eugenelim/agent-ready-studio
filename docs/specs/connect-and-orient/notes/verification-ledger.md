@@ -7048,3 +7048,110 @@ Three items, none of them resolvable from the code:
    limit, and the pre-parse scan costs a multiple of the parse it guards — measured 76.2 ms against
    3.7 ms on 8 MiB of one large ASCII string value. Both halves would add a control the immutable
    spec does not carry; a bound needs a new *Resource bounds* row.
+
+## t15-owner-decisions-2026-09-23
+
+Round 12 carried three items to the owner. All three were answered on 2026-09-23, and this entry
+records what each answer changed. The round's one **indeterminate** is resolved by the second.
+
+| Question | Owner's answer |
+| --- | --- |
+| Does AC-0057's third clause reach the transport's `error.data`? | Normalize recognized codes only |
+| Is the `in` lookup at `validator.ts:880` admitted into T15? | Fix now in T15 |
+| Does the transport get a byte bound? | Reduce the scan cost now; the bound is routed to *Follow-ons* |
+
+### The error payload is rebuilt from the shape its code declares
+
+`contracts/jsonschema/studio-protocol-v1.schema.json` already declares a `data` shape for each of
+nine error codes, every one with `additionalProperties: false`, and the protocol package carried no
+schema for any of them — so the error path was the one delivery path at this site that forwarded
+the parsed object rather than a value rebuilt from named fields. The five declared shapes are now
+zod schemas keyed by code, and both error branches deliver through them. A payload a declared shape
+does not admit yields no payload rather than a trimmed one, which is how this site already answers
+every other envelope that fails validation; the code and message still reach the caller, so the
+refusal costs only the payload. A code the contract does not list keeps arriving as it did, because
+the contract names no envelope for one and inventing a shape here would be a control the contract
+does not determine. That residual is recorded, not closed.
+
+**This changed what the transport site can prove, and in the honest direction.** Round 12 bound
+AC-0057's null-prototype clause at the error-data boundary precisely because the parsed subtree
+escaped there. Normalizing it means **no parsed object now reaches any consumer of this site, on
+any path** — so that observable is gone again, and the clause's own case was rewritten to assert
+the opposite: an *ordinary* prototype, which is what proves the caller holds a fresh construction
+rather than the guarded parse. At this site clauses two and three therefore collapse into one
+observable, and the reason is stronger than round 11's: not that validation replaces the value at
+one boundary, but that nothing parsed is handed out anywhere. Round 11's conclusion was still
+wrong when it was written, because `error.data` did escape then.
+
+### The method lookup, and one guard that binds nothing
+
+`notificationSchemas` is a plain object literal, so `message.method in notificationSchemas` was
+true for every `Object.prototype` name. A line naming `toString` passed the test and `safeParse`
+was then read off a function that has no such method; the throw left `consume` inside the
+readable's data listener, which no `uncaughtException` handler covers, so it ended the host process
+instead of taking this site's disconnected outcome. `Object.hasOwn` fixes it, and a case binds it:
+an undeclared method name is ignored quietly, so a result written behind it still resolves.
+
+The same change was made to the error-data table, and **it binds nothing, which is recorded rather
+than dressed up.** That lookup keys on `String(code)` behind a `typeof code !== "number"` guard, so
+every key is a stringified number and none can name an inherited property. The mutant turning it
+back into `in` survives, correctly — there is no behaviour to bind. It stays because it is the
+right idiom if the key derivation ever changes, not because a case covers it.
+
+### The scan's cost, measured three ways
+
+The pre-parse scan walked code points through a string iterator. It now indexes UTF-16 units, which
+is identical for the six ASCII characters it looks for, none of which can be half of a surrogate
+pair. Measured on 8 MiB of one large string value, against `JSON.parse`'s 3.8 ms on the same text:
+
+| Form | Cost | Ratio to the parse |
+| --- | ---: | ---: |
+| `for...of` over code points | 76.2 ms | 20.5x |
+| indexed characters | 26.0 ms | 6.8x |
+| `charCodeAt` comparisons | 25.9 ms | 6.8x |
+
+**The third form was written, measured and then reverted.** It was indistinguishable from the
+second, so it bought six constants and a less readable loop for nothing; the engine already
+optimizes single-character indexing. The scan is still a multiple of the parse and that is stated
+rather than claimed closed. The transport's missing byte bound is untouched and routed to
+*Follow-ons*, because bounding it needs a new *Resource bounds* row.
+
+### Mutation proof
+
+| Mutant | Bound by | Result |
+| --- | --- | ---: |
+| notification method resolved with `in` | `validator.test.ts` | **killed**, 1 of 15 |
+| error path forwards the parsed payload | `validator.test.ts` | **killed**, 2 of 14 |
+| error payload trimmed rather than refused | `validator.test.ts` | **killed**, 1 of 14 |
+| error data table resolved with `in` | — | **survives by construction**, see above |
+| depth scan has no escape arms | `guarded-parse.test.ts` | **killed**, 1 of 10 |
+| depth scan never decrements on a close bracket | `guarded-parse.test.ts` | **killed**, 1 of 10 |
+
+The first two counts differ because the undeclared-method case was added between the runs; each
+count is the totals line of the run that produced it.
+
+### Gate evidence, and a load theory this round falsified
+
+`pnpm lint`, `pnpm typecheck`, `pnpm governance` and `pnpm verify` all exit 0. The clean run is
+**745 passed, 3 skipped, 0 failed across 55 files**.
+
+It took three attempts, and the sequence is worth recording because it contradicts a threshold this
+session had started to believe:
+
+| Attempt | One-minute load | Result |
+| --- | ---: | --- |
+| 1 | 36.1 | 4 failed, then 7 on a repeat — varying sets across `disposal.test.ts` and `runtime-supervisor.test.ts` |
+| 2 | 19.4 | 1 failed — `AC-0025`, the recorded case |
+| 3 | **101.1** | **clean** |
+
+A clean run at load 101 and a red one at 19.4 leave no threshold standing. This session had inferred
+a band from a handful of points and was wrong; the rule already recorded at
+`#review-round-22-2026-09-17` is the correct one — the failures track *what else the host is doing*,
+not the load number, so a red run is judged only when the same tests fail twice in isolation.
+
+Causality was checked rather than assumed, because four simultaneous failures is more than the
+recorded signature. The changed files were reverted to the previous commit and `disposal.test.ts`
+ran three times green at loads 27 to 32; restored, it ran three times green at loads 23 to 24. With
+the failing sets varying between runs, several failures reported at 0 to 7 ms as a shared-hook
+cascade, and nothing in this round's diff lying on the path to process-group teardown or per-request
+directory removal, the change is not implicated.
