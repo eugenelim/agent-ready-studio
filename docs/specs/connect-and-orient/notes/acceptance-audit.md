@@ -244,18 +244,26 @@ Citations that already carry a prefix — `e2e/connect-and-orient.test.ts`, `mai
 
 ### Reading the version marker — 1 met, 6 not met
 
-Every criterion here except AC-0058 rests on `readDeclaredValues`, `normalizeDeclared` or
-`parseDeclared`, none of which has a production caller. The Runtime performs **no declared-value
-read at all**.
+**Current as of the 2026-09-22 step B, per function.** `parseDeclared` and `normalizeDeclared`
+are called on the production path, at `runtime-supervisor.ts:857` and `:869`. The **exported**
+`readDeclaredValues` at `declared-value-reader.ts:319` still has only test callers; the live
+reader is the module-private function of the same name at `runtime-child.ts:595`, called at
+`:1182`. So the Runtime does now perform a declared-value read, and the rows below carry each
+criterion's current basis.
+
+Before that step, every criterion here except AC-0058 rested on `readDeclaredValues`,
+`normalizeDeclared` or `parseDeclared`, none of which had a production caller, and the Runtime
+performed no declared-value read at all. That is the shape finding 1 attributes these criteria
+to, and it is why the attribution of AC-0056 and AC-0057 there reads as it does.
 
 | AC | Verdict | F | Binding | Note |
 | --- | --- | --- | --- | --- |
 | AC-0054 | **not met** | S | declared-value-reader.test.ts:78-97 | confinement is real but never exercised — zero production callers |
 | AC-0055 | **not met** | S | declared-value-reader.test.ts:101-138 | both bounds checked before the read, in a function production never calls |
-| AC-0056 | **not met** | S | declared-value-reader.test.ts:142-177 | the criterion names three parse sites; only the unused reader is guarded. The northbound result line is parsed unguarded at runtime-supervisor.ts:413 and validator.ts:856 |
-| AC-0057 | **not met** | S | absence-proofs.test.ts:388-453 | every production JSON parse is unguarded — service.ts:1274, validator.ts:856, runtime-supervisor.ts:413, sweep.ts:127, storage.ts:1103 — and `parseGuardedToml`'s only caller is itself zero-caller |
+| AC-0056 | **not met** | S | declared-value-reader.test.ts:142-177 | the declared-value read is guarded and live as of the 2026-09-22 step B; the northbound result line is still parsed unguarded at runtime-supervisor.ts:575 and validator.ts:856. The inspector-output limb is inapplicable in this slice, recorded in the criterion. T15 carries the remainder |
+| AC-0057 | **not met** | S | absence-proofs.test.ts:388-453 | narrowed 2026-09-22 to AC-0056's reach, so the basis is the two in-reach sites: the declared-value read is guarded and live, and the northbound result line is unguarded at runtime-supervisor.ts:575 and validator.ts:856. The six parses outside the reach are enumerated in spec.md *Follow-ons* and no longer bear on this verdict. T15 carries the remainder |
 | AC-0058 | met | S | declared-value-reader.test.ts:246-264 | the clause is declared inapplicable by the spec, and the assertion reads the real manifest |
-| AC-0059 | **not met** | S | declared-value-reader.test.ts:268-322 | the three-row routing is bound as a pure mapping; no production code parses a declaration file, so no real failure reaches it |
+| AC-0059 | **not met** | S | declared-value-reader.test.ts:268-322 | production does now parse a declaration file, at `runtime-supervisor.ts:857`, and a refused read routes to `inspection-stopped` with the table's reason; the verdict stands on the northbound branch, which is unguarded until T15, and on the transport envelope being scoped out of the routing and distinct-diagnostic clauses |
 | AC-0060 | **not met** | W | declared-value-reader.test.ts:326-353 | the property follows from the field list the test passes in; the renderer never renders `declaredVersionMarker` |
 
 ### Version honesty and the verdict — 5 met, 3 not met
