@@ -601,6 +601,25 @@ describe("the Service checks the line rather than trusting it", () => {
     expect(report?.reads[0]?.value).toBeUndefined();
   });
 
+  it("yields no reads when the reads container is not an array", () => {
+    // The container arrives from the same untrusted line as its elements, so
+    // it takes the same treatment. Iterating it directly raised
+    // `TypeError: ... is not iterable` inside the `settled` builder, which
+    // discarded an otherwise completed inspection -- the element checks beside
+    // it could never run. A string is covered because a string *is* iterable,
+    // so it reached the loop and was the one shape that did not throw.
+    for (const hostile of [42, {}, true, "workspace.toml"]) {
+      const line = parseGuardedJson(
+        JSON.stringify({ type: "declared", reads: hostile }),
+      ) as Record<string, unknown>;
+
+      const report = declaredFromProtocol([line]);
+
+      expect(report?.reads).toEqual([]);
+      expect(report?.versionMarker).toBeUndefined();
+    }
+  });
+
   it("skips a read whose name is not a name, and keeps the one beside it", () => {
     // Driven through the real guard rather than an object literal, because
     // the defect is a property of what the guard yields: it rebuilds each

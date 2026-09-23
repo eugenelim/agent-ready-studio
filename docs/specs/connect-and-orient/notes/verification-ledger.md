@@ -6786,8 +6786,9 @@ ran post-gates; every report went through raw classification and independent adj
 any fix. Sustained after adjudication: 6 of 6 adversarial, 2 of 3 security, 4 of 15 quality —
 **twelve fingerprints, four of them Blockers**, deduplicating to four distinct Blockers because
 one adversarial Blocker and one security Concern name the same gap. Security refuted all three
-of its amplification questions: on the current tree the guard is not worse than the parse it
-replaced at any reachable input size.
+of its amplification questions. **Round 12 narrowed that refutation**: it holds at the supervisor
+site, whose scanned text is bounded at 8 MiB before the scan runs, and it was never measured at
+the transport site, which accumulates under no byte bound — see that round's entry.
 
 ### The round's own defect: the fix from round 10 was not total
 
@@ -6818,7 +6819,12 @@ access throw.
 
 The owner's remaining choice is recorded, not taken: the adjudication left drop-versus-surface
 open, and a refused line is currently dropped. Dropping is what every other refusal at this
-site already does; surfacing it as refused would add a new observable, which is the owner's call.
+site already does. The criterion at stake is AC-0025's second leg, "the exhaustive record of every
+spawn Studio's own code performs within that tree" (`spec.md:471`), and what keeps the drop
+diagnosable is that the line itself is retained: a `spawn` line whose named fields were unreadable
+still appears in `record.protocolLines`, and its raw text in `record.protocolStdout`. So the trace
+already exists and is distinguishable from a spawn line that never arrived. Surfacing the refusal
+as its own observable would add one, which is the owner's call.
 
 ### The depth scan's two structural branches had no binding case
 
@@ -6839,8 +6845,10 @@ Two helper cases now bind the branches, each measured on this tree:
 | 74 brackets inside one string value, 1 deep | 1 | 1 | **65** | 64 |
 
 Each fixture kills exactly one mutant, and the real guard admits both lines, so what the mutant
-costs is a good line refused. The bracket-in-string line carries an escaped quote, which is what
-separates the arm from a naive quote toggle.
+costs is a good line refused. **The claim that followed here — that the bracket-in-string line's
+escaped quote separates the arm from a naive quote toggle — was false, and round 12 replaced it.**
+That fixture's quote flips are even, so the toggle leaves the string at the escaped quote, the
+trailing brackets only decrement, and the measured depth is 1 either way.
 
 ### AC-0057's clauses at the transport site, and the one that cannot be observed there
 
@@ -6854,17 +6862,15 @@ subscriber boundary:
   from the schema's named fields, so handing `message.params` to the listener instead of the
   validated value reddens. An extra own field is refused with the whole envelope rather than
   trimmed, which the case asserts by which notification arrives first.
-- **Null prototypes** — **no falsifiable observable at this site.** Measured: the parsed line is
-  rebuilt with a null prototype, but what a subscriber receives is validation's fresh object, so
-  `Object.getPrototypeOf(params)` is not null. The clause as written describes the parsed value,
-  which no consumer of this site ever sees.
+- **Null prototypes** — no observable **at the subscriber boundary**: the parsed line is rebuilt
+  with a null prototype, but what a subscriber receives is validation's fresh object, so
+  `Object.getPrototypeOf(params)` is not null there.
 
-That last one is an open question about the plan's reach, not a gap to paper over, and it is
-carried to the owner rather than answered here. Writing a test-only seam to expose the parsed
-object would add a production observable for the sake of a case, which is the trade the `Cut
-before adding` rails refuse. The two candidate answers are: the clause's obligation does not
-reach a site whose normalization replaces the parsed object before delivery, or the plan's
-`Done when` is amended to say so.
+**The conclusion drawn from that last measurement was wrong, and round 12 discharged the clause.**
+This entry generalized one boundary to the whole site and routed a plan-reach question to the
+owner on that basis. The transport has a second consumer boundary — `error.data`, which reaches
+the caller of `request` — where the null prototype is directly observable and needs no test-only
+seam. The clause is bound there now. Nothing was amended and nothing was carried to the owner.
 
 A related check came back clean: `receive` reads `jsonrpc`, `method` and `id` straight off the
 guarded object, before validation, so it was a candidate for the same `TypeError`. Every one of
@@ -6881,7 +6887,7 @@ Seven mutants, each against the case that should bind it. All seven killed.
 | declared read trusts the `reads` element shape | `declared-read.test.ts` | **killed**, 1 of 36 |
 | depth scan never decrements on a close bracket | `guarded-parse.test.ts` | **killed**, 1 of 9 |
 | depth scan has no string-literal arm | `guarded-parse.test.ts` | **killed**, 1 of 9 |
-| depth bound compares `>=` instead of `>` | both at-bound cases | **killed**, 3 of 17 |
+| depth bound compares `>=` instead of `>` | both at-bound cases | **killed**, 2 of 17 |
 | transport hands the parsed line to the subscriber | `validator.test.ts` | **killed**, 1 of 11 |
 
 The first mutant reddens as a failed suite rather than a failed case: the three cases share a
@@ -6892,7 +6898,7 @@ mechanism, so the reason for the redness is the finding.
 
 | Finding | Severity | Applied |
 | --- | --- | --- |
-| The at-bound case measured 63, not 64, so `>` turned `>=` survived at that site | Nit ×2 | Interior brackets changed from `bound - 2` to `bound - 1`; measured 64. The comparison is now bound at both northbound sites |
+| The at-bound case measured 63, not 64, so `>` turned `>=` survived at that site | Nit ×2 | Interior brackets changed from `bound - 2` to `bound - 1`; measured 64. The comparison is bound at the helper and at the protocol-line site — **not** at the transport site, which round 12 added |
 | `guarded-parse.test.ts` claimed to bind the transport call site but never built a `StudioTransport`; `northbound-guard.test.ts` repeated the attribution | Nit | Both docblocks now say where each site is bound: the helper here, the transport in `validator.test.ts`, the protocol line in `northbound-guard.test.ts` |
 | The `rawStdoutLines` loop was inserted between a comment and its subject | Nit | Verified against `4d0fef7`: the comment pre-existed and headed the noise writes. It now covers both, which is what is true of both |
 | The depth scan's docstring claimed a hostile document costs only its refusing prefix | Nit | Narrowed: that holds for a document that breaches the bound. One within the bound is walked in full, which is the same single pass the parse behind it makes |
@@ -6916,3 +6922,129 @@ short-lived descendant leaves the child alone in the map. Nothing in this round 
 sampling; the changes are protocol-line normalization, one docstring and one comment. Both
 isolation runs of that file passed 26 of 26, at loads 50.2 and 45.1, and the next whole-suite run
 at load 36.8 was clean.
+
+## t15-review-round-12-2026-09-23
+
+Verification round on round 11's fix commit `bcaa155`, recorded as cohort round 8 at retry 7 under
+the owner's authorization. Three reviewers ran post-gates and each report went through raw
+classification and independent adjudication. Raw: 6 adversarial, 7 security, 6 quality. Sustained:
+5, 4 and 3 — **twelve sustained, five of them Blockers**, deduplicating to four distinct Blockers
+because the escaped-quote defect was found independently by two reviewers. Six raw findings were
+refuted and one was returned **indeterminate**, which is why the security adjudication does not
+classify: the gateway refuses a round carrying an item only the owner can settle.
+
+### Round 11's repair was itself partial, in the same direction
+
+Round 11 made a named field total and stopped at the field. Everything one level out was still
+partial, and two of those were reachable crashes rather than refusals:
+
+| Site | Untrusted input | What happened |
+| --- | --- | --- |
+| `runtime-supervisor.ts:587` then `:598` | a line that parses to `null` | `.type` read **outside** the `try` and inside `child.stdout.on("data")`. No `uncaughtException` handler exists, so the `TypeError` ends the Studio Service and every other in-flight request |
+| `runtime-supervisor.ts:892` | `reads: 42` | the element checks added in round 11 sit *inside* the loop, so the iterator lookup throws first, rejecting `settled` and discarding a completed inspection |
+
+Measured: `parseGuardedJson("null")` returns `null`, because the scan measures depth 0, `JSON.parse`
+yields `null`, and the rebuild returns a non-object unchanged. Both are now read rather than
+asserted — a line is established as a non-null, non-array object before it enters `protocolLines`,
+and a non-record line takes the `nonProtocolStdoutLines` answer the catch beside it already gives
+an unparseable one. The `reads` container is read like its elements. A string was the one hostile
+shape that did not throw, because a string is iterable; its characters were then dropped by the
+element check, which is why no case caught it.
+
+### The escaped-quote fixture bound nothing, and this ledger said it did
+
+Two reviewers found this independently, and it is the same defect class as round 11's own third
+Blocker — a structural arm of the scan with no binding case, recorded as bound. Round 11's fixture
+is 74 opening brackets, an escaped quote, then 74 closing brackets. Under a naive quote toggle the
+openers are still inside the string, the toggle leaves the string at the escaped quote, the closers
+only decrement, and the trailing quote re-enters so the closing brace is swallowed. `deepest` stays
+1 — the same value the real scan measures. Measured on this tree:
+
+| Fixture | Real scan | Naive toggle | Outcome |
+| --- | ---: | ---: | --- |
+| 74 brackets, escaped quote, 74 brackets (round 11's) | 1 | 1 | **survives** |
+| escaped quote, then 74 brackets (this round's) | 1 | **65** | killed |
+
+The lesson is narrower than "add a case": an **even** number of quote flips lets the toggle land
+back inside a string and agree with the real scan by accident. The new fixture puts the brackets
+after an odd escaped quote, and the old fixture's comment now says which branch it does and does
+not bind.
+
+### AC-0057's clauses at the transport site, re-measured over both consumer boundaries
+
+Round 11 measured the subscriber boundary and stated the conclusion for the whole site. The
+transport has two consumer boundaries, and the second one settles the question round 11 escalated:
+
+| Clause | Subscriber boundary | Error-data boundary |
+| --- | --- | --- |
+| Inadmissible keys | bound — the guard drops the key, which is what makes the notification valid, so its arrival is the proof | — |
+| Named-field normalization | bound — handing `message.params` to the listener instead of the validated value reddens | **not normalized**: both error branches forward `message.error.data` itself |
+| Null prototypes | not observable — strict validation replaces the envelope before delivery | **bound** — `error.data` reaches the caller of `request`, so the rebuild is directly observable |
+
+So the clause round 11 called unobservable is observable, and discharged, with no test-only seam.
+What remains is the middle cell: `error.data` crosses unnormalized. The contract names a `data`
+shape per error code with `additionalProperties: false`, but names no envelope for an unrecognized
+code, so normalizing every path would add a control the contract does not determine. That is
+carried to the owner as a scope question, and it is a real gap rather than a measurement error.
+
+The depth comparison is now bound at all three sites. The transport's at-bound case took two
+attempts, and the first was vacuous: asserting that a later notification still arrived proved
+nothing, because `disconnect` does not stop the stream being consumed. The observable that
+differs is a **pending request**, which a guard refusal rejects — so the case now issues one and
+asserts it resolves.
+
+### Mutation proof
+
+Six mutants, each against the case that should bind it. All six killed, every count read from the
+run's own totals rather than written by hand.
+
+| Mutant | Bound by | Result |
+| --- | --- | ---: |
+| depth scan has no escape arms (naive quote toggle) | `guarded-parse.test.ts` | **killed**, 1 of 10 |
+| depth bound compares `>=` instead of `>`, helper and protocol-line sites | both at-bound cases | **killed**, 2 of 19 |
+| depth bound compares `>=` instead of `>`, transport site | `validator.test.ts` | **killed**, 1 of 13 |
+| rebuild gives each object an ordinary prototype | three files | **killed**, 3 of 32 |
+| protocol line shape asserted rather than established | `northbound-guard.test.ts` | **killed**, 1 of 9 |
+| declared reads container iterated unchecked | `declared-read.test.ts` | **killed**, 1 of 37 |
+
+**Round 11's `2 of 17` row is corrected above, and the correction is the point.** That row read
+`3 of 17`. Only two cases in those two files construct a document of measured depth exactly 64, so
+no run of that mutant can redden three; the third failure came from the recorded load flake in the
+real-process file and was counted as a kill. The row now carries what the mutant produces, and the
+count was read from the totals line this round rather than from memory of the run.
+
+### Findings refuted, and what that saved
+
+Six raw findings did not survive adjudication, and three of them would have added or restated
+something the tree already carries. A request for a countable trace of a dropped `spawn` line was
+refuted because `protocolLines` and `protocolStdout` already retain it. A request to explain a
+load-bearing array copy was refuted because the array reaching it is already the guard's own fresh
+array, so the copy does not carry the clause the finding assigned it. A request to rename
+`namedString` was refuted because "named" is the spec's and plan's own term. One reviewer's claim
+that two assertions in the transport case bind fresh construction independently was refuted by
+measurement — only the prototype assertion reddens — which also sustained the other reviewer's
+finding that the third assertion cannot fail at all. That assertion is gone.
+
+### Gate evidence
+
+`pnpm lint`, `pnpm typecheck`, `pnpm governance` and `pnpm verify` all exit 0, first attempt, at
+load 44.1. **743 passed, 3 skipped, 0 failed across 55 files.** Case counts, each read from a
+mutation run that exercised the file: `guarded-parse.test.ts` 10, `validator.test.ts` 13,
+`northbound-guard.test.ts` 9, `declared-read.test.ts` 37.
+
+### Carried to the owner
+
+Three items, none of them resolvable from the code:
+
+1. Whether AC-0057's third clause reaches unschematized `error.data`. Normalizing a recognized
+   code's payload enforces a shape the contract already declares; an unrecognized code has no
+   declared envelope, so that path would need a new one.
+2. Whether the `in` lookup at `validator.ts:880` is admitted into T15 or routed to *Follow-ons*.
+   `notificationSchemas` is a plain object literal, so a method name of `toString` resolves through
+   `Object.prototype` and the `safeParse` call throws uncaught in the Electron main process. It is
+   not reachable today: no repository-derived process writes that stream and no current producer
+   emits a non-Studio method name. This is the round's one **indeterminate**.
+3. Whether the transport gets a byte bound. It accumulates with `this.buffer += chunk` under no
+   limit, and the pre-parse scan costs a multiple of the parse it guards — measured 76.2 ms against
+   3.7 ms on 8 MiB of one large ASCII string value. Both halves would add a control the immutable
+   spec does not carry; a bound needs a new *Resource bounds* row.

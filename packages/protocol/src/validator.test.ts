@@ -132,6 +132,92 @@ describe("StudioTransport guards the northbound envelope", () => {
     transport.shutdown();
   });
 
+  it("AC-0056 admits a line at exactly the bound", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      // Paired with the over-bound case above, so the comparison itself is
+      // bound at this site and not only at the helper and the protocol-line
+      // site. The envelope is the first level, so `params` carries the
+      // remaining `bound - 1` and the line measures exactly the bound.
+      let params = "1";
+      for (let level = 0; level < PARSE_NESTING_DEPTH_BOUND - 1; level += 1) {
+        params = `{"a":${params}}`;
+      }
+      responses.write(
+        `{"jsonrpc":"2.0","method":"workspace.created","params":${params}}\n`,
+      );
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            kind: "health",
+            status: "ok",
+            protocolVersion: "1",
+          },
+        })}\n`,
+      );
+    });
+
+    // The pending request is the observable. An admitted line is a valid
+    // notification whose params fail validation, which returns quietly, so the
+    // result behind it still resolves. A `>=` mutant refuses the line in the
+    // guard instead, and a guard refusal at this site disconnects and rejects
+    // every pending request -- so this settles as `disconnected` rather than
+    // resolving. Asserting on a later notification could not bind it, because
+    // `disconnect` does not stop the stream being consumed.
+    await expect(transport.request("health.get", {})).resolves.toMatchObject({
+      kind: "health",
+    });
+    transport.shutdown();
+  });
+
+  it("AC-0057 rebuilds the error payload a caller receives", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32602,
+            message: "Invalid params",
+            data: { kind: "validation", issues: [{ path: "a", message: "b" }] },
+          },
+        })}\n`,
+      );
+    });
+
+    const refusal = await transport.request("health.get", {}).then(
+      () => undefined,
+      (cause: unknown) => cause as { data?: unknown },
+    );
+
+    // The transport's second consumer boundary. `error.data` resolves to the
+    // caller of `request`, so the guard's rebuild is observable here even
+    // though it is not at the subscriber boundary, where strict validation
+    // replaces the envelope first. This is the assertion that binds AC-0057's
+    // null-prototype clause at this site: removing the rebuild leaves the
+    // parsed subtree with an ordinary prototype and reddens it.
+    expect(refusal?.data).toBeDefined();
+    expect(Object.getPrototypeOf(refusal?.data as object)).toBeNull();
+    transport.shutdown();
+  });
+
   it("AC-0057 delivers a freshly normalized envelope, not the parsed line", async () => {
     const responses = new PassThrough();
     const requests = new PassThrough();
@@ -182,10 +268,12 @@ describe("StudioTransport guards the northbound envelope", () => {
     // here, and nothing a line invented beyond the named fields can travel.
     expect(delivered).toBeDefined();
     expect(Object.getPrototypeOf(delivered as object)).not.toBeNull();
-    expect(Object.keys(delivered as object)).not.toContain("invented");
     // The first notification is the one that carried the invented field, and
     // strict validation refused the whole envelope rather than trimming it, so
-    // the subscriber's first delivery is the clean one.
+    // the subscriber's first delivery is the clean one. That is what binds the
+    // refuse-rather-than-trim behaviour; an assertion that the delivered
+    // object lacks the invented field could not fail, because the envelope
+    // carrying it never reaches a subscriber under any mutant.
     expect(delivered?.workspaceId).toBe("fresh-2");
     transport.shutdown();
   });

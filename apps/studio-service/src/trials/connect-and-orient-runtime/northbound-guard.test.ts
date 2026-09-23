@@ -99,6 +99,32 @@ describe("AC-0056 at the northbound protocol line", () => {
   });
 });
 
+describe("a northbound line that is not a record", () => {
+  it("keeps every non-record line as non-protocol output and still completes", async () => {
+    // `parseGuardedJson` succeeds on all four: a guarded parse of the line
+    // `null` yields `null`, and a number, a string and an array are all valid
+    // JSON. Every consumer of `protocolLines` reads a field off the line, and
+    // the nearest of those reads sits inside the stdout data listener, so
+    // asserting the shape rather than establishing it made a four-character
+    // line an uncaught `TypeError` that ends the Service and every other
+    // in-flight request.
+    const notRecords = ["null", "42", '"text"', "[1,2]"];
+    const record = await run("northbound-not-a-record", {
+      rawStdoutLines: notRecords,
+    });
+
+    for (const line of notRecords) {
+      expect(record.nonProtocolStdoutLines).toContain(line);
+    }
+    for (const line of record.protocolLines) {
+      expect(line === null).toBe(false);
+      expect(typeof line).toBe("object");
+      expect(Array.isArray(line)).toBe(false);
+    }
+    expect(record.completedResponse).toBe(true);
+  });
+});
+
 describe("AC-0057 at the northbound protocol line", () => {
   it("lets no value under an inadmissible key become a protocol line", async () => {
     const hostile = JSON.stringify({

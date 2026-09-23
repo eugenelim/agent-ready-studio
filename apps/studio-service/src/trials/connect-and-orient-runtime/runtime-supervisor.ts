@@ -580,14 +580,33 @@ export function beginTrialInspection(
       if (line === "") {
         continue;
       }
+      let parsed: unknown;
       try {
         // AC-0056 and AC-0057 at the northbound result line. A refusal throws,
         // so the line takes the answer this site already gives unparseable
         // input -- it is kept as non-protocol output and yields no value.
-        protocolLines.push(parseGuardedJson(line) as Record<string, unknown>);
+        parsed = parseGuardedJson(line);
       } catch {
         nonProtocolStdoutLines.push(line);
+        continue;
       }
+      // A line can parse to something that is not a record: `null`, a number,
+      // a string, an array. Every consumer of `protocolLines` reads a field
+      // off it, and the nearest of those reads sits outside this `try` and
+      // inside the stdout data listener, so asserting the shape here rather
+      // than establishing it turned a hostile line into an uncaught
+      // `TypeError` that ends the Service and every other in-flight request.
+      // A line that is not a record takes the same answer as an unparseable
+      // one, which is the answer this site is designed to give.
+      if (
+        parsed === null ||
+        typeof parsed !== "object" ||
+        Array.isArray(parsed)
+      ) {
+        nonProtocolStdoutLines.push(line);
+        continue;
+      }
+      protocolLines.push(parsed as Record<string, unknown>);
     }
     // A `completed` line that arrives after the Service has already decided to
     // terminate is not a completed response. `process.kill(-pgid, ...)` does
@@ -889,7 +908,12 @@ export function declaredFromProtocol(
 
   let versionMarker: string | undefined;
   const reads: DeclaredFileReport[] = [];
-  for (const entry of line.reads ?? []) {
+  // The container is read like its elements. `reads` arrives from the same
+  // untrusted line, so a value that is not an array must yield no reads --
+  // iterating it directly raised `TypeError: ... is not iterable` inside the
+  // `settled` builder, which discarded an otherwise completed inspection.
+  const declaredReads = Array.isArray(line.reads) ? line.reads : [];
+  for (const entry of declaredReads) {
     if (entry === null || typeof entry !== "object") {
       continue;
     }
