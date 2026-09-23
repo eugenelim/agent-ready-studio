@@ -6577,3 +6577,113 @@ test-only name override, because production always delivers exactly the permitte
 No audit row and no `spec.md` checkbox was changed by this unit; the verdicts are the owner's.
 The audit therefore still reads 157 rows, 77 met, 75 not met, 5 not verifiable here, with
 `spec.md` carrying 77 checked and 80 open.
+
+## owner-decision-2026-09-22-ac-0056-0057-trial-boundary
+
+The scope owner narrowed AC-0056 and AC-0057 to the trial boundary, and separated the remainder
+as a follow-on. Recorded here as the authority reference for the contract amendment that follows.
+
+**What the owner decided, as a rule rather than a list.** AC-0056's and AC-0057's guard reach
+covers the declared-value read and the northbound result line — the parses this slice's Runtime
+boundary owns. **A parse that reconstructs structure Studio itself wrote is outside the reach.**
+
+The record states the rule and does not enumerate the sites it excludes. `spec.md` *Follow-ons*
+owns that enumeration as its single source, so the list lives in one place and no count is
+asserted in two. The rule is what governs: a site is excluded because it satisfies the rule, not
+because it appeared on a list, and review has already found the first enumeration short by two.
+
+**Why the amendment is needed rather than a note.** AC-0057 as approved reads "No parse yields a
+value under any key in the inadmissible-parse-keys set", unqualified. Under the narrowing, three
+production parses stay unguarded. The criterion is currently **not met**, so `spec.md` asserts
+nothing false today; but it could not be closed by the work the owner scoped, because its text
+obliges more than that work covers. Closing it without narrowing the text would record a met
+verdict for a property the repository does not verify — the defect class this spec's acceptance
+audit exists to catch.
+
+**What made the narrowing necessary.** `packages/protocol/src/validator.ts` parses the northbound
+line and cannot import from `apps/`, so guarding it requires hosting the guard in
+`packages/protocol`. That is a structural change with its own reviewable surface, carried by T15.
+
+**A second scope decision, taken 2026-09-23 on the same authority.** AC-0059's routing clause
+reaches the inspection parses, not the transport envelope. `validator.ts` parses every northbound
+message rather than an inspection result, so a bound breach there is a framing fault, and the
+transport already answers it by disconnecting. The *Reasons for `inspection-stopped`* table
+carries no row for an envelope breach and none is added; the owner chose this over reusing
+`parse-failure-studio`, whose wording names inspection output, and over adding a new row. AC-0059's
+no-value and no-partial-contribution clauses still bind that site.
+
+## amendment-2026-09-22-ac-0056-0057-trial-boundary
+
+**What the amendment separates, and what it does not.** It separates *obligation*, not *work*:
+AC-0057's reach narrows so the criterion no longer obliges parses this slice's boundary does not
+own. The remaining in-reach work — guarding the northbound result line — stays in this plan as
+**T15**, and is not a backlog follow-on. Recording it in both places would leave the spec's
+readers disagreeing about whether it ships with AC-0057 undeferred; T15 is the single owner, and
+`spec.md` *Follow-ons* records only the excluded sites and the inapplicable inspector limb.
+
+The cluster slug `connect-orient-wire-the-uncalled-modules` in `workspace.toml` continues to
+track the wider cluster — steps C, D and E — not this task.
+
+**Scope of the follow-on.** Host the inadmissible-key and depth guards in `packages/protocol` so
+both `apps/` and the protocol package can reach them, then guard the northbound result line at
+its two parse sites: the protocol-line `JSON.parse` in
+`apps/studio-service/src/trials/connect-and-orient-runtime/runtime-supervisor.ts` and the
+transport `JSON.parse` in `packages/protocol/src/validator.ts`. The existing guard implementation
+is reused; `apps/studio-service` already depends on `@agent-ready/protocol`, so no new workspace
+dependency is introduced.
+
+**What step B1 already bound.** The declared-value read site of AC-0056 is guarded and proven on
+a live path: `parseDeclared` enforces the depth bound before `withoutInadmissibleKeys` produces
+anything, and `normalizeDeclared` copies only the criterion-named field onto a freshly built,
+null-prototype object. Evidence is in `slice-f1-step-b-2026-09-22` above.
+
+**What remains for AC-0057 after T15.** Nothing in the narrowed reach. The sites the rule above
+excludes stay excluded, which is why the criterion's text is narrowed rather than left to be met
+by a wider sweep.
+
+## amendment-2026-09-23-review-and-residual
+
+The amendment's own review history, and one disclosed process gap.
+
+### Three rounds, converging
+
+| Round | Sustained | Blockers |
+| --- | ---: | ---: |
+| 1 | 14 | 4 |
+| 2 | 8 | 1 |
+| 3 | 4 | 0 |
+
+Six adjudications across two reviewers, all persisted under
+`.context/reviews/<run-id>/{37,38,39}-pre-execute-*`. Roughly half of every round's raw findings
+were refuted, so the counts above are sustained findings, not reviewer output.
+
+**What the gate caught that mattered.** The first draft imported AC-0056's three-site reach into
+AC-0057 while the authority record named two, so landing T15 would have flipped both criteria to
+met for the inspector-output limb, which nothing in this slice binds. It also left the
+*Inadmissible parse keys* row asserting the un-narrowed obligation, gave the northbound work two
+homes at once, and claimed T15's transport guard "changes no observable transport behaviour" when
+`disconnect` in fact rejects every pending request.
+
+**A pattern worth naming.** Three times, repairing one surface exposed an uncited neighbour: the
+canonical row after the criterion, the depth row after the keys row, and the group preamble after
+the rows it governs. Round 2's repair for the preamble landed 195 lines away from the false
+sentence and severed another sentence on the way in. The lesson is that the traversal has to run
+from the *claim* rather than from the edited line — every surface asserting the narrowed reach,
+not just the one the finding cited.
+
+### The residual: four fixes landed unreviewed
+
+The engine's review retry budget was exhausted before this amendment began, and the owner
+authorized exactly two further rounds, both spent. Round 3's four sustained findings were applied
+**after** the final review round and **no reviewer has seen them**:
+
+- the *Parse nesting depth* row qualified to AC-0056's reach, so the canonical table and the
+  `inspector-locator.ts:134` sentence state one reach;
+- the version-marker group preamble restated per function against the live path;
+- the AC-0059 row's basis corrected, since production does now parse a declaration file;
+- the severed "It accounts for …" sentence rejoined to its criterion list.
+
+Each was adjudicated as determined by the tree with nothing to choose, three of the four are in
+this notes file rather than in contract, and none is a Blocker. That is the reason they were
+applied rather than carried; it is not a claim that they are reviewed. **A later round should
+read these four first.**
