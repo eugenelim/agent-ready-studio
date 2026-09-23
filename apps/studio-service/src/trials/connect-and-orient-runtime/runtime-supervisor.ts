@@ -30,6 +30,7 @@ import {
   type SpawnAuditEntry,
 } from "./executable-identity.js";
 import { pinnedGitConfigurationArgs } from "./git-driver.js";
+import { parseGuardedJson } from "./inadmissible-keys.js";
 import {
   HOME_CHILD_NAME,
   LIVENESS_TOKEN_CONVENTION,
@@ -182,6 +183,11 @@ export interface TrialInspectionOptions {
    */
   readonly noiseStdoutBytes?: number;
   readonly noiseStderrBytes?: number;
+  /**
+   * Lines the child writes verbatim on stdout, so the northbound protocol-line
+   * guard has something to refuse. Production never sets it.
+   */
+  readonly rawStdoutLines?: readonly string[];
   /**
    * Narrows or widens the set of names the child is asked to read, so
    * AC-0054's read-surface refusal and AC-0055's file-count bound can be
@@ -479,6 +485,9 @@ export function beginTrialInspection(
     ...(options.materializationWriter === undefined
       ? {}
       : { materializationWriter: options.materializationWriter }),
+    ...(options.rawStdoutLines === undefined
+      ? {}
+      : { rawStdoutLines: [...options.rawStdoutLines] }),
     ...(options.noiseStdoutBytes === undefined
       ? {}
       : { noiseStdoutBytes: options.noiseStdoutBytes }),
@@ -572,7 +581,10 @@ export function beginTrialInspection(
         continue;
       }
       try {
-        protocolLines.push(JSON.parse(line) as Record<string, unknown>);
+        // AC-0056 and AC-0057 at the northbound result line. A refusal throws,
+        // so the line takes the answer this site already gives unparseable
+        // input -- it is kept as non-protocol output and yields no value.
+        protocolLines.push(parseGuardedJson(line) as Record<string, unknown>);
       } catch {
         nonProtocolStdoutLines.push(line);
       }
@@ -770,9 +782,25 @@ export function beginTrialInspection(
 function childSpawnAudit(
   protocolLines: readonly Record<string, unknown>[],
 ): SpawnAuditEntry[] {
+  // AC-0057's third clause at this site: only the criterion-named fields are
+  // copied, onto a freshly constructed object. Returning `line.entry` consumed
+  // the parsed object's shape, so a field the line invented travelled into the
+  // audit a reader treats as Studio's own record of what it spawned.
   return protocolLines
     .filter((line) => line.type === "spawn")
-    .map((line) => (line as { entry: SpawnAuditEntry }).entry);
+    .map((line) => {
+      const entry = (line as { entry?: Record<string, unknown> }).entry ?? {};
+      const named: SpawnAuditEntry = {
+        executable: String(entry.executable ?? ""),
+        args: Array.isArray(entry.args) ? entry.args.map(String) : [],
+        environmentNames: Array.isArray(entry.environmentNames)
+          ? entry.environmentNames.map(String)
+          : [],
+        shell: false,
+        ...(typeof entry.pid === "number" ? { pid: entry.pid } : {}),
+      };
+      return named;
+    });
 }
 
 /**

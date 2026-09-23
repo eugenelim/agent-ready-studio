@@ -95,6 +95,13 @@ interface RuntimeChildPlan {
    */
   readonly noiseStdoutBytes?: number;
   readonly noiseStderrBytes?: number;
+  /**
+   * Lines to write verbatim on stdout, so the Service's northbound parse
+   * guards have something to refuse that a well-formed protocol line cannot
+   * express. Production never sets it, on the precedent `noiseStdoutBytes`
+   * sets for exactly this purpose.
+   */
+  readonly rawStdoutLines?: readonly string[];
   readonly materializationWriter?: {
     readonly files: number;
     readonly intervalMs: number;
@@ -1235,6 +1242,9 @@ async function main(): Promise<void> {
 
   // Written before the completed line, so the Service reads it as part of the
   // same run rather than after the response it would have bounded.
+  for (const raw of plan.rawStdoutLines ?? []) {
+    process.stdout.write(`${raw}\n`);
+  }
   if (plan.noiseStdoutBytes !== undefined && plan.noiseStdoutBytes > 0) {
     process.stdout.write(`${"n".repeat(plan.noiseStdoutBytes)}\n`);
   }

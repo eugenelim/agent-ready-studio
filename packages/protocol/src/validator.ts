@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { parseGuardedJson } from "./guarded-parse.js";
+
 export const protocolVersion = "1" as const;
 
 const idSchema = z.union([z.string().min(1), z.number().int()]);
@@ -853,7 +855,14 @@ export class StudioTransport {
       if (line.length === 0) continue;
       let message: unknown;
       try {
-        message = JSON.parse(line);
+        // AC-0056 and AC-0057 at the northbound result line. A refusal throws
+        // and takes the answer this site already gives unparseable input.
+        // That answer is wider than a refused value -- `disconnect` stops
+        // request acceptance and rejects every pending request -- and it is
+        // the answer the owner chose for a framing fault: AC-0059's routing
+        // and distinct-diagnostic clauses do not reach this envelope, so no
+        // stop reason and no new message are added here.
+        message = parseGuardedJson(line);
       } catch {
         this.disconnect("Studio Service emitted malformed JSON");
         return;

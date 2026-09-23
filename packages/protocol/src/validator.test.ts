@@ -3,6 +3,7 @@ import { PassThrough } from "node:stream";
 
 import { describe, expect, it } from "vitest";
 
+import { PARSE_NESTING_DEPTH_BOUND } from "./guarded-parse.js";
 import { StudioTransport, validateRequest } from "./validator.js";
 
 describe("validateRequest", () => {
@@ -28,6 +29,96 @@ describe("validateRequest", () => {
         },
       },
     });
+  });
+});
+
+describe("StudioTransport guards the northbound envelope", () => {
+  // AC-0056 and AC-0057 at the transport call site. The helper's own coverage
+  // is in guarded-parse.test.ts; these drive the real transport, because a
+  // guard proven only for the helper is not proven where it is used.
+
+  it("AC-0056 refuses a line past the parse nesting-depth bound and yields no value", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", () => {
+      // Structurally a valid notification, so the pre-existing shape check
+      // cannot be what answers it -- only the depth bound can. Without the
+      // guard this parses, fails strict params validation, is dropped
+      // silently, and the pending request times out instead.
+      const depth = PARSE_NESTING_DEPTH_BOUND + 1;
+      let params = "1";
+      for (let level = 0; level < depth; level += 1) {
+        params = `{"a":${params}}`;
+      }
+      responses.write(
+        `{"jsonrpc":"2.0","method":"workspace.created","params":${params}}\n`,
+      );
+    });
+
+    // The owner's recorded answer for a framing fault: the guard yields no
+    // value and the existing disconnect stands, which rejects the in-flight
+    // request rather than failing only that one line.
+    await expect(transport.request("health.get", {})).rejects.toMatchObject({
+      kind: "disconnected",
+    });
+    transport.shutdown();
+  });
+
+  it("AC-0057 drops an inadmissible key before the envelope is validated", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    const seen: Record<string, unknown>[] = [];
+    transport.subscribe("workspace.created", (params) => {
+      seen.push(params as unknown as Record<string, unknown>);
+    });
+
+    const base = {
+      protocolVersion: "1",
+      occurredAt: "2026-09-23T12:00:00.000Z",
+    };
+    // The hostile notification is valid apart from the inadmissible key. The
+    // guard drops that key, so strict params validation admits it and the
+    // subscriber sees it. Without the guard the extra own key survives, strict
+    // validation rejects the notification, and it never arrives -- so its
+    // arrival is what binds the guard here.
+    responses.write(
+      `${JSON.stringify({
+        jsonrpc: "2.0",
+        method: "workspace.created",
+        params: {
+          ...base,
+          workspaceId: "hostile",
+          ["__proto__"]: { polluted: true },
+        },
+      })}\n`,
+    );
+    responses.write(
+      `${JSON.stringify({
+        jsonrpc: "2.0",
+        method: "workspace.created",
+        params: { ...base, workspaceId: "clean" },
+      })}\n`,
+    );
+    await new Promise((settle) => setTimeout(settle, 30));
+
+    const ids = seen.map((params) => params.workspaceId);
+    expect(ids).toContain("clean");
+    expect(ids).toContain("hostile");
+    for (const params of seen) {
+      expect(Object.hasOwn(params, "__proto__")).toBe(false);
+    }
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    transport.shutdown();
   });
 });
 
