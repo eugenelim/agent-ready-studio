@@ -6438,3 +6438,142 @@ child emit something to refuse. All four follow the precedent `descendantHoldMs`
 `pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. **`pnpm verify` exit 0 on the second
 attempt — 682 passed, 3 skipped**; the suite grew by three cases. The first attempt failed 3 in
 the trial-runtime suite.
+
+## slice-f1-step-b-2026-09-22
+
+Step B of `connect-orient-wire-the-uncalled-modules`: the declared-value reader reaches a live
+path. Wiring only — the reader, its bounds and its guarded parser were already written and
+unit-tested, and called by nothing. That is the defect class the audit's finding 1 names.
+
+### The absence proof decided the shape
+
+`readDeclaredValues` could not simply be called from the child. `absence-proofs.test.ts`
+asserts every import specifier in `runtime-child.ts` begins with `node:`, because the child's
+working directory is the state root and its import graph is the one that could reach
+materialized content. Importing the reader would have pulled in `smol-toml`.
+
+So the **child reads and the Service parses**. The child performs the bounded, confined read
+with node builtins only; the Service runs `parseDeclared`, `normalizeDeclared` and
+`declaredVersionMarker`. The permitted read surface and both bounds are delivered in the spawn
+plan rather than duplicated as literals, on the precedent the plan's own comment sets for the
+layout names. AC-0054 and AC-0055 bind the read, in the child; AC-0056 and AC-0057 bind the
+parse, in the Service.
+
+The owner also narrowed AC-0056 and AC-0057 to the trial boundary. The northbound result line is
+deferred to a later unit, because `validator.ts` lives in `packages/protocol` and cannot import
+from `apps/`; `service.ts`, `sweep.ts` and `storage-sqlite` are excluded outright.
+
+### Two real defects, both found by review rather than by the gates
+
+**The declared line could defeat the result bound.** Raw text on the protocol line was costed at
+2 MiB, safely under the 8 MiB *Trial result bytes* row. That arithmetic ignored JSON escaping:
+`JSON.stringify` renders a C0 control byte as a six-character escape, so two files that each pass
+the 1 MiB *Declared-value read* bound serialize to **12.58 MiB**, measured. `BoundedResultReader`
+then clears every retained chunk, losing the declared line and the spawn audit, and the
+inspection ends on the Studio-attributed `inspector-unavailable` branch — a repository-caused
+failure blamed on Studio. The text now travels base64-encoded: the alphabet is never
+JSON-escaped and inflation is a fixed 4/3, so two admitted files measure 2,796,358 bytes
+serialized. Separately, `refusedResultOutcome` routes a refused result to `inspection-stopped` /
+`result-too-large`, which carries repository attribution, and it runs before the declared read is
+consulted so a truncated line cannot read as "the repository declares nothing".
+
+**A malformed `workspace.toml` took a row the spec excludes.** `declaredRefusalOutcome` did not
+discriminate by name, while `declared-value-reader.ts` carries the carve-out in its own comment:
+AC-0059's repository-file branch covers only a declaration file that is *not* the workspace
+declaration. `DeclaredFileReport.routesToDeclarationFileStop` now keys that carve-out on the
+file, which is how the spec states it. Three later rounds tried to re-key it on the refusal
+class; each was refuted against `spec.md`.
+
+### The false-"declares nothing" class, three times
+
+The same lie about the tree appeared in three places and was closed in three passes: every
+`lstat` failure reported as absent, so `ENOENT` is now distinguished from every other stat error;
+an unlabelled payload decoded to `""`, and empty TOML parses successfully, so a transport fault
+read as a repository that declares none; and a labelled but *corrupt* payload decoded to a short
+string, because the base64 decoder discards out-of-alphabet characters, so the payload is now
+re-encoded and compared.
+
+### A fail-open introduced by one of the repairs
+
+`admittedRefusal` returned `undefined` both for "no refusal" and "a refusal I do not recognise",
+so an unknown refusal arriving beside a well-formed payload skipped the refusal branch and was
+admitted as an extracted value. `classifyRefusal` keeps **absent** and **rejected** apart. The
+pinning test's comment had also described a mechanism that was not the one firing — the
+`unreadable` it observed came from the transport check, because that fixture carried no payload.
+
+### Mutation evidence
+
+Six batteries, **38 of 39 mutants killed**, every run reporting its full case count so no run was
+empty.
+
+| Battery | Killed | Notable |
+| --- | --- | --- |
+| Step B wiring | 7 of 7 | surface check, both bounds, absent-vs-refusal, guarded parse, field copying, routing |
+| round 1 repairs | 14 of 15 | base64 label, transport check, workspace carve-out, delivered bounds |
+| round 2 repairs | 6 of 6 | routing order swap, both refusal branches, materialization gate |
+| round 3 repairs | 6 of 6 | the byte bound's `>` to `>=`, corrupt base64, plus four regressions |
+| round 4 repairs | 4 of 4 | bound value pin, inclusive comparison, surrogate step-back, absent-vs-rejected |
+| round 5 repairs | 2 of 2 | whole-read diagnostic bound, selective name filter |
+
+The single survivor is the `ENOENT`-versus-other-stat-error distinction. No test can reach it: the
+path is a two-element allowlisted name under a root this process created at 0700, and `lstatSync`
+does not follow a final symlink. Round 1's security adjudication refuted its reachability. It is
+recorded as accepted hardening rather than removed or covered by a fabricated case.
+
+### A vacuous test, caught by measuring it
+
+The first diagnostic-bound case used twenty 4,000-character lines. That produces a
+12,186-character parser message, comfortably under the 32,768 bound, so the assertion held with
+the bound deleted. The fixture is now a single 60,000-character unterminated string producing
+120,163 characters, asserted as an exact equality on bound-plus-one.
+
+### Gate state
+
+`pnpm lint`, `pnpm typecheck`, `pnpm governance` and `pnpm build` exit 0. The full suite is
+green: **717 passed, 3 skipped of 720**. `lint-spec-status.py` reports spec metadata clean.
+
+A networked end-to-end run with `CONNECT_ORIENT_E2E_NETWORK=1` passed **all 7 cases**, exercising
+the real built Runtime child against a live public-repository fetch: the declared read ran on a
+live path against a repository declaring neither file, and the inspection still reached
+`inspector-unavailable`.
+
+### The trial-runtime flake is host load, not file parallelism
+
+`pre-existing-trial-runtime-load-flake` was diagnosed this session. The decisive experiment ran
+the trial suites parallel and serial, interleaved so ambient load hit both arms equally: parallel
+failed one run of three, serial failed one run of three. **Serializing is not the fix**, and the
+vitest configuration was left alone.
+
+What predicts it is host load. Every failing whole-suite run this session sat at load 77 to 199
+on ten cores; every green run at 35 to 54. Much of that load was self-inflicted — three reviewer
+subagents running tests while the controller ran the full suite. The rest is host
+endpoint-security and device-management agents, one of them sustaining well over a core for
+hours, which hook process creation; these suites create hundreds of short-lived detached
+processes and assert on 5 ms `ps` sampling and wall-clock deadlines.
+
+The operational rule is narrower than "the suite is flaky": **do not run the full suite while
+subagents are running tests.** This also refines the earlier note that load average does not
+predict the flake — true across the 13.9 to 35 range it sampled, false above it.
+
+### Deferred, with citations
+
+- The base64 transport rationale is restated at three sites. Repairing it spans three files,
+  which promotes it past Nit, and which site becomes canonical is undetermined.
+- The Service-side declared parse has no duration bound. Owner-routed: no *Resource bounds* row
+  assigns a time bound to Service-side work, and adding one is authoring while the spec is
+  Implementing.
+- A host-caused I/O failure on a declaration file is attributed to the repository and reported
+  unretryable. Owner-routed: it needs a stop-reason row the vocabulary does not define.
+- `readDeclaredValues` still has no production caller and reports an absent file differently from
+  the live child. It cannot be unified without giving the child a non-builtin import.
+- The precedence between the two declaration files is unobserved; the spec assigns none.
+
+### Acceptance verdicts are not changed here
+
+AC-0059 is bound end to end on a production-reachable path. AC-0054's outside-surface refusal and
+AC-0055's file-count refusal are proven on the live code path but reachable only through a
+test-only name override, because production always delivers exactly the permitted surface. Round
+3's adjudication refuted flipping those boxes against the audit's own all-clauses-bound standard.
+No audit row and no `spec.md` checkbox was changed by this unit; the verdicts are the owner's.
+The audit therefore still reads 157 rows, 77 met, 75 not met, 5 not verifiable here, with
+`spec.md` carrying 77 checked and 80 open.

@@ -21,7 +21,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import type { StopReasonKey, StudioResult } from "@agent-ready/protocol";
-import { project } from "@agent-ready/protocol";
+import { project, STOP_REASONS } from "@agent-ready/protocol";
 import type { Storage } from "@agent-ready/storage-sqlite";
 import { persistConnectedSource } from "./connected-source.js";
 import type { CanonicalSourceIdentity } from "./source-identity.js";
@@ -41,6 +41,7 @@ import {
 } from "./trials/connect-and-orient-runtime/git-driver.js";
 import {
   beginTrialInspection,
+  type DeclaredReadReport,
   signalProcessGroup,
 } from "./trials/connect-and-orient-runtime/runtime-supervisor.js";
 
@@ -471,6 +472,75 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
 }
 
 /**
+ * AC-0059. A declared-value read or parse that refused becomes
+ * `inspection-stopped`, carrying the reason and attribution the *Reasons for
+ * `inspection-stopped`* table assigns. `parse-failure-declaration-file`
+ * already holds that row's exact reason and attribution, so this maps onto
+ * existing vocabulary rather than introducing any.
+ *
+ * Two cases deliberately do not route here.
+ *
+ * An absent declaration file is not a refusal. A repository that declares
+ * nothing is AC-0064's case, and stopping the inspection over it would report
+ * a failure the tree does not describe.
+ *
+ * A refused `workspace.toml` is not this row either, which is why only reads
+ * flagged `routesToDeclarationFileStop` are scanned. `WORKSPACE_DECLARATION_NAME`
+ * in `declared-value-reader.ts` holds the canonical statement of that carve-out.
+ *
+ * Extracted from `inspectInRuntime` so the mapping is reachable by a test:
+ * that function needs a real revision to fetch, and this repository keeps no
+ * test network surface.
+ */
+export function declaredRefusalOutcome(
+  declared: DeclaredReadReport | undefined,
+): InspectionOutcome | undefined {
+  if (declared === undefined) {
+    return undefined;
+  }
+  const refused = declared.reads.find(
+    (read) =>
+      read.refusal !== undefined && read.routesToDeclarationFileStop === true,
+  );
+  if (declared.refusal === undefined && refused === undefined) {
+    return undefined;
+  }
+  const diagnostic = declared.diagnostic ?? refused?.diagnostic;
+  return {
+    ok: false,
+    condition: "inspection-stopped",
+    stopReason: "parse-failure-declaration-file",
+    // The table owns the wording; a hand-written copy here would drift from
+    // the row it is meant to be reporting.
+    diagnostics:
+      diagnostic ?? STOP_REASONS["parse-failure-declaration-file"].reason,
+  };
+}
+
+/**
+ * A result the Service refused while reading is the repository's doing, not
+ * Studio's: the volume that breached the bound is materialized content. Left
+ * unrouted it fell through to `inspector-unavailable`, which attributes a
+ * repository-caused stop to Studio and is the crossing AC-0093 forbids.
+ *
+ * `result-too-large` already carries that row's reason and attribution, so
+ * this is a mapping onto existing vocabulary.
+ */
+export function refusedResultOutcome(
+  resultRefused: boolean,
+): InspectionOutcome | undefined {
+  if (!resultRefused) {
+    return undefined;
+  }
+  return {
+    ok: false,
+    condition: "inspection-stopped",
+    stopReason: "result-too-large",
+    diagnostics: STOP_REASONS["result-too-large"].reason,
+  };
+}
+
+/**
  * The production inspection: start the Runtime with the revision to
  * materialize and read what it reports. The Service never writes the tree.
  */
@@ -524,9 +594,22 @@ export async function inspectInRuntime(
       diagnostics: "the Runtime was stopped before it finished",
     };
   }
-  const lines = (record as unknown as { protocolLines?: { type: string }[] })
-    .protocolLines;
-  const materialized = (lines ?? []).find(
+  return settledRuntimeOutcome(record);
+}
+
+/**
+ * What a settled Runtime record means, once cancellation has been ruled out.
+ *
+ * Extracted from `inspectInRuntime` because that function needs a real
+ * revision to fetch and this repository keeps no test network surface, so
+ * nothing in the gate set could reach the routing below while it lived there:
+ * both refusal branches were deletable and reorderable with every gate green.
+ * The order is load-bearing and is asserted rather than described.
+ */
+export function settledRuntimeOutcome(
+  record: SettledRuntimeRecord,
+): InspectionOutcome {
+  const materialized = record.protocolLines.find(
     (line) => line.type === "materialized",
   ) as { status?: number; mismatch?: string } | undefined;
   if (materialized === undefined || materialized.status !== 0) {
@@ -542,6 +625,19 @@ export async function inspectInRuntime(
     };
   }
 
+  // Before the declared read is consulted: a refused result means the declared
+  // line was cut off mid-write, so an absent report there says "nothing was
+  // read", not "the repository declares none".
+  const resultStopped = refusedResultOutcome(record.resultRefused);
+  if (resultStopped !== undefined) {
+    return resultStopped;
+  }
+
+  const declaredStopped = declaredRefusalOutcome(record.declared);
+  if (declaredStopped !== undefined) {
+    return declaredStopped;
+  }
+
   // The Runtime materialized the tree but ran no trusted inspector, so no
   // trusted output exists to derive a verdict from. Saying so is the honest
   // answer; deriving one from Studio's own reading is what AC-0061 forbids.
@@ -551,6 +647,13 @@ export async function inspectInRuntime(
     diagnostics:
       "the revision was materialized, and no trusted inspector ran against it",
   };
+}
+
+/** Exactly what `settledRuntimeOutcome` reads off a settled trial record. */
+export interface SettledRuntimeRecord {
+  readonly protocolLines: readonly Record<string, unknown>[];
+  readonly resultRefused: boolean;
+  readonly declared: DeclaredReadReport | undefined;
 }
 
 /**

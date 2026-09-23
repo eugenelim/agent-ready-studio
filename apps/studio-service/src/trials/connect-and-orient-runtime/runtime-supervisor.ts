@@ -2,12 +2,26 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { PERSISTED_REPOSITORY_CONTENT_BOUND_BYTES } from "../../connected-source.js";
 import type { CanonicalSourceIdentity } from "../../source-identity.js";
 import {
   BoundedDiagnosticBuffer,
   BoundedResultReader,
   type TrialStopReason,
 } from "../../trial-result.js";
+import {
+  DECLARED_READ_BYTE_BOUND,
+  DECLARED_READ_FILE_BOUND,
+  DECLARED_READ_REFUSALS,
+  DECLARED_VERSION_KEY,
+  type DeclaredReadRefusal,
+  declaredVersionMarker,
+  isPermittedReadName,
+  normalizeDeclared,
+  PERMITTED_READ_SURFACE,
+  parseDeclared,
+  WORKSPACE_DECLARATION_NAME,
+} from "./declared-value-reader.js";
 import {
   type GitIdentity,
   MINIMUM_INTERPRETER_VERSION,
@@ -61,6 +75,24 @@ export const SERVICE_IN_FLIGHT_BOUND_MS = 165_000;
  * 250 ms sample would miss it; this is below the bound's interval, never above.
  */
 export const OBSERVATION_INTERVAL_MS = 5;
+
+/**
+ * How much of a repository-derived parse diagnostic may become an outcome
+ * field. Derived from the persisted bound rather than chosen: the record
+ * refuses a repository-derived value over that bound instead of truncating
+ * it, so an unbounded parser message would let a repository make its own
+ * verdict unpersistable.
+ *
+ * The two are counted in different units, so the headroom is stated in the
+ * one the code enforces. `boundedDiagnostic` measures `String.length`, which
+ * counts UTF-16 code units, while the persisted bound counts UTF-8 bytes, and
+ * a code unit costs at most three of those. An eighth of the byte bound is
+ * therefore at most three eighths of it once encoded -- still a minority of
+ * the budget, which is the property this exists for, but not the eighth a
+ * reader would assume from the arithmetic alone.
+ */
+export const DECLARED_DIAGNOSTIC_BOUND_CODE_UNITS =
+  PERSISTED_REPOSITORY_CONTENT_BOUND_BYTES / 8;
 /** Bounds the cost of overlapping `ps` reads at a short observation interval. */
 const MAXIMUM_OVERLAPPING_READS = 8;
 /**
@@ -150,6 +182,31 @@ export interface TrialInspectionOptions {
    */
   readonly noiseStdoutBytes?: number;
   readonly noiseStderrBytes?: number;
+  /**
+   * Narrows or widens the set of names the child is asked to read, so
+   * AC-0054's read-surface refusal and AC-0055's file-count bound can be
+   * observed firing on the live path. Production never sets it; the whole
+   * *Permitted read surface* is read.
+   */
+  readonly declaredReadNames?: readonly string[];
+  /**
+   * Lowers AC-0055's byte bound so a test can reach `exceeds-byte-bound`
+   * without writing a megabyte. Production never sets it; the bound in
+   * `declared-value-reader.ts` is the contract.
+   */
+  readonly declaredReadByteBound?: number;
+  /**
+   * Declaration files for the child to write into the materialization root
+   * before it reads them. Production never sets it, on the precedent
+   * `materializationWriter` sets.
+   */
+  readonly declaredFixtures?: readonly {
+    readonly name: string;
+    readonly contents?: string;
+    readonly repeat?: number;
+    /** Creates a directory at the name, so the non-regular refusal is reachable. */
+    readonly directory?: boolean;
+  }[];
 }
 
 export type TerminationReason =
@@ -169,6 +226,40 @@ export interface ResidentMemoryBreach {
   readonly detectedAt: number;
   /** When the group was signalled. Detection and signalling share a tick. */
   readonly terminatedAt: number;
+}
+
+/** One name the child was asked for, and what came back for it. */
+export interface DeclaredFileReport {
+  readonly name: string;
+  /**
+   * Whether this name is the declaration file AC-0059's repository-file branch
+   * covers. False for the workspace declaration: see
+   * `WORKSPACE_DECLARATION_NAME` in `declared-value-reader.ts`, which holds
+   * the canonical statement of that carve-out.
+   */
+  readonly routesToDeclarationFileStop: boolean;
+  /** No file of that name in the materialized tree -- AC-0064's "declares none". */
+  readonly absent?: boolean;
+  /**
+   * The parsed document, guarded. Absent whenever the read or the parse
+   * refused: AC-0059 requires a failure to contribute no extracted value and
+   * nothing partially parsed.
+   */
+  readonly value?: unknown;
+  readonly refusal?: DeclaredReadRefusal;
+  readonly diagnostic?: string;
+}
+
+export interface DeclaredReadReport {
+  readonly reads: readonly DeclaredFileReport[];
+  /** A refusal of the whole read, before any file was opened. */
+  readonly refusal?: DeclaredReadRefusal;
+  readonly diagnostic?: string;
+  /**
+   * The declared workspace version marker, reported as the observed string it
+   * is. `undefined` means no admitted document declared one.
+   */
+  readonly versionMarker: string | undefined;
 }
 
 export interface TrialInspectionRecord {
@@ -194,6 +285,16 @@ export interface TrialInspectionRecord {
    * stream, which can carry a late line written during a group teardown.
    */
   readonly completedResponse: boolean;
+  /**
+   * What the repository declared, as read by the child and parsed here.
+   * `undefined` means the child emitted no declared line at all, which is
+   * distinct from a read that found nothing to declare.
+   *
+   * AC-0060: every field is an observed value. None carries a lifecycle
+   * meaning, and no verdict is derived from any of them -- that comes only
+   * from trusted inspector output.
+   */
+  readonly declared: DeclaredReadReport | undefined;
   readonly protocolLines: readonly Record<string, unknown>[];
   readonly protocolStdout: string;
   readonly nonProtocolStdoutLines: readonly string[];
@@ -384,6 +485,18 @@ export function beginTrialInspection(
     ...(options.noiseStderrBytes === undefined
       ? {}
       : { noiseStderrBytes: options.noiseStderrBytes }),
+    // Delivered, not duplicated, for the same reason as the layout names
+    // above: the child cannot import the reader that owns this list.
+    declaredReadSurface: [...PERMITTED_READ_SURFACE],
+    declaredReadFileBound: DECLARED_READ_FILE_BOUND,
+    declaredReadByteBound:
+      options.declaredReadByteBound ?? DECLARED_READ_BYTE_BOUND,
+    ...(options.declaredReadNames === undefined
+      ? {}
+      : { declaredReadNames: [...options.declaredReadNames] }),
+    ...(options.declaredFixtures === undefined
+      ? {}
+      : { declaredFixtures: [...options.declaredFixtures] }),
     markerlessReclaimAgeMs:
       options.markerlessReclaimAgeMs ?? MARKERLESS_RECLAIM_AGE_MS,
     // AC-0082: the Service invokes the sweep. It does not perform it, because
@@ -614,6 +727,7 @@ export function beginTrialInspection(
       interpreterSearchList,
       childArgs,
       spawnAudit: [...spawnAudit, ...childSpawnAudit(protocolLines)],
+      declared: declaredFromProtocol(protocolLines),
       completedResponse,
       protocolLines,
       protocolStdout: resultReader.text(),
@@ -659,6 +773,180 @@ function childSpawnAudit(
   return protocolLines
     .filter((line) => line.type === "spawn")
     .map((line) => (line as { entry: SpawnAuditEntry }).entry);
+}
+
+/**
+ * Parses what the child read, on the Service side.
+ *
+ * The split is deliberate. The child reads, because the materialized tree is
+ * under its working directory; the Service parses, because the guarded parser
+ * and its depth and inadmissible-key bounds live here and the child imports
+ * nothing but node builtins. So this is the AC-0056 and AC-0057 declared-value
+ * parse site, and `parseDeclared` is what makes it guarded.
+ *
+ * The line is untrusted input like any other: the child is the process that
+ * touched repository content, so its refusal strings are checked against the
+ * union rather than asserted into it.
+ */
+export function declaredFromProtocol(
+  protocolLines: readonly Record<string, unknown>[],
+): DeclaredReadReport | undefined {
+  const line = protocolLines.find((message) => message.type === "declared") as
+    | {
+        reads?: readonly Record<string, unknown>[];
+        refusal?: unknown;
+        diagnostic?: unknown;
+      }
+    | undefined;
+  if (line === undefined) {
+    return undefined;
+  }
+  const wholeRefusal = classifyRefusal(line.refusal);
+  if (wholeRefusal.kind !== "absent") {
+    return {
+      reads: [],
+      // A refusal the Service cannot interpret still refuses the whole read.
+      refusal:
+        wholeRefusal.kind === "admitted" ? wholeRefusal.refusal : "unreadable",
+      ...(wholeRefusal.kind === "admitted"
+        ? boundedDiagnostic(line.diagnostic)
+        : { diagnostic: "the Runtime reported a refusal Studio cannot read" }),
+      versionMarker: undefined,
+    };
+  }
+
+  let versionMarker: string | undefined;
+  const reads: DeclaredFileReport[] = [];
+  for (const read of line.reads ?? []) {
+    const name = String(read.name);
+    // Only a name the Service itself delivered may be reported back to it.
+    if (!isPermittedReadName(name)) {
+      continue;
+    }
+    const routesToDeclarationFileStop = name !== WORKSPACE_DECLARATION_NAME;
+    if (read.absent === true) {
+      reads.push({ name, absent: true, routesToDeclarationFileStop });
+      continue;
+    }
+    const readRefusal = classifyRefusal(read.refusal);
+    if (readRefusal.kind !== "absent") {
+      reads.push({
+        name,
+        routesToDeclarationFileStop,
+        // Rejected rather than admitted: the payload beside it is not read.
+        refusal:
+          readRefusal.kind === "admitted" ? readRefusal.refusal : "unreadable",
+        ...(readRefusal.kind === "admitted"
+          ? boundedDiagnostic(read.diagnostic)
+          : {
+              diagnostic: `${name}: the Runtime reported a refusal Studio cannot read`,
+            }),
+      });
+      continue;
+    }
+    const decoded = decodeDeclaredText(read);
+    if (decoded === undefined) {
+      reads.push({
+        name,
+        routesToDeclarationFileStop,
+        refusal: "unreadable",
+        diagnostic: `${name} did not arrive in the agreed transport`,
+      });
+      continue;
+    }
+    const outcome = parseDeclared(decoded);
+    if (outcome.refusal !== undefined) {
+      reads.push({
+        name,
+        routesToDeclarationFileStop,
+        refusal: outcome.refusal,
+        ...boundedDiagnostic(outcome.diagnostic),
+      });
+      continue;
+    }
+    // Only the criterion-named field travels further, on a freshly built
+    // object -- AC-0057's third clause.
+    const normalized = normalizeDeclared(outcome.value, [DECLARED_VERSION_KEY]);
+    versionMarker ??= declaredVersionMarker(normalized);
+    reads.push({ name, routesToDeclarationFileStop, value: normalized });
+  }
+  return { reads, versionMarker };
+}
+
+/**
+ * The child sends its text base64-encoded, so that what a repository controls
+ * cannot inflate through JSON escaping and breach the result bound.
+ *
+ * A payload that is not in that transport yields `undefined` rather than an
+ * empty string. An empty TOML document parses successfully to an empty table,
+ * so decoding a malformed payload to `""` would report a transport fault as
+ * "the repository declares nothing" -- the same false claim about the tree
+ * that the absent-versus-unreadable split exists to prevent.
+ *
+ * Being labelled is not enough, which is why the payload is re-encoded and
+ * compared. Node's base64 decoder discards characters outside the alphabet
+ * rather than failing, so a labelled but corrupt payload would otherwise
+ * decode to a short or empty string and land in exactly the claim above.
+ */
+function decodeDeclaredText(read: Record<string, unknown>): string | undefined {
+  if (read.encoding !== "base64" || typeof read.text !== "string") {
+    return undefined;
+  }
+  const decoded = Buffer.from(read.text, "base64");
+  if (decoded.toString("base64") !== read.text) {
+    return undefined;
+  }
+  return decoded.toString("utf8");
+}
+
+/**
+ * Classifies the refusal a line carries, keeping **absent** and **rejected**
+ * apart.
+ *
+ * Collapsing them is a fail-open: a read carrying a refusal the Service cannot
+ * interpret, alongside a well-formed payload, would skip the refusal branch
+ * and be admitted as an extracted value. So an unrecognised string denies the
+ * read rather than disappearing, and only a genuinely absent field lets the
+ * read continue to its payload.
+ */
+type RefusalClassification =
+  | { readonly kind: "absent" }
+  | { readonly kind: "admitted"; readonly refusal: DeclaredReadRefusal }
+  | { readonly kind: "rejected" };
+
+function classifyRefusal(value: unknown): RefusalClassification {
+  if (value === undefined || value === null) {
+    return { kind: "absent" };
+  }
+  return typeof value === "string" &&
+    (DECLARED_READ_REFUSALS as readonly string[]).includes(value)
+    ? { kind: "admitted", refusal: value as DeclaredReadRefusal }
+    : { kind: "rejected" };
+}
+
+/**
+ * Bounds a repository-derived diagnostic before it can become an outcome
+ * field. The persisted record refuses a repository-derived value over
+ * `PERSISTED_REPOSITORY_CONTENT_BOUND_BYTES` rather than truncating it, so an
+ * unbounded parser message here would make the record unpersistable -- the
+ * repository would suppress its own verdict by writing a long enough file.
+ */
+function boundedDiagnostic(value: unknown): { diagnostic?: string } {
+  if (typeof value !== "string" || value === "") {
+    return {};
+  }
+  if (value.length <= DECLARED_DIAGNOSTIC_BOUND_CODE_UNITS) {
+    return { diagnostic: value };
+  }
+  // The cut lands inside repository-controlled text, so it can fall between a
+  // high and a low surrogate. Stepping back one unit keeps the elided string
+  // well-formed rather than leaving a lone surrogate in a persisted value.
+  const cut = /[\uD800-\uDBFF]/.test(
+    value.charAt(DECLARED_DIAGNOSTIC_BOUND_CODE_UNITS - 1),
+  )
+    ? DECLARED_DIAGNOSTIC_BOUND_CODE_UNITS - 1
+    : DECLARED_DIAGNOSTIC_BOUND_CODE_UNITS;
+  return { diagnostic: `${value.slice(0, cut)}…` };
 }
 
 export async function startTrialInspection(

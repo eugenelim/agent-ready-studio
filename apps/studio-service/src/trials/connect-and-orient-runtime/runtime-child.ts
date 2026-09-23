@@ -32,6 +32,7 @@ import {
   readFileSync,
   rmdirSync,
   unlinkSync,
+  writeFileSync,
   writeSync,
 } from "node:fs";
 import { isAbsolute, join } from "node:path";
@@ -122,6 +123,41 @@ interface RuntimeChildPlan {
    * lifetime differs.
    */
   readonly descendantHoldMs?: number;
+  /**
+   * *Canonical values*, *Permitted read surface*, delivered rather than
+   * duplicated for the reason in the module header: the child cannot import
+   * the reader that owns this list, so the Service ships it and the child
+   * enforces it. A name is admitted only by being in this set, which is also
+   * what confines the read -- no separator, `..` or absolute path survives an
+   * exact match against two literal file names.
+   */
+  readonly declaredReadSurface: readonly string[];
+  /** *Resource bounds*, *Declared-value read*: file count, then bytes each. */
+  readonly declaredReadFileBound: number;
+  readonly declaredReadByteBound: number;
+  /**
+   * The names to read, when they differ from the whole surface. A test sets it
+   * to reach AC-0054's refusal and AC-0055's file-count bound against the live
+   * path; production leaves it absent and the whole surface is read.
+   */
+  readonly declaredReadNames?: readonly string[];
+  /**
+   * Declaration files to write into the materialization root before the
+   * declared read, as name to contents. Production never sets it: the files
+   * there are whatever `git checkout` wrote. A test sets it because the root's
+   * final component is unpredictable by design, so a test cannot place a file
+   * there itself -- the same reason `materializationWriter` exists.
+   *
+   * `repeat` renders the contents that many times, so a test can exceed a byte
+   * bound without carrying the bytes through the argument vector.
+   */
+  readonly declaredFixtures?: readonly {
+    readonly name: string;
+    readonly contents?: string;
+    readonly repeat?: number;
+    /** Creates a directory at the name instead of a file. */
+    readonly directory?: boolean;
+  }[];
 }
 
 interface ChildSpawnAuditEntry {
@@ -525,6 +561,153 @@ for (const name of plan.environmentNames) {
 
 function protocol(message: Record<string, unknown>): void {
   process.stdout.write(`${JSON.stringify(message)}\n`);
+}
+
+/**
+ * The declared-value read, AC-0054 and AC-0055.
+ *
+ * The child performs the **read** because the materialized tree lives under
+ * its own working directory. The Service performs the **parse**, because the
+ * guarded parser and its depth and inadmissible-key bounds live there and this
+ * module imports nothing but node builtins -- which is what keeps the child's
+ * import graph unable to reach materialized content at all.
+ *
+ * So this reports each file's bytes and its refusals, and concludes nothing
+ * from either. Both bounds are checked before anything is opened: the file
+ * count against the requested set, and each name against the delivered
+ * surface.
+ *
+ * **The text travels base64-encoded.** Emitting it raw let a repository defeat
+ * a Studio bound: `JSON.stringify` renders a C0 control byte as a
+ * six-character escape, so two files that each pass the 1 MiB read bound
+ * serialize to 12.58 MiB and breach the 8 MiB result bound, which discards the
+ * whole protocol stream. Base64 inflates by a fixed 4/3, so two admitted files
+ * cost at most about 2.8 MiB and the composition is bounded by construction
+ * rather than by what the bytes happen to be.
+ *
+ * **An absent file is not a refusal, but only a genuinely missing one.** A
+ * repository that declares nothing is the AC-0064 case, and calling that a
+ * failure would assert something the tree does not say -- so only `ENOENT`
+ * reports absence, and every other stat failure is an `unreadable` refusal
+ * carrying its cause. Reporting a file that exists but cannot be read as one
+ * the repository never wrote would be the same false assertion in reverse.
+ */
+function readDeclaredValues(): Record<string, unknown> {
+  const surface = plan.declaredReadSurface;
+  const names = plan.declaredReadNames ?? surface;
+
+  if (names.length > plan.declaredReadFileBound) {
+    return {
+      reads: [],
+      refusal: "exceeds-file-count-bound",
+      diagnostic: `${names.length} files requested, bound is ${plan.declaredReadFileBound}`,
+    };
+  }
+  for (const name of names) {
+    if (!surface.includes(name)) {
+      return {
+        reads: [],
+        refusal: "outside-permitted-read-surface",
+        diagnostic: `${name} is outside the permitted read surface`,
+      };
+    }
+  }
+
+  const reads: Record<string, unknown>[] = [];
+  for (const name of names) {
+    const path = join(materializationRoot, name);
+    let status: ReturnType<typeof lstatSync>;
+    try {
+      status = lstatSync(path);
+    } catch (cause) {
+      if ((cause as { code?: string }).code === "ENOENT") {
+        reads.push({ name, absent: true });
+      } else {
+        reads.push({
+          name,
+          refusal: "unreadable",
+          diagnostic: `${name}: ${String(cause)}`,
+        });
+      }
+      continue;
+    }
+    // Read via the file's own path once it is proven a regular file that is
+    // not a link, which is the discipline the sweep's marker read uses. The
+    // refusal is `unreadable` because that is the member the Service's own
+    // reader maps a non-regular file to; the two must name the same value.
+    if (status.isSymbolicLink() || !status.isFile()) {
+      reads.push({
+        name,
+        refusal: "unreadable",
+        diagnostic: `${name} is not a regular file`,
+      });
+      continue;
+    }
+    // Before the open, so an oversized declaration is never read at all.
+    if (status.size > plan.declaredReadByteBound) {
+      reads.push({
+        name,
+        refusal: "exceeds-byte-bound",
+        diagnostic: `${name} is ${status.size} bytes, bound is ${plan.declaredReadByteBound}`,
+      });
+      continue;
+    }
+    try {
+      // Read as bytes, not as text: the decode belongs with the parse, and a
+      // file that is not valid UTF-8 is the repository's content either way.
+      reads.push({
+        name,
+        encoding: "base64",
+        text: readFileSync(path).toString("base64"),
+      });
+    } catch (cause) {
+      reads.push({
+        name,
+        refusal: "unreadable",
+        diagnostic: `${name}: ${String(cause)}`,
+      });
+    }
+  }
+  return { reads };
+}
+
+/**
+ * Writes the declaration files a test asked for into the materialization root,
+ * so a test can drive the read above. The root's final component is
+ * unpredictable by design, so a test cannot place a file there itself -- the
+ * same reason `materializationWriter` exists. Production never sets the field.
+ */
+function writeDeclaredFixtures(): void {
+  for (const fixture of plan.declaredFixtures ?? []) {
+    // Confined by construction: a bare file name, written directly into the
+    // materialization root. A separator or `..` would make this a write path
+    // out of the root, so it is refused rather than normalized.
+    if (fixture.name.includes("/") || fixture.name.includes("..")) {
+      diagnostic(`declared fixture ${fixture.name} is not a bare file name`);
+      continue;
+    }
+    const path = join(materializationRoot, fixture.name);
+    // Reported rather than thrown: an unguarded throw here would abort before
+    // the `declared` line is written, so a fixture that collided would read as
+    // a Runtime that never performed the read at all.
+    try {
+      // A directory at a permitted name is how a test reaches the non-regular
+      // refusal, which no file fixture can produce.
+      if (fixture.directory === true) {
+        mkdirSync(path, { recursive: true, mode: 0o700 });
+        continue;
+      }
+      writeFileSync(
+        path,
+        (fixture.contents ?? "").repeat(fixture.repeat ?? 1),
+        { mode: 0o600 },
+      );
+    } catch (cause) {
+      diagnostic(
+        `declared fixture ${fixture.name} not written: ${String(cause)}`,
+      );
+    }
+  }
 }
 
 /**
@@ -991,6 +1174,12 @@ async function main(): Promise<void> {
       });
     }
   }
+
+  // After materialization, so the read sees the tree that was checked out,
+  // and before any result line, so a result can never report a version marker
+  // the declared read had not yet been asked for.
+  writeDeclaredFixtures();
+  protocol({ type: "declared", ...readDeclaredValues() });
 
   if (interpreter.executable !== undefined) {
     await runResolutionPhase(interpreter.executable);
