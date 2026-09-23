@@ -87,6 +87,22 @@ open = [
   # of the sites that rule excludes", so a reader follows the pins.
   # Evidence: notes/verification-ledger.md#amendment-2026-09-23-followons-pin-repair.
   { slug = "followons-line-pins-have-no-resolving-gate", source = "connect-and-orient/2026-09-23" },
+  # Thirty of the sixty-four retained visual captures are nondeterministic, so
+  # the baseline cannot detect a regression on the surfaces they cover. Found
+  # on 2026-09-23 while running T13's Stage 2 evidence: two consecutive runs of
+  # the same commit differ in 30 of 64 scenarios, with every difference the
+  # image digest alone -- no control count, overflow, viewport, text scale,
+  # scheme or motion value moves.
+  # The split is sharp and points somewhere: `connect` is stable 8 of 8 and
+  # `module` 6 of 8, while `reviews`, `strategy` and `studio` are stable only
+  # in their `text-200` variant, 1 of 8 each. Whatever varies is on those three
+  # screens and is suppressed at 200% text scale, which is the thread to pull.
+  # Consequence: a future diff on those screens is indistinguishable from noise,
+  # so those captures are retained without being a baseline. The connect
+  # surfaces this slice owns are unaffected and were byte-identical to the
+  # 2026-09-22 set.
+  # Evidence: notes/verification-ledger.md#t13-stage-2-visual-evidence-2026-09-23.
+  { slug = "visual-captures-are-nondeterministic-on-three-surfaces", source = "connect-and-orient/2026-09-23" },
   # Spawn-failure sentinel reaches a signal site as pid 1. Found by round 31's
   # secure-design review of Package 4 and routed out by owner decision rather
   # than widening that amendment, which does not touch this file.
