@@ -6710,7 +6710,7 @@ names are not given a second home there.
 | --- | --- |
 | protocol-line site guarded | **killed** |
 | transport site guarded | **killed** |
-| depth bound fires before the parse | **killed** |
+| depth bound comparison fires before the parse | **killed** |
 | rebuild supplies null prototypes | **killed** |
 | spawn-audit normalization copies named fields only | **killed** |
 | inadmissible keys, **both** limbs removed | **killed**, 8 of 65 |
@@ -6777,3 +6777,142 @@ parallelism and identifies host load as the predictor.
 - the Stage 2 visual evidence, which is published by a whole-directory swap. It was not run.
 
 T13 therefore stays open. Nothing here claims otherwise, and no acceptance verdict moved.
+
+## t15-review-round-11-2026-09-23
+
+Review round 11 on T15's implementation, run `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d`, recorded as
+cohort round 7 at retry 6 under the owner's authorization to exceed the cap of 5. Three reviewers
+ran post-gates; every report went through raw classification and independent adjudication before
+any fix. Sustained after adjudication: 6 of 6 adversarial, 2 of 3 security, 4 of 15 quality —
+**twelve fingerprints, four of them Blockers**, deduplicating to four distinct Blockers because
+one adversarial Blocker and one security Concern name the same gap. Security refuted all three
+of its amplification questions: on the current tree the guard is not worse than the parse it
+replaced at any reachable input size.
+
+### The round's own defect: the fix from round 10 was not total
+
+Two of the four Blockers are one defect I introduced in `4d0fef7`, and they only exist because
+of it. Round 10 replaced two unchecked pass-throughs with normalization that coerces:
+`String(entry.executable ?? "")` and `entry.args.map(String)` in `childSpawnAudit`, and
+`String(read.name)` in `declaredFromProtocol`. In the same commit the guard began rebuilding
+every parsed object with `Object.create(null)`. Measured on this tree:
+
+```
+plain prototype  String(obj) -> [object Object]
+null prototype   String(obj) -> TypeError: Cannot convert object to primitive value
+```
+
+So a named field arriving as an object no longer produced `"[object Object]"` — it threw. Both
+call sites run inside the `settled` builder, so the throw rejected `settled` and
+`source-inspection.ts:296` discarded an **otherwise completed inspection**. A guard added to
+contain a hostile line had become a way for one to deny the whole run. The mutant reproducing
+it fails the suite with exactly that `TypeError`.
+
+The repair is one property rather than two patches: a criterion-named field is **read**, never
+coerced. `namedString` and `namedStringArray` return a value only when it already carries its
+declared type, which is total over every value a guarded parse can yield. A `spawn` line that
+under-supplies a named field now contributes **no audit entry**, rather than one with an empty
+executable standing in the record as Studio's own account of what it spawned. The declared-read
+loop also checks each `reads` element's shape, because a `null` element made even property
+access throw.
+
+The owner's remaining choice is recorded, not taken: the adjudication left drop-versus-surface
+open, and a refused line is currently dropped. Dropping is what every other refusal at this
+site already does; surfacing it as refused would add a new observable, which is the owner's call.
+
+### The depth scan's two structural branches had no binding case
+
+Quality's Blocker is the sharper one, because the mutation battery in this ledger's previous
+section measured the wrong thing. It mutated the **comparison** in `parseGuardedJson`, not the
+**scan** that comparison consumes, and every fixture was bracket-only text or shallow text with
+no bracket inside a string. So the close-bracket decrement and the string-literal arm could both
+be removed with every case still green. The row above is narrowed to
+`depth bound comparison fires before the parse` to say only what it covered.
+
+Either mutant turns a depth bound into a total-bracket count, which refuses a **well-formed**
+line — and at the transport site refusing a line disconnects and rejects every pending request.
+Two helper cases now bind the branches, each measured on this tree:
+
+| Line, and its true text depth | Real scan | No decrement | No string arm | Bound |
+| --- | ---: | ---: | ---: | ---: |
+| 84 sibling objects, 3 deep | 3 | **65** | 3 | 64 |
+| 74 brackets inside one string value, 1 deep | 1 | 1 | **65** | 64 |
+
+Each fixture kills exactly one mutant, and the real guard admits both lines, so what the mutant
+costs is a good line refused. The bracket-in-string line carries an escaped quote, which is what
+separates the arm from a naive quote toggle.
+
+### AC-0057's clauses at the transport site, and the one that cannot be observed there
+
+The round found the transport site carried an obligation for only one of AC-0057's three clauses,
+against T15's `Done when` requiring all three at each northbound site. Measured at the
+subscriber boundary:
+
+- **Inadmissible keys** — already bound. The guard drops the key, which is what makes the
+  notification valid, so its arrival is the proof.
+- **Named-field normalization** — now bound. Strict validation builds the delivered envelope
+  from the schema's named fields, so handing `message.params` to the listener instead of the
+  validated value reddens. An extra own field is refused with the whole envelope rather than
+  trimmed, which the case asserts by which notification arrives first.
+- **Null prototypes** — **no falsifiable observable at this site.** Measured: the parsed line is
+  rebuilt with a null prototype, but what a subscriber receives is validation's fresh object, so
+  `Object.getPrototypeOf(params)` is not null. The clause as written describes the parsed value,
+  which no consumer of this site ever sees.
+
+That last one is an open question about the plan's reach, not a gap to paper over, and it is
+carried to the owner rather than answered here. Writing a test-only seam to expose the parsed
+object would add a production observable for the sake of a case, which is the trade the `Cut
+before adding` rails refuse. The two candidate answers are: the clause's obligation does not
+reach a site whose normalization replaces the parsed object before delivery, or the plan's
+`Done when` is amended to say so.
+
+A related check came back clean: `receive` reads `jsonrpc`, `method` and `id` straight off the
+guarded object, before validation, so it was a candidate for the same `TypeError`. Every one of
+those reads is a `typeof` or `===` test, so the transport carries no third instance.
+
+### Mutation proof
+
+Seven mutants, each against the case that should bind it. All seven killed.
+
+| Mutant | Bound by | Result |
+| --- | --- | ---: |
+| spawn audit coerces instead of reading the named type | `northbound-guard.test.ts` | **killed**, `TypeError` |
+| declared read coerces the name instead of reading it | `declared-read.test.ts` | **killed**, 1 of 36 |
+| declared read trusts the `reads` element shape | `declared-read.test.ts` | **killed**, 1 of 36 |
+| depth scan never decrements on a close bracket | `guarded-parse.test.ts` | **killed**, 1 of 9 |
+| depth scan has no string-literal arm | `guarded-parse.test.ts` | **killed**, 1 of 9 |
+| depth bound compares `>=` instead of `>` | both at-bound cases | **killed**, 3 of 17 |
+| transport hands the parsed line to the subscriber | `validator.test.ts` | **killed**, 1 of 11 |
+
+The first mutant reddens as a failed suite rather than a failed case: the three cases share a
+`beforeAll` that performs the run, and the `TypeError` rejects it. That is the defect's own
+mechanism, so the reason for the redness is the finding.
+
+### Lesser findings, all applied
+
+| Finding | Severity | Applied |
+| --- | --- | --- |
+| The at-bound case measured 63, not 64, so `>` turned `>=` survived at that site | Nit ×2 | Interior brackets changed from `bound - 2` to `bound - 1`; measured 64. The comparison is now bound at both northbound sites |
+| `guarded-parse.test.ts` claimed to bind the transport call site but never built a `StudioTransport`; `northbound-guard.test.ts` repeated the attribution | Nit | Both docblocks now say where each site is bound: the helper here, the transport in `validator.test.ts`, the protocol line in `northbound-guard.test.ts` |
+| The `rawStdoutLines` loop was inserted between a comment and its subject | Nit | Verified against `4d0fef7`: the comment pre-existed and headed the noise writes. It now covers both, which is what is true of both |
+| The depth scan's docstring claimed a hostile document costs only its refusing prefix | Nit | Narrowed: that holds for a document that breaches the bound. One within the bound is walked in full, which is the same single pass the parse behind it makes |
+| The new transport case settled on `setTimeout(settle, 30)` where the file settles on the stream | Nit | Settles on the sentinel notification. Both are written to one stream in order, so the second arriving means the first was already admitted or rejected — which keeps a removed guard a failed assertion rather than a timeout |
+
+### Gate evidence
+
+`pnpm lint`, `pnpm typecheck`, `pnpm governance` and `pnpm verify` all exit 0. The clean verify
+run is **738 passed, 3 skipped, 0 failed across 55 files**, 31s. Case counts, each read from the
+mutation run that exercised the file rather than counted by hand: `guarded-parse.test.ts` 9,
+`validator.test.ts` 11, `northbound-guard.test.ts` 8, `declared-read.test.ts` 36. Lint's only
+complaint was formatting in the two files whose new cases wrapped differently; `biome check
+--write` fixed both.
+
+The first verify attempt failed one case — `AC-0025 admits every executable observed in the
+descendant tree`, `expected 1 to be greater than 1`. It is the recorded
+`pre-existing-trial-runtime-load-flake`, not this change, and the attribution was checked rather
+than assumed: `observedProcesses` is built by polling the live process tree and confirms a
+process only after two consecutive samples agree on its shape, so a missed sample of a
+short-lived descendant leaves the child alone in the map. Nothing in this round touches process
+sampling; the changes are protocol-line normalization, one docstring and one comment. Both
+isolation runs of that file passed 26 of 26, at loads 50.2 and 45.1, and the next whole-suite run
+at load 36.8 was clean.

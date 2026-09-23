@@ -1240,8 +1240,9 @@ async function main(): Promise<void> {
     });
   }
 
-  // Written before the completed line, so the Service reads it as part of the
-  // same run rather than after the response it would have bounded.
+  // The injected lines and the noise below are both written before the
+  // completed line, so the Service reads them as part of the same run rather
+  // than after the response they would have bounded.
   for (const raw of plan.rawStdoutLines ?? []) {
     process.stdout.write(`${raw}\n`);
   }

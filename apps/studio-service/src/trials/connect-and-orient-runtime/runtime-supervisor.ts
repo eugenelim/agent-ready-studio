@@ -775,32 +775,76 @@ export function beginTrialInspection(
 }
 
 /**
+ * Reads one criterion-named field, and is total over every value a guarded
+ * parse can yield.
+ *
+ * `String(value)` is not. The inadmissible-key guard rebuilds each object with
+ * a null prototype, so a named field arriving as an object has no inherited
+ * `toString` and coercing it throws `TypeError` rather than producing
+ * `[object Object]`. At both protocol-line sites that throw would escape into
+ * the `settled` builder and discard an otherwise completed inspection, so a
+ * named field is read only when it already carries its declared type.
+ */
+function namedString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+/** The array form of {@link namedString}, total for the same reason. */
+function namedStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  return value.every((item) => typeof item === "string")
+    ? [...(value as readonly string[])]
+    : undefined;
+}
+
+/**
  * The Runtime reports each process start on the protocol stream as it happens,
  * so the audit is complete up to the moment the group was signalled rather than
  * lost when a phase is cut short.
+ *
+ * AC-0057's third clause at this site: only the criterion-named fields are
+ * copied, onto a freshly constructed object. Returning `line.entry` consumed
+ * the parsed object's shape, so a field the line invented travelled into the
+ * audit a reader treats as Studio's own record of what it spawned.
+ *
+ * A line that does not supply those fields in their declared types contributes
+ * no entry at all. Filling one in would put an empty executable, or a coerced
+ * object, into the record as Studio's own account of what it spawned.
  */
 function childSpawnAudit(
   protocolLines: readonly Record<string, unknown>[],
 ): SpawnAuditEntry[] {
-  // AC-0057's third clause at this site: only the criterion-named fields are
-  // copied, onto a freshly constructed object. Returning `line.entry` consumed
-  // the parsed object's shape, so a field the line invented travelled into the
-  // audit a reader treats as Studio's own record of what it spawned.
-  return protocolLines
-    .filter((line) => line.type === "spawn")
-    .map((line) => {
-      const entry = (line as { entry?: Record<string, unknown> }).entry ?? {};
-      const named: SpawnAuditEntry = {
-        executable: String(entry.executable ?? ""),
-        args: Array.isArray(entry.args) ? entry.args.map(String) : [],
-        environmentNames: Array.isArray(entry.environmentNames)
-          ? entry.environmentNames.map(String)
-          : [],
-        shell: false,
-        ...(typeof entry.pid === "number" ? { pid: entry.pid } : {}),
-      };
-      return named;
+  const audit: SpawnAuditEntry[] = [];
+  for (const line of protocolLines) {
+    if (line.type !== "spawn") {
+      continue;
+    }
+    const entry: unknown = (line as { entry?: unknown }).entry;
+    if (entry === null || typeof entry !== "object") {
+      continue;
+    }
+    const fields = entry as Record<string, unknown>;
+    const executable = namedString(fields.executable);
+    const args = namedStringArray(fields.args);
+    const environmentNames = namedStringArray(fields.environmentNames);
+    if (
+      executable === undefined ||
+      args === undefined ||
+      environmentNames === undefined
+    ) {
+      continue;
+    }
+    audit.push({
+      executable,
+      args,
+      environmentNames,
+      shell: false,
+      ...(typeof fields.pid === "number" ? { pid: fields.pid } : {}),
     });
+  }
+  return audit;
 }
 
 /**
@@ -821,7 +865,7 @@ export function declaredFromProtocol(
 ): DeclaredReadReport | undefined {
   const line = protocolLines.find((message) => message.type === "declared") as
     | {
-        reads?: readonly Record<string, unknown>[];
+        reads?: readonly unknown[];
         refusal?: unknown;
         diagnostic?: unknown;
       }
@@ -845,10 +889,15 @@ export function declaredFromProtocol(
 
   let versionMarker: string | undefined;
   const reads: DeclaredFileReport[] = [];
-  for (const read of line.reads ?? []) {
-    const name = String(read.name);
-    // Only a name the Service itself delivered may be reported back to it.
-    if (!isPermittedReadName(name)) {
+  for (const entry of line.reads ?? []) {
+    if (entry === null || typeof entry !== "object") {
+      continue;
+    }
+    const read = entry as Record<string, unknown>;
+    // Only a name the Service itself delivered may be reported back to it, and
+    // a name is read rather than coerced -- see `namedString`.
+    const name = namedString(read.name);
+    if (name === undefined || !isPermittedReadName(name)) {
       continue;
     }
     const routesToDeclarationFileStop = name !== WORKSPACE_DECLARATION_NAME;
