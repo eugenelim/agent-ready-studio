@@ -286,6 +286,51 @@ describe("StudioTransport guards the northbound envelope", () => {
     transport.shutdown();
   });
 
+  it("AC-0057 delivers a -32002 resource payload through to the caller", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32002,
+            message: "Revision base is not a Product Intent",
+            data: {
+              kind: "resource",
+              resourceType: "artifact-revision",
+              id: "revision-not-intent",
+            },
+          },
+        })}\n`,
+      );
+    });
+
+    const refusal = await transport.request("health.get", {}).then(
+      () => undefined,
+      (cause: unknown) => cause as { data?: { id?: string } },
+    );
+
+    // The Service-side case in `service.integration.test.ts` asserts what the
+    // Service emits; this is the other half, the observable a caller actually
+    // gets. The rebuild is keyed by code, so a wrong `-32002` row would leave
+    // the emission green and drop the payload here -- which is exactly what
+    // happened to this refusal while it rode the wrong code.
+    expect(refusal?.data).toMatchObject({
+      kind: "resource",
+      resourceType: "artifact-revision",
+      id: "revision-not-intent",
+    });
+    transport.shutdown();
+  });
+
   it("AC-0057 yields no error payload a declared shape does not admit", async () => {
     const responses = new PassThrough();
     const requests = new PassThrough();

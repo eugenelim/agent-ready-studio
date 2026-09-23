@@ -6544,16 +6544,24 @@ the trial suites parallel and serial, interleaved so ambient load hit both arms 
 failed one run of three, serial failed one run of three. **Serializing is not the fix**, and the
 vitest configuration was left alone.
 
-What predicts it is host load. Every failing whole-suite run this session sat at load 77 to 199
-on ten cores; every green run at 35 to 54. Much of that load was self-inflicted — three reviewer
-subagents running tests while the controller ran the full suite. The rest is host
-endpoint-security and device-management agents, one of them sustaining well over a core for
-hours, which hook process creation; these suites create hundreds of short-lived detached
-processes and assert on 5 ms `ps` sampling and wall-clock deadlines.
+The cause is contention for process creation, not file parallelism. Host endpoint-security and
+device-management agents hook every process spawn, one of them sustaining well over a core for
+hours; these suites create hundreds of short-lived detached processes and assert on 5 ms `ps`
+sampling and wall-clock deadlines. Reviewer subagents running tests alongside the controller add
+to it.
 
-The operational rule is narrower than "the suite is flaky": **do not run the full suite while
-subagents are running tests.** This also refines the earlier note that load average does not
-predict the flake — true across the 13.9 to 35 range it sampled, false above it.
+The operational rule that survives is: **do not run the full suite while subagents are running
+tests.**
+
+> **Correction, 2026-09-23.** This section originally continued "what predicts it is host load",
+> gave a failing band of 77 to 199 and a green band of 35 to 54, and on that basis overrode the
+> earlier note that load average does not predict the flake. **Later runs the same day falsified
+> all three claims**: whole-suite runs reached exit 0 at one-minute loads of 101.1, 44.1 and 15.8,
+> and went red at 11.7, 19.4, 36.1, 72.9 and across 107 to 185. Clean at 101 and red at 11.7
+> leaves no threshold standing, in either direction. The earlier note was right and is restored:
+> the failures track *what else the host is doing* — burstiness, not level — so the judging rule
+> at `#review-round-22-2026-09-17` is the operative one. Do not gate a decision on `uptime`;
+> judge a red run only when the same tests fail twice in isolation.
 
 ### Deferred, with citations
 
@@ -6764,7 +6772,8 @@ typecheck, governance and a build before the tests, so it loads the host harder 
 which is consistent with the bare run going green minutes earlier. This is
 `pre-existing-trial-runtime-load-flake`; see
 `slice-f1-step-b-2026-09-22` for the parallel-versus-serial experiment that rules out file
-parallelism and identifies host load as the predictor.
+parallelism. Its load-as-predictor conclusion was itself corrected later that day -- see the
+correction recorded in that section.
 
 **Three of T13's obligations are not discharged and remain open:**
 
@@ -7312,15 +7321,24 @@ changed the correct half. The emission now carries `-32002` with its original pa
 
 Two consequences, both checked:
 
-- **Nothing branches on the code for this path.** `ProductIntentEditor` renders `error.message`,
-  and its own `-32004` case is the stale-base refusal at `service.ts:1061`, untouched;
-  `DecisionPanel` branches on `-32003`/`-32004` for review resolution, untouched. Nothing in the
-  repository branches on `-32002`.
-- **The spec's line pin resolves again, so the second owner decision became unnecessary.**
-  Restoring the original payload removed the lines that caused the drift: `service.ts` is now
-  2 added and 2 removed against the pre-T15 baseline, a net of zero, and `:1274` is once more
-  `request = JSON.parse(line);` — exactly what `docs/specs/connect-and-orient/spec.md:659` pins.
-  The owner had authorized an amendment; it was not performed, because it is no longer needed.
+- **One renderer branch is affected, which this entry first said was not.** `DecisionPanel.tsx:229`
+  is the sole production branch on `-32003`/`-32004`, and `resolveReview` maps *every* persisted
+  revision through `domainRevision` (`service.ts:544`), so `review.resolve` reaches the moved
+  throw too — not only `artifact.revise` at `:648`. A review whose revision set holds a
+  non-Product-Intent revision previously took that retry affordance and now falls through to the
+  generic path, which is the more honest outcome because no retry resolves a wrong-typed
+  revision. `ProductIntentEditor` renders `error.message` and branches on no code at all; the
+  stale-base `-32004` throw it displays is at `service.ts:1054`, untouched. Nothing in the
+  repository branches on `-32002`. The original claim checked which methods *emit* `-32004` and
+  never checked which methods *reach* `domainRevision`.
+- **One of six pins resolves again; two others are stale, so the amendment is still needed.**
+  Restoring the original payload did return `service.ts` to a net of zero, and `:1274` is once
+  more `request = JSON.parse(line);`. But that entry pins six sites, and round 15 found
+  `runtime-child.ts:182` and `:408` were moved seven lines by `4d0fef7` — T15's own first commit —
+  and have been stale since; the parses are at `:189` and `:415`. `sweep.ts:127`,
+  `storage.ts:297`, `storage.ts:1103` and `inspector-locator.ts:134` do resolve. **This entry
+  first concluded the amendment was unnecessary on the strength of one pin out of six, which was
+  wrong.** The owner's authorization stands and the amendment is owed.
 
 ### The last unbound item is now bound
 
@@ -7335,8 +7353,14 @@ exactly such a revision, and the integration harness already inserts one. A case
 | Mutant | Bound by | Result |
 | --- | --- | ---: |
 | mirror widened: `-32002` becomes `z.any()` | `contracts.test.ts` | **killed**, 1 of 15 |
-| mirror widened: `-32603` becomes a loose object | `contracts.test.ts` | **killed**, 1 of 15 |
+| mirror widened: `-32603` becomes `z.looseObject({})` | `contracts.test.ts` | **killed**, 1 of 15 |
 | mirror widened: a declared string field accepts anything | `contracts.test.ts` | **killed**, 1 of 15 |
+
+The middle row names the exact mutant that was run, because the phrasing it first carried —
+"becomes a loose object" — also reads as `z.looseObject` over the *same declared fields*, and
+**that form survived this guard**. Round 15 replaced the guard and kills both; see that entry.
+The sentence below, that all three widenings the reviewers measured as surviving are killed, was
+true only of the forms measured here.
 | emitter reverts to the `-32004` conflict payload | `service.integration.test.ts` | **killed**, 1 of 21 |
 | emitter keeps the code but drops the revision id | `service.integration.test.ts` | **killed**, 1 of 21 |
 | guard rebuild gives each object an ordinary prototype | two files | **killed**, 1 of 10 and 1 of 17 |
@@ -7394,10 +7418,97 @@ The coverage is nonetheless complete, by decomposition:
 | `per-request-state-root.test.ts` in isolation, twice | 20 of 20, 20 of 20 |
 | `runtime-supervisor.test.ts` in isolation, five times | 26 of 26 four times; one run red on `AC-0025` alone |
 
-695 plus 58 is 753, the whole-suite total, so every test in the repository is accounted for by a
-green run. The single isolated red is `AC-0025 admits every executable observed in the descendant
+695 plus 58 is 753, the whole-suite total. **750 of those have a green run behind them**; the
+other three are skips — `live-smoke.test.ts`'s guarded case and two network-guarded cases in
+`apps/desktop/src/e2e/connect-and-orient.test.ts` — which are skipped, not accounted for. The single isolated red is `AC-0025 admits every executable observed in the descendant
 tree` — the case `pre-existing-trial-runtime-load-flake` names — and it did not fail twice in
 isolation, which is the judging rule this ledger set at `#review-round-22-2026-09-17`.
 
 **The whole-suite gate is owed.** Nothing here claims it was obtained, and the next session should
 re-run `pnpm verify` on a quieter host before treating T15's gate obligation as discharged.
+
+## t15-review-round-15-2026-09-23
+
+Verification round on `e38ca8e`, recorded as cohort round 12. Two reviewers ran post-gates, both
+told not to create hard links after the previous round's gate breakage. Raw: 8 adversarial,
+4 security. **Three Blockers, four Concerns, five Nits**, and four of them falsify claims this
+ledger made in round 14.
+
+### The widening guard, third generation, same hole — and the reason why
+
+Round 13 wrote a cross-check; round 14 found it caught nothing but key-set loss and replaced it;
+round 15 found the replacement catches exactly one mutation shape. Between them the reviewers
+measured **five** surviving widenings against round 14's guard: a field made optional (twice), a
+`const` widened to an enum of a neighbouring declared value, `.strict()` dropped at the top level,
+and `.strict()` dropped on the nested `issues` item. Two of those forward wire keys verbatim,
+which is the escape AC-0057's third clause exists to close.
+
+The pattern is the point. Each generation **enumerated the widenings its author could think of**,
+so each missed a class, and each recorded a claim as wide as the class rather than as wide as the
+enumeration. That is the sixth consecutive round in which a claim here outran its measurement.
+
+The fourth generation does not enumerate. Its negatives are **derived from the canonical schema**:
+
+| What the contract declares | The negative derived from it |
+| --- | --- |
+| `additionalProperties: false` | a payload carrying an undeclared key |
+| each entry in `required` | that key omitted |
+| each property's `type` | that field holding an object instead |
+| each `const` or `enum` | a value outside it — including **every neighbouring value the contract declares for that property name elsewhere**, which is what catches a widening to a real sibling value |
+| a nested object or array item | the same four, recursively, at that level |
+| a `$ref` | followed before the property is inspected, so a pointer is not mistaken for a leaf |
+
+So a widening class nobody has enumerated is bound the moment the contract declares the thing it
+widens. Measured against it, **9 of 9 widenings are killed** — the five the reviewers found, the
+`z.any()` and same-fields-`looseObject` forms, an optional field inside the nested item, and a
+code mapped to the wrong declared shape. Getting there took two corrections of its own, both
+recorded because they are the same mistake in miniature: the first version substituted an
+arbitrary out-of-domain string, which a widening to a neighbouring *declared* value survives; the
+second read a property's `$ref` pointer instead of its declaration, which the
+`protocolVersionErrorData.expected` literal survives.
+
+### Three claims from round 14, corrected in place
+
+- **"Nothing branches on the code for this path."** False. `resolveReview` maps every persisted
+  revision through `domainRevision`, so `review.resolve` reaches the moved throw as well, and
+  `DecisionPanel.tsx:229` branches on `-32003`/`-32004` for exactly that method. A review holding
+  a non-Product-Intent revision previously took the retry affordance and now falls through. The
+  check asked which methods *emit* `-32004` and never which methods *reach* `domainRevision`.
+- **"The second owner decision became unnecessary."** False, and on one pin out of six. The
+  Follow-ons entry pins six sites; `runtime-child.ts:182` and `:408` were moved seven lines by
+  `4d0fef7` and have been stale since. The amendment the owner authorized is owed.
+- **"Every test in the repository is accounted for by a green run."** 750 are; the other three are
+  skips, which are skipped rather than accounted for.
+
+A fourth, the `-32603` mutation row, is narrowed to the exact mutant text that was run, because
+the natural reading of its old phrasing survives round 14's guard.
+
+### The caller's half of the observable
+
+Round 14 claimed its new integration case measures "the observable a caller actually gets". It
+does not: `dispatchRequest` is server-side, and the step that previously destroyed this payload is
+the client-side rebuild. Both halves are now bound — the Service's emission in
+`service.integration.test.ts`, and the caller's receipt in `validator.test.ts`, which reddens when
+the `-32002` row is mapped to the wrong declared shape.
+
+One fixture caveat, recorded rather than papered over: the integration case stores a
+`product-intent` artifact whose revision content is not a Product Intent, which the Service's own
+writers cannot produce, while the reachable state named in the argument — `demo.seed` — persists
+`initiative` and `input-packet` revisions under differently-typed artifacts. Both reach the same
+throw, so coverage is unaffected; the asserted state is not the reachable one.
+
+### Gate evidence
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` exit 0. `pnpm verify` again did not reach
+exit 0, and the reason is unchanged and unrelated to the diff: every failure across every attempt
+fell in the four real-process trial suites, with a varying set each time, while host load moved
+between 34 and 268 during the attempts. The closest run was **750 passed, 3 skipped, 1 failed**,
+the single failure being `leaves no live process group behind` in `disposal.test.ts`, which passes
+twice in isolation.
+
+The decomposition recorded with round 14 still holds and now covers 754 tests: the whole suite
+minus the four flaky files runs clean, and each of those four runs clean in isolation. **The
+whole-suite gate remains owed**, for the second round running, and nothing here claims otherwise.
+
+Targeted evidence for this round's own changes, all green: `packages/protocol` 43 of 43, and the
+widening battery at 9 of 9 killed.
