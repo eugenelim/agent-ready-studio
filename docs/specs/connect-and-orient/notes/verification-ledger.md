@@ -7624,3 +7624,53 @@ transition and no position for a Changelog escapes the last task's span.
 The spec's `Status` moved `Implementing` → `Approved` for the `spec-approved` gate, which checks
 it, and back to `Implementing` once the plan locked. It is `Implementing` now, matching
 CODE-IMPLEMENTATION.
+
+## t13-stage-2-visual-evidence-2026-09-23
+
+T13's Stage 2 visual evidence was run, on owner direction, against `9fe033e`:
+`pnpm visual-evidence:connect`, which renders the production renderer bundle in headless Chromium
+over the real compiled Studio Service. **64 scenarios captured, every one `ok`, horizontal
+overflow 0px in all of them.**
+
+### The run's finding is not the images
+
+Comparing the fresh captures against the retained set from 2026-09-22 showed 28 of 64 PNGs with a
+new digest. Every one of those differences is **the image digest alone** — across the manifest's
+recorded properties, not one `controls` count, `horizontalOverflow`, `viewport`, `textScale`,
+`scheme` or `motion` value moved, and the scenario set is the same 64 before and after.
+
+A digest-only change can still be real content the manifest does not measure, so the run was
+repeated against an unchanged tree. **30 of 64 scenarios differ between two consecutive runs of
+the same commit.** The captures are nondeterministic, so the 28 differences against September's
+baseline were never evidence of anything having changed.
+
+| Surface | Stable across two identical runs |
+| --- | ---: |
+| `connect` | **8 of 8** |
+| `connect-rejected` | 7 of 8 |
+| `module` | 6 of 8 |
+| `overview` | 6 of 8 |
+| `home` | 4 of 8 |
+| `reviews`, `strategy`, `studio` | **1 of 8** each |
+
+**What this slice owns is clean.** `connect` is the only surface that never varies, and its eight
+captures are byte-identical to the September baseline. `connect-rejected` varies in one variant of
+eight. So the connect surfaces are both reproducibly captured and unchanged by T15 — which is the
+result Stage 2 wanted from this slice, and it is a real one.
+
+**What the retained set cannot do** is detect a regression on `reviews`, `strategy` or `studio`,
+where seven of eight variants differ run to run. A future diff on those screens is
+indistinguishable from noise, so the baseline is not a baseline for them. Only the `text-200`
+variant of each is stable, which is the thread worth pulling when someone investigates.
+
+### Why the working tree was left on the September captures
+
+Republishing would have committed roughly thirty PNGs whose only difference is nondeterministic
+rendering. That carries no information and makes every later diff noisier, so the publish was
+reverted with `git checkout` and the retained set is unchanged at 65 tracked files, 0 dirty. The
+capture is one command away whenever a real refresh is wanted.
+
+**T13 is not discharged by this.** Its other two obligations are untouched and still need a human:
+the per-criterion manual QA gestures for AC-0114, AC-0129, AC-0130, AC-0131 and AC-0132, and the
+four manual-QA transport observations for AC-0009, AC-0024, AC-0025 and AC-0030, which need an
+https endpoint AC-0148 forbids in automation.
