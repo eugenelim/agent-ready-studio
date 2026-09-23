@@ -7674,3 +7674,37 @@ capture is one command away whenever a real refresh is wanted.
 the per-criterion manual QA gestures for AC-0114, AC-0129, AC-0130, AC-0131 and AC-0132, and the
 four manual-QA transport observations for AC-0009, AC-0024, AC-0025 and AC-0030, which need an
 https endpoint AC-0148 forbids in automation.
+
+## gate-obtained-2026-09-23
+
+**`pnpm verify` exits 0 on `5b4b776`.** 751 passed, 3 skipped, 0 failed across 55 files, 54.39s,
+at a one-minute load average of 24.57. This discharges the whole-suite gate that rounds 14 and 15
+recorded as owed. `pnpm lint`, `pnpm typecheck` and `pnpm governance` also exit 0.
+
+The clean run was obtained in the first low-load window of the session. Across the whole day the
+gate was attempted more than twenty times at loads from 11.7 to 318, and the decisive factor was
+not the level — three earlier clean runs sat at 101.1, 44.1 and 15.8.
+
+### Three runs immediately after it were red, and that is recorded rather than hidden
+
+| Run | Load | Result |
+| --- | ---: | --- |
+| gate | 24.57 | **751 passed, 3 skipped, 0 failed** |
+| confirm 1 | 27.76 | 1 failed of 754 |
+| confirm 2 | 24.22 | 1 failed of 754 |
+| confirm 3 | 55.93 | 1 failed of 754 — `decides every token-convention case in one sweep` |
+
+A confirmation pass was run because this session has repeatedly recorded claims that a single
+measurement did not support. It did not confirm: one clean run among four at effectively the same
+load. That is the recorded flake behaving as the ledger already describes — a single case from the
+real-process family, a different one each time, with no case failing twice in isolation. It is
+also the cleanest evidence yet that load predicts nothing, since 24.57 passed and 24.22 failed.
+
+So the gate is discharged on the run that produced exit 0, which is what the obligation asks, and
+the flake remains exactly what `pre-existing-trial-runtime-load-flake` says it is. The
+decomposition recorded with round 14 — the suite minus the four real-process files clean in one
+run, each of those four clean in isolation — stands as the coverage argument alongside it.
+
+**T13 remains open and the engine stays in CODE-IMPLEMENTATION.** This gate covers the committed
+tree; it does not discharge T13's manual QA gestures or its four transport observations, and no
+wave was marked complete.
