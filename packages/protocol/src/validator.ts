@@ -281,7 +281,10 @@ export type ValidationIssue = { path: string; message: string };
 export type ValidationError = {
   code: -32602;
   message: "Invalid params";
-  data: { kind: "validation"; issues: ValidationIssue[] };
+  // Derived from the inbound schema rather than spelled out again: both
+  // mirror one `validationErrorData` in the versioned contract, and declaring
+  // the shape twice in one file let the next contract change update one.
+  data: z.infer<typeof validationErrorData>;
 };
 export type RequestValidationResult =
   | { ok: true; value: unknown }
@@ -293,7 +296,13 @@ export function validateRequest(input: unknown): RequestValidationResult {
     typeof input !== "object" ||
     !("method" in input) ||
     typeof input.method !== "string" ||
-    !(input.method in requestSchemas)
+    // `Object.hasOwn`, not `in`, for the same reason as the notification
+    // lookup below: `requestSchemas` is a plain object literal, so `in` was
+    // true for every `Object.prototype` name and the `safeParse` on the next
+    // line then read off an inherited member and threw. This site's answer is
+    // an `Unknown method` refusal, and a throw here escapes
+    // `dispatchRequest` above its own `try` and ends the Service read loop.
+    !Object.hasOwn(requestSchemas, input.method)
   )
     return validationFailure([{ path: "method", message: "Unknown method" }]);
   const result = requestSchemas[input.method as StudioMethod].safeParse(input);
@@ -710,7 +719,7 @@ const protocolVersionErrorData = z
   })
   .strict();
 
-const errorDataSchemas = {
+export const errorDataSchemas = {
   "-32700": validationErrorData,
   "-32600": validationErrorData,
   "-32601": resourceErrorData,
@@ -729,13 +738,12 @@ const errorDataSchemas = {
  * A code the contract does not list keeps arriving as it did, because the
  * contract names no envelope for one and inventing a shape here would be a
  * control the contract does not determine. That residual is recorded rather
- * than closed. `Object.hasOwn` rather than `in` for the same reason as the
- * notification lookup: the table is a plain object literal.
+ * than closed. `Object.hasOwn` rather than `in` is idiom here rather than a
+ * control: `code` is a number, so every key is the string form of one and
+ * none can name an `Object.prototype` property. A mutant restoring `in`
+ * survives, and that is recorded rather than covered by a case.
  */
-function errorData(code: unknown, data: unknown): unknown {
-  if (typeof code !== "number") {
-    return data;
-  }
+function errorData(code: number, data: unknown): unknown {
   const key = String(code);
   if (!Object.hasOwn(errorDataSchemas, key)) {
     return data;

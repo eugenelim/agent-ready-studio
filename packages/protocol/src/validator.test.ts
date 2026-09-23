@@ -32,6 +32,35 @@ describe("validateRequest", () => {
   });
 });
 
+describe("validateRequest resolves a method name", () => {
+  it("refuses an inherited property name instead of throwing", () => {
+    // `requestSchemas` is a plain object literal, so `in` was true for every
+    // `Object.prototype` name and the `safeParse` below it read off an
+    // inherited member and threw. This site's answer is a refusal, and a throw
+    // here escapes `dispatchRequest` above its own `try` and ends the Service
+    // read loop rather than returning method-not-found.
+    for (const method of [
+      "toString",
+      "valueOf",
+      "constructor",
+      "hasOwnProperty",
+      "__proto__",
+      "propertyIsEnumerable",
+    ]) {
+      const result = validateRequest({
+        jsonrpc: "2.0",
+        id: "request-1",
+        method,
+        params: {},
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error("expected a refusal");
+      expect(result.error.data.issues[0]?.message).toBe("Unknown method");
+    }
+  });
+});
+
 describe("StudioTransport guards the northbound envelope", () => {
   // AC-0056 and AC-0057 at the transport call site. The helper's own coverage
   // is in guarded-parse.test.ts; these drive the real transport, because a
@@ -208,8 +237,9 @@ describe("StudioTransport guards the northbound envelope", () => {
 
     // The pending request is the observable: an undeclared method name is
     // ignored quietly, so the result written behind it still resolves. Under
-    // the `in` form the throw aborts the consume loop before that line is
-    // read, and the request settles as a timeout instead.
+    // the `in` form the throw unwinds out of `consume` through the stream
+    // write, whose catch rejects the pending request -- so it settles as
+    // `disconnected`, not as a timeout.
     await expect(transport.request("health.get", {})).resolves.toMatchObject({
       kind: "health",
     });
@@ -297,6 +327,48 @@ describe("StudioTransport guards the northbound envelope", () => {
     expect(refusal?.data).toBeNull();
     expect(refusal?.kind).toBe("service");
     expect(refusal?.code).toBe(-32602);
+    transport.shutdown();
+  });
+
+  it("AC-0057 materializes an unnormalized error payload without a prototype", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      // A code the contract does not declare. Normalization is keyed by code,
+      // so this payload is the one value at this site that still crosses as
+      // the guarded parse built it -- which the owner accepted on
+      // 2026-09-23, because the contract names no envelope for such a code.
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32099,
+            message: "Undeclared",
+            data: { nested: { leaf: 1 } },
+          },
+        })}\n`,
+      );
+    });
+
+    const refusal = await transport.request("health.get", {}).then(
+      () => undefined,
+      (cause: unknown) => cause as { data?: { nested?: object } },
+    );
+
+    // So this is where AC-0057's null-prototype clause is observable at this
+    // site, and the only place: every normalized path replaces the parsed
+    // object with a schema-built one carrying an ordinary prototype. Removing
+    // the guard's rebuild leaves these prototypes ordinary and reddens.
+    expect(refusal?.data).toBeDefined();
+    expect(Object.getPrototypeOf(refusal?.data as object)).toBeNull();
+    expect(Object.getPrototypeOf(refusal?.data?.nested as object)).toBeNull();
     transport.shutdown();
   });
 

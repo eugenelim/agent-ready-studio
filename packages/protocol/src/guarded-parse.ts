@@ -90,10 +90,12 @@ export function jsonTextNestingDepth(text: string, stopAt: number): number {
   // Indexed rather than `for...of`. The scan only ever compares against the
   // ASCII characters `"`, `\\`, `{`, `[`, `}` and `]`, none of which can be
   // half of a surrogate pair, so reading UTF-16 units is identical to reading
-  // code points here, and it avoids building a string iterator. Measured on
-  // 8 MiB of one large string value, against `JSON.parse`'s 3.8 ms on the same
-  // text: the iterator form cost 76.2 ms and this one costs 26.0 ms. Comparing
-  // `charCodeAt` values instead measured 25.9 ms, so it was not kept.
+  // code points here, and it avoids building a string iterator per line. The
+  // iterator form cost several times this one against the same text, while
+  // comparing `charCodeAt` values was indistinguishable from indexing and so
+  // was not kept. The absolute timings are host-specific -- a reviewer
+  // reproduced the ordering and not the numbers -- so they live with the run
+  // that produced them, in the verification ledger.
   for (let index = 0; index < text.length; index += 1) {
     const character = text[index];
     if (inString) {

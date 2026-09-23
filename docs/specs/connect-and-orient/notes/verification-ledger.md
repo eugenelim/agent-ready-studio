@@ -6986,6 +6986,11 @@ What remains is the middle cell: `error.data` crosses unnormalized. The contract
 shape per error code with `additionalProperties: false`, but names no envelope for an unrecognized
 code, so normalizing every path would add a control the contract does not determine. That is
 carried to the owner as a scope question, and it is a real gap rather than a measurement error.
+**The justification recorded here for that residual was a misreading, corrected in round 13.** The
+contract does not merely omit an envelope for an unlisted code: `errorObject` is a `oneOf` over
+nine code-pinned members inside an `errorResponse` with `additionalProperties: false`, so such a
+line is *invalid*, not unspecified. The residual stands because the owner scoped it, not because
+the contract is silent.
 
 The depth comparison is now bound at all three sites. The transport's at-bound case took two
 attempts, and the first was vacuous: asserting that a later notification still arrived proved
@@ -7073,15 +7078,18 @@ refusal costs only the payload. A code the contract does not list keeps arriving
 the contract names no envelope for one and inventing a shape here would be a control the contract
 does not determine. That residual is recorded, not closed.
 
-**This changed what the transport site can prove, and in the honest direction.** Round 12 bound
-AC-0057's null-prototype clause at the error-data boundary precisely because the parsed subtree
-escaped there. Normalizing it means **no parsed object now reaches any consumer of this site, on
-any path** — so that observable is gone again, and the clause's own case was rewritten to assert
-the opposite: an *ordinary* prototype, which is what proves the caller holds a fresh construction
-rather than the guarded parse. At this site clauses two and three therefore collapse into one
-observable, and the reason is stronger than round 11's: not that validation replaces the value at
-one boundary, but that nothing parsed is handed out anywhere. Round 11's conclusion was still
-wrong when it was written, because `error.data` did escape then.
+**This changed what the transport site can prove.** Round 12 bound AC-0057's null-prototype
+clause at the error-data boundary precisely because the parsed subtree escaped there. Normalizing
+means no parsed object reaches a consumer **on any normalized path**, so that observable moved
+rather than vanishing, and the clause's own case now asserts an *ordinary* prototype — which is
+what proves the caller holds a fresh construction rather than the guarded parse.
+
+**The stronger claim first written here — that no parsed object reaches any consumer of this site
+on any path — was false, and round 13 corrected it.** The unrecognized-code path forwards `data`
+verbatim, so that is exactly where a parsed subtree still leaves, and it is now where the
+null-prototype clause is bound. The "clauses two and three collapse into one observable" reasoning
+rested on the false claim and is withdrawn with it. Round 11's conclusion was separately wrong when
+written, because `error.data` escaped then on every path.
 
 ### The method lookup, and one guard that binds nothing
 
@@ -7155,3 +7163,103 @@ ran three times green at loads 27 to 32; restored, it ran three times green at l
 the failing sets varying between runs, several failures reported at 0 to 7 ms as a shared-hook
 cascade, and nothing in this round's diff lying on the path to process-group teardown or per-request
 directory removal, the change is not implicated.
+
+## t15-review-round-13-2026-09-23
+
+Verification round on `fa9be33`, the commit applying the three owner decisions, recorded as cohort
+round 10 at retry 9. Two reviewers ran post-gates with an explicit instruction not to modify the
+worktree — round 12's reviewers had mutated it concurrently and lost their own measurements, and
+both this round's confirmed working from copies instead. Raw: 5 security, 11 quality. Sustained
+after adjudication: 5 and 6, **eleven distinct fingerprints, no Blockers**; five quality findings
+were refuted.
+
+### Three of the sustained findings are errors in this ledger
+
+| Claim as written | What is true |
+| --- | --- |
+| "no parsed object now reaches any consumer of this site, on any path" | The unrecognized-code path forwards `data` verbatim. Corrected in place above |
+| The contract "names no envelope" for an unlisted code | `errorObject` is a `oneOf` over nine code-pinned members inside an envelope with `additionalProperties: false`, so such a line is invalid, not unspecified |
+| The transport byte bound is "routed to *Follow-ons*" | No entry existed in the spec's Follow-ons and no backlog slug in `workspace.toml`. The routing was narration |
+
+The first two are the same mistake in different clothes: a conclusion stated wider than the
+measurement that produced it. Round 12 had just corrected that exact error in round 11's entry.
+The third is worse in kind, because "routed" named an action that had not been taken; the durable
+record now exists as `northbound-line-buffer-has-no-byte-bound` in `workspace.toml`, citing this
+entry and naming the missing *Resource bounds* row as what a bound would need.
+
+**The residual is unchanged, and the clause it leaves open is now bound.** The owner scoped the
+unrecognized-code path out, so it still forwards `data`, which makes it the one place at this site
+where a parsed subtree reaches a consumer — and therefore the one place AC-0057's null-prototype
+clause is observable. A case now drives an error line with code `-32099` and asserts a null
+prototype on the delivered payload and on its nested object, which discharges T15's per-clause
+obligation at this site against the path where the property actually holds.
+
+### A live payload loss the normalization exposed
+
+`service.ts` threw `-32004` with a `resource`-kind payload, but the contract binds that code to
+`conflictErrorData` — a `conflict` kind and a required `currentStatus`. The payload was always
+invalid; before this work the transport forwarded it anyway, and normalizing turned a silent
+contract violation into a silent data loss on the ordinary `artifact.revise` path against a
+non-Product-Intent artifact. The emission now carries the declared shape, with `currentStatus`
+taken from the revision's own status.
+
+Swept rather than patched: all eight `DispatchFailure` constructions in that file were checked
+against their code's declared shape, including the computed `-32003`/`-32004` site, and this was
+the only mismatch. Both adjudications reached the same count independently.
+
+### The same defect class, three sites deep
+
+Round 12 fixed the `in` lookup on the notification table. Both reviewers found the identical defect
+still open on the **request** table — `validator.ts` in the file round 12 edited, and the
+pre-check in `service.ts`. `requestSchemas` is a plain object literal, so a method named `toString`
+passed the membership test and `safeParse` was read off an inherited member; in `dispatchRequest`
+that throw sits above the `try` beneath it, so it ends the Service read loop instead of returning
+method-not-found. All three tables now resolve with `Object.hasOwn`, and each site has a case.
+
+This is the fourth consecutive round whose findings share one shape: **a fix applied to the
+instance in front of me and not to the class.** Named fields, then the line and the container. Two
+scan branches, then the escape arm. One consumer boundary, then the other. One schema table, then
+the two beside it.
+
+### Mutation proof
+
+| Mutant | Bound by | Result |
+| --- | --- | ---: |
+| `validateRequest` resolves the method with `in` | `validator.test.ts` | **killed**, 1 of 17 |
+| service pre-check resolves the method with `in` | `service.test.ts` | **killed**, 1 of 5 |
+| notification lookup resolves with `in` | `validator.test.ts` | **killed**, 1 of 17 |
+| error-data mirror drifts: `-32004` admits a resource payload | `contracts.test.ts` | **killed**, 1 of 15 |
+| error-data mirror loses a code | `contracts.test.ts` | **killed**, 1 of 15 |
+| guard rebuild gives each object an ordinary prototype | `validator.test.ts` | **killed**, 1 of 16 |
+| service emits the pre-fix `-32004` payload | — | **survives**, see below |
+| error-data table resolved with `in` | — | **survives by construction**, recorded last round |
+
+**Two survivors, both recorded rather than dressed up.** The first three mutants above each
+survived their first run: the fixes had no case, which the battery caught before the gates did.
+The emitter fix stays unbound because its throw sits in the storage-to-domain mapping and needs a
+stored non-Product-Intent revision to reach, and both adjudications graded a per-code emission
+binding outside T15's `Tests` contract of one obligation per clause per site. What guards the
+class instead is the new cross-validation: `contracts.test.ts` now checks all nine codes in both
+directions against the canonical schema and rejects the exact `-32004`-with-a-resource-kind payload
+the Service had been shipping, so the *mirror* cannot drift even though the *emitter* is unbound.
+
+### Findings refuted
+
+Five, and two of them protect work that would otherwise have been undone. A finding that no
+assertion observes a rebuilt field beyond `kind` was refuted by the pre-existing `-32001` handshake
+case, which asserts two more through the same function — measured: the drop-to-`kind`-only mutant
+reddens it, 1 of 15. **This session had confirmed that finding before adjudication and was wrong**,
+having reasoned correctly that the new case's `toMatchObject` is a partial match and then
+generalized to the whole file without reading it. A finding that the prototype assertion pins only
+a library detail was refuted because it uniquely kills the validate-then-forward-the-parsed-subtree
+mutant, which is precisely the behaviour AC-0057's third clause forbids. The other three — a
+diagnostic channel on refusal, non-ASCII scan cases, and deleting a residual's local reason — were
+refuted as new controls, hypothetical guards, or authority the comment rule already admits.
+
+### Gate evidence
+
+`pnpm lint`, `pnpm typecheck`, `pnpm governance` and `pnpm verify` all exit 0. The clean run is
+**749 passed, 3 skipped, 0 failed across 55 files**. The first attempt failed only `AC-0025` at
+load 11.7; it passed twice in isolation, 26 of 26 at loads 13.3 and 12.5, and the next whole-suite
+run at load 15.8 was clean. Judged by the varying-set and two-in-isolation rule, not by the load
+number — see the correction recorded with round 12's gate evidence.

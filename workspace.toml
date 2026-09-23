@@ -51,6 +51,23 @@ open = [
   # the condition for reopening and this is a second, independent trigger.
   # Evidence: notes/verification-ledger.md#review-round-29-2026-09-18.
   { slug = "liveness-read-fails-open-to-reclaim", source = "connect-and-orient/2026-09-18" },
+  # The northbound transport line buffer accepts unbounded bytes. Owner decision
+  # of 2026-09-23 routed this out of T15 rather than widening a locked plan; the
+  # ledger said "routed to Follow-ons" and round 13's security review found the
+  # routing had reached no durable record, which this entry is.
+  # validator.ts consume() appends every chunk to `this.buffer` and only looks
+  # for a newline, so the pre-parse depth guard runs per line, after the whole
+  # line is already buffered -- a northbound stream that never emits a newline
+  # grows the Electron main process's heap without limit. AC-0056 names this
+  # line a parse of attacker-influenced structure, and AC-0037's 8 MiB refusal
+  # "while being read, before a full buffer exists" is the precedent shape for
+  # the mirror case on the trial-result path. Not reachable by repository
+  # content today: only the Studio Service writes this stream.
+  # Needs a spec-backed change, because a bound needs a new *Resource bounds*
+  # row naming its mechanism and owner, and the spec is immutable during
+  # implementation.
+  # Evidence: notes/verification-ledger.md#t15-owner-decisions-2026-09-23.
+  { slug = "northbound-line-buffer-has-no-byte-bound", source = "connect-and-orient/2026-09-23" },
   # Spawn-failure sentinel reaches a signal site as pid 1. Found by round 31's
   # secure-design review of Package 4 and routed out by owner decision rather
   # than widening that amendment, which does not touch this file.

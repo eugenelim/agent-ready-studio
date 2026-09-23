@@ -352,3 +352,44 @@ export const validNotificationFixtures = {
     message: "Failed",
   },
 } as const;
+
+/**
+ * One error response per code the contract declares, for the cross-validation
+ * in `contracts.test.ts`.
+ *
+ * The zod table in `validator.ts` is a transcription of the contract's nine
+ * `data` shapes, and nothing bound the two together: the transport discards a
+ * payload its declared shape does not admit, so drift in either direction
+ * silently deletes a valid diagnostic or admits what the contract forbids.
+ * That drift had already happened on the emitting side and no test saw it.
+ */
+export const validErrorFixtures: Record<string, unknown> = {
+  "-32700": {
+    kind: "validation",
+    issues: [{ path: "$", message: "bad json" }],
+  },
+  "-32600": {
+    kind: "validation",
+    issues: [{ path: "id", message: "missing" }],
+  },
+  "-32601": { kind: "resource", resourceType: "method", id: "no.such" },
+  "-32602": {
+    kind: "validation",
+    issues: [{ path: "params", message: "bad" }],
+  },
+  "-32603": { kind: "internal", requestId: "request-1" },
+  "-32001": { kind: "protocol-version", expected: "1", received: "2" },
+  "-32002": { kind: "resource", resourceType: "workspace", id: "ws-1" },
+  "-32003": {
+    kind: "conflict",
+    resourceType: "review",
+    id: "rev-1",
+    currentStatus: "stale-review",
+  },
+  "-32004": {
+    kind: "conflict",
+    resourceType: "artifact-revision",
+    id: "ar-1",
+    currentStatus: "draft",
+  },
+};
