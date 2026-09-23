@@ -61,8 +61,11 @@ open = [
   # grows the Electron main process's heap without limit. AC-0056 names this
   # line a parse of attacker-influenced structure, and AC-0037's 8 MiB refusal
   # "while being read, before a full buffer exists" is the precedent shape for
-  # the mirror case on the trial-result path. Not reachable by repository
-  # content today: only the Studio Service writes this stream.
+  # the mirror case on the trial-result path. Not reachable today, but not
+  # because repository content stays off this stream -- a repository-derived
+  # diagnostic does travel it, bounded in runtime-supervisor.ts. What holds is
+  # the framing: only the Service writes this stream and it newline-frames
+  # every message, so the unbounded no-newline case has no producer.
   # Needs a spec-backed change, because a bound needs a new *Resource bounds*
   # row naming its mechanism and owner, and the spec is immutable during
   # implementation.

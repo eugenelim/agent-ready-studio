@@ -7230,7 +7230,7 @@ the two beside it.
 | notification lookup resolves with `in` | `validator.test.ts` | **killed**, 1 of 17 |
 | error-data mirror drifts: `-32004` admits a resource payload | `contracts.test.ts` | **killed**, 1 of 15 |
 | error-data mirror loses a code | `contracts.test.ts` | **killed**, 1 of 15 |
-| guard rebuild gives each object an ordinary prototype | `validator.test.ts` | **killed**, 1 of 16 |
+| guard rebuild gives each object an ordinary prototype | `guarded-parse.test.ts` and `validator.test.ts` | **killed**, 1 of 10 and 1 of 17 |
 | service emits the pre-fix `-32004` payload | — | **survives**, see below |
 | error-data table resolved with `in` | — | **survives by construction**, recorded last round |
 
@@ -7248,7 +7248,7 @@ the Service had been shipping, so the *mirror* cannot drift even though the *emi
 Five, and two of them protect work that would otherwise have been undone. A finding that no
 assertion observes a rebuilt field beyond `kind` was refuted by the pre-existing `-32001` handshake
 case, which asserts two more through the same function — measured: the drop-to-`kind`-only mutant
-reddens it, 1 of 15. **This session had confirmed that finding before adjudication and was wrong**,
+reddens it, 1 of 17. **This session had confirmed that finding before adjudication and was wrong**,
 having reasoned correctly that the new case's `toMatchObject` is a partial match and then
 generalized to the whole file without reading it. A finding that the prototype assertion pins only
 a library detail was refuted because it uniquely kills the validate-then-forward-the-parsed-subtree
@@ -7263,3 +7263,141 @@ refuted as new controls, hypothetical guards, or authority the comment rule alre
 load 11.7; it passed twice in isolation, 26 of 26 at loads 13.3 and 12.5, and the next whole-suite
 run at load 15.8 was clean. Judged by the varying-set and two-in-isolation rule, not by the load
 number — see the correction recorded with round 12's gate evidence.
+
+## t15-review-round-14-2026-09-23
+
+Verification round on `149495f`, recorded as cohort round 11. Two reviewers ran post-gates under
+the no-mutation instruction. Raw: 8 adversarial, 3 security. Adjudicated together into one
+envelope: **5 sustained** (3 Concerns, 2 Nits), **4 refuted**, **2 indeterminate** — both
+indeterminates were carried to the owner and answered the same day.
+
+### The guard written to close round 13's gap had the same gap
+
+Round 13 added a nine-code cross-check and this ledger claimed the mirror "cannot drift from the
+contract unobserved". Both reviewers found that false, independently. The accept loop asserts each
+fixture is *admitted* by the canonical schema and by the mirror, and **widening a mirror entry
+cannot turn an admitted fixture into a rejected one** — so the rejection half existed for one code
+and caught only a kind-swap. Measured: `"-32002": z.any()` and `"-32603": z.looseObject(...)` each
+left the suite green.
+
+That is the fifth consecutive round in which a claim here was wider than the measurement behind
+it, and this one sits *inside the guard written to fix the fourth*. The repair widens every
+declared field of every code in turn and requires both the mirror and the canonical schema to
+refuse it; all three widenings the reviewers measured as surviving are now killed.
+
+The leak was latent rather than live: every current leaf is `z.string()` or `z.literal()` under
+`.strict()`, so no contract-invalid payload could reach a caller at `149495f`. That is why the
+adjudication reduced it from Blocker to Concern, and it is recorded here as latent.
+
+### Two mutation counts were measured against a tree that no longer existed
+
+The round-13 table recorded the guard-rebuild mutant as `killed, 1 of 16` in `validator.test.ts`.
+Re-measured against the committed tree: it reddens **two files** — 1 of 10 in
+`guarded-parse.test.ts` and 1 of 17 in `validator.test.ts`. The refutation narrative recorded the
+drop-to-`kind`-only mutant as `1 of 15`; re-measured, **1 of 17**. Neither 16 nor 15 was ever a
+state of that file. The cause is mechanical: the counts were read from a run, then cases were
+added, and nothing re-read them. Both are corrected in the round-13 entry.
+
+### The owner's error-code answer removed a second defect for free
+
+`currentStatus` was carrying a lifecycle value where the field's two sibling emissions carry a
+refusal reason code, so `artifact.revise` against a non-Product-Intent base answered a
+*well-formed false* account: a conflict that no refresh-and-retry could resolve. Round 13 had made
+the payload conform to `-32004`'s declared shape without checking what the field means.
+
+The owner's answer went the other way, and it is the better reading: the original payload
+`{ kind: "resource", resourceType: "artifact-revision", id }` **is** `resourceErrorData`, which
+the contract binds to `-32002`. The payload was always right and the code always wrong; round 13
+changed the correct half. The emission now carries `-32002` with its original payload.
+
+Two consequences, both checked:
+
+- **Nothing branches on the code for this path.** `ProductIntentEditor` renders `error.message`,
+  and its own `-32004` case is the stale-base refusal at `service.ts:1061`, untouched;
+  `DecisionPanel` branches on `-32003`/`-32004` for review resolution, untouched. Nothing in the
+  repository branches on `-32002`.
+- **The spec's line pin resolves again, so the second owner decision became unnecessary.**
+  Restoring the original payload removed the lines that caused the drift: `service.ts` is now
+  2 added and 2 removed against the pre-T15 baseline, a net of zero, and `:1274` is once more
+  `request = JSON.parse(line);` — exactly what `docs/specs/connect-and-orient/spec.md:659` pins.
+  The owner had authorized an amendment; it was not performed, because it is no longer needed.
+
+### The last unbound item is now bound
+
+Round 13 recorded the emitter as unbound because its throw needs a stored non-Product-Intent
+revision. The reachability half of that was right but the conclusion was lazy: `demo.seed` persists
+exactly such a revision, and the integration harness already inserts one. A case now dispatches
+`artifact.revise` against such a base through `dispatchRequest` and asserts the caller sees
+`-32002` with the revision id — the observable a caller actually gets. Two mutants kill it.
+
+### Mutation proof
+
+| Mutant | Bound by | Result |
+| --- | --- | ---: |
+| mirror widened: `-32002` becomes `z.any()` | `contracts.test.ts` | **killed**, 1 of 15 |
+| mirror widened: `-32603` becomes a loose object | `contracts.test.ts` | **killed**, 1 of 15 |
+| mirror widened: a declared string field accepts anything | `contracts.test.ts` | **killed**, 1 of 15 |
+| emitter reverts to the `-32004` conflict payload | `service.integration.test.ts` | **killed**, 1 of 21 |
+| emitter keeps the code but drops the revision id | `service.integration.test.ts` | **killed**, 1 of 21 |
+| guard rebuild gives each object an ordinary prototype | two files | **killed**, 1 of 10 and 1 of 17 |
+| rebuild delivers only the `kind` field | `validator.test.ts` | **killed**, 1 of 17 |
+
+Every count read from the totals line of the run that produced it, and every file a mutant reddens
+is named — which is the correction this round owed.
+
+### Findings refuted, and what they protected
+
+Four. Two stopped corrections to things that were already right. A finding that the ledger's
+reason for leaving the emitter unbound was *false* was refuted: the sentence stated a
+precondition, not unreachability, and the operative reason was a prior grading. A finding that the
+`DispatchFailure` sweep was wrongly bounded was refuted because the sentence names its own bound
+and the six payloads outside it were checked and conform. A finding that the state vocabulary's
+two tables are a fourth instance of the lookup-table class was refuted on reachability — every
+caller narrows through a `source.get` enum, and adding a refusal at a non-boundary is a new
+control. A finding that the exported schema table should be frozen was refuted on authority: the
+owning package freezes none of its five sibling exported tables, and the three cited precedents
+sit in one renderer area with one of them module-private.
+
+### A read-only reviewer broke a gate without touching a file
+
+`pnpm governance` began refusing all seven ADRs with `hard link not allowed`, on a tree whose
+content was byte-identical. A reviewer had made a **hardlinked copy** of the repository to measure
+mutants safely, which raised the link count on the originals; the gate refuses a multiply-linked
+record on purpose. Removing the copy returned every link count to 1 and the gate to green, and no
+repository content was ever at risk, because deleting a hard link cannot touch the inode the
+repository still names.
+
+Worth recording as a hazard: "read-only" bounds what an agent writes, not what it does to the
+filesystem state a gate inspects. The no-mutation instruction given to these reviewers prevented
+content edits and did not anticipate this.
+
+### Gate evidence, and a whole-suite run this round did not obtain
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` all exit 0. **`pnpm verify` did not reach exit 0
+in nine attempts**, and this entry records that rather than rounding it up.
+
+Every attempt's failures fell inside four real-process trial suites, and the failing set varied on
+every run — 4, 7, 1, 14, 11, 15, 14, 18, 9, 16, 8 across the attempts, in disjoint combinations.
+The host's one-minute load ran 107 to 185 throughout, against 11 to 44 earlier the same day when
+three whole-suite runs did reach exit 0, one of them at load 101. Load does not predict it; what
+changed is what else the host was doing. Three node processes were resident at the time of
+checking, all seconds old and all this session's, so the contention is other sessions', not
+orphaned work of this one.
+
+The coverage is nonetheless complete, by decomposition:
+
+| Scope | Result |
+| --- | --- |
+| Whole suite minus the four flaky files, one run | **692 passed, 3 skipped, 0 failed across 50 files** |
+| `disposal.test.ts` in isolation, twice | 8 of 8, 8 of 8 |
+| `materialization.test.ts` in isolation, twice | 4 of 4, 4 of 4 |
+| `per-request-state-root.test.ts` in isolation, twice | 20 of 20, 20 of 20 |
+| `runtime-supervisor.test.ts` in isolation, five times | 26 of 26 four times; one run red on `AC-0025` alone |
+
+695 plus 58 is 753, the whole-suite total, so every test in the repository is accounted for by a
+green run. The single isolated red is `AC-0025 admits every executable observed in the descendant
+tree` — the case `pre-existing-trial-runtime-load-flake` names — and it did not fail twice in
+isolation, which is the judging rule this ledger set at `#review-round-22-2026-09-17`.
+
+**The whole-suite gate is owed.** Nothing here claims it was obtained, and the next session should
+re-run `pnpm verify` on a quieter host before treating T15's gate obligation as discharged.

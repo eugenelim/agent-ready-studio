@@ -123,10 +123,39 @@ describe("protocol contract fixtures", () => {
       ).toBe(true);
     }
 
-    // The rejection half, which is what catches a widening. A `-32004` payload
-    // carrying a `resource` kind is exactly the divergence the Service shipped:
-    // the contract forbids it for that code, and the mirror must too, or the
-    // transport starts admitting a shape the contract does not declare.
+    // The rejection half, which is the only half that catches a widening:
+    // loosening a mirror entry cannot turn an admitted fixture into a
+    // rejected one, so the accept loop above binds the key set and nothing
+    // about per-field tightness. Every declared field of every code is
+    // widened in turn -- replacing its value with an object, which no
+    // declared field admits -- and both the mirror and the canonical schema
+    // must refuse it. Without this, `"-32002": z.any()` passed the suite, and
+    // `errorData` would then hand a caller the guarded-parse subtree itself
+    // on a declared code, which is the escape AC-0057's third clause closes.
+    for (const [code, data] of Object.entries(validErrorFixtures)) {
+      for (const field of Object.keys(data as Record<string, unknown>)) {
+        const widened = {
+          ...(data as Record<string, unknown>),
+          [field]: { widened: true },
+        };
+
+        expect(
+          errorDataSchemas[code as keyof typeof errorDataSchemas].safeParse(
+            widened,
+          ).success,
+        ).toBe(false);
+        expect(
+          validateCanonicalProtocol({
+            jsonrpc: "2.0",
+            id: "request-1",
+            error: { code: Number(code), message: "Error", data: widened },
+          }),
+        ).toBe(false);
+      }
+    }
+
+    // And the kind-swap that the Service actually shipped: the contract forbids
+    // a `resource` payload for `-32004`, so the mirror must forbid it too.
     const forbidden = {
       kind: "resource",
       resourceType: "artifact-revision",
