@@ -956,6 +956,14 @@ bound in *Canonical values*.
 Approval decisions only. Review rounds, their findings, and the reasoning behind
 each change are recorded in `notes/verification-ledger.md`.
 
+- 2026-09-23: **Spec amended: two stale line pins repaired in *Follow-ons*.** Approver
+ `@eugenelim`. Authority
+ `notes/verification-ledger.md#owner-decision-2026-09-23-followons-pin-repair`. The enumeration of
+ the parses outside AC-0056's and AC-0057's reach pinned
+ `runtime-child.ts:182` and `:408`; `4d0fef7` moved both seven lines, so they pointed at a comment
+ terminator and a type member. They now read `:189` and `:415`. Two line numbers in one sentence:
+ the same six sites remain enumerated, and no criterion, rule or set membership changes. Criteria
+ count unchanged at 157.
 - 2026-09-23: **Plan approved: T15 added and the delivery task reordered behind it.** Approver
  `@eugenelim`. Authority
  `notes/verification-ledger.md#amendment-2026-09-22-ac-0056-0057-trial-boundary`. T15 guards the

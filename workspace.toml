@@ -71,6 +71,22 @@ open = [
   # implementation.
   # Evidence: notes/verification-ledger.md#t15-owner-decisions-2026-09-23.
   { slug = "northbound-line-buffer-has-no-byte-bound", source = "connect-and-orient/2026-09-23" },
+  # The spec's Follow-ons enumeration pins six parse sites by file and line, and
+  # nothing resolves them. Raised by the 2026-09-23 pre-EXECUTE review of the
+  # pin-repair amendment and routed out of it, because either repair is wider
+  # than the authorization that amendment carried.
+  # The entry has drifted twice from ordinary edits -- 4d0fef7 moved two pins
+  # seven lines, and a later round moved a third -- and each time the spec kept
+  # pointing at unrelated code while every gate stayed green. pnpm governance
+  # runs ADR and RFC checks only; spec-coupling-check resolves tables and
+  # criterion citations, not file:line; criterion-trace is not in pnpm verify.
+  # Two candidate repairs, both needing an owner decision: pin by a resolvable
+  # symbolic handle, which needs a second convention because two of the sites
+  # are module-scope with no enclosing function; or keep line pins and add a
+  # gate that resolves them. The spec calls this entry "the single enumeration
+  # of the sites that rule excludes", so a reader follows the pins.
+  # Evidence: notes/verification-ledger.md#amendment-2026-09-23-followons-pin-repair.
+  { slug = "followons-line-pins-have-no-resolving-gate", source = "connect-and-orient/2026-09-23" },
   # Spawn-failure sentinel reaches a signal site as pid 1. Found by round 31's
   # secure-design review of Package 4 and routed out by owner decision rather
   # than widening that amendment, which does not touch this file.

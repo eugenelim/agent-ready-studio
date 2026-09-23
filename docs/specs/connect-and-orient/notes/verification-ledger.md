@@ -7512,3 +7512,115 @@ whole-suite gate remains owed**, for the second round running, and nothing here 
 
 Targeted evidence for this round's own changes, all green: `packages/protocol` 43 of 43, and the
 widening battery at 9 of 9 killed.
+
+## t15-owner-decision-2026-09-23-revision-base-code
+
+Round 15 challenged the code this refusal carries. `-32002` is `notFoundError`, and the base
+revision was found — `tx.getRevision` returned it — so "resource not found" is not literally true
+of the fault. The owner kept `-32002` on 2026-09-23 and directed the reasoning be recorded from
+the fault rather than from the payload's shape, which is how round 14 chose it.
+
+**The fault, stated first.** Two situations reach this throw:
+
+- **The caller named a base that is not a revisable Product Intent.** This is the reachable one:
+  `demo.seed` persists `initiative` and `input-packet` revisions, and `artifact.revise` takes
+  `artifactId` and `baseRevisionId` as free strings, so a caller can name one. Nothing was
+  corrupted; the caller asked for a Product Intent revision at a place where there is none.
+- **A `product-intent` artifact's stored content does not parse.** The Service's own writers
+  cannot produce this — product-intent content is written only through `productIntentSchema.parse`
+  — so it requires corrupt storage or an older schema version.
+
+`-32002` is chosen for the first, which is the reachable one and is the caller's mistake: no
+revisable Product Intent exists at the base they named. The repository states that distinction
+itself — "a missing resource is the caller's mistake and says so; an internal error would be
+Studio blaming itself" — and blaming Studio for a caller naming the wrong base would be the
+wrong half of it. The second situation is real but unreachable from the Service's own writers,
+and it reports under the same code rather than being split.
+
+**Two consequences are accepted, not overlooked.** On `artifact.revise` a base that does not
+exist returns `stale-base` and reports `-32004`, so a missing base reads as conflict while a
+present-but-wrong-typed one reads as not-found — inverted, and accepted because `stale-base` is
+a concurrency answer the caller can act on by reloading, which this fault is not. And
+`DecisionPanel` no longer offers the retry affordance for a review holding such a revision, which
+is correct: no retry resolves it.
+
+
+## owner-decision-2026-09-23-followons-pin-repair
+
+The owner authorized, on 2026-09-23, a narrow amendment to the spec's *Follow-ons* enumeration of
+the parses outside AC-0056's and AC-0057's reach, to repair pinned references that this slice's
+own commits invalidated.
+
+**What is wrong.** That entry pins six sites by file and line. Two no longer resolve:
+`apps/studio-service/src/trials/connect-and-orient-runtime/runtime-child.ts:182` is a comment
+terminator and `:408` is a type member; the `--plan` argument-vector parse is at `:189` and the
+child-side ownership-marker parse at `:415`. Both moved seven lines in `4d0fef7`, T15's first
+commit, and have been stale since. The other four resolve: `service.ts:1274`, `sweep.ts:127`,
+`storage.ts:297` and `storage.ts:1103`.
+
+**Why it is worth an amendment.** The spec calls this entry "the single enumeration of the sites
+that rule excludes", and says a slice admitting repository content into any of them inherits the
+obligation. A reader of that sentence follows the pins; two of them now land on unrelated code,
+so the enumeration misleads exactly the reader it exists for.
+
+**Scope.** Two line numbers in one sentence. No criterion, no rule, no set membership changes;
+the same six sites remain enumerated. Round 14 recorded this as unnecessary on the strength of
+one pin out of six, which was wrong, and that record is corrected in the round-15 entry.
+
+## amendment-2026-09-23-followons-pin-repair
+
+The two-line-number amendment authorized at
+`#owner-decision-2026-09-23-followons-pin-repair`, taken through the controlled path:
+`contract-amendment` from CODE-IMPLEMENTATION, bound to T15's evidence, then a pre-EXECUTE review
+before the two human gates.
+
+**What changed.** One hunk in `docs/specs/connect-and-orient/spec.md`, one line: the *Follow-ons*
+enumeration now pins `runtime-child.ts:189` and `:415` where it pinned `:182` and `:408`. One
+Changelog entry in `plan.md`. Nothing else.
+
+**What the review verified.** All seven pins in that entry resolve to the construct the sentence
+names — the four that already resolved and the two repaired, plus `inspector-locator.ts:134`,
+whose separate claim also holds: `parseGuardedToml` drops inadmissible keys and rebuilds with a
+null prototype but applies no depth bound. Scope is exactly two line numbers: no criterion, rule,
+set membership or count moved, and the criteria count is 157 in the tree as the Changelog says.
+The attribution is exact — at `89c1a5b` both parses sat at `:182` and `:408`, `4d0fef7` moved each
+by seven lines in one hunk inserting `rawStdoutLines` and its docblock, and the only later commit
+to touch that file edited below both, so the whole shift belongs to `4d0fef7`.
+
+**What it found, and where that went.** One Nit, and the reviewer framed it as an owner
+recommendation rather than a defect in this change: **the repair resets a drift clock that
+nothing winds.** No gate resolves these pins — `pnpm governance` runs ADR and RFC checks only,
+`spec-coupling-check` covers tables and criterion citations without resolving a file and line,
+and `criterion-trace` is not in `pnpm verify`. The entry has now drifted twice from ordinary
+edits, each time pointing at unrelated code while every gate stayed green. Either repair —
+symbolic handles, or a gate that resolves line pins — is wider than this amendment's
+authorization, so it is routed rather than folded in: `workspace.toml [backlog].open` entry
+`followons-line-pins-have-no-resolving-gate`, which records both candidates and the wrinkle that
+two of the six sites are module-scope and have no enclosing function to name.
+
+One soft edge in the record, noted and left: the owner-decision section says the round-14 error
+"is corrected in the round-15 entry", which is true but not exhaustive — the round-14 entry was
+also corrected in place.
+
+### A tooling constraint the ceremony exposed
+
+`approve-plan` and `schedule` refused with `completed task section changed: T15` after the
+Changelog entry was written. The cause is in `loop-cohort.py`: `_task_sections` ends the **last**
+task heading's section at end-of-file, so T15's "section" includes everything below it — the
+Rollout section and the whole Changelog. Any Changelog append therefore rewrites the last
+completed task's digest, and only a `contract-amendment` transition re-pins it, which had already
+run.
+
+The sequence taken, recorded rather than worked around silently: `git diff` showed the only
+change to `plan.md` was the eight added Changelog lines, so T15's task content was byte-identical
+and the pin's purpose — detecting an amendment that rewrites completed work — was demonstrably
+satisfied. The entry was set aside as a patch, the approval and schedule ran against the pinned
+text, and the entry was restored afterwards. Nothing about T15 changed at any point.
+
+The durable lesson for the next amendment: **write the Changelog entry before the
+`contract-amendment` transition**, not during drafting, because the pin is taken at that
+transition and no position for a Changelog escapes the last task's span.
+
+The spec's `Status` moved `Implementing` → `Approved` for the `spec-approved` gate, which checks
+it, and back to `Implementing` once the plan locked. It is `Implementing` now, matching
+CODE-IMPLEMENTATION.
