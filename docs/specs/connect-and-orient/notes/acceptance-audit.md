@@ -6,8 +6,8 @@ given its group's criteria, the *Canonical values* table and its own *Testing St
 each told to assume nothing from any ledger entry, code comment or the spec's own prose, and to
 cite `file:line` for every binding.
 
-**Result: 83 met, 71 not met, 3 not verifiable here.** Against 2026-09-20's 77 / 75 / 5 that is
-**+6 met**. Every count in this document, including each group header, is generated from the rows
+**Result: 82 met, 72 not met, 3 not verifiable here.** Against 2026-09-20's 77 / 75 / 5 that is
+**+5 met**. Every count in this document, including each group header, is generated from the rows
 below rather than written by hand — which caught one auditor reporting 9 met against its own
 table of 10.
 
@@ -32,7 +32,7 @@ strongly bound. Partial credit would reproduce the failure this audit exists to 
 ## What moved, and what did not
 
 The gain is concentrated where this week's work went. **Reading the version marker went from 1 met
-to 5 met**: the declared-value read is now on the live path, so AC-0054, AC-0055, AC-0056 and
+to 4 met**: the declared-value read is now on the live path, so AC-0054, AC-0055, AC-0056 and
 AC-0057 are bound against a real child rather than an unwired module. *Honest states* went 2 to 4,
 *desktop surface* 7 to 9, *trusted inspector* 4 to 5, and AC-0025 and AC-0030 moved from not
 verifiable to met.
@@ -136,7 +136,7 @@ the name is unique across the repository, as in the previous pass.
 | AC-0042 | met | S | trial-enrichment-seam.ts:43-55,62-81; trial-result.test.ts:334-372 | every field run through looksLikeFilesystemPath, key set pinned to four names, positive control over five real path shapes |
 | AC-0155 | met | S | trial-result.ts:351-391; runtime-supervisor.ts:554-556,628-630,747,769-772; runtime-supervisor.test.ts:1004-1021 | buffer wired to the real child's stderr; asserts elision, positive discarded count, marker text, and result unaffected |
 
-### Trusted inspector, and reading the version marker — 10 met, 7 not met
+### Trusted inspector, and reading the version marker — 9 met, 8 not met
 
 | Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
 | --- | --- | --- | --- | --- |
@@ -151,9 +151,9 @@ the name is unique across the repository, as in the previous pass.
 | AC-0052 | met | S | runtime-child.ts:1041-1055; supervised-bounds.test.ts:70-118 | a 5s resolution hold under a 500ms deadline is SIGKILLed with a diagnostic naming resolution, and the 30s canonical default is pinned |
 | AC-0053 | met | S | runtime-child.ts:1081; supervised-bounds.test.ts:124-143 | a child holding itself 10s under a 700ms deadline is killed with its own diagnostic and groupGone true, paired with an inside-deadline case |
 | AC-0054 | met | S | runtime-child.ts:602-621; runtime-supervisor.ts:499; declared-read.test.ts:105-127 | now on the live path: the Service ships the canonical surface in the plan vector and a real child refuses secrets.toml with zero reads |
-| AC-0055 | met | S | runtime-child.ts:606,652-658; runtime-supervisor.ts:500-502; declared-read.test.ts:129-190 | both bounds delivered from the canonical values and checked before any open, with a paired exactly-at-bound admission pinning the comparison |
-| AC-0056 | met | S | declared-value-reader.ts:188-195 from runtime-supervisor.ts:958; guarded-parse.ts:193-202 from validator.ts:958 and runtime-supervisor.ts:588 | both remaining limbs hold, the JSON limb measures bracket depth over the text before the parse, and each site has an at-bound admission |
-| AC-0057 | met | S | guarded-parse.ts:48-68,205-207; declared-value-reader.ts:311-328 from runtime-supervisor.ts:970 | all three clauses hold at both in-reach sites: reviver drop, null-prototype rebuild at any depth, and named-field copy onto a null-prototype target |
+| AC-0055 | **not met** | S for the file-count leg | runtime-child.ts:606,652-658; runtime-supervisor.ts:500-502; declared-read.test.ts:140-150,172-189 | the file-count leg binds ordering observably — `reads: []` proves nothing was opened — but the byte-bound leg asserts only the refusal, the diagnostic and an undefined value, none of which a read-then-check implementation would fail. Same gap AC-0075 is recorded not met for, judged the same way. Mutation that should redden and does not: move the size check at `runtime-child.ts:652` below the `readFileSync` at `:668` |
+| AC-0056 | met | S | production `declared-value-reader.ts:188-195` from `runtime-supervisor.ts:958`, and `guarded-parse.ts:193-202` from `validator.ts:958` and `runtime-supervisor.ts:588`; bound by `guarded-parse.test.ts:26,41`, `validator.test.ts:69,164`, `northbound-guard.test.ts:63,80` and `declared-value-reader.test.ts:142-177` | the inspector-output limb is inapplicable under the 2026-09-22 narrowing; both remaining limbs measure bracket depth over the text before the parse, and every site pairs an over-bound refusal with an at-bound admission so the comparison itself is bound. Mutation: raise `PARSE_NESTING_DEPTH_BOUND` at `guarded-parse.ts:36`, or move the depth check at `declared-value-reader.ts:188` after the rebuild — `declared-read.test.ts:264`, `northbound-guard.test.ts:63` and `validator.test.ts:69` redden |
+| AC-0057 | met | S | production `guarded-parse.ts:48-68,205-207` and `declared-value-reader.ts:311-328` from `runtime-supervisor.ts:970`; bound by `guarded-parse.test.ts:126,141,155`, `declared-read.test.ts:247`, `northbound-guard.test.ts:129,153,176` and `validator.test.ts:101,333,375` | all three clauses hold at each in-reach site: the reviver drops inadmissible keys during the parse, the rebuild gives every object a null prototype at any depth, and normalization copies only criterion-named fields onto a freshly constructed target. Mutation: return the parsed value directly from `guarded-parse.ts:214`, or swap `Object.create(null)` for `{}` at `:58` — `guarded-parse.test.ts:141`, `northbound-guard.test.ts:153` and `validator.test.ts:333` redden |
 | AC-0058 | met | W | declared-value-reader.test.ts:245-263 | inapplicable as the spec states and the absence is checked, but via a manifest-key check rather than a scan of parse sites |
 | AC-0059 | **not met** | W | runtime-supervisor.ts:584-591; state-vocabulary.ts:206,211; source-inspection.ts:504-518 | the declaration-file branch is fully bound live, but the Studio-produced parse at :588 pushes a refused line to nonProtocolStdoutLines with no diagnostic, stop reason or routing |
 | AC-0060 | **not met** | W | declared-value-reader.test.ts:324-352; runtime-supervisor.ts:970 | only the reader's output shape is bound; the criterion is about displayed values and no rendering surface asserts it |

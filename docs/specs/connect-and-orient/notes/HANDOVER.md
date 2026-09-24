@@ -13,13 +13,13 @@ The spec is [`../spec.md`](../spec.md).
 
 | | |
 | --- | --- |
-| Worktree | `<worktree root>` |
+| Worktree | a git worktree of this repository; run every command from its root |
 | Branch | `eugenelim/provisional-runtime-build`, tracking `origin`, clean |
-| PR | **#14** open against `main` — **HEAD has moved past it**; it was opened as an audit-only change |
-| Spec status | `Implementing` — **77 of 157 checked, 80 open** |
-| Engine | `CODE-IMPLEMENTATION`, sequence 91, `pending_human_wait: false` |
+| PR | **#14** open against `main`, mergeable; HEAD has moved well past the change it was opened for |
+| Spec status | `Implementing` — **82 of 157 checked, 75 open** |
+| Engine | `CODE-IMPLEMENTATION`, wave 1 of 1 is T13 |
 | Run id | `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` |
-| Gate | `pnpm verify` exit 0, 682 passed, 3 skipped |
+| Gate | `pnpm verify` exit 0, 751 passed, 3 skipped, on 5b4b776 |
 
 **Cohort:** `plan_review_status: approved`; waves `[[T14], [T12], [T13]]` at index 2 (the last);
 `completed_task_ids` T1–T11; `implementation_retry_count` 2; `review_round_count` 0. T14, T12
@@ -54,36 +54,39 @@ is to take the criterion's own wording — especially a proviso, a qualifier lik
 
 ---
 
-## 3. The 80 open criteria
+## 3. The 75 criteria not recorded met
 
 ### By group
 
-| Group | Open |
-| --- | ---: |
-| Honest states | 12 |
-| Security proofs | 12 |
-| Desktop surface | 9 |
-| Process boundary, argument vector and environment | 8 |
-| Quality floor | 8 |
-| Provisional contract | 6 |
-| Trusted inspector | 6 |
-| Reading the version marker | 6 |
-| Version honesty and the verdict | 3 |
-| Disposal and cancellation | 3 |
-| Exact revision | 2 |
-| Path confinement and materialization safety | 2 |
-| Persistence | 2 |
-| Suite-level and evidence | 1 |
+Generated from the rows of [`acceptance-audit.md`](acceptance-audit.md): 72 not met and 3 not verifiable here.
 
-### The five recorded "not verifiable here"
+| Group | Not met | Not verifiable |
+| --- | ---: | ---: |
+| Security proofs, and suite-level evidence | 12 | — |
+| Honest states | 10 | — |
+| Process boundary, argument vector and environment | 7 | 1 |
+| Quality floor | 7 | 1 |
+| Trusted inspector, and reading the version marker | 8 | — |
+| Version honesty and the verdict, and path confinement | 8 | — |
+| Desktop surface | 6 | 1 |
+| Disposal and cancellation, and persistence | 6 | — |
+| Provisional contract | 6 | — |
+| Source input and identity, and exact revision | 2 | — |
+
+### The three recorded "not verifiable here"
 
 Not defects — they need something this repository cannot supply offline.
 
 | Criterion | Needs |
 | --- | --- |
-| AC-0024, AC-0025, AC-0030 | The live smoke behind `CONNECT_ORIENT_SMOKE=1`, which reaches github.com. Each **is** asserted there and would bind if enabled |
+| AC-0024 | The live smoke behind `CONNECT_ORIENT_SMOKE=1`, which reaches github.com. It **is** asserted there and would bind if enabled |
 | AC-0114 | A browser capture of the verdict surface, which needs a completed inspection |
 | AC-0131 | The built application under Chromium; the check is real and measured |
+
+AC-0025 and AC-0030 were in this table and are **now recorded met**: the 2026-09-23 re-run found
+both bound offline against a real process group — the sampled group against the permitted-executable
+check with an exhaustive audit beside it, and descendants asserted alive before shutdown and dead
+after. Only their transport-helper clauses need the smoke, and those are carried by T13.
 
 ### The clusters
 

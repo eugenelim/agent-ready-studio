@@ -7708,3 +7708,146 @@ run, each of those four clean in isolation — stands as the coverage argument a
 **T13 remains open and the engine stays in CODE-IMPLEMENTATION.** This gate covers the committed
 tree; it does not discharge T13's manual QA gestures or its four transport observations, and no
 wave was marked complete.
+
+## owner-decision-2026-09-23-acceptance-checkbox-refresh
+
+The owner authorized, on 2026-09-23, a second narrow amendment: refreshing the acceptance
+checkboxes in `spec.md` so they carry the results of the re-run reconciliation.
+
+**What is wrong.** `spec.md` carries 77 checked boxes and 80 open, which are the 2026-09-20
+results. The re-run at `notes/acceptance-audit.md`, dated 2026-09-23, records 82 met, 72 not met
+and 3 not verifiable here.
+
+**The box convention, stated rather than attributed.** An earlier draft of this entry said "the
+spec states that a checked box means met" — **`spec.md` states no such thing**, and the words
+checkbox, unchecked and not verifiable do not appear in it. The convention was introduced by the
+2026-09-20 audit, which wrote "every box now carries an audited result: checked means met, and
+unchecked means not met or not verifiable here". That audit owns it, this amendment adopts it, and
+it is recorded here rather than sourced to a silent document. One consequence is worth naming: an
+unchecked box cannot distinguish *not met* from *not verifiable here*, so the three criteria in
+the second class — AC-0024, AC-0114 and AC-0131 — read as unmet on the spec's face, and only the
+audit separates them.
+
+**Scope.** Exactly 23 box characters across 157 lines: **14 checked** — AC-0014, AC-0025, AC-0029,
+AC-0030, AC-0051, AC-0054, AC-0056, AC-0057, AC-0091, AC-0093, AC-0102, AC-0105, AC-0106,
+AC-0142 — and **9 cleared** — AC-0010, AC-0018, AC-0072, AC-0073, AC-0074, AC-0079, AC-0081,
+AC-0154, AC-0159. No criterion wording changes, no rule changes, no count changes; the criteria
+count stays 157.
+
+**AC-0055 was in the first list and was removed by this amendment's own review**, which found it
+held met on the evidence shape AC-0075 is held not met for: its byte-bound leg asserts the
+refusal, the diagnostic and an undefined value, none of which a read-then-check implementation
+would fail, while its file-count leg does bind ordering by asserting nothing was opened. One
+standard is applied to both, so AC-0055 is recorded not met and its box stays clear. Two further
+rows were repaired in the same pass: AC-0056 and AC-0057 were the only two met rows of 157 citing
+no test artifact and naming no mutation, and they now carry both.
+
+**Why both directions.** Nine boxes are being *cleared*, which is not a regression in the product.
+In each case the 2026-09-20 verdict was too generous and the re-run found a clause with no
+binding — `resolveContainedPath` and `readContainedFile` having zero production callers for
+AC-0073, removal-on-failure having no case for AC-0079, and AC-0010's materialization leg
+asserting `toContain` against a URL that already satisfies it. Recording the clear is the point of
+the audit.
+
+**Procedure note, and the correction of one.** The previous amendment concluded that the Changelog
+entry should be written **before** the `contract-amendment` transition. **That was wrong, and
+trying it is what exposed the real constraint.** Writing it first fails a different check:
+`schedule check-current` compares `plan.md` against the scheduled baseline and refuses the
+transition. Writing it after the transition fails `approve-plan`, because `_task_sections` ends
+the last task's section at end-of-file so a Changelog append rewrites that task's pin.
+
+A Changelog edit cannot sit inside either pinned window. It has to be applied **after
+`plan-locked`**, which is what the previous amendment ended up doing by accident, and that is the
+procedure recorded here.
+
+
+## cohort-state-loss-and-repair-2026-09-23
+
+Running the checkbox amendment destroyed the cohort's record of completed work, and this entry
+records what was lost, why, and how it was restored, because `state.json` is not tracked by git
+and nothing else would carry it.
+
+**What blocked the amendment.** `contract-amendment` refused with `plan.md no longer matches the
+scheduled baseline`. The cause was the **previous** amendment: when `approve-plan` rejected its
+Changelog entry, the entry was set aside, the ceremony ran against the pinned text, and the entry
+was restored afterwards. That left the scheduled baseline pinned to pre-Changelog text, and it had
+been stale ever since — an invisible consequence of a workaround this ledger recorded as
+successful.
+
+**What the documented recovery cost.** The refusal message prescribes `loop-cohort reset` then
+`init`, `approve-plan` and `schedule`, and warns that this clears the retry counters and the
+stasis baseline. It does not say that `reset` **deletes `state.json` outright**. It does, and with
+it went `completed_task_ids` — fourteen entries — `completed_task_section_hashes`,
+`current_wave_index` and the review counters. The re-derived schedule then listed wave 1 as
+`T1, T2`, so a cold reader would have been told to start the slice again.
+
+**How it was repaired.** Nothing in the repository content was affected; the loss was confined to
+the cohort's own state file. The completed set was known exactly, having been read out of that
+file earlier the same day, and the section hashes were recomputed with the tool's own
+`task_section_hashes` against the current `plan.md` rather than written by hand. The restored
+state was then validated with the tool's own `validate_completed_task_sections`, which reported
+every completed task's section matching, and `schedule` re-derived wave 1 as `T13` — the correct
+remaining work. The review counters were restored to 10 rounds and 9 retries from this ledger.
+
+| Field | After the reset | After the repair |
+| --- | --- | --- |
+| `completed_task_ids` | none | 14: T1 to T12, T14, T15 |
+| `completed_task_section_hashes` | none | 14, recomputed and validated |
+| `current_wave_index` | 0 of a 15-wave schedule | 0 of a 1-wave schedule |
+| schedule wave 1 | `T1, T2` | `T13` |
+| review rounds / retries | 0 / 0 | 10 / 9 |
+
+**Two lessons, both about this repository's own tooling.** `state.json` holds the only record of
+which tasks are complete and is untracked, so a `reset` is unrecoverable without a human who
+happens to know the values — it is worth either tracking it or giving `reset` a backup. And the
+stale baseline that forced the reset was created by a workaround recorded as a success: a
+workaround that leaves a pinned hash pointing at text that no longer exists is a defect with a
+delay on it, not a resolution.
+
+## amendment-2026-09-23-acceptance-checkbox-refresh
+
+The checkbox refresh authorized at `#owner-decision-2026-09-23-acceptance-checkbox-refresh`, taken
+through the controlled path and **changed by its own review** before it landed.
+
+**What changed.** Twenty-three box characters in `spec.md`: fourteen checked and nine cleared. The
+spec now reads 82 checked and 75 open, matching the re-run's 82 met, 72 not met and 3 not
+verifiable here. No criterion wording, rule or count moved; the criteria count stays 157.
+
+**What the review changed.** One Blocker and four Concerns, and three of them altered the result
+rather than its description:
+
+- **AC-0055 was going to be checked and is not.** It was held met while AC-0075 was held not met
+  on the same evidence shape. Its byte-bound leg asserts the refusal, the diagnostic and an
+  undefined value — none of which a read-then-check implementation would fail — while its
+  file-count leg does bind ordering by asserting nothing was opened. One standard is now applied
+  to both, so the headline moved from 83 met to 82 and this amendment is 23 boxes, not 24.
+- **AC-0056 and AC-0057 were the only two met rows of 157 citing no test artifact and naming no
+  mutation**, and both were newly checked. The artifacts existed and the production sites are
+  live, so the verdict stood, but the row is what the box rests on. Both now carry named bindings
+  and the mutation that reddens them.
+- **This ledger attributed the box convention to `spec.md`, which is silent on it.** The words
+  checkbox, unchecked and not verifiable do not occur in that file. The convention came from the
+  2026-09-20 audit; it is now stated as adopted here rather than sourced to a document that never
+  said it. The consequence worth naming is that an unchecked box cannot distinguish *not met* from
+  *not verifiable here*, so AC-0024, AC-0114 and AC-0131 read as unmet on the spec's face.
+
+**The Blocker was a document the amendment would have falsified.** `HANDOVER.md` states its own
+counts and says it is current as of the commit carrying it, so landing the refresh would have made
+it wrong on the same commit: a 77-of-157 header, a section headed "The 80 open criteria" whose
+table summed to 80, and a table naming five criteria as not verifiable when AC-0025 and AC-0030
+are now met. Its counts are regenerated from the audit's rows — 82 checked, 75 open, 72 not met
+and 3 not verifiable — and the not-verifiable table is down to three with the reason AC-0025 and
+AC-0030 left it recorded beside them.
+
+**A privacy defect was found in the same file and fixed.** `HANDOVER.md` carried an absolute
+worktree path under a personal home directory containing a real account identifier, which the root
+`AGENTS.md` Privacy section forbids in any file in the repository and states covers all git
+artifacts. It is pre-existing rather than introduced here, and it is replaced with a description
+that identifies no person or machine. A scan of every tracked file outside the skill directories
+now finds no home-directory path and no email address.
+
+**Procedure.** The Changelog entry was applied **after `plan-locked`**, which is the only window
+where it passes both pins — see the correction recorded at
+`#owner-decision-2026-09-23-acceptance-checkbox-refresh`. The cohort state destroyed earlier in
+this amendment is repaired and recorded at `#cohort-state-loss-and-repair-2026-09-23`; the schedule
+reads wave 1 as `T13` and the spec is back to `Implementing`.

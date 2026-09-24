@@ -956,6 +956,13 @@ bound in *Canonical values*.
 Approval decisions only. Review rounds, their findings, and the reasoning behind
 each change are recorded in `notes/verification-ledger.md`.
 
+- 2026-09-23: **Spec amended: acceptance checkboxes refreshed to the re-run reconciliation.**
+ Approver `@eugenelim`. Authority
+ `notes/verification-ledger.md#owner-decision-2026-09-23-acceptance-checkbox-refresh`. The boxes
+ carried the 2026-09-20 results, 77 checked and 80 open; the re-run at `notes/acceptance-audit.md`
+ records 82 met, 72 not met and 3 not verifiable here. Twenty-three box characters change —
+ fourteen checked and nine cleared — and nothing else: no criterion wording, no rule, no count.
+ Criteria count unchanged at 157.
 - 2026-09-23: **Spec amended: two stale line pins repaired in *Follow-ons*.** Approver
  `@eugenelim`. Authority
  `notes/verification-ledger.md#owner-decision-2026-09-23-followons-pin-repair`. The enumeration of
