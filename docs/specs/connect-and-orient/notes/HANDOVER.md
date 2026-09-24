@@ -19,7 +19,7 @@ The spec is [`../spec.md`](../spec.md).
 | Spec status | `Implementing` — **82 of 157 checked, 75 open** |
 | Engine | `CODE-IMPLEMENTATION`, wave 1 of 1 is T13 |
 | Run id | `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` |
-| Gate | `pnpm verify` exit 0, 751 passed, 3 skipped, on 5b4b776 |
+| Gate | `pnpm verify` exit 0, 751 passed, 3 skipped, on 7f024e4 |
 
 **Cohort:** `plan_review_status: approved`; waves `[[T14], [T12], [T13]]` at index 2 (the last);
 `completed_task_ids` T1–T11; `implementation_retry_count` 2; `review_round_count` 0. T14, T12

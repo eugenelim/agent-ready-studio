@@ -682,7 +682,7 @@ closed task.
 **Landed.** `materialization-confinement.ts`, `per-request-state-root.ts` and `sweep.ts`,
 with `materialization-confinement.test.ts`, `per-request-state-root.test.ts` and
 `sweep.test.ts`. The change is **purely additive** — `git diff --name-only` is empty against
-`1b32570`, so no T4 surface was modified.
+`fb2a380`, so no T4 surface was modified.
 
 | Criterion | State after this increment |
 | --- | --- |
@@ -1102,7 +1102,7 @@ leg rather than tripping it. AC-0025's two-leg construction is sound; this imple
 defeated it.
 
 **Where it is.** `runtime-child.ts`, the `processStartTime` helper. It reached the branch in
-`b18c273` with the marker write and is already pushed; the sweep in the working tree extends
+`217af09` with the marker write and is already pushed; the sweep in the working tree extends
 the same dependency to one call per candidate.
 
 **Why it is not fixed here.** Every route out is a contract change, and three of the four
@@ -1298,7 +1298,7 @@ question about two criteria's domain, and the contract currently answers it both
 `spawnSync(PS, …)` with `{ encoding: "utf8" }` and **no `env`**, so they inherit the Service's
 ambient environment, and they reach no spawn audit. Under AC-0023's universal reading those
 are violations; under the preamble's scoping they are outside it entirely. **This predates
-the amendment** — the observer is T4's, landed in `e171a0a` — and T4 is now pinned, which is
+the amendment** — the observer is T4's, landed in `accfc5c` — and T4 is now pinned, which is
 why the question is worth settling deliberately rather than by an incidental edit.
 
 **Routes, none recommended here.**
@@ -1573,8 +1573,8 @@ contract to one clause.
 **The gate state at the close of round 24, stated precisely rather than optimistically.**
 
 `pnpm verify` returned **exit 0** with **343 tests in 33 files** and biome clean over 89 files
-on commit `6f86c30`. The only commit after it, `c56b626`, changes **three markdown files and
-no code** — `git diff --name-only 6f86c30..HEAD` lists the spec, the plan and this ledger, and
+on commit `a278bb4`. The only commit after it, `bda785b`, changes **three markdown files and
+no code** — `git diff --name-only a278bb4..HEAD` lists the spec, the plan and this ledger, and
 matching `\.(ts|tsx|mjs|js|json)$` against that diff returns nothing. The compiled and tested
 surface is therefore byte-identical to a green-verified state, so the recorded pass carries to
 `HEAD` by construction rather than by assumption.
@@ -1628,7 +1628,7 @@ both contract hashes are unchanged by either edit.
 
 **Verification at closure.** `pnpm verify` **exit 0** with **343 tests in 33 files** on `HEAD`
 at a one-minute load average of 34.83, obtained after the round-24 deletion — so the green run
-now sits on the current tree directly rather than carrying by construction from `6f86c30`. The
+now sits on the current tree directly rather than carrying by construction from `a278bb4`. The
 two edits above are markdown-only and post-date it.
 
 ## amendment-closed-2026-09-17
@@ -3203,7 +3203,7 @@ determinate repair in this window.
 
 ## amendment-2026-09-17-package-4-family-set-and-zone
 
-**Package 4, opened against a clean tree with T14 committed at `a718c02`.** It lands through the
+**Package 4, opened against a clean tree with T14 committed at `011a53f`.** It lands through the
 **controlled amendment path**, because item 1 moves an acceptance criterion and item 2 moves a
 *Canonical values* row that AC-0023 binds to — neither is available to the discovery channel,
 whose predicate excludes both.
@@ -3592,7 +3592,7 @@ refutation that corrected a worry rather than confirming it.
 
 **The finding that matters most is not about the code.** Round 29's table recorded a repair as
 applied that was never made: the *Non-originated value* head still carried the open predicate,
-and `sed -n 65p spec.md | shasum` was byte-identical at `c7c9f61` and `HEAD`. **Wrong work is
+and `sed -n 65p spec.md | shasum` was byte-identical at `fef3219` and `HEAD`. **Wrong work is
 recoverable, because review finds it. Absent work described as done is not**, because every later
 check trusts the record and nothing in the artifact reveals the gap. The head is now closed to the
 *Owner / repository charset* and *Ref charset* rows by name, which is what makes the round-29 row
@@ -4443,7 +4443,7 @@ with no network, no credential and no remote service.
 
 ### The live unauthenticated smoke
 
-Run against `https://github.com/octocat/Hello-World` at build `124f7bc`.
+Run against `https://github.com/octocat/Hello-World` at build `103734f`.
 
 | | |
 | --- | --- |
@@ -4463,7 +4463,7 @@ observations never made. The test now drives `resolveRevision` and `materializeR
 the real remote under the Runtime's own pinned environment, which is where the two transport
 phases exist to be observed.
 
-### The four manual-QA transport observations, against build `124f7bc`
+### The four manual-QA transport observations, against build `103734f`
 
 | Criterion | Observed |
 | --- | --- |
@@ -4689,7 +4689,7 @@ established, not a complete reconciliation, and saying so is the point: an unche
 
 The retracted versions were taken from git spawns this process made, outside the child's group and
 outside its audit. The transport now runs **inside the Runtime**, so the audit is where the
-criteria say to look. Observed against build `bfccb7c`, resolving
+criteria say to look. Observed against build `03b8b44`, resolving
 `7fd1a60b01f91b314f59955a4e4d4e80d8edf11d` on `master`.
 
 | Criterion | Observed |
@@ -5092,8 +5092,8 @@ retraction.** The audit recorded a sixth cross-cutting finding saying every `*-c
 `#t13-delivery-2026-09-19-remade` and `#review-round-37-2026-09-19` entries cited evidence nobody had
 committed.
 
-`git ls-tree 3814102 docs/specs/connect-and-orient/notes/visual/` returns **57 entries**,
-committed by `d28d022` on 2026-09-19. Those entries were accurate. The `git ls-tree HEAD` behind
+`git ls-tree 5487cfb docs/specs/connect-and-orient/notes/visual/` returns **57 entries**,
+committed by `0ffca9c` on 2026-09-19. Those entries were accurate. The `git ls-tree HEAD` behind
 the claim was run against the **walking-skeleton** spec's directory, which is a different
 evidence set and does hold exactly the 36 PNGs the finding described.
 
@@ -5448,7 +5448,7 @@ hazardous values and checking `git status` was byte-identical before and after. 
 re-derived, independently: 157 audit rows at 80 / 72 / 5, the spec's 80 checked boxes being the
 *same* 80 identifiers, all fifteen group headers matching their own rows, every ledger anchor in
 `workspace.toml` resolving, all 64 manifest digests matching the files on disk with no orphans,
-and `git diff 3814102..HEAD -- apps/studio-service packages` empty.
+and `git diff 5487cfb..HEAD -- apps/studio-service packages` empty.
 
 **One Blocker, and it is this session's own recurring shape.** `settleRender` returned on a
 deadline having written a line to stderr, interleaved with minutes of subprocess output, and
@@ -5734,9 +5734,9 @@ attempts with isolated confirmations taken between them.** The flake is real, pr
 cross-cutting audit finding that was simply false.**
 
 **Finding 6 said the rendered evidence was never committed. It was committed all along.**
-`git ls-tree 3814102 docs/specs/connect-and-orient/notes/visual/` returns 57 entries — 56 PNGs
+`git ls-tree 5487cfb docs/specs/connect-and-orient/notes/visual/` returns 57 entries — 56 PNGs
 and a manifest, including every `*-connect.png`, `narrow-900-*` and `text-200-*` — added by
-`d28d022` on 2026-09-19, before the audit ran. The `#t13-delivery-2026-09-19-remade` and
+`0ffca9c` on 2026-09-19, before the audit ran. The `#t13-delivery-2026-09-19-remade` and
 `#review-round-37-2026-09-19` entries were accurate and their evidence was exactly where they said.
 
 **The mistake was reading the wrong directory.** The `git ls-tree HEAD` behind the claim was run
@@ -6004,7 +6004,7 @@ What is true is narrow — `sweep` failed in this round's attempt 3 and had not 
 **What is claimed and what is not.** The tree was green four times earlier in this session at
 679 passed — rounds 43, 44, 45 and 47 — and this round's diff changed
 `apps/desktop/tools/visual-evidence.mjs`, three documents and `workspace.toml` — nothing any of
-those three suites imports, and `git diff 3814102..HEAD -- apps/studio-service packages` is
+those three suites imports, and `git diff 5487cfb..HEAD -- apps/studio-service packages` is
 still empty. The failing set moves between attempts while the code does not. That is the
 recorded flake and not a regression from this round.
 
@@ -6748,7 +6748,7 @@ five criterion-named fields onto a freshly constructed object.
 
 ## t13-evidence-2026-09-23
 
-T13's **mechanical half only**, re-taken against `4d0fef7` because T15 changed
+T13's **mechanical half only**, re-taken against `3e2e1fe` because T15 changed
 `packages/protocol` and `apps/studio-service` after the previous delivery evidence was recorded.
 The amendment reordered T13 behind T15 for exactly this reason.
 
@@ -6801,7 +6801,7 @@ the transport site, which accumulates under no byte bound — see that round's e
 
 ### The round's own defect: the fix from round 10 was not total
 
-Two of the four Blockers are one defect I introduced in `4d0fef7`, and they only exist because
+Two of the four Blockers are one defect I introduced in `3e2e1fe`, and they only exist because
 of it. Round 10 replaced two unchecked pass-throughs with normalization that coerces:
 `String(entry.executable ?? "")` and `entry.args.map(String)` in `childSpawnAudit`, and
 `String(read.name)` in `declaredFromProtocol`. In the same commit the guard began rebuilding
@@ -6909,7 +6909,7 @@ mechanism, so the reason for the redness is the finding.
 | --- | --- | --- |
 | The at-bound case measured 63, not 64, so `>` turned `>=` survived at that site | Nit ×2 | Interior brackets changed from `bound - 2` to `bound - 1`; measured 64. The comparison is bound at the helper and at the protocol-line site — **not** at the transport site, which round 12 added |
 | `guarded-parse.test.ts` claimed to bind the transport call site but never built a `StudioTransport`; `northbound-guard.test.ts` repeated the attribution | Nit | Both docblocks now say where each site is bound: the helper here, the transport in `validator.test.ts`, the protocol line in `northbound-guard.test.ts` |
-| The `rawStdoutLines` loop was inserted between a comment and its subject | Nit | Verified against `4d0fef7`: the comment pre-existed and headed the noise writes. It now covers both, which is what is true of both |
+| The `rawStdoutLines` loop was inserted between a comment and its subject | Nit | Verified against `3e2e1fe`: the comment pre-existed and headed the noise writes. It now covers both, which is what is true of both |
 | The depth scan's docstring claimed a hostile document costs only its refusing prefix | Nit | Narrowed: that holds for a document that breaches the bound. One within the bound is walked in full, which is the same single pass the parse behind it makes |
 | The new transport case settled on `setTimeout(settle, 30)` where the file settles on the stream | Nit | Settles on the sentinel notification. Both are written to one stream in order, so the second arriving means the first was already admitted or rejected — which keeps a removed guard a failed assertion rather than a timeout |
 
@@ -6934,7 +6934,7 @@ at load 36.8 was clean.
 
 ## t15-review-round-12-2026-09-23
 
-Verification round on round 11's fix commit `bcaa155`, recorded as cohort round 8 at retry 7 under
+Verification round on round 11's fix commit `34785fc`, recorded as cohort round 8 at retry 7 under
 the owner's authorization. Three reviewers ran post-gates and each report went through raw
 classification and independent adjudication. Raw: 6 adversarial, 7 security, 6 quality. Sustained:
 5, 4 and 3 — **twelve sustained, five of them Blockers**, deduplicating to four distinct Blockers
@@ -7175,7 +7175,7 @@ directory removal, the change is not implicated.
 
 ## t15-review-round-13-2026-09-23
 
-Verification round on `fa9be33`, the commit applying the three owner decisions, recorded as cohort
+Verification round on `2ef75e9`, the commit applying the three owner decisions, recorded as cohort
 round 10 at retry 9. Two reviewers ran post-gates with an explicit instruction not to modify the
 worktree — round 12's reviewers had mutated it concurrently and lost their own measurements, and
 both this round's confirmed working from copies instead. Raw: 5 security, 11 quality. Sustained
@@ -7275,7 +7275,7 @@ number — see the correction recorded with round 12's gate evidence.
 
 ## t15-review-round-14-2026-09-23
 
-Verification round on `149495f`, recorded as cohort round 11. Two reviewers ran post-gates under
+Verification round on `6d6ada7`, recorded as cohort round 11. Two reviewers ran post-gates under
 the no-mutation instruction. Raw: 8 adversarial, 3 security. Adjudicated together into one
 envelope: **5 sustained** (3 Concerns, 2 Nits), **4 refuted**, **2 indeterminate** — both
 indeterminates were carried to the owner and answered the same day.
@@ -7295,7 +7295,7 @@ declared field of every code in turn and requires both the mirror and the canoni
 refuse it; all three widenings the reviewers measured as surviving are now killed.
 
 The leak was latent rather than live: every current leaf is `z.string()` or `z.literal()` under
-`.strict()`, so no contract-invalid payload could reach a caller at `149495f`. That is why the
+`.strict()`, so no contract-invalid payload could reach a caller at `6d6ada7`. That is why the
 adjudication reduced it from Blocker to Concern, and it is recorded here as latent.
 
 ### Two mutation counts were measured against a tree that no longer existed
@@ -7334,7 +7334,7 @@ Two consequences, both checked:
 - **One of six pins resolves again; two others are stale, so the amendment is still needed.**
   Restoring the original payload did return `service.ts` to a net of zero, and `:1274` is once
   more `request = JSON.parse(line);`. But that entry pins six sites, and round 15 found
-  `runtime-child.ts:182` and `:408` were moved seven lines by `4d0fef7` — T15's own first commit —
+  `runtime-child.ts:182` and `:408` were moved seven lines by `3e2e1fe` — T15's own first commit —
   and have been stale since; the parses are at `:189` and `:415`. `sweep.ts:127`,
   `storage.ts:297`, `storage.ts:1103` and `inspector-locator.ts:134` do resolve. **This entry
   first concluded the amendment was unnecessary on the strength of one pin out of six, which was
@@ -7429,7 +7429,7 @@ re-run `pnpm verify` on a quieter host before treating T15's gate obligation as 
 
 ## t15-review-round-15-2026-09-23
 
-Verification round on `e38ca8e`, recorded as cohort round 12. Two reviewers ran post-gates, both
+Verification round on `36c839a`, recorded as cohort round 12. Two reviewers ran post-gates, both
 told not to create hard links after the previous round's gate breakage. Raw: 8 adversarial,
 4 security. **Three Blockers, four Concerns, five Nits**, and four of them falsify claims this
 ledger made in round 14.
@@ -7476,7 +7476,7 @@ second read a property's `$ref` pointer instead of its declaration, which the
   check asked which methods *emit* `-32004` and never which methods *reach* `domainRevision`.
 - **"The second owner decision became unnecessary."** False, and on one pin out of six. The
   Follow-ons entry pins six sites; `runtime-child.ts:182` and `:408` were moved seven lines by
-  `4d0fef7` and have been stale since. The amendment the owner authorized is owed.
+  `3e2e1fe` and have been stale since. The amendment the owner authorized is owed.
 - **"Every test in the repository is accounted for by a green run."** 750 are; the other three are
   skips, which are skipped rather than accounted for.
 
@@ -7554,7 +7554,7 @@ own commits invalidated.
 **What is wrong.** That entry pins six sites by file and line. Two no longer resolve:
 `apps/studio-service/src/trials/connect-and-orient-runtime/runtime-child.ts:182` is a comment
 terminator and `:408` is a type member; the `--plan` argument-vector parse is at `:189` and the
-child-side ownership-marker parse at `:415`. Both moved seven lines in `4d0fef7`, T15's first
+child-side ownership-marker parse at `:415`. Both moved seven lines in `3e2e1fe`, T15's first
 commit, and have been stale since. The other four resolve: `service.ts:1274`, `sweep.ts:127`,
 `storage.ts:297` and `storage.ts:1103`.
 
@@ -7583,9 +7583,9 @@ names — the four that already resolved and the two repaired, plus `inspector-l
 whose separate claim also holds: `parseGuardedToml` drops inadmissible keys and rebuilds with a
 null prototype but applies no depth bound. Scope is exactly two line numbers: no criterion, rule,
 set membership or count moved, and the criteria count is 157 in the tree as the Changelog says.
-The attribution is exact — at `89c1a5b` both parses sat at `:182` and `:408`, `4d0fef7` moved each
+The attribution is exact — at `29a64e7` both parses sat at `:182` and `:408`, `3e2e1fe` moved each
 by seven lines in one hunk inserting `rawStdoutLines` and its docblock, and the only later commit
-to touch that file edited below both, so the whole shift belongs to `4d0fef7`.
+to touch that file edited below both, so the whole shift belongs to `3e2e1fe`.
 
 **What it found, and where that went.** One Nit, and the reviewer framed it as an owner
 recommendation rather than a defect in this change: **the repair resets a drift clock that
@@ -7627,7 +7627,7 @@ CODE-IMPLEMENTATION.
 
 ## t13-stage-2-visual-evidence-2026-09-23
 
-T13's Stage 2 visual evidence was run, on owner direction, against `9fe033e`:
+T13's Stage 2 visual evidence was run, on owner direction, against `cdf85c0`:
 `pnpm visual-evidence:connect`, which renders the production renderer bundle in headless Chromium
 over the real compiled Studio Service. **64 scenarios captured, every one `ok`, horizontal
 overflow 0px in all of them.**
@@ -7677,7 +7677,7 @@ https endpoint AC-0148 forbids in automation.
 
 ## gate-obtained-2026-09-23
 
-**`pnpm verify` exits 0 on `5b4b776`.** 751 passed, 3 skipped, 0 failed across 55 files, 54.39s,
+**`pnpm verify` exits 0 on `7f024e4`.** 751 passed, 3 skipped, 0 failed across 55 files, 54.39s,
 at a one-minute load average of 24.57. This discharges the whole-suite gate that rounds 14 and 15
 recorded as owed. `pnpm lint`, `pnpm typecheck` and `pnpm governance` also exit 0.
 
@@ -7851,3 +7851,46 @@ where it passes both pins — see the correction recorded at
 `#owner-decision-2026-09-23-acceptance-checkbox-refresh`. The cohort state destroyed earlier in
 this amendment is repaired and recorded at `#cohort-state-loss-and-repair-2026-09-23`; the schedule
 reads wave 1 as `T13` and the spec is back to `Implementing`.
+
+## history-rewrite-2026-09-24-privacy-path
+
+The repository's history carried a personal filesystem path, and it was rewritten out on
+2026-09-24 at the owner's instruction. This entry records the scope, what it cost, and what it did
+not reach.
+
+**The datum.** `docs/specs/connect-and-orient/notes/HANDOVER.md` recorded the worktree as an
+absolute path under a personal home directory, carrying an account identifier in a form the public
+GitHub handle does not use. The root `AGENTS.md` Privacy section forbids "device names, profile
+paths, or user-specific filesystem paths" in any file and states the rule covers all git artifacts.
+The working tree was already clean — the path was removed by the checkbox amendment after a
+pre-EXECUTE review found it — so this rewrite addressed history alone.
+
+**Why it was not simply left.** Commit authorship on all 143 commits uses GitHub's
+`473231+eugenelim@` privacy address, which is the public handle and which `AGENTS.md` expressly
+admits as a project identifier. The path was a *different* datum: a profile location and an
+account form that authorship never discloses. Removing it therefore removed something real rather
+than duplicating what metadata already showed.
+
+**Scope, measured rather than assumed.** Fifteen commits reachable from `main` contained the
+string, the earliest being `44cd75a` of 2026-09-22. Two older commits also carried it in
+`.agentbundle-state.toml`, and they are reachable from no remote ref — only from the local backup
+refs `oldheads/mainline` and `oldheads/eugenelim/spec-1`, which were left alone. One string, in one
+file, replaced by `<worktree root>`.
+
+**What it cost.** `git filter-repo` rewrote **140 of 144 commits**, not the seventeen the affected
+range suggested, because rewriting a historical blob rewrites every descendant. Both `main` and
+`eugenelim/provisional-runtime-build` were force-pushed: `8b72084` became `3603a01` and `a693a1f`
+became `1a2031f`. **This is the cost the merge deliberately avoided two hours earlier** — a merge
+commit was chosen over a squash precisely to keep the ledger's SHA citations resolvable, and the
+rewrite invalidated them anyway. Thirty-seven citations across the ledger, the handover, the plan
+and `workspace.toml` were remapped from `filter-repo`'s own commit map, and every cited SHA was
+then checked to resolve.
+
+**What it did not reach.** Pull requests #12, #13 and #14 now reference commits on no branch;
+GitHub retains those objects until it garbage-collects, so the old history remains reachable to
+anyone holding a SHA until then. Removing it there needs GitHub support. The pre-rewrite state is
+also held in a local bundle outside the repository, deliberately, as the only way back.
+
+**Verification.** The rewritten tip tree is byte-identical to the pre-rewrite tip
+(`afb31578be010cb88eab39c529fab6b10e347d0a`), the commit count is unchanged at 143, and no commit
+reachable from any remote ref contains the string.
