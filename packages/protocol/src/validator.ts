@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { parseGuardedJson } from "./guarded-parse.js";
+
 export const protocolVersion = "1" as const;
 
 const idSchema = z.union([z.string().min(1), z.number().int()]);
@@ -279,7 +281,10 @@ export type ValidationIssue = { path: string; message: string };
 export type ValidationError = {
   code: -32602;
   message: "Invalid params";
-  data: { kind: "validation"; issues: ValidationIssue[] };
+  // Derived from the inbound schema rather than spelled out again: both
+  // mirror one `validationErrorData` in the versioned contract, and declaring
+  // the shape twice in one file let the next contract change update one.
+  data: z.infer<typeof validationErrorData>;
 };
 export type RequestValidationResult =
   | { ok: true; value: unknown }
@@ -291,7 +296,13 @@ export function validateRequest(input: unknown): RequestValidationResult {
     typeof input !== "object" ||
     !("method" in input) ||
     typeof input.method !== "string" ||
-    !(input.method in requestSchemas)
+    // `Object.hasOwn`, not `in`, for the same reason as the notification
+    // lookup below: `requestSchemas` is a plain object literal, so `in` was
+    // true for every `Object.prototype` name and the `safeParse` on the next
+    // line then read off an inherited member and threw. This site's answer is
+    // an `Unknown method` refusal, and a throw here escapes
+    // `dispatchRequest` above its own `try` and ends the Service read loop.
+    !Object.hasOwn(requestSchemas, input.method)
   )
     return validationFailure([{ path: "method", message: "Unknown method" }]);
   const result = requestSchemas[input.method as StudioMethod].safeParse(input);
@@ -658,6 +669,90 @@ export function validateNotification(
   return notificationSchemas[method].safeParse(params);
 }
 
+/**
+ * The `data` payload each error code declares, keyed by code.
+ *
+ * AC-0057's third clause at the northbound result line: what leaves the
+ * transport is built from the fields the contract names, not consumed from the
+ * parsed object's shape. Every other delivery path already worked this way;
+ * the error path forwarded `message.error.data` itself, so a null-prototyped
+ * subtree carrying whatever a line declared reached the caller of `request`
+ * and the desktop IPC reply.
+ *
+ * These are the shapes `contracts/jsonschema/studio-protocol-v1.schema.json`
+ * already declares, each with `additionalProperties: false`, so validating
+ * against them enforces the contract rather than narrowing it. A code the
+ * contract does not list has no declared envelope, which is why the
+ * unrecognized-code path is deliberately absent -- see `errorData`.
+ */
+const validationErrorData = z
+  .object({
+    kind: z.literal("validation"),
+    issues: z.array(
+      z.object({ path: z.string(), message: z.string() }).strict(),
+    ),
+  })
+  .strict();
+const resourceErrorData = z
+  .object({
+    kind: z.literal("resource"),
+    resourceType: z.string(),
+    id: z.string(),
+  })
+  .strict();
+const conflictErrorData = z
+  .object({
+    kind: z.literal("conflict"),
+    resourceType: z.string(),
+    id: z.string(),
+    currentStatus: z.string(),
+  })
+  .strict();
+const internalErrorData = z
+  .object({ kind: z.literal("internal"), requestId: z.string() })
+  .strict();
+const protocolVersionErrorData = z
+  .object({
+    kind: z.literal("protocol-version"),
+    expected: z.literal(protocolVersion),
+    received: z.string(),
+  })
+  .strict();
+
+export const errorDataSchemas = {
+  "-32700": validationErrorData,
+  "-32600": validationErrorData,
+  "-32601": resourceErrorData,
+  "-32602": validationErrorData,
+  "-32603": internalErrorData,
+  "-32001": protocolVersionErrorData,
+  "-32002": resourceErrorData,
+  "-32003": conflictErrorData,
+  "-32004": conflictErrorData,
+} as const;
+
+/**
+ * The error payload a caller receives, rebuilt from named fields when the code
+ * declares a shape.
+ *
+ * A code the contract does not list keeps arriving as it did, because the
+ * contract names no envelope for one and inventing a shape here would be a
+ * control the contract does not determine. That residual is recorded rather
+ * than closed. `Object.hasOwn` rather than `in` is idiom here rather than a
+ * control: `code` is a number, so every key is the string form of one and
+ * none can name an `Object.prototype` property. A mutant restoring `in`
+ * survives, and that is recorded rather than covered by a case.
+ */
+function errorData(code: number, data: unknown): unknown {
+  const key = String(code);
+  if (!Object.hasOwn(errorDataSchemas, key)) {
+    return data;
+  }
+  const schema = errorDataSchemas[key as keyof typeof errorDataSchemas];
+  const validated = schema.safeParse(data);
+  return validated.success ? validated.data : undefined;
+}
+
 export type TransportReadable = {
   on(event: string, listener: (...args: unknown[]) => void): unknown;
 };
@@ -853,7 +948,14 @@ export class StudioTransport {
       if (line.length === 0) continue;
       let message: unknown;
       try {
-        message = JSON.parse(line);
+        // AC-0056 and AC-0057 at the northbound result line. A refusal throws
+        // and takes the answer this site already gives unparseable input.
+        // That answer is wider than a refused value -- `disconnect` stops
+        // request acceptance and rejects every pending request -- and it is
+        // the answer the owner chose for a framing fault: AC-0059's routing
+        // and distinct-diagnostic clauses do not reach this envelope, so no
+        // stop reason and no new message are added here.
+        message = parseGuardedJson(line);
       } catch {
         this.disconnect("Studio Service emitted malformed JSON");
         return;
@@ -868,7 +970,14 @@ export class StudioTransport {
       return;
     }
     if (typeof message.method === "string" && !("id" in message)) {
-      if (!(message.method in notificationSchemas)) return;
+      // `Object.hasOwn`, not `in`: `notificationSchemas` is a plain object
+      // literal, so `in` reaches `Object.prototype` and a line naming
+      // `toString` or `valueOf` passed this test, then called `safeParse` on a
+      // function or on `undefined`. `consume` runs inside the readable's data
+      // listener and the repository installs no `uncaughtException` handler,
+      // so that threw uncaught in the Electron main process instead of taking
+      // the disconnected outcome this site is designed to give.
+      if (!Object.hasOwn(notificationSchemas, message.method)) return;
       const method = message.method as NotificationMethod;
       const validation = validateNotification(method, message.params);
       if (!validation.success) return;
@@ -952,7 +1061,7 @@ export class StudioTransport {
           message.id,
           pending.method,
           message.error.code,
-          message.error.data,
+          errorData(message.error.code, message.error.data),
         ),
       );
       this.rejectPending("Studio Service protocol is incompatible");
@@ -965,7 +1074,7 @@ export class StudioTransport {
         message.id,
         pending.method,
         message.error.code,
-        message.error.data,
+        errorData(message.error.code, message.error.data),
       ),
     );
   }

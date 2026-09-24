@@ -16,7 +16,9 @@
     "test": "vitest run",
     "build": "vite build --config vitest.config.ts && pnpm --filter @agent-ready/studio-desktop build && tsc --build tsconfig.json",
     "verify": "pnpm lint && pnpm typecheck && pnpm governance && pnpm test && pnpm build",
-    "visual-evidence": "node apps/desktop/tools/visual-evidence.mjs"
+    "visual-evidence": "node apps/desktop/tools/visual-evidence.mjs",
+    "visual-evidence:skeleton": "VISUAL_EVIDENCE_ROOT=docs/specs/product-development-walking-skeleton/notes/visual node apps/desktop/tools/visual-evidence.mjs",
+    "visual-evidence:connect": "VISUAL_EVIDENCE_ROOT=docs/specs/connect-and-orient/notes/visual node apps/desktop/tools/visual-evidence.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.4",

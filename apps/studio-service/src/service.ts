@@ -147,7 +147,7 @@ export function dispatchRequest(
   if (
     isRecord(request) &&
     typeof request.method === "string" &&
-    !(request.method in requestSchemas)
+    !Object.hasOwn(requestSchemas, request.method)
   )
     return errorResponse(id, -32601, "Method not found", {
       kind: "resource",
@@ -824,7 +824,7 @@ function domainRevision(revision: {
   // that is not a Product Intent used to throw a raw ZodError out of the domain
   // mapping and land in the catch-all as an opaque internal error.
   if (!content.success)
-    throw new DispatchFailure(-32004, "Revision base is not a Product Intent", {
+    throw new DispatchFailure(-32002, "Revision base is not a Product Intent", {
       kind: "resource",
       resourceType: "artifact-revision",
       id: revision.id,

@@ -3,6 +3,7 @@ import {
   type StopReasonKey,
   type UserVisibleState,
 } from "@agent-ready/protocol";
+import type { ReactNode } from "react";
 import { VERDICT_LABELS, type Verdict } from "./presentation.js";
 import { StateBadge, VerdictBadge } from "./StateBadge.js";
 
@@ -27,6 +28,7 @@ export function VerdictSurface({
   owner,
   repository,
   resolvedSha,
+  inspectedAt,
   diagnostics,
   stopReason,
   waitWindow,
@@ -39,6 +41,14 @@ export function VerdictSurface({
   owner: string;
   repository: string;
   resolvedSha: string | null;
+  /**
+   * When the inspection that produced this result completed, as an instant.
+   * Required rather than optional: every producer supplies it unconditionally,
+   * and omitting it at a call site is the wiring gap this field exists to
+   * close -- a required prop makes that omission a typecheck failure instead
+   * of something only one test happens to catch.
+   */
+  inspectedAt: string | null;
   diagnostics: string;
   /** Which reason stopped it, where the condition is `inspection-stopped`. */
   stopReason?: StopReasonKey | null;
@@ -106,6 +116,8 @@ export function VerdictSurface({
         </dd>
         <dt>Commit</dt>
         <dd data-identity="resolved-sha">{resolvedSha ?? "not resolved"}</dd>
+        <dt>Inspected</dt>
+        <dd data-identity="inspected-at">{inspectedLabel(inspectedAt)}</dd>
       </dl>
 
       {condition === "cancelled" && (
@@ -135,6 +147,53 @@ export function VerdictSurface({
       />
     </section>
   );
+}
+
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/**
+ * AC-0103. The instant the result was inspected, rendered in UTC from an
+ * explicit table rather than through `Intl`.
+ *
+ * The lead reads this to decide whether a restored verdict is still worth
+ * trusting, so it has to mean the same thing on every host. `Intl` month
+ * abbreviations move with the host's ICU version -- en-GB renders September as
+ * "Sept" on this Node and "Sep" on others -- which would make the displayed
+ * text a property of the machine. The pinned-rendering rule AC-0159 applies to
+ * the liveness marker is the same concern, one surface over.
+ */
+function inspectedLabel(instant: string | null): ReactNode {
+  if (instant === null) return "not inspected";
+  const at = new Date(instant);
+  // An unreadable stored instant is not the same as no inspection, and saying
+  // "not inspected" for it would tell the lead something false. The
+  // machine-readable value is withheld too: `<time dateTime>` must carry a
+  // valid datetime, and emitting the bad string would hand assistive
+  // technology something it cannot parse.
+  if (Number.isNaN(at.getTime()))
+    return "recorded at a time Studio cannot read";
+  return <time dateTime={at.toISOString()}>{renderInstant(at)}</time>;
+}
+
+function renderInstant(at: Date): string {
+  const day = String(at.getUTCDate()).padStart(2, "0");
+  const month = MONTHS[at.getUTCMonth()];
+  const hour = String(at.getUTCHours()).padStart(2, "0");
+  const minute = String(at.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} ${at.getUTCFullYear()}, ${hour}:${minute} UTC`;
 }
 
 /**

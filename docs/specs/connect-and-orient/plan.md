@@ -787,7 +787,7 @@ and the ΔE2000 value are written and reviewed before a component consumes them.
 
 ### T13: Delivery is verified and its Stage 2 evidence recorded
 
-**Depends on:** T12
+**Depends on:** T15
 
 **Tests:**
 - Full `pnpm verify` and `git diff --check`; every added test passes with no
@@ -853,6 +853,60 @@ re-implementing them.
 gesture, the smoke result is recorded with its exact SHA and projection, and
 AC-0114, AC-0129, AC-0130, AC-0131, AC-0132, AC-0148, AC-0150, AC-0151, AC-0152, AC-0153, AC-0159 hold, and the ledger records the four manual-QA transport observations — AC-0009 redirect refusal on both phases, AC-0024 helper environment, AC-0025 helper admission, AC-0030 no surviving helper — each against the build revision.
 
+### T15: The northbound result line is parsed under the same guards
+
+**Depends on:** T12
+
+**Tests:**
+- TDD. The guard moves to `packages/protocol` and keeps its existing unit
+ coverage; the trial module re-exports it so no current import breaks.
+- **One obligation per AC-0057 clause, at each of the two northbound parse
+ sites**, because the relocated helper's own unit coverage proves these for the
+ helper and not for either call site: a document carrying an inadmissible key
+ at depth yields no value under that key; an admitted document is materialized
+ with a null prototype; and normalization of the protocol message copies only
+ criterion-named fields onto a freshly constructed object.
+- AC-0056 at each of the two sites: a document nesting past the *Parse nesting
+ depth* bound yields no value, with the bound enforced before the walk.
+- Mutation: removing either guard at either site reddens, and the case count is
+ read from every run.
+
+**Approach:** host `INADMISSIBLE_PARSE_KEYS`, `isInadmissibleKey`,
+`withoutInadmissibleKeys`, the JSON text-depth scan and the iterative document
+walk in `packages/protocol`, which `apps/studio-service` already depends on, so
+no new workspace dependency is introduced. **`PARSE_NESTING_DEPTH_BOUND` moves
+with them**: it currently sits in `declared-value-reader.ts`, which
+`packages/protocol` cannot import, and the scan functions take the bound as an
+argument, so leaving it behind would force a second copy and let two sites
+enforce different depths against AC-0056. The trial module re-exports the moved
+names so no current import breaks, and keeps `parseGuardedToml`, which owns the
+TOML dependency.
+
+Then guard the two northbound parse sites: the protocol-line `JSON.parse` in
+`apps/studio-service/src/trials/connect-and-orient-runtime/runtime-supervisor.ts`
+and the transport `JSON.parse` in `packages/protocol/src/validator.ts`.
+
+At the transport site the guard yields no value and the existing `disconnect`
+answer stands, and that answer is wider than a refused value: `disconnect`
+clears `acceptingRequests` and rejects every pending request as `disconnected`.
+Today a syntactically valid line that breaches the depth bound or carries an
+inadmissible key is parsed, then dropped by notification validation or rejected
+as one `invalid-response` with the session intact, so **this guard widens the
+class of Studio-side framing faults that stop request acceptance and fail
+unrelated in-flight work.** That is the answer the owner chose for a framing
+fault; AC-0059's routing and distinct-diagnostic clauses do not reach the
+envelope, so this task adds no stop-reason row and no new message.
+
+Out of scope by the 2026-09-22 narrowing: the six production parses *Follow-ons*
+enumerates. AC-0056's and AC-0057's inspector-output limb is inapplicable in
+this slice, so this task does not discharge it.
+
+**Done when:** both northbound parse sites are guarded; AC-0056 and AC-0057
+hold at the declared-value read and both northbound sites, which is the whole
+of their applicable reach; each of AC-0057's three clauses has an obligation at
+each northbound site; one canonical depth bound reaches both sites; and the
+mutation run shows each guard reddening with its case count recorded.
+
 ## Rollout
 
 One change set, no flag, additive and reachable only from a new surface.
@@ -902,6 +956,53 @@ bound in *Canonical values*.
 Approval decisions only. Review rounds, their findings, and the reasoning behind
 each change are recorded in `notes/verification-ledger.md`.
 
+- 2026-09-23: **Spec amended: acceptance checkboxes refreshed to the re-run reconciliation.**
+ Approver `@eugenelim`. Authority
+ `notes/verification-ledger.md#owner-decision-2026-09-23-acceptance-checkbox-refresh`. The boxes
+ carried the 2026-09-20 results, 77 checked and 80 open; the re-run at `notes/acceptance-audit.md`
+ records 82 met, 72 not met and 3 not verifiable here. Twenty-three box characters change —
+ fourteen checked and nine cleared — and nothing else: no criterion wording, no rule, no count.
+ Criteria count unchanged at 157.
+- 2026-09-23: **Spec amended: two stale line pins repaired in *Follow-ons*.** Approver
+ `@eugenelim`. Authority
+ `notes/verification-ledger.md#owner-decision-2026-09-23-followons-pin-repair`. The enumeration of
+ the parses outside AC-0056's and AC-0057's reach pinned
+ `runtime-child.ts:182` and `:408`; `4d0fef7` moved both seven lines, so they pointed at a comment
+ terminator and a type member. They now read `:189` and `:415`. Two line numbers in one sentence:
+ the same six sites remain enumerated, and no criterion, rule or set membership changes. Criteria
+ count unchanged at 157.
+- 2026-09-23: **Plan approved: T15 added and the delivery task reordered behind it.** Approver
+ `@eugenelim`. Authority
+ `notes/verification-ledger.md#amendment-2026-09-22-ac-0056-0057-trial-boundary`. T15 guards the
+ northbound result line at both parse sites and hosts the inadmissible-key and depth guards, with
+ `PARSE_NESTING_DEPTH_BOUND`, in `packages/protocol`, which `packages/protocol/src/validator.ts`
+ can reach and `apps/` cannot provide. Dependencies now run T12 then T15 then T13, so the
+ delivery verification follows the last code change. Completed task sections are unchanged.
+- 2026-09-23: **Spec approved after the AC-0056, AC-0057 and AC-0059 amendment.** Approver
+ `@eugenelim`. Authority
+ `notes/verification-ledger.md#owner-decision-2026-09-22-ac-0056-0057-trial-boundary`. The scope
+ decision is the narrowing of AC-0056 and AC-0057 to the trial boundary and the scoping of
+ AC-0059 away from the transport envelope, both recorded there. Three pre-EXECUTE review rounds
+ converged 14, then 8, then 4 sustained findings with Blockers reaching zero; round 3's four
+ fixes landed after the final round and are unreviewed, disclosed at
+ `notes/verification-ledger.md#amendment-2026-09-23-review-and-residual`. Criteria count
+ unchanged at 157.
+- 2026-09-23: **AC-0059's reach scoped away from the transport envelope.** Authority
+ `notes/verification-ledger.md#owner-decision-2026-09-22-ac-0056-0057-trial-boundary`, which
+ carries this second decision on the same authority. AC-0059's routing and distinct-diagnostic
+ clauses reach the inspection parses, not the transport envelope at
+ `packages/protocol/src/validator.ts`, which parses every northbound message rather than an
+ inspection result; a breach there is a framing fault the transport already answers by
+ disconnecting, and no stop-reason row is added. Its no-value and no-partial-contribution clauses
+ do bind that site. Criteria count unchanged at 157.
+- 2026-09-22: **AC-0056 and AC-0057 narrowed to the trial boundary.** Authority
+ `notes/verification-ledger.md#owner-decision-2026-09-22-ac-0056-0057-trial-boundary`.
+ AC-0057's reach narrows from "no parse" to the parse sites AC-0056 enumerates;
+ both criteria record the inspector-output limb as inapplicable in this slice;
+ the *Inadmissible parse keys* row in *Canonical values* is qualified to that
+ reach; *Follow-ons* enumerates the six production parses now outside it; and
+ T15 is added to guard the northbound result line, with T13's delivery
+ verification reordered after it. Criteria count unchanged at 157.
 - 2026-09-18: **Package 4, AC-0116 scope and liveness-token versioning.** Authority
  `notes/verification-ledger.md#owner-decision-2026-09-18-ac-0116-sink-scope-and-liveness-token-versioning`.
  AC-0116 stays over rendering and navigation sinks; whether it reaches the

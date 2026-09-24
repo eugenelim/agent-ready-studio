@@ -1,0 +1,284 @@
+# Acceptance audit — all 157 criteria, 2026-09-23
+
+**Status of this document:** a re-run of the 2026-09-20 reconciliation, which twelve commits had
+made stale. It replaces that document. Ten independent auditors, one per criterion group, each
+given its group's criteria, the *Canonical values* table and its own *Testing Strategy* line, and
+each told to assume nothing from any ledger entry, code comment or the spec's own prose, and to
+cite `file:line` for every binding.
+
+**Result: 82 met, 72 not met, 3 not verifiable here.** Against 2026-09-20's 77 / 75 / 5 that is
+**+5 met**. Every count in this document, including each group header, is generated from the rows
+below rather than written by hand — which caught one auditor reporting 9 met against its own
+table of 10.
+
+## Method
+
+Unchanged from the previous pass, and restated so a cold reader needs no second document.
+
+Each criterion carries three judgements:
+
+- **verdict** — met, not met, or not verifiable here (needs a network endpoint, a running desktop
+  app, a human observation, or a real trusted inspector run).
+- **falsifiability** — **S** strong: the assertion reads a real post-condition and the named
+  mutation would redden it. **W** weak: a tautology, asserts a mock was called rather than the
+  resulting state, compares a constant to itself, re-implements production logic inside the test,
+  or iterates a possibly-empty collection with no positive control. **N** none.
+- **mutation** — the precise source edit that should turn the binding red. This is what separates
+  a criterion that is verified from one that merely has a green test next to it.
+
+A criterion is recorded **not met** when any clause of its wording is unbound, even if the rest is
+strongly bound. Partial credit would reproduce the failure this audit exists to correct.
+
+## What moved, and what did not
+
+The gain is concentrated where this week's work went. **Reading the version marker went from 1 met
+to 4 met**: the declared-value read is now on the live path, so AC-0054, AC-0055, AC-0056 and
+AC-0057 are bound against a real child rather than an unwired module. *Honest states* went 2 to 4,
+*desktop surface* 7 to 9, *trusted inspector* 4 to 5, and AC-0025 and AC-0030 moved from not
+verifiable to met.
+
+Three groups were judged **more harshly** than last time, and in each case the earlier verdict was
+too generous rather than the code having regressed. *Path confinement* fell from 6 met to 3:
+`resolveContainedPath` and `readContainedFile` implement the segment-boundary comparison AC-0073
+requires, but they have zero production callers, and the only production reader of the
+materialization does `join` plus `lstat` with no such check. *Disposal* fell from 6 to 4 on three
+clauses with no case at all — removal on failure, ordering of the ownership marker, and three
+sweep branches. AC-0010 moved from met to not met because its materialization leg asserts
+`toContain` against a URL that already satisfies it.
+
+**The dominant cause is unchanged and is one shape: a module written, tested, and called by
+nothing.** `normalizeTrialResult`, `locateTrustedInspector`, `selectConformingInterpreter`,
+`materializeRevision`, `resolveContainedPath`, `readContainedFile`, `observedVersions` and
+`unreachableCondition` are each fully tested and each reached by no production path, and between
+them they account for most of the *Provisional contract*, *Trusted inspector* and *Version
+honesty* failures.
+
+## Findings that are production gaps rather than testing gaps
+
+- **Nothing aborts an in-flight Runtime on Service shutdown** (AC-0085). `reconcileAfterRestart`
+  rewrites a column; no shutdown path signals a live group. The auditor's phrasing is the point:
+  the wiring "cannot be mutated because it does not exist".
+- **The default test suite still reaches github.com** (AC-0148). Only two of the four
+  accepted-URL cases in `apps/desktop/src/e2e/connect-and-orient.test.ts` are gated behind
+  `CONNECT_ORIENT_E2E_NETWORK`; the cases at `:91` and `:143` are not, and `connect()` fires the
+  pipeline. Nothing enforces the property.
+- **`versionUnverified` is unreachably `false` in production** (AC-0064, AC-0065). The live record
+  hardcodes it and the marker beside it, and no pipeline branch overwrites either.
+- **`already-in-flight` maps to a state the criterion forbids** (AC-0154). `inspectInRuntime`
+  returns `inspection-stopped`, which the *User-visible states* table lists.
+- **Three hostile-repository probes remove no guard** (AC-0134, AC-0135, AC-0137). The auditor
+  reproduced guardless checkouts and the probe logs stayed empty: `git checkout` runs no
+  `package.json` script, executes nothing under `.agents/`, and applies no filter when no
+  `filter.probe.smudge` is configured.
+
+## Per-criterion reconciliation
+
+`F` is falsifiability: **S** strong, **W** weak, **N** none. Bindings are cited by basename where
+the name is unique across the repository, as in the previous pass.
+
+### Source input and identity, and exact revision — 12 met, 2 not met
+
+| Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
+| --- | --- | --- | --- | --- |
+| AC-0001 | met | S | source-identity.ts:94-117; source-inspection.ts:274-293; source-inspection.test.ts:71-74 | connect derives owner/repository from the submitted URL and records them; passing empty strings on the accepted branch reddens |
+| AC-0002 | met | S | source-identity.ts:60-92; source-identity.test.ts:42-51 | scheme, lowercased-host equality, explicit port and trailing dot each a closed reject case |
+| AC-0003 | met | S | source-identity.ts:83-85; source-identity.test.ts:53-59,117-121 | credentialed URLs refuse ahead of the host check, with reason-set cardinality binding distinctness |
+| AC-0004 | met | S | source-identity.ts:94-97; source-identity.test.ts:61-68 | two-segment path regex rejects /owner, /owner/repo/tree/main and /owner//repo with its own reason |
+| AC-0005 | met | S | source-identity.ts:78,94,99-100; source-identity.test.ts:29-40,102-115 | identity derived from parsed.pathname, asserted against query and fragment carrying a credentialed URL |
+| AC-0006 | met | S | source-identity.ts:27,34-40; source-identity.test.ts:70-78 | charset, length bound and leading dot/dash rules each a reject case including a 101-character owner |
+| AC-0007 | met | S | source-identity.ts:28,42-50; source-identity.test.ts:80-100; service.ts:1004-1008 | ref charset rejects leading dash/slash, trailing slash, .., control characters and 256 chars, and reaches the dispatch path |
+| AC-0008 | met | S | git-driver.ts:182-185; git-driver.test.ts:53-71; source-inspection.ts:205-209 | resolveRevision on the live pipeline re-applies the ref charset to the remote-reported ref over seven hostile names |
+| AC-0009 | met | S | git-driver.ts:16-34,89; runtime-child.ts:851-853,1110-1152; runtime-supervisor.test.ts:411-455 | every git vector a real child emits leads with the full pinned prefix; note a mutation confined to the child's fetchArgs alone would survive |
+| AC-0010 | **not met** | W | source-inspection.ts:240; source-inspection.test.ts:89; runtime-child.ts:1115 | resolution leg strongly bound, but the materialization leg asserts toContain against a URL that already satisfies it; fetchUrl: url stays green |
+| AC-0011 | met | S | git-driver.ts:86,186-188; git-driver.test.ts:73-91; source-inspection.ts:205-241 | resolution gated on a 40-hex match and ordered before inspect, with 12-char, 41-char and non-hex rejects |
+| AC-0012 | **not met** | W | runtime-child.ts:1152-1181; git-driver.test.ts:110-153 | the Runtime does verify HEAD, but materializeRevision — all the AC-0012 cases call — has zero production callers and no case sets plan.revision |
+| AC-0013 | met | S | git-driver.ts:49-54,190-196; storage.ts:269,313-314; git-driver.test.ts:93-106 | requested ref, resolved ref and SHA are distinct fields in distinct columns with an explicit negative on the SHA slot |
+| AC-0014 | met | S | VerdictSurface.tsx:117-118; VerdictSurface.test.tsx:50-60 | the one surface rendering a verdict renders the SHA unabbreviated, asserted by exact textContent equality |
+
+### Process boundary, argument vector and environment — 11 met, 7 not met, 1 not verifiable here
+
+| Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
+| --- | --- | --- | --- | --- |
+| AC-0015 | met | S | runtime-supervisor.test.ts:216-231; runtime-supervisor.ts:531-537 | asserts childPid differs from servicePid, servicePid is process.pid, and the child's own started.pid echoes childPid |
+| AC-0016 | met | S | runtime-supervisor.test.ts:25-52,233-262 | a node:fs path recorder over the Service module graph shows zero paths under the materialization root, with a live positive control |
+| AC-0017 | met | S | runtime-supervisor.test.ts:264-298; runtime-environment.ts:62-89 | argv scanned for seven credential needles and the environment key set compared to a closed allowlist, with the database path present ambiently and absent in the child |
+| AC-0018 | **not met** | S | runtime-supervisor.test.ts:300-324; runtime-child.ts:569-571,728-733 | only the diagnostics-never-on-stdout half is bound; nothing asserts stderr carries no protocol message |
+| AC-0019 | met | S | runtime-supervisor.test.ts:326-345; runtime-child.ts:752-758 | with a real held descendant in the group every stdout line still parses as JSON while descendant output shows up in diagnostics |
+| AC-0020 | **not met** | W | runtime-supervisor.test.ts:349-371; executable-identity.ts:42-48; runtime-supervisor.ts:858-864 | entry.shell is the literal false at every construction site, so the assertion compares a constant to itself; only the absolute-path clause reddens |
+| AC-0021 | **not met** | W | runtime-supervisor.test.ts:373-409; runtime-child.ts:1110-1117 | the supervisor case asserts the separator on the init vector whose operand is Studio's own root; the vectors carrying transport-reported operands never run in automation |
+| AC-0022 | **not met** | S | runtime-supervisor.test.ts:411-455; executable-identity.ts:91-119 | the case filters out the three identity vectors, leaving two to stand for every |
+| AC-0023 | met | S | runtime-supervisor.test.ts:207-213,474-512; runtime-environment.ts:62-89 | every sampled descendant's environment compared by exact equality on names and values, with a size positive control |
+| AC-0024 | not verifiable here | N / S in smoke | runtime-supervisor.test.ts:514-519; live-smoke.test.ts:24-26,97-116 | the distinguishing clause needs an https endpoint AC-0148 forbids; the residual no-other-environment clause is bound |
+| AC-0025 | met | S | runtime-supervisor.test.ts:523-623; executable-identity.ts:153-163 | both legs asserted, the sampled group against the permitted check and an exhaustive audit with a presence assertion |
+| AC-0026 | met | S | runtime-supervisor.test.ts:625-650; executable-identity.ts:86-125 | resolved path absolute and not the shim, the version line, the exec-path re-check, and exactly two reads with none after resolution |
+| AC-0027 | met | S | runtime-supervisor.test.ts:652-694; runtime-child.ts:820-848 | probes equal the canonical search list as an ordered prefix, and an all-absent list yields no interpreter, ruling out a PATH fallback |
+| AC-0028 | **not met** | W | runtime-supervisor.test.ts:696-712; source-inspection.ts:664-679 | compares environment names and never values; a second production caller runs both probes under a different environment no test reaches |
+| AC-0029 | met | S | runtime-supervisor.test.ts:716-849; supervised-bounds.test.ts:70-226 | leadership read from the live group and all four triggers exercised, each ending with groupGone and dead sampled descendants |
+| AC-0030 | met | S | runtime-supervisor.test.ts:770-795; runtime-supervisor.ts:741 | real descendants asserted alive before shutdown and dead after, over the whole sampled group rather than the child alone |
+| AC-0031 | met | S | runtime-supervisor.test.ts:797-849; runtime-supervisor.ts:669-684 | observes a real breach of an injected aggregate bound, SIGKILL exit, cleared group, and the aggregate recomputed from per-pid samples |
+| AC-0154 | **not met** | S | runtime-supervisor.test.ts:853-968; source-inspection.ts:565-570; spec.md:246 | the three signalling obligations are strongly bound, but inspectInRuntime maps already-in-flight to a condition the criterion says it must not be |
+| AC-0159 | **not met** | S | per-request-state-root.test.ts:194-285; runtime-child.ts:202-214 | both environments pinned and the Service-side call site bound with a guard-the-guard, but the Runtime-side rendering is reached by no case |
+
+### Provisional contract — 6 met, 6 not met
+
+| Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
+| --- | --- | --- | --- | --- |
+| AC-0032 | **not met** | W | trial-result.ts:17,191-193; trial-result.test.ts:46-59; runtime-supervisor.ts:457-470 | name clause pinned, refusal clause binds the callerless normalizeTrialResult; the live northbound plan carries no contract field, so no request is screened |
+| AC-0033 | met | W | trial-result.ts:84-90; trial-result.test.ts:62-91; source-inspection.ts:559; trial-enrichment-seam.ts:68 | charset and uniqueness over 50 mints; the no-client-input clause rests on an arity check on the unwired seam, never on the live mint site |
+| AC-0034 | **not met** | W | trial-result.ts:197-199; trial-result.test.ts:93-105; runtime-supervisor.ts:751 | mismatch refusal only inside the callerless normalizer; the supervisor echoes requestId and never compares the child's to the request's |
+| AC-0035 | **not met** | W | trial-result.ts:187-215; trial-result.test.ts:113-123; runtime-supervisor.ts:586-605 | full-shape-before-normalize proven only on the dead function; the live consumer checks only non-array object before pushing to protocolLines |
+| AC-0036 | **not met** | W | trial-result.ts:200-215; trial-result.test.ts:107-162 | distinct diagnostics and no-partial-consumption asserted only against the callerless normalizer; no live surface emits result-invalid |
+| AC-0037 | met | S | trial-result.ts:296-334; runtime-supervisor.ts:553,571-574,765-768; runtime-supervisor.test.ts:972-1002, control :1023-1031 | BoundedResultReader wired to a real child; asserts consumption stopped so the post-noise completed line was never parsed |
+| AC-0038 | **not met** | W | trial-result.ts:112-123; trial-result.test.ts:202-227; source-inspection.ts:61-69,153-154 | five-element report asserted only on the callerless normalizer; the live outcome has no removal-outcome field and declaredVersionMarker is fixed at null |
+| AC-0039 | **not met** | W | trial-result.ts:229-245; trial-result.test.ts:230-284; source-inspection.ts:426-434 | provenance enumeration bound only through the normalizer; the live map is a hand-written literal and requestedRef is never marked |
+| AC-0040 | met | S | source-inspection.ts:426-434; source-inspection-storage.test.ts:186-206; connected-source.test.ts:180-190 | drives the real storage path and reads markers back off the row, so survival into the persisted representation is proven live |
+| AC-0041 | met | S | trial-enrichment-seam.ts:1-81; trial-result.test.ts:307-332 | walks every .ts for the seam import and pins the importer list to exactly one test file, a named non-empty expectation |
+| AC-0042 | met | S | trial-enrichment-seam.ts:43-55,62-81; trial-result.test.ts:334-372 | every field run through looksLikeFilesystemPath, key set pinned to four names, positive control over five real path shapes |
+| AC-0155 | met | S | trial-result.ts:351-391; runtime-supervisor.ts:554-556,628-630,747,769-772; runtime-supervisor.test.ts:1004-1021 | buffer wired to the real child's stderr; asserts elision, positive discarded count, marker text, and result unaffected |
+
+### Trusted inspector, and reading the version marker — 9 met, 8 not met
+
+| Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
+| --- | --- | --- | --- | --- |
+| AC-0043 | **not met** | W | inspector-locator.ts:192,274; inspector-locator.test.ts:63,79; source-inspection.ts:637 | locateTrustedInspector still has zero production callers and the production record carries no resolved path, pack name, version or digest |
+| AC-0044 | **not met** | W | inspector-locator.ts:244-272; inspector-locator.test.ts:95-145 | name, version and digest mismatches each refuse correctly, but nothing in production calls the locator so rather-than-being-used binds no behaviour |
+| AC-0045 | **not met** | W | inspector-locator.ts:215-233; inspector-locator.test.ts:159,171 | the containment refusal is real and segment-boundary based, but materializationRoot is never supplied by production code |
+| AC-0046 | **not met** | W | runtime-child.ts:826-847; inspector-locator.ts:299-306; runtime-supervisor.test.ts:651-676 | the child parses a real python3 -V, but selectConformingInterpreter consumes the flag rather than the version and every test hands it the value it should decide |
+| AC-0047 | met | S | source-inspection.ts:637-643; declared-read.test.ts:702; absence-proofs.test.ts:122-150 | production returns inspector-unavailable when nothing refused, and a live process-tree probe with a positive control shows no repository skill executable starts |
+| AC-0048 | **not met** | W | inspector-locator.ts:307-317; source-inspection.ts:640 | the requirement-naming refusal exists only in the uncalled locator; the production diagnostic names no interpreter requirement |
+| AC-0049 | met | S | git-driver.ts:24; absence-proofs.test.ts:303-326; supervised-bounds.test.ts:222-236 | a real hostile fixture materializes the declaration as data while outside/ and .git/modules stay absent, and every vector carries the pin |
+| AC-0051 | met | S | runtime-child.ts:981-1009; supervised-bounds.test.ts:151-221 | a real child with a 6000-file writer is stopped on the first sample past a 300-file bound, tolerance read from the sampler's own reported interval |
+| AC-0052 | met | S | runtime-child.ts:1041-1055; supervised-bounds.test.ts:70-118 | a 5s resolution hold under a 500ms deadline is SIGKILLed with a diagnostic naming resolution, and the 30s canonical default is pinned |
+| AC-0053 | met | S | runtime-child.ts:1081; supervised-bounds.test.ts:124-143 | a child holding itself 10s under a 700ms deadline is killed with its own diagnostic and groupGone true, paired with an inside-deadline case |
+| AC-0054 | met | S | runtime-child.ts:602-621; runtime-supervisor.ts:499; declared-read.test.ts:105-127 | now on the live path: the Service ships the canonical surface in the plan vector and a real child refuses secrets.toml with zero reads |
+| AC-0055 | **not met** | S for the file-count leg | runtime-child.ts:606,652-658; runtime-supervisor.ts:500-502; declared-read.test.ts:140-150,172-189 | the file-count leg binds ordering observably — `reads: []` proves nothing was opened — but the byte-bound leg asserts only the refusal, the diagnostic and an undefined value, none of which a read-then-check implementation would fail. Same gap AC-0075 is recorded not met for, judged the same way. Mutation that should redden and does not: move the size check at `runtime-child.ts:652` below the `readFileSync` at `:668` |
+| AC-0056 | met | S | production `declared-value-reader.ts:188-195` from `runtime-supervisor.ts:958`, and `guarded-parse.ts:193-202` from `validator.ts:958` and `runtime-supervisor.ts:588`; bound by `guarded-parse.test.ts:26,41`, `validator.test.ts:69,164`, `northbound-guard.test.ts:63,80` and `declared-value-reader.test.ts:142-177` | the inspector-output limb is inapplicable under the 2026-09-22 narrowing; both remaining limbs measure bracket depth over the text before the parse, and every site pairs an over-bound refusal with an at-bound admission so the comparison itself is bound. Mutation: raise `PARSE_NESTING_DEPTH_BOUND` at `guarded-parse.ts:36`, or move the depth check at `declared-value-reader.ts:188` after the rebuild — `declared-read.test.ts:264`, `northbound-guard.test.ts:63` and `validator.test.ts:69` redden |
+| AC-0057 | met | S | production `guarded-parse.ts:48-68,205-207` and `declared-value-reader.ts:311-328` from `runtime-supervisor.ts:970`; bound by `guarded-parse.test.ts:126,141,155`, `declared-read.test.ts:247`, `northbound-guard.test.ts:129,153,176` and `validator.test.ts:101,333,375` | all three clauses hold at each in-reach site: the reviver drops inadmissible keys during the parse, the rebuild gives every object a null prototype at any depth, and normalization copies only criterion-named fields onto a freshly constructed target. Mutation: return the parsed value directly from `guarded-parse.ts:214`, or swap `Object.create(null)` for `{}` at `:58` — `guarded-parse.test.ts:141`, `northbound-guard.test.ts:153` and `validator.test.ts:333` redden |
+| AC-0058 | met | W | declared-value-reader.test.ts:245-263 | inapplicable as the spec states and the absence is checked, but via a manifest-key check rather than a scan of parse sites |
+| AC-0059 | **not met** | W | runtime-supervisor.ts:584-591; state-vocabulary.ts:206,211; source-inspection.ts:504-518 | the declaration-file branch is fully bound live, but the Studio-produced parse at :588 pushes a refused line to nonProtocolStdoutLines with no diagnostic, stop reason or routing |
+| AC-0060 | **not met** | W | declared-value-reader.test.ts:324-352; runtime-supervisor.ts:970 | only the reader's output shape is bound; the criterion is about displayed values and no rendering surface asserts it |
+
+### Version honesty and the verdict, and path confinement — 8 met, 8 not met
+
+| Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
+| --- | --- | --- | --- | --- |
+| AC-0061 | met | S | trial-result.ts:136-150; source-inspection.ts:281-285; trial-result.test.ts:374-385 | deriveVerdict covers all four cells plus the incomplete row and now has a real production caller in the pipeline |
+| AC-0062 | met | W | trial-result.ts:136-141; source-inspection.ts:281-285; state-projection.test.ts:298-318 | held structurally, but every test runs over the callerless normalizer and one compares a projection to itself |
+| AC-0063 | met | S | trial-result.ts:157-161; source-inspection.ts:286; trial-result.test.ts:387-390 | deriveCondition is the only producer of malformed in non-test source and is the pipeline's condition site |
+| AC-0064 | **not met** | W | source-inspection.ts:146-147; trial-result.ts:254 | the live record hardcodes declaredVersionMarker null and versionUnverified false and never overwrites either on any pipeline branch |
+| AC-0065 | **not met** | N | source-inspection.ts:147,61-68; runtime-supervisor.ts:971 | the supervisor computes the marker but the ok variant carries no marker field, so versionUnverified is unreachably false in production |
+| AC-0066 | met | W | VerdictSurface.tsx:95-103; VerdictSurface.test.tsx:306-322 | the qualifier renders alongside both badges so composition is bound at the surface; weak because no production result can set the prop |
+| AC-0067 | **not met** | W | trial-result.ts:404-411; source-inspection.ts:146,285; VerdictSurface.tsx:107-116 | observedVersions is called only from tests; the live marker is never assigned and the renderer displays neither value |
+| AC-0068 | met | W | trial-result.ts:404-411; trial-result.test.ts:476-507 | an absence proof that no comparison exists, over a function with zero production callers |
+| AC-0069 | **not met** | W | materialization.test.ts:29-75; hostile-fixture.ts:326-363; git-driver.ts:19 | the test inspects a checkout made by the test helper with its own vector, and one assertion is a tautology |
+| AC-0070 | met | S | per-request-state-root.ts:226-239,285-295; per-request-state-root.test.ts:87-118 | mkdtemp inside the verified domain plus explicit 0700 on the root and each child, marker asserted outside the materialization root |
+| AC-0071 | met | S | runtime-supervisor.ts:522-529; runtime-child.ts:188; disposal.test.ts:171-174 | the domain arrives on the vector with no environment fallback, and the child's own sweep line reports a domain differing from its TMPDIR |
+| AC-0072 | **not met** | W | per-request-state-root.ts:109-136; sweep.ts:175; per-request-state-root.test.ts:52-84 | existence, link, directory and mode are bound and fail closed, but the owned-by-current-user clause has no test |
+| AC-0073 | **not met** | W | runtime-child.ts:602-676; materialization-confinement.ts:78-104 | the only production reader does join plus lstat and performs no resolved-real-path segment-boundary comparison; the helpers that do have zero production callers |
+| AC-0074 | **not met** | W | runtime-child.ts:644-651; declared-read.test.ts:192-208; materialization-confinement.test.ts:104-121 | the live-path test binds only a directory; the FIFO case exercises the uncalled helper, the device case is refused for containment before kind, and a socket is tested nowhere |
+| AC-0075 | **not met** | W | runtime-child.ts:653-669; materialization-confinement.ts:127-135; declared-read.test.ts:152-189 | both readers do order the check correctly, but no test asserts checked-before-read: a read-then-check implementation produces the same refusal |
+| AC-0076 | met | S | per-request-state-root.ts:331-401; per-request-state-root.test.ts:322-340 | the walk lstats at each level and unlinks links rather than descending, with an outside witness re-read after removal |
+
+### Disposal and cancellation, and persistence — 8 met, 6 not met
+
+| Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
+| --- | --- | --- | --- | --- |
+| AC-0077 | met | S | disposal.test.ts:62-68; runtime-supervisor.ts:405-419,743; process-tree-observer.ts:242-247 | groupGone is a real ps poll of the spawned group, not a stub; leaving a live descendant after completed reddens it |
+| AC-0078 | met | S | disposal.test.ts:126-137; per-request-state-root.ts:226-228 | two real inspections get distinct mkdtemp roots and the first is verified absent on disk before the second |
+| AC-0079 | **not met** | S | disposal.test.ts:72-85,98-122; runtime-child.ts:1302-1308 | success and signal limbs bound to real existsSync post-conditions, but removal on failure has no test; deleting dispose("failed") stays green |
+| AC-0080 | **not met** | W | per-request-state-root.test.ts:121-190,342-361; per-request-state-root.ts:260-308 | naming, prefix classification and marker-removed-last bound, but written-before-any-other-child and created-exclusively are not; the test reads only the final listing |
+| AC-0081 | **not met** | S | sweep.test.ts:94-527; unbound sweep.ts:228-231, :114-116, :304-311 | three limbs, both age gates and the token decline bound to on-disk outcomes, but the same-uid gate, the non-regular-file marker refusal and one decline have no case |
+| AC-0082 | met | W | disposal.test.ts:140-186; runtime-supervisor.ts:511; runtime-child.ts:362-365 | the sweep line appears in the child's stream, so moving the sweep into the Service reddens it; the without-reading clause is only structural |
+| AC-0083 | met | S | sweep.test.ts:174-378; per-request-state-root.test.ts:342-361; sweep.ts:181-197 | declines name the limb and input class, removal failures return non-empty diagnostics, a planted secret is proven absent from the stream |
+| AC-0084 | **not met** | W | connected-source.test.ts:284-295; source-inspection.ts:573-581; source-inspection.test.ts:296-326 | the only terminates assertion is a flag on a test-supplied closure, and the pipeline cancel test injects a mock that never observes the signal |
+| AC-0085 | **not met** | W | connected-source.test.ts:297-316; source-inspection-storage.test.ts:94-117; service.ts:218 | the incomplete-vs-cancelled half is bound, but no trial Runtime from a prior session is aborted: nothing in service.ts aborts in-flight runs on shutdown |
+| AC-0100 | met | S | source-inspection-storage.test.ts:67-92; connected-source.test.ts:126-137 | owner and repository read back from a closed-and-reopened real database with a cold in-memory map |
+| AC-0101 | met | S | source-inspection-storage.test.ts:82-85; connected-source.test.ts:139-151 | requested ref, resolved SHA and inspectedAt asserted after a real reopen against literal values |
+| AC-0102 | met | S | connected-source.test.ts:110-165; source-inspection-storage.test.ts:88-89 | verdict and diagnostics both read back over a reopened database and a fresh composition |
+| AC-0103 | **not met** | W | VerdictSurface.test.tsx:327-345; useInspection.ts:74,159-182; preload/index.ts:70-75 | rendering half strong, but nothing binds restored: nothing persists the source id and the preload exposes no list-or-latest call |
+| AC-0104 | met | S | connected-source.test.ts:194-278; source-inspection-storage.test.ts:142-215 | the bound is measured over every provenance-marked repository-derived value, and a widened field is counted with no test edit |
+
+### Honest states — 4 met, 10 not met
+
+| Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
+| --- | --- | --- | --- | --- |
+| AC-0086 | **not met** | W | state-vocabulary.ts:49-55; state-projection.test.ts:36-47; source-inspection.ts:212-219 | distinct-label bound; separate-result fails because every resolution failure writes source-unavailable and source-rate-limited is unreachable |
+| AC-0087 | **not met** | W | state-vocabulary.ts:69-149; StateBadge.tsx:39-50; tokens.css:649-681 | label reaches the surface, attention never does: StateBadge emits no data-attention and no test ties a rendered state to its attention |
+| AC-0088 | **not met** | W | state-projection.test.ts:70-90; state-vocabulary.ts:155-224; source-inspection.ts:604-618 | the reason comparison is a tautology reading the same object, and eleven of thirteen rows are never emitted as a stopReason |
+| AC-0089 | **not met** | W | state-projection.test.ts:98-122; VerdictSurface.tsx:225-227 | projection sweep non-vacuous, but the rendered lead paragraph is asserted nowhere |
+| AC-0090 | **not met** | W | state-projection.test.ts:99-111; VerdictSurface.tsx:228-230 | same split as AC-0089; the found-instead paragraph is asserted nowhere |
+| AC-0091 | met | S | state-vocabulary.ts:294-296; state-projection.test.ts:93-135; VerdictSurface.test.tsx:174-198 | attribution taken from the reason not the state, and read off the rendered DOM for two reasons giving network vs repository |
+| AC-0092 | **not met** | W | state-vocabulary.ts:297-299; VerdictSurface.tsx:236-238 | retryability bound in the projection; the rendered Retrying sentence is never asserted |
+| AC-0093 | met | S | state-projection.test.ts:148-178; declared-read.test.ts:733-747; source-inspection.ts:527-539 | non-tautological both directions, pins the refused-result route rather than the inspector-unavailable fall-through |
+| AC-0094 | **not met** | N | state-projection.test.ts:180-189; trial-result.ts:157-161; VerdictSurface.tsx:136-142 | the test asserts a different state than the criterion names; in production condition is null so ConditionDetail never renders |
+| AC-0095 | **not met** | W | state-vocabulary.ts:233-236; VerdictSurface.tsx:243-251 | actions bound only for a degraded condition; on the real non-Agent-Ready result condition is null and no actions render |
+| AC-0096 | **not met** | W | state-vocabulary.ts:313-319; source-inspection.ts:210-219 | unreachableCondition has no production caller; the real path writes source-unavailable with no rate-limit inspection |
+| AC-0097 | met | S | state-vocabulary.ts:280-283; VerdictSurface.test.tsx:200-227; source-inspection.ts:256-268 | both branches reach a rendered surface and are asserted there, value plumbed from the service |
+| AC-0098 | **not met** | W | state-vocabulary.ts:326-353; VerdictSurface.tsx:127-133; ConnectRepositoryForm.tsx:115-122 | strong sweep with a positive control, but hand-written state copy outside userVisibleCopy is unbound |
+| AC-0099 | met | S | state-vocabulary.ts:258-304; VerdictSurface.test.tsx:229-249 | identifier asserted present in the collapsed secondary details and absent from the detail copy |
+
+### Desktop surface — 9 met, 6 not met, 1 not verifiable here
+
+| Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
+| --- | --- | --- | --- | --- |
+| AC-0105 | met | S | ConnectRepositoryForm.tsx:87-89; InspectionSurface.test.tsx:59-65; App.tsx:242 | submit control queried by accessible name through the composed surface the app mounts; renaming the button text reddens it |
+| AC-0106 | met | S | ConnectRepositoryForm.tsx:45-64; InspectionSurface.test.tsx:67-73 | exactly one textbox and no token/password/credential label; adding a password input reddens queryByLabelText |
+| AC-0107 | met | S | ConnectRepositoryForm.tsx:107-124; state-vocabulary.ts:129-131; InspectionSurface.test.tsx:75-79 | unconnected badge label and the what-connecting-does prose both asserted; deleting UnconnectedNotice reddens |
+| AC-0108 | met | S | InspectionSurface.test.tsx:276-306; state-vocabulary.ts:360-369; ConnectRepositoryForm.tsx:66-77 | five refusal causes rendered and proved pairwise distinct; collapsing the rejection to a fixed string drops seen.size below 5 |
+| AC-0109 | met | S | ConnectRepositoryForm.tsx:58-63; presentation.ts:198-200; InspectionSurface.test.tsx:89-121 | association, aria-invalid and focus return each asserted; changing the url-rejected focus target reddens |
+| AC-0110 | met | S | ConnectRepositoryForm.tsx:70-77; InspectionSurface.test.tsx:123-145 | hostile string present as text with zero elements; dangerouslySetInnerHTML reddens the querySelectorAll check |
+| AC-0111 | met | S | ConnectRepositoryForm.tsx:52,79-84,87; InspectionSurface.test.tsx:156-171 | disable, running sentence and pointer at cancel all asserted; deleting the busy paragraph reddens |
+| AC-0112 | **not met** | W | InspectionSurface.test.tsx:186-231; ConnectRepositoryForm.tsx:90-97 | both-offer-cancel asserted only for resolving; removing the cancel affordance in inspecting leaves the suite green |
+| AC-0113 | met | S | VerdictSurface.tsx:123-134; VerdictSurface.test.tsx:84-103; presentation.ts:202-204 | they-stopped-it and how-to-restart naming the control both asserted; deleting the second paragraph reddens |
+| AC-0114 | not verifiable here | W | VerdictSurface.tsx:65-93,112-121; VerdictSurface.test.tsx:18-61; tokens.css:691-699 | role assignment bound by class name, but highest-contrast and largest-type is a rendered-typography claim no test reads; swapping the type tokens leaves gates green |
+| AC-0115 | **not met** | W | VerdictSurface.test.tsx:105-127; InspectionSurface.test.tsx:123-145; unbound at InspectionSurface.tsx:133, :79-85, VerdictSurface.tsx:275 | hostile-value cases missing for progress states, secondary diagnostic and the live region; announced-as-literal-text unbound anywhere |
+| AC-0116 | **not met** | W | main/index.ts:130-142; main/index.test.ts:124-140,258-264; VerdictSurface.test.tsx:129-149 | host-window half strongly bound, but the sink sweep renders only VerdictSurface, so the connect surface and progress section are never swept |
+| AC-0117 | met | S | VerdictSurface.tsx:261-278; VerdictSurface.test.tsx:266-279,229-249 | raw child output and an action-free diagnostic on a closed secondary details; adding open reddens both |
+| AC-0118 | **not met** | W | VerdictSurface.test.tsx:281-292 | criterion says no surface but the sweep renders one component; adding a canvas to the progress section leaves it green |
+| AC-0119 | **not met** | W | VerdictSurface.test.tsx:63-81; VerdictSurface.tsx:72-93 | only the second sentence is asserted, for one verdict/condition pair; no sweep over degraded conditions |
+| AC-0157 | **not met** | W | presentation.ts:41-46; presentation.test.ts:49-59 | labels asserted only as constants; not-agent-ready is never rendered anywhere in the renderer suite |
+
+### Quality floor — 6 met, 7 not met, 1 not verifiable here
+
+| Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
+| --- | --- | --- | --- | --- |
+| AC-0120 | met | S | inspection-hue-separation.test.ts:23,25-47,64-115; delta-e2000.ts:193 | dE2000 computed from shipped tokens.css for 3 hues against all 15 members of four families, both themes, bound restated and roster-length guarded |
+| AC-0121 | **not met** | W | presentation.test.ts:13-27; presentation.ts:54-68; tokens.css:600-644 | label and data-shape distinctness total over 11 states, but nothing connects a data-shape value to the CSS that draws it |
+| AC-0122 | met | W | presentation.test.ts:13-27; StateBadge.tsx:39-50 | a text label always renders beside an aria-hidden shape span over a SHAPES map total across 11 states, so hue is never sole carrier |
+| AC-0123 | **not met** | W | inspection-contrast.test.ts:47-148; tokens.css:580-583,692-697 | pairings are a hand-written roster with only a length guard; nothing derives them from the CSS or asserts the badge label's actual pairing |
+| AC-0124 | **not met** | W | InspectionSurface.test.tsx:309-375; inspection-contrast.test.ts:114-127; tokens.css:145-148 | focus indicator checked for colour only, the width/offset half conceded unasserted, and every-control misses Refresh status and the details summary |
+| AC-0125 | met | S | presentation.ts:161-208; presentation.test.ts:69-132; InspectionSurface.tsx:44-52 | transition is the sole focus decision point; all 11 states for both provenances require a named target for user and null plus an announcement for system |
+| AC-0126 | met | S | InspectionSurface.test.tsx:173-184; presentation.test.ts:109-120 | drives a real submit, waits for the disable, asserts activeElement is cancel, backed by a unit assertion over both in-flight states |
+| AC-0127 | **not met** | W | InspectionSurface.test.tsx:353-358; VerdictSurface.test.tsx:295-302 | focus order exercised by exactly one adjacent pair; nothing checks order on the verdict surface or past Connect |
+| AC-0128 | met | S | presentation.test.ts:134-211; InspectionSurface.test.tsx:234-254 | announcement equals the entered state's own label for all 11 states, non-change announces nothing, exactly one polite region before and after |
+| AC-0158 | met | S | presentation.ts:180-222; presentation.test.ts:213-230; InspectionSurface.test.tsx:256-273 | resultAnnouncement yields the verdict when reached and the condition label when no-verdict, end to end through the single live region |
+| AC-0129 | **not met** | W | ProgressPulse.test.tsx:9-48; tokens.css:775-781; visual-evidence.mjs:727-733 | cadence, per-tick restatement and not-a-live-region bound, but state-change-motion-omitted is not: the reduced-motion scenario only asserts the媒 query is in force |
+| AC-0130 | **not met** | W | visual-evidence.mjs:684-693,1269-1401; InspectionSurface.tsx:132-139 | real occlusion hit-test with a genuine vacuity guard, but captured states never render cancel or retry and the URL is a fixed literal |
+| AC-0131 | not verifiable here | W | tokens.css:64,744-748; visual-evidence.mjs:1203-1222 | needs the running app; separately the CSS floor is inert because control-height already clears 24px |
+| AC-0132 | **not met** | W | visual-evidence.mjs:695-721,1362-1366; tokens.css:733-742 | the verdict surface is never captured by any scenario and the narrowest viewport is 720px, so neither clause is bound |
+
+### Security proofs, and suite-level evidence — 9 met, 12 not met
+
+| Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
+| --- | --- | --- | --- | --- |
+| AC-0133 | **not met** | W | hostile-fixture.ts:335; absence-proofs.test.ts:83; git-driver.ts:18 | the proof toggles the fixture's own literal, never pinnedGitConfigurationArgs, and the hook sits where git's default path would not run it |
+| AC-0134 | **not met** | N | hostile-fixture.ts:169-184; absence-proofs.test.ts:96 | git checkout never runs a package.json script — a guardless checkout was reproduced and the probe log stayed empty; no production mutation reddens it |
+| AC-0135 | **not met** | N | hostile-fixture.ts:186-193; absence-proofs.test.ts:123 | a file under .agents/skills is never executed by checkout, same guardless reproduction, empty log; the control execs the file itself |
+| AC-0136 | **not met** | W | hostile-fixture.ts:338-371; absence-proofs.test.ts:161 | refusal comes from the fixture's own literals and the control observes the source object database with no worktree |
+| AC-0137 | **not met** | N | hostile-fixture.ts:197-206; absence-proofs.test.ts:197 | .gitattributes names filter=probe but no smudge or clean command is ever configured, so no filter can run with or without a guard |
+| AC-0138 | **not met** | W | state-projection.test.ts:271-319 | verdict and status legs bind production, but the state clause compares two identical calls with no instruction in either |
+| AC-0139 | **not met** | W | hostile-fixture.ts:339; absence-proofs.test.ts:224-233 | the regular-file outcome comes from a fixture literal and the control lstats the source tree where the link always is |
+| AC-0140 | met | S | materialization-confinement.ts:112; absence-proofs.test.ts:251-294 | both clauses run against production readContainedFile, sibling-prefix and traversal, plus a non-blanket admit |
+| AC-0141 | **not met** | W | absence-proofs.test.ts:304-321; git-driver.ts:23 | the materialized leg is a no-op: the fixture commits a .gitmodules file with no gitlink and checkout recurses no submodules by default |
+| AC-0142 | met | S | source-identity.ts:28; git-driver.ts:180-183; absence-proofs.test.ts:337-343 | production resolveRevision refuses the reported ref before any vector is built, and the hostile upload-pack ref is refused by the same function |
+| AC-0143 | met | S | inadmissible-keys.ts:35; guarded-parse.ts:21-29; absence-proofs.test.ts:376-449 | both TOML and JSON arms parse the materialized hostile files through the production guards, with depth, in-array and non-blanket legs |
+| AC-0144 | met | W | absence-proofs.test.ts:457-514; runtime-child.ts:23,37,38 | leg 1 is near-tautological but leg 2 statically audits the real import list of the one process rooted at the state root |
+| AC-0145 | **not met** | W | absence-proofs.test.ts:525-569; source-inspection.ts:333 | the fetch stub wraps a fixture-only git spawn, so no Studio code runs and the real requests go through a subprocess the stub cannot see |
+| AC-0146 | **not met** | N | connected-source.test.ts:332-371 | the planted token is read from the fixture but the persisted record never carries it; the negative runs over a path the credential never reaches |
+| AC-0147 | **not met** | N | hostile-fixture.ts:403-516; hostile-fixture.test.ts:111-129 | the controls do not all remove a guard at the observation level; deleting every pinned configuration entry leaves all 14 controls green |
+| AC-0148 | **not met** | N | e2e/connect-and-orient.test.ts:85-101,:138-160,:83; source-inspection.ts:333 | only :163 and :205 are gated; the ungated cases at :91 and :143 submit the accepted URL and connect fires the pipeline, so pnpm test reaches github.com |
+| AC-0149 | met | S | hostile-fixture.test.ts:36-100; hostile-fixture.ts:18-67,134-153 | exact-equality assertions pin all 19 cases and the 18 criterion-to-case entries, with the checkout-observable entry built into the source ODB before checkout |
+| AC-0150 | met | N | connect-and-orient-trial-runtime-evidence.md:17-142 | all twelve required subjects have their own section; no test or governance check reads the note |
+| AC-0151 | met | N | evidence.md:51-72 | a six-row table classifies each held item Needed or Inherited with its ground |
+| AC-0152 | met | N | evidence.md:186-192 | states in bold which properties were mandated by the specification rather than discovered, and how to discount it |
+| AC-0153 | met | N | evidence.md:153-179,:7 | each Stage 2 criterion has an Observed paragraph and the note carries no Pass or Fail verdict |

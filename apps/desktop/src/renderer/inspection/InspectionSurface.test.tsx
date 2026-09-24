@@ -374,3 +374,38 @@ describe("AC-0124 and AC-0127 keyboard operability and reading order", () => {
     );
   });
 });
+
+describe("AC-0103 the inspection time reaches the rendered result", () => {
+  it("carries inspectedAt from the inspection through to the surface", async () => {
+    // `inspectedAt` is a required prop, so simply omitting it here is a
+    // typecheck failure and needs no test. What the type does not catch is
+    // this call site wiring the *wrong* field -- passing `resolvedSha`, or a
+    // stale local -- which stays green everywhere else because every other
+    // case renders VerdictSurface directly. This asserts the value that
+    // crossed the boundary is the one the inspection carried.
+    render(
+      <InspectionSurface
+        api={apiReturning({
+          ...base,
+          verdict: "agent-ready",
+          resolvedSha: "abc1234def",
+          inspectedAt: "2026-09-19T14:05:00.000Z",
+        })}
+      />,
+    );
+    await userEvent.type(screen.getByRole("textbox"), "https://github.com/a/b");
+    await userEvent.click(
+      screen.getByRole("button", { name: /connect repository/i }),
+    );
+    // Asserts the value that crossed the boundary, not how it is formatted --
+    // the rendered format is pinned once, in VerdictSurface.test.tsx, so a
+    // format change breaks one file rather than two.
+    await waitFor(() =>
+      expect(
+        document
+          .querySelector('[data-identity="inspected-at"] time')
+          ?.getAttribute("dateTime"),
+      ).toBe("2026-09-19T14:05:00.000Z"),
+    );
+  });
+});

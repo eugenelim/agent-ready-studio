@@ -1,12 +1,26 @@
 {
-  "capturedAt": "2026-09-19T07:26:26.961Z",
+  "capturedAt": "2026-09-22T19:21:13.661Z",
   "results": [
     {
       "scenario": "desktop-light-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 18,
       "names": [
         "Agent-Ready Studio",
@@ -29,15 +43,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "99c2e3c933f028bb",
+      "sha256": "65e0b2ba305d38ec",
       "problems": []
     },
     {
       "scenario": "desktop-light-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -55,15 +83,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "19c895afe158cf25",
+      "sha256": "239f9996013b53a5",
       "problems": []
     },
     {
       "scenario": "desktop-light-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -81,15 +123,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "789705381624ecce",
+      "sha256": "241547c4f1886b2d",
       "problems": []
     },
     {
       "scenario": "desktop-light-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -108,15 +164,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "da955ade356e1eef",
+      "sha256": "422bbb84d68d8d06",
       "problems": []
     },
     {
       "scenario": "desktop-light-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -135,15 +205,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "dba46d63dff09afb",
+      "sha256": "f455ccc065bb497b",
       "problems": []
     },
     {
       "scenario": "desktop-light-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 29,
       "names": [
         "Agent-Ready Studio",
@@ -177,15 +261,31 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "19b3e35ac2f62888",
+      "sha256": "f5025dd049d9a8b9",
       "problems": []
     },
     {
       "scenario": "desktop-light-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 16,
       "names": [
         "Agent-Ready Studio",
@@ -206,15 +306,75 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fe5ffa83ac47a8a6",
+      "sha256": "3c5ed94a0d00243e",
+      "problems": []
+    },
+    {
+      "scenario": "desktop-light-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "diagnostic": "Studio connects to public github.com repositories only",
+      "surface": "connect-rejected",
+      "viewport": "1600x1000@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "72f805d1108f5f70",
       "problems": []
     },
     {
       "scenario": "desktop-dark-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "dark",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 18,
       "names": [
         "Agent-Ready Studio",
@@ -237,15 +397,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fa38d7c8782db582",
+      "sha256": "ec1b0101642a62c9",
       "problems": []
     },
     {
       "scenario": "desktop-dark-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "dark",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -263,15 +437,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "b16f0d17b9a6cd82",
+      "sha256": "3467dfd3b0548ec7",
       "problems": []
     },
     {
       "scenario": "desktop-dark-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "dark",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -289,15 +477,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "8cbf91b6cd182b39",
+      "sha256": "d941443624b787d4",
       "problems": []
     },
     {
       "scenario": "desktop-dark-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "dark",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -316,15 +518,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "22f58c533e16ed80",
+      "sha256": "c4b5f82e377e32bd",
       "problems": []
     },
     {
       "scenario": "desktop-dark-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "dark",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -343,15 +559,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "707285fa76b06d43",
+      "sha256": "1a6c1e5ab7fbe03b",
       "problems": []
     },
     {
       "scenario": "desktop-dark-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "dark",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 29,
       "names": [
         "Agent-Ready Studio",
@@ -385,15 +615,31 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "a53021f7bc23170e",
+      "sha256": "dbf9f8543727e39f",
       "problems": []
     },
     {
       "scenario": "desktop-dark-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1600x1000@1x",
       "scheme": "dark",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "dark",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 16,
       "names": [
         "Agent-Ready Studio",
@@ -414,15 +660,75 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ae0a14eb773994f3",
+      "sha256": "180dfa4e50738b14",
+      "problems": []
+    },
+    {
+      "scenario": "desktop-dark-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "diagnostic": "Studio connects to public github.com repositories only",
+      "surface": "connect-rejected",
+      "viewport": "1600x1000@1x",
+      "scheme": "dark",
+      "motion": "no-preference",
+      "observed": {
+        "scheme": "dark",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "0f3fca5b4428db1b",
       "problems": []
     },
     {
       "scenario": "narrow-900-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "900x720@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 18,
       "names": [
         "Agent-Ready Studio",
@@ -450,10 +756,24 @@
     },
     {
       "scenario": "narrow-900-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "900x720@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -476,10 +796,24 @@
     },
     {
       "scenario": "narrow-900-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "900x720@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -497,15 +831,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "184f65b752ebc2e8",
+      "sha256": "2603baa1d30e788c",
       "problems": []
     },
     {
       "scenario": "narrow-900-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "900x720@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -524,15 +872,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "0610ee662b432304",
+      "sha256": "e83cd44d976af27a",
       "problems": []
     },
     {
       "scenario": "narrow-900-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "900x720@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -551,15 +913,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "804c833537860ba7",
+      "sha256": "563ebdf3f784cbdc",
       "problems": []
     },
     {
       "scenario": "narrow-900-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "900x720@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 29,
       "names": [
         "Agent-Ready Studio",
@@ -593,15 +969,31 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "34ff8dae55fc3d2b",
+      "sha256": "581b29905e6cd22e",
       "problems": []
     },
     {
       "scenario": "narrow-900-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "900x720@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 16,
       "names": [
         "Agent-Ready Studio",
@@ -622,15 +1014,75 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "60cad763f0fae552",
+      "sha256": "86701840d3d5a1e2",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-900-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "diagnostic": "Studio connects to public github.com repositories only",
+      "surface": "connect-rejected",
+      "viewport": "900x720@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 900,
+        "innerHeight": 720,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "387a21e30edef4c0",
       "problems": []
     },
     {
       "scenario": "text-200-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 2,
+      "productRootFontPx": 12,
       "controls": 18,
       "names": [
         "Agent-Ready Studio",
@@ -653,15 +1105,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "7be1c2a395966297",
+      "sha256": "d89c97089041b012",
       "problems": []
     },
     {
       "scenario": "text-200-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 2,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -679,15 +1145,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "24d4041cae98f4b6",
+      "sha256": "a69ce3d06920f73d",
       "problems": []
     },
     {
       "scenario": "text-200-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 2,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -705,15 +1185,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "716b17391150f33a",
+      "sha256": "f5e84399bd631565",
       "problems": []
     },
     {
       "scenario": "text-200-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 2,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -732,15 +1226,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "665197d8ee049974",
+      "sha256": "b2cc762b9264455d",
       "problems": []
     },
     {
       "scenario": "text-200-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 2,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -759,15 +1267,31 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "38d208ae6b7d63c0",
+      "sha256": "279672689957cb46",
       "problems": []
     },
     {
       "scenario": "text-200-studio",
+      "occlusionTested": 28,
+      "occlusionSkipped": [
+        "Target users (centre outside the viewport after focus)"
+      ],
       "surface": "studio",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 2,
+      "productRootFontPx": 12,
       "controls": 29,
       "names": [
         "Agent-Ready Studio",
@@ -801,15 +1325,31 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "83b531024b360508",
+      "sha256": "849bc361b637aac8",
       "problems": []
     },
     {
       "scenario": "text-200-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 2,
+      "productRootFontPx": 12,
       "controls": 16,
       "names": [
         "Agent-Ready Studio",
@@ -830,15 +1370,75 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "ad64fe86dde24506",
+      "sha256": "13b8a6555c2c3134",
+      "problems": []
+    },
+    {
+      "scenario": "text-200-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "diagnostic": "Studio connects to public github.com repositories only",
+      "surface": "connect-rejected",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 24,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 2,
+      "productRootFontPx": 12,
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "50c0bd4f6216b1f5",
       "problems": []
     },
     {
       "scenario": "narrow-1024-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 18,
       "names": [
         "Agent-Ready Studio",
@@ -866,10 +1466,24 @@
     },
     {
       "scenario": "narrow-1024-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -892,10 +1506,24 @@
     },
     {
       "scenario": "narrow-1024-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -913,15 +1541,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "13b67136811c9c80",
+      "sha256": "4157189761f95de5",
       "problems": []
     },
     {
       "scenario": "narrow-1024-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -940,15 +1582,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "138dcb099f8ef360",
+      "sha256": "532d402a662a3adf",
       "problems": []
     },
     {
       "scenario": "narrow-1024-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -967,15 +1623,31 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "78530c8010157438",
+      "sha256": "b70e88d3cf30ae53",
       "problems": []
     },
     {
       "scenario": "narrow-1024-studio",
+      "occlusionTested": 28,
+      "occlusionSkipped": [
+        "Revision comment (centre outside the viewport after focus)"
+      ],
       "surface": "studio",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 29,
       "names": [
         "Agent-Ready Studio",
@@ -1009,15 +1681,31 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3cdcf61867f5fcc8",
+      "sha256": "3767db2966ae0a85",
       "problems": []
     },
     {
       "scenario": "narrow-1024-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1024x768@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 16,
       "names": [
         "Agent-Ready Studio",
@@ -1038,15 +1726,75 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "f72159a0859faf81",
+      "sha256": "02daf6e6cdab8ffa",
+      "problems": []
+    },
+    {
+      "scenario": "narrow-1024-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "diagnostic": "Studio connects to public github.com repositories only",
+      "surface": "connect-rejected",
+      "viewport": "1024x768@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1024,
+        "innerHeight": 768,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "2e46e52c3e281138",
       "problems": []
     },
     {
       "scenario": "zoom-200-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 18,
       "names": [
         "Agent-Ready Studio",
@@ -1074,10 +1822,24 @@
     },
     {
       "scenario": "zoom-200-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -1100,10 +1862,24 @@
     },
     {
       "scenario": "zoom-200-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -1121,15 +1897,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "d5836c473a66a927",
+      "sha256": "3dc54af701f8bb67",
       "problems": []
     },
     {
       "scenario": "zoom-200-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -1148,15 +1938,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "5293a669e644a11b",
+      "sha256": "1ba76a1a9631a92a",
       "problems": []
     },
     {
       "scenario": "zoom-200-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -1175,15 +1979,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "cb5d5a0148af61aa",
+      "sha256": "9f96bfd479c6ae38",
       "problems": []
     },
     {
       "scenario": "zoom-200-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 29,
       "names": [
         "Agent-Ready Studio",
@@ -1217,15 +2035,31 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "abed2d549a1e4afe",
+      "sha256": "639e3528f9038fee",
       "problems": []
     },
     {
       "scenario": "zoom-200-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "720x640@2x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 16,
       "names": [
         "Agent-Ready Studio",
@@ -1246,15 +2080,75 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "4d400bd551d092c5",
+      "sha256": "2ed94087887f0d63",
+      "problems": []
+    },
+    {
+      "scenario": "zoom-200-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "diagnostic": "Studio connects to public github.com repositories only",
+      "surface": "connect-rejected",
+      "viewport": "720x640@2x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 720,
+        "innerHeight": 640,
+        "devicePixelRatio": 2
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "56e0a363591bfdaf",
       "problems": []
     },
     {
       "scenario": "reduced-motion-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": true,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 18,
       "names": [
         "Agent-Ready Studio",
@@ -1277,15 +2171,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "6bdc2e2419903678",
+      "sha256": "47d1c126c5618fdd",
       "problems": []
     },
     {
       "scenario": "reduced-motion-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": true,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -1308,10 +2216,24 @@
     },
     {
       "scenario": "reduced-motion-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": true,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -1329,15 +2251,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "b35526b9166b98d3",
+      "sha256": "41a1cd59600d7d43",
       "problems": []
     },
     {
       "scenario": "reduced-motion-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": true,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -1356,15 +2292,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "89ee2f9ff2a5c8dd",
+      "sha256": "3597e46c5b60f75e",
       "problems": []
     },
     {
       "scenario": "reduced-motion-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": true,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -1383,15 +2333,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "09d95c0cde2a1826",
+      "sha256": "6fa2304292df1734",
       "problems": []
     },
     {
       "scenario": "reduced-motion-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": true,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 29,
       "names": [
         "Agent-Ready Studio",
@@ -1425,15 +2389,31 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "d65a45f29c1e80b7",
+      "sha256": "d6e3f92ae61733e3",
       "problems": []
     },
     {
       "scenario": "reduced-motion-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "reduce",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": true,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 16,
       "names": [
         "Agent-Ready Studio",
@@ -1454,15 +2434,75 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fe5ffa83ac47a8a6",
+      "sha256": "3c5ed94a0d00243e",
+      "problems": []
+    },
+    {
+      "scenario": "reduced-motion-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "diagnostic": "Studio connects to public github.com repositories only",
+      "surface": "connect-rejected",
+      "viewport": "1600x1000@1x",
+      "scheme": "light",
+      "motion": "reduce",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": true,
+        "hoverNone": false,
+        "pointerCoarse": false,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "80177ef4487e50d5",
       "problems": []
     },
     {
       "scenario": "no-hover-home",
+      "occlusionTested": 18,
+      "occlusionSkipped": [],
       "surface": "home",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": true,
+        "pointerCoarse": true,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 18,
       "names": [
         "Agent-Ready Studio",
@@ -1485,15 +2525,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "3d0ace8854bb6025",
+      "sha256": "930e3be305789142",
       "problems": []
     },
     {
       "scenario": "no-hover-overview",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "overview",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": true,
+        "pointerCoarse": true,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -1511,15 +2565,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "e4bf20aac26dc8ff",
+      "sha256": "239f9996013b53a5",
       "problems": []
     },
     {
       "scenario": "no-hover-module",
+      "occlusionTested": 13,
+      "occlusionSkipped": [],
       "surface": "module",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": true,
+        "pointerCoarse": true,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 13,
       "names": [
         "Agent-Ready Studio",
@@ -1537,15 +2605,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "789705381624ecce",
+      "sha256": "241547c4f1886b2d",
       "problems": []
     },
     {
       "scenario": "no-hover-strategy",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "strategy",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": true,
+        "pointerCoarse": true,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -1564,15 +2646,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "db290de890847cf6",
+      "sha256": "a7f28951d377b90b",
       "problems": []
     },
     {
       "scenario": "no-hover-reviews",
+      "occlusionTested": 14,
+      "occlusionSkipped": [],
       "surface": "reviews",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": true,
+        "pointerCoarse": true,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 14,
       "names": [
         "Agent-Ready Studio",
@@ -1591,15 +2687,29 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "03ed42d0f6f178c4",
+      "sha256": "98a3d1811d268290",
       "problems": []
     },
     {
       "scenario": "no-hover-studio",
+      "occlusionTested": 29,
+      "occlusionSkipped": [],
       "surface": "studio",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": true,
+        "pointerCoarse": true,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 29,
       "names": [
         "Agent-Ready Studio",
@@ -1633,15 +2743,31 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "6026a7abc9637e53",
+      "sha256": "996a9a868071e7a2",
       "problems": []
     },
     {
       "scenario": "no-hover-connect",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
       "surface": "connect",
       "viewport": "1600x1000@1x",
       "scheme": "light",
       "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": true,
+        "pointerCoarse": true,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
       "controls": 16,
       "names": [
         "Agent-Ready Studio",
@@ -1662,7 +2788,53 @@
         "Workspace"
       ],
       "horizontalOverflow": 0,
-      "sha256": "fe5ffa83ac47a8a6",
+      "sha256": "3c5ed94a0d00243e",
+      "problems": []
+    },
+    {
+      "scenario": "no-hover-connect-rejected",
+      "occlusionTested": 15,
+      "occlusionSkipped": [
+        "Cancel inspection (would not take focus)"
+      ],
+      "diagnostic": "Studio connects to public github.com repositories only",
+      "surface": "connect-rejected",
+      "viewport": "1600x1000@1x",
+      "scheme": "light",
+      "motion": "no-preference",
+      "observed": {
+        "scheme": "light",
+        "reducedMotion": false,
+        "hoverNone": true,
+        "pointerCoarse": true,
+        "rootFontSizePx": 12,
+        "innerWidth": 1600,
+        "innerHeight": 1000,
+        "devicePixelRatio": 1
+      },
+      "textScale": 1,
+      "productRootFontPx": 12,
+      "controls": 16,
+      "names": [
+        "Agent-Ready Studio",
+        "Architecture",
+        "Cancel inspection",
+        "Connect",
+        "Connect repository",
+        "Delivery",
+        "Experience",
+        "Home",
+        "Outcomes",
+        "Overview",
+        "Public GitHub repository URL",
+        "Release",
+        "Research",
+        "Reviews",
+        "Strategy",
+        "Workspace"
+      ],
+      "horizontalOverflow": 0,
+      "sha256": "72f805d1108f5f70",
       "problems": []
     }
   ]

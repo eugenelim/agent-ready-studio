@@ -30,17 +30,257 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../../..");
 const rendererRoot = resolve(repoRoot, "apps/desktop/out/renderer");
 const serviceEntry = resolve(repoRoot, "apps/studio-service/dist/service.js");
-// Spec-selectable, defaulting to today's path so every existing reference is
-// unchanged. Publishing is a whole-directory swap, not an append: a run under
-// the default root replaces that directory's retained captures wholesale, and
-// that directory is a Shipped spec's notes. A slice capturing its own surfaces
-// passes its own root and brings its own `.gitignore` entries for the two
-// staging directories derived below.
-const outputRoot = resolve(
-  repoRoot,
-  process.env.VISUAL_EVIDENCE_ROOT ??
-    "docs/specs/product-development-walking-skeleton/notes/visual",
-);
+function fail(message) {
+  console.error(`visual-evidence: ${message}`);
+  process.exit(1);
+}
+
+// The only directories this tool may publish into. This is an allowlist, not
+// a hint: publishing renames the output directory aside and then deletes the
+// retired copy, so an unintended value does not merely write in the wrong
+// place, it destroys what was there. An earlier version of this guard only
+// checked that the variable was set -- under which `VISUAL_EVIDENCE_ROOT=`
+// resolves to the repository root and the swap deletes the whole worktree,
+// and a typo of `.../notes` for `.../notes/visual` deletes a directory of
+// hand-written notes. Each entry also has to carry its own `.gitignore`
+// entries for the two staging directories derived below, which is a second
+// reason membership is decided here rather than by the caller.
+// Publishing is a whole-directory swap, not an append: a run replaces its
+// output directory's retained captures wholesale. There is deliberately **no
+// default**. This used to fall back to the walking-skeleton spec's notes, and
+// on 2026-09-20 a bare invocation from another slice replaced that Shipped
+// spec's 36 retained baselines -- the rule was documented in this comment and
+// the destructive default was reachable anyway, so the comment lost. Naming
+// the set you are about to replace is now the only way to replace it.
+const KNOWN_ROOTS = [
+  "docs/specs/product-development-walking-skeleton/notes/visual",
+  "docs/specs/connect-and-orient/notes/visual",
+];
+const requestedRoot = process.env.VISUAL_EVIDENCE_ROOT;
+if (requestedRoot === undefined || requestedRoot.trim() === "") {
+  fail(
+    "VISUAL_EVIDENCE_ROOT is required, because publishing replaces that " +
+      "directory's retained captures wholesale.\n" +
+      "  Capture the walking-skeleton surfaces:  pnpm visual-evidence:skeleton\n" +
+      "  Capture the connect-and-orient slice:   pnpm visual-evidence:connect",
+  );
+}
+const outputRoot = resolve(repoRoot, requestedRoot);
+if (!KNOWN_ROOTS.some((known) => resolve(repoRoot, known) === outputRoot)) {
+  fail(
+    `VISUAL_EVIDENCE_ROOT resolved to ${outputRoot}, which is not an evidence ` +
+      "directory this tool may publish into. Publishing deletes what is " +
+      "already there, so only these are accepted:\n" +
+      KNOWN_ROOTS.map((known) => `  ${known}`).join("\n") +
+      "\nAdding a root means adding it here and adding its .next/.previous " +
+      "staging directories to .gitignore.",
+  );
+}
+
+/**
+ * Click a button by its exact label, waiting for it to appear.
+ *
+ * Every call site used to sleep a fixed 1200-1500 ms and then abort the whole
+ * run if the render had not landed, discarding every capture taken so far --
+ * on a host where this suite has gone red at load averages of 43 to 62. A
+ * deadline poll costs nothing when the render is fast and does not throw away
+ * an hour of work when it is slow. A harness failure is reported as itself
+ * rather than as a slow page.
+ */
+const CLICK_DEADLINE_MS = 15_000;
+const POLL_INTERVAL_MS = 200;
+
+async function clickWhenOffered(page, label, what) {
+  const until = Date.now() + CLICK_DEADLINE_MS;
+  for (;;) {
+    if (plumbingFailure !== null) throw new Error(plumbingFailure);
+    const clicked = await page("Runtime.evaluate", {
+      expression: `(() => {
+        ${REACHABLE_CONTROLS_JS}
+        const el = controls.find(
+          (candidate) =>
+            candidate.tagName === "BUTTON" &&
+            candidate.textContent.trim() === ${JSON.stringify(label)},
+        );
+        if (!el) return "absent";
+        // A disabled button swallows .click() and reports nothing, so
+        // treating it as offered would report a click that did not happen
+        // and surface the real failure later as an unrelated timeout.
+        if (el.disabled) return "disabled";
+        el.click();
+        return "clicked";
+      })()`,
+      returnByValue: true,
+    });
+    if (clicked.result.value === "clicked") return;
+    if (Date.now() >= until)
+      // The probe knows which of the two it is, and "missing" and "present
+      // but still disabled" call for different next steps. With no CI this
+      // line is the whole failure record.
+      throw new Error(
+        clicked.result.value === "disabled"
+          ? `${what} left "${label}" disabled for ${CLICK_DEADLINE_MS / 1000}s`
+          : `${what} never offered "${label}" within ${CLICK_DEADLINE_MS / 1000}s`,
+      );
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+  }
+}
+
+// The refusal the `connect-rejected` surface must show, read from the module
+// that owns the copy rather than hand-copied here. `@agent-ready/protocol` is
+// not resolvable from this plain .mjs tool, so the source is read directly and
+// a failure to find the key is loud: a silent fallback would turn a copy edit
+// into a confusing "showed the wrong refusal" abort at the end of a
+// multi-minute run.
+const PUBLIC_GITHUB_ONLY_REFUSAL = (() => {
+  const vocabulary = resolve(
+    repoRoot,
+    "packages/protocol/src/state-vocabulary.ts",
+  );
+  const source = readFileSync(vocabulary, "utf8");
+  // Anchored to the exported record, so a key of the same name elsewhere in
+  // the file cannot be mistaken for it.
+  const record =
+    /export const SOURCE_REJECTION_REASONS = \{([\s\S]*?)\n\}/.exec(source);
+  const match =
+    record === null
+      ? null
+      : /publicGithubOnly:\s*\n?\s*"([^"]+)"/.exec(record[1]);
+  if (match === null)
+    fail(
+      `could not read SOURCE_REJECTION_REASONS.publicGithubOnly from ${vocabulary}; ` +
+        "the connect-rejected surface asserts that exact copy",
+    );
+  return match[1];
+})();
+
+/**
+ * Wait until the rendered document stops changing, or the deadline passes.
+ *
+ * Every surface used to be measured a fixed 1200-1500 ms after the click that
+ * navigated to it, with no post-condition. On a host where this suite goes red
+ * at load averages of 43 to 62, that publishes a capture of a surface that has
+ * not finished rendering -- and the AC-38 name-set comparison then reports a
+ * false pass when every scenario is equally early, or a false failure when one
+ * is not. Two consecutive identical readings is a weak post-condition, but it
+ * is a post-condition, where a sleep is none.
+ */
+async function readRenderState(page) {
+  const reading = await page("Runtime.evaluate", {
+    expression: `(() => {
+      ${REACHABLE_CONTROLS_JS}
+      return document.body.innerHTML.length + ":" + controls.length;
+    })()`,
+    returnByValue: true,
+  });
+  return reading.result.value;
+}
+
+/**
+ * Wait until the surface the last action navigated to is on screen and has
+ * stopped changing. Returns null when it settled, or a finding string.
+ *
+ * `before` must be read **before** the action, because two identical readings
+ * alone cannot tell "finished rendering" from "the click's handler is still
+ * awaiting IPC and the previous surface is still up". The settle needs the
+ * document to have both changed from where it started and then held still.
+ *
+ * A finding is returned rather than thrown: a late render is still worth
+ * capturing and looking at. It is returned rather than merely logged because
+ * a capture the tool knows was taken mid-render must not publish with an
+ * empty problems list and exit 0 -- that is the false verification record
+ * this harness exists to refuse.
+ */
+async function settleRender(
+  page,
+  what,
+  before,
+  changeRequired = true,
+  deadlineMs = 10_000,
+) {
+  const until = Date.now() + deadlineMs;
+  let previous = null;
+  for (;;) {
+    if (plumbingFailure !== null) throw new Error(plumbingFailure);
+    const now = await readRenderState(page);
+    const settled = previous !== null && now === previous;
+    // Both branches decide from the settled reading against `before`, never
+    // from a latched "it changed at some point" flag. A surface that renders
+    // a transient and settles back to exactly its pre-click state has not
+    // arrived, and a latch would have called that settled and published a
+    // capture of the previous surface with an empty problems list.
+    const moved = now !== before;
+    if (settled) {
+      if (!changeRequired)
+        return moved
+          ? `${what} was declared a no-op click but settled to a different document, so its clickIsNoop property is stale`
+          : null;
+      if (moved) return null;
+      // Settled back where it started, and a change was required: the click
+      // has not landed yet, so keep waiting rather than calling this done.
+    }
+    const hadPrior = previous !== null;
+    previous = now;
+    if (Date.now() >= until)
+      // Three outcomes, each claiming only what was observed. Unsettled with
+      // no prior reading means one round trip alone exceeded the deadline, so
+      // nothing about the render was seen -- asserting churn there was an
+      // earlier defect, and the branch added to fix it was placed after
+      // `previous = now` and could never run. Unsettled with a prior reading
+      // means two readings differed. Settled means the last two matched and
+      // equal `before`.
+      return settled
+        ? `${what} reached its ${deadlineMs / 1000}s deadline with the document at its pre-click value, so the capture may show the previous surface`
+        : hadPrior
+          ? `${what} was still changing after ${deadlineMs / 1000}s`
+          : `${what} did not complete a second reading within ${deadlineMs / 1000}s, so nothing about the render was observed`;
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+  }
+}
+
+// The root font size `tokens.css` owns, as a CSS pixel value. `text-200`
+// derives its target from the page's measured baseline, and a baseline read
+// before the stylesheet applied would read the UA's 16px and silently
+// redefine the target to 32px -- the exact 2.67x miscalibration that check
+// was added to catch. Pinning it here means a pre-stylesheet reading fails
+// the run instead of moving the goalposts.
+const PRODUCT_ROOT_FONT_PX = (() => {
+  const tokens = resolve(
+    repoRoot,
+    "apps/desktop/src/renderer/styles/tokens.css",
+  );
+  const root = /:root\s*\{([\s\S]*?)\n\}/.exec(readFileSync(tokens, "utf8"));
+  if (root === null)
+    fail(
+      `could not locate a \`:root { ... }\` block in ${tokens}. This tool reads the ` +
+        "product's root font size from there to prove the stylesheet applied to " +
+        "every capture.",
+    );
+  // `;?` so a final declaration without a trailing semicolon still parses.
+  // Anchored to a declaration start, so a custom property such as
+  // `--control-font-size` is not counted as a second `font-size` and does not
+  // abort every capture with a duplicate the operator cannot find.
+  const sizes = [
+    ...root[1].matchAll(/(?:^|[;{])\s*font-size:\s*([^;}\n]+);?/g),
+  ];
+  if (sizes.length !== 1)
+    fail(
+      `found ${sizes.length} own \`font-size\` declarations in the :root block of ` +
+        `${tokens}, expected exactly one. This value is what every capture is ` +
+        "checked against to prove the stylesheet applied, so it must be unambiguous.",
+    );
+  const declared = sizes[0][1].trim();
+  const percent = /^([\d.]+)%$/.exec(declared);
+  const pixels = /^([\d.]+)px$/.exec(declared);
+  if (percent === null && pixels === null)
+    fail(
+      `cannot derive a pixel value from \`font-size: ${declared}\` in ${tokens}. ` +
+        "Supported forms are a percentage of the 16px UA default, or px.",
+    );
+  return percent !== null
+    ? (16 * Number.parseFloat(percent[1])) / 100
+    : Number.parseFloat(pixels[1]);
+})();
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -102,6 +342,11 @@ globalThis.studio = (() => {
           executorKind: "deterministic",
         }),
     }),
+    source: Object.freeze({
+      connect: (input) => call("source.connect", input),
+      get: (sourceId) => call("source.get", { sourceId }),
+      cancel: (sourceId) => call("source.cancel", { sourceId }),
+    }),
     review: Object.freeze({
       list: (workspaceId) => call("review.list", optionalWorkspace(workspaceId)),
       get: (id) => call("review.get", { id }),
@@ -111,10 +356,20 @@ globalThis.studio = (() => {
 })();
 `;
 
-function fail(message) {
-  console.error(`visual-evidence: ${message}`);
-  process.exit(1);
-}
+// Both the overflow probe and the occlusion probe count "reachable controls",
+// and the occlusion vacuity guard compares one against the other. Two
+// hand-copied predicates would let an edit to one silently stop the guard
+// firing, so the definition lives here and is interpolated into both.
+const REACHABLE_CONTROLS_JS = `
+  const reachable = (el) => {
+    if (el.getClientRects().length === 0) return false;
+    const style = getComputedStyle(el);
+    return style.visibility !== "hidden" && style.display !== "none";
+  };
+  const controls = [
+    ...document.querySelectorAll("button, input, textarea, select, a[href]"),
+  ].filter(reachable);
+`;
 
 // ---------------------------------------------------------------- service ---
 
@@ -374,11 +629,28 @@ function cdp(socket) {
     new Promise((settle, reject) => {
       nextId += 1;
       const id = nextId;
-      pending.set(id, (message) =>
-        message.error
-          ? reject(new Error(`${method}: ${message.error.message}`))
-          : settle(message.result),
-      );
+      pending.set(id, (message) => {
+        if (message.error)
+          return reject(new Error(`${method}: ${message.error.message}`));
+        // A throw inside an evaluated page script arrives as a successful
+        // CDP reply carrying `exceptionDetails`, with `result.value`
+        // undefined. Settling on that makes every probe mis-report it: the
+        // click gate says the button was never offered, the settle says it
+        // reached its deadline, and the occlusion probe tries to
+        // `JSON.parse(undefined)`. With no CI those lines are the whole
+        // failure record, so the exception is raised as itself.
+        const thrown = message.result?.exceptionDetails;
+        if (thrown)
+          return reject(
+            new Error(
+              `${method}: the page script threw: ` +
+                (thrown.exception?.description ??
+                  thrown.text ??
+                  "no description"),
+            ),
+          );
+        return settle(message.result);
+      });
       socket.send(
         JSON.stringify({ id, method, params: params ?? {}, sessionId }),
       );
@@ -599,18 +871,44 @@ try {
     // byte-identical to their unscaled baseline and evidenced nothing. This is
     // the same failure the mode probe below was added for, on a new dimension.
     if (scenario.textScale !== undefined) {
+      // 200 percent of the **product's own** root size, not of the UA default.
+      // `tokens.css` sets `:root { font-size: 75% }`, so an inline
+      // `font-size: 200%` resolves against the UA's 16px and renders 32px --
+      // 2.67x the application's 12px base, not the 2x the criterion names.
+      // The baseline is measured first and the scale applied as a pixel value
+      // derived from it, so the factor is a property of the product rather
+      // than of the browser's default.
+      const baseline = await page("Runtime.evaluate", {
+        expression:
+          "Number.parseFloat(getComputedStyle(document.documentElement).fontSize)",
+        returnByValue: true,
+      });
+      const basePx = Number.parseFloat(baseline?.result?.value ?? "0");
+      if (!Number.isFinite(basePx) || basePx <= 0)
+        throw new Error(
+          `${scenario.name}: could not read the baseline root font size`,
+        );
+      // The baseline has to be the product's, not the UA's. Without this the
+      // target is derived from whatever was measured, so a stylesheet that
+      // had not applied yet would pass its own wrong value straight through.
+      if (Math.abs(basePx - PRODUCT_ROOT_FONT_PX) > 0.5)
+        throw new Error(
+          `${scenario.name}: root font size is ${basePx}px, but tokens.css owns ` +
+            `${PRODUCT_ROOT_FONT_PX}px — the stylesheet had not applied, so the ` +
+            "text scale would have been derived from the wrong baseline",
+        );
+      const expected = basePx * scenario.textScale;
       const applied = await page("Runtime.evaluate", {
         expression: `(() => {
-          document.documentElement.style.fontSize = '${scenario.textScale * 100}%';
+          document.documentElement.style.fontSize = '${expected}px';
           return getComputedStyle(document.documentElement).fontSize;
         })()`,
         returnByValue: true,
       });
       const rendered = Number.parseFloat(applied?.result?.value ?? "0");
-      const expected = 16 * scenario.textScale;
       if (!Number.isFinite(rendered) || Math.abs(rendered - expected) > 1) {
         throw new Error(
-          `${scenario.name}: text scale did not take effect — root font-size is ${applied?.result?.value}, expected about ${expected}px`,
+          `${scenario.name}: text scale did not take effect — root font-size is ${applied?.result?.value}, expected about ${expected}px (${scenario.textScale}x the product's ${basePx}px base)`,
         );
       }
       await new Promise((r) => setTimeout(r, 300));
@@ -625,6 +923,12 @@ try {
         reduce: matchMedia("(prefers-reduced-motion: reduce)").matches,
         hoverNone: matchMedia("(hover: none)").matches,
         pointerCoarse: matchMedia("(pointer: coarse)").matches,
+        rootFontSizePx: Number.parseFloat(
+          getComputedStyle(document.documentElement).fontSize,
+        ),
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
       })`,
       returnByValue: true,
     });
@@ -645,6 +949,19 @@ try {
       modeErrors.push(
         `pointer: coarse in force: ${mode.pointerCoarse}, wanted ${coarse}`,
       );
+    // Every scenario, not only the scaled one. A stylesheet that had not
+    // applied publishes at the UA's 16px with an empty problems list, and
+    // that is 56 of the 64 captures if the check lives only in the
+    // `textScale` branch.
+    const expectedRoot = PRODUCT_ROOT_FONT_PX * (scenario.textScale ?? 1);
+    if (Math.abs(mode.rootFontSizePx - expectedRoot) > 0.5)
+      modeErrors.push(
+        `root font-size is ${mode.rootFontSizePx}px, wanted ${expectedRoot}px ` +
+          `(tokens.css owns ${PRODUCT_ROOT_FONT_PX}px at scale ${scenario.textScale ?? 1}). ` +
+          "Either the stylesheet did not apply, or the built renderer is stale " +
+          "against an edited tokens.css — this pin is read from source and the " +
+          "page is served from apps/desktop/out/renderer, so run `pnpm build` first",
+      );
     // Thrown rather than `fail()`ed. `fail` exits the process, and every abort
     // inside this `try` must instead unwind through the `finally` below —
     // otherwise the browser, the service child, the HTTP server and the temp
@@ -658,7 +975,7 @@ try {
     // Drive the real flow through the rendered UI: create a workspace, seed it,
     // run the transformation, then open the review that produces. AC-26 is a
     // claim about a review surface, so an empty Home would not evidence it.
-    await page("Runtime.evaluate", {
+    const created = await page("Runtime.evaluate", {
       expression: `(() => {
         const field = document.querySelector("#workspace-name");
         if (!field) return "no create form";
@@ -671,26 +988,36 @@ try {
       })()`,
       returnByValue: true,
     });
+    // The sentinel was previously discarded, so a page without the create
+    // form fell through and failed 15s later on "Seed demo workspace",
+    // naming the wrong missing element.
+    if (created.result.value !== "submitted")
+      throw new Error(
+        `the workspace could not be created: ${created.result.value}`,
+      );
     await new Promise((r) => setTimeout(r, 1500));
     // Setup only. The surfaces themselves are measured one at a time below:
     // visiting a surface is not measuring it, and an earlier version of this
     // harness clicked through Reviews on its way to the Work Item Studio and
     // measured only where it landed.
     for (const label of ["Seed demo workspace", "Run transformation"]) {
-      const clicked = await page("Runtime.evaluate", {
-        expression: `(() => {
-          const el = [...document.querySelectorAll("button")].find(
-            (candidate) => candidate.textContent.trim() === ${JSON.stringify(label)},
-          );
-          if (!el) return false;
-          el.click();
-          return true;
-        })()`,
-        returnByValue: true,
-      });
-      if (clicked.result.value !== true)
-        throw new Error(`the rendered application never offered "${label}"`);
+      const beforeSetup = await readRenderState(page);
+      await clickWhenOffered(page, label, "the rendered application");
+      // "Run transformation" is a real round trip to the service child, and
+      // the walking-skeleton ledger records its slowness as the "never offered
+      // Open review" failure, so this waits on the render rather than on a
+      // clock. The floor stays because the round trip can start after the
+      // first settle reading.
       await new Promise((r) => setTimeout(r, 1500));
+      const setupFinding = await settleRender(
+        page,
+        `the ${label} step`,
+        beforeSetup,
+      );
+      // Thrown, not `fail()`ed, for the reason stated at the mode check: a
+      // `fail()` here exits the process from inside the try, orphaning the
+      // browser, the service child, the server and the temp directory.
+      if (setupFinding !== null) throw new Error(setupFinding);
     }
 
     // Every surface the build renders is driven to and measured while it is on
@@ -715,21 +1042,142 @@ try {
       // which is the state AC-0107 governs and the one a capture can show
       // without contacting a remote.
       { name: "connect", clicks: ["Connect"] },
+      // AC-0130's focus-obscuring clause needs a diagnostic surface on screen
+      // at the same time as a focused control. A refused URL produces one and
+      // reaches no remote -- the refusal is decided before any transport is
+      // consulted, which is the property AC-0108 rests on -- so this is the
+      // only connect-and-orient state a capture can show with a diagnostic in
+      // it while AC-0148 holds.
+      {
+        name: "connect-rejected",
+        clicks: ["Connect"],
+        // The loop reaches this surface straight after `connect`, which is
+        // also reached by clicking Connect, so this click correctly changes
+        // nothing. Stated as its own property rather than inferred from
+        // `submit`, so a future driven surface whose click *does* navigate
+        // gets the ordinary settle instead of inheriting this one's skip.
+        clickIsNoop: true,
+        submit: "https://example.com/acme/widgets",
+      },
     ]) {
+      const settleFindings = [];
       for (const label of surface.clicks) {
-        const clicked = await page("Runtime.evaluate", {
-          expression:
-            "(() => { const el = [...document.querySelectorAll('button')]" +
-            ".find((candidate) => candidate.textContent.trim() === " +
-            JSON.stringify(label) +
-            "); if (!el) return false; el.click(); return true; })()",
+        const before = await readRenderState(page);
+        await clickWhenOffered(page, label, `the ${surface.name} surface`);
+        {
+          // Every click is settled, and every finding is kept. `??=` would
+          // short-circuit the call itself, so one slow click would leave each
+          // later click on the same surface with no wait at all -- `reviews`
+          // clicks Home then Reviews -- and the recorded finding would name
+          // the wrong one.
+          const finding = await settleRender(
+            page,
+            `the ${surface.name} surface, after clicking "${label}"`,
+            before,
+            surface.clickIsNoop !== true,
+          );
+          if (finding !== null) settleFindings.push(finding);
+        }
+      }
+
+      let surfaceDiagnostic = null;
+      if (surface.submit !== undefined) {
+        // The field has to be there before it can be driven. Polled rather
+        // than looked at once, so a slow render is waited out instead of
+        // aborting the run on the first look. It still throws at the
+        // deadline, and that throw does discard the run -- the poll buys
+        // time, it does not remove the failure mode.
+        const fieldDeadline = Date.now() + CLICK_DEADLINE_MS;
+        for (;;) {
+          if (plumbingFailure !== null) throw new Error(plumbingFailure);
+          const present = await page("Runtime.evaluate", {
+            expression: 'document.getElementById("connect-url") !== null',
+            returnByValue: true,
+          });
+          if (present.result.value === true) break;
+          if (Date.now() >= fieldDeadline)
+            throw new Error(
+              `the ${surface.name} surface never offered the URL field within ` +
+                `${CLICK_DEADLINE_MS / 1000}s`,
+            );
+          await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+        }
+        const submitted = await page("Runtime.evaluate", {
+          expression: `(() => {
+            const field = document.getElementById("connect-url");
+            if (!field) return "no url field";
+
+            const setter = Object.getOwnPropertyDescriptor(
+              window.HTMLInputElement.prototype, "value").set;
+            setter.call(field, ${JSON.stringify(surface.submit)});
+            field.dispatchEvent(new Event("input", { bubbles: true }));
+            const button = [...document.querySelectorAll("button")].find(
+              (el) => /connect repository/i.test(el.textContent || ""));
+            if (!button) return "no submit button";
+            button.click();
+            return true;
+          })()`,
           returnByValue: true,
         });
-        if (clicked.result.value !== true)
+        if (submitted.result.value !== true)
           throw new Error(
-            `the ${surface.name} surface never offered "${label}"`,
+            `the ${surface.name} surface could not be driven to a diagnostic: ${submitted.result.value}`,
           );
-        await new Promise((r) => setTimeout(r, 1200));
+        // Poll for the state itself rather than sleeping a fixed span. The
+        // submission crosses IPC to the real service, and this surface runs
+        // under six scenarios, so one slow render on a loaded host would
+        // otherwise discard the whole run's evidence.
+        //
+        // The marker is the `url-rejected` state the form emits, not a
+        // substring of the body: the refusal text is "Studio connects to
+        // public github.com repositories only", which shares no word with a
+        // generic /cannot|refus/ probe, and the strings that DO match such a
+        // probe belong to the Studio-side failure state and the version
+        // qualifier -- so a body-text guard would pass on the wrong surface.
+        // Wait for the form's own rejection paragraph, then check the text is
+        // the refusal this URL should produce. Both halves were wrong before:
+        // a document-wide [data-state="url-rejected"] also matches a state
+        // badge, and an earlier /cannot|refus/ body probe matched two
+        // unrelated states while missing this one, because the refusal shares
+        // no word with that pattern.
+        const deadline = Date.now() + 15_000;
+        let diagnostic = null;
+        while (Date.now() < deadline) {
+          // A dead harness must be reported as itself. Without this the
+          // timeout below would attribute a crashed service child to a slow
+          // page and discard the real cause.
+          if (plumbingFailure !== null) throw new Error(plumbingFailure);
+          const seen = await page("Runtime.evaluate", {
+            expression: `(() => {
+              const el = document.querySelector(
+                '.connect-form__rejection[data-state="url-rejected"]');
+              return el === null ? null : (el.textContent || "").trim();
+            })()`,
+            returnByValue: true,
+          });
+          if (
+            typeof seen.result.value === "string" &&
+            seen.result.value !== ""
+          ) {
+            diagnostic = seen.result.value;
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 250));
+        }
+        if (diagnostic === null)
+          throw new Error(
+            `the ${surface.name} surface showed no url-rejected diagnostic ` +
+              `within 15s`,
+          );
+        // Which refusal, not merely that one rendered. A submission that lost
+        // its URL would otherwise publish a capture of a different diagnostic
+        // and nothing would say so.
+        if (diagnostic !== PUBLIC_GITHUB_ONLY_REFUSAL)
+          throw new Error(
+            `the ${surface.name} surface showed "${diagnostic}", expected ` +
+              `"${PUBLIC_GITHUB_ONLY_REFUSAL}"`,
+          );
+        surfaceDiagnostic = diagnostic;
       }
 
       // AC-37 assertion: decision controls must stay reachable without
@@ -740,14 +1188,7 @@ try {
         // Reachable controls only. A control that is in the DOM but hidden or
         // zero-sized in this input mode is not an available action, so counting
         // it would let a hover-gated action pass the AC-38 comparison.
-        const reachable = (el) => {
-          if (el.getClientRects().length === 0) return false;
-          const style = getComputedStyle(el);
-          return style.visibility !== "hidden" && style.display !== "none";
-        };
-        const controls = [
-          ...document.querySelectorAll("button, input, textarea, select, a[href]"),
-        ].filter(reachable);
+        ${REACHABLE_CONTROLS_JS}
         const accessibleName = (el) =>
           (el.getAttribute("aria-label")
             ?? (el.labels && el.labels[0] && el.labels[0].textContent)
@@ -825,6 +1266,99 @@ try {
       // directory until the whole run has succeeded — see the publish step below.
       const bytes = Buffer.from(shot.data, "base64");
 
+      // AC-0130, the focus-obscuring clause. A still capture cannot show this:
+      // it records one moment with whatever focus happened to be, and nothing
+      // in an image says which element is focused or what is painted over it.
+      // So each control is focused in turn and hit-tested at its own centre.
+      // If the topmost element there is neither the control nor related to it
+      // by containment, something is painted over the focused control.
+      //
+      // What this check cannot see, stated so the record does not overclaim:
+      //   - An overlay with `pointer-events: none` is painted over the control
+      //     but skipped by `elementFromPoint`, so it reads as clean.
+      //   - Only each control's centre is sampled, so a panel covering a
+      //     control's edges, its label or its focus ring while leaving the
+      //     middle clear reads as clean.
+      //   - A control an overlay prevents from taking focus is recorded as a
+      //     skip, not a failure; the vacuity guard below catches the case
+      //     where that happens to every control, not where it happens to some.
+      // The criterion's evidence is recorded as "centre not obscured by a
+      // hit-testable layer", which is what this actually proves.
+      //
+      // Run after the screenshot so moving focus cannot change what was
+      // captured.
+      const occlusionProbe = await page("Runtime.evaluate", {
+        expression: `JSON.stringify((() => {
+        const describe = (el) => {
+          if (el === null) return "nothing";
+          const tag = el.tagName.toLowerCase();
+          const id = el.id ? "#" + el.id : "";
+          const cls = typeof el.className === "string" && el.className
+            ? "." + el.className.trim().split(/\\s+/).join(".")
+            : "";
+          return tag + id + cls;
+        };
+        // textContent is "" rather than null for input and select, so a ??
+        // chain never reaches a fallback and the operator gets a message that
+        // names nothing. With no CI, that line is the whole failure record.
+        const named = (el) => {
+          const label = (el.getAttribute("aria-label")
+            ?? (el.labels && el.labels[0] && el.labels[0].textContent)
+            ?? el.textContent
+            ?? "").trim();
+          return label === "" ? describe(el) : label.slice(0, 40);
+        };
+        ${REACHABLE_CONTROLS_JS}
+        const restore = document.activeElement;
+        const scroll = { x: window.scrollX, y: window.scrollY };
+        const obscured = [];
+        const skipped = [];
+        let tested = 0;
+        for (const el of controls) {
+          el.focus();
+          if (document.activeElement !== el) {
+            skipped.push(named(el) + " (would not take focus)");
+            continue;
+          }
+          const box = el.getBoundingClientRect();
+          if (box.width === 0 || box.height === 0) {
+            skipped.push(named(el) + " (zero-sized)");
+            continue;
+          }
+          const x = box.left + box.width / 2;
+          const y = box.top + box.height / 2;
+          if (x < 0 || y < 0
+            || x >= document.documentElement.clientWidth
+            || y >= document.documentElement.clientHeight) {
+            skipped.push(named(el) + " (centre outside the viewport after focus)");
+            continue;
+          }
+          const top = document.elementFromPoint(x, y);
+          if (top === null) {
+            // Nothing hit-testable at the point. That is not an occlusion, and
+            // reporting it as one gives the operator a failure with no element
+            // to act on.
+            skipped.push(named(el) + " (centre is not hit-testable)");
+            continue;
+          }
+          tested += 1;
+          if (top === el || el.contains(top) || top.contains(el)) continue;
+          obscured.push(named(el) + " obscured by " + describe(top));
+        }
+        if (restore instanceof HTMLElement) restore.focus({ preventScroll: true });
+        else if (document.activeElement instanceof HTMLElement)
+          document.activeElement.blur();
+        // Window scroll only. Focusing also scrolls inner overflow
+        // containers, and those are not restored, so a later surface can be
+        // probed from a different internal scroll offset. The capture is
+        // already taken by this point, so no published image is affected.
+        window.scrollTo(scroll.x, scroll.y);
+        return { tested, obscured, skipped };
+      })())`,
+        returnByValue: true,
+      });
+      const occlusion = JSON.parse(occlusionProbe.result.value);
+
       const problems = [];
       if (measured.horizontalOverflow > 1)
         problems.push(
@@ -853,15 +1387,62 @@ try {
         problems.push(
           "no interactive controls rendered — the page did not load",
         );
+      if (occlusion.obscured.length > 0)
+        problems.push(
+          `focused control obscured: ${occlusion.obscured.join("; ")}`,
+        );
+      for (const finding of settleFindings) problems.push(finding);
+      // Without this the check passes on any surface where every control was
+      // skipped, which is the vacuous-negative shape this suite has been
+      // caught by before. A surface with controls must hit-test at least one.
+      if (measured.controls > 0 && occlusion.tested === 0)
+        problems.push(
+          `no control could be focused and hit-tested, so the obscuring check proved nothing (skipped: ${occlusion.skipped.join("; ") || "none"})`,
+        );
       if (problems.length > 0) failures += 1;
 
       results.push({
         image: bytes,
         scenario: `${scenario.name}-${surface.name}`,
+        // Recorded so the retained evidence shows what the obscuring check
+        // covered. A surface where every control was skipped would otherwise
+        // publish identically to one where all of them were hit-tested.
+        occlusionTested: occlusion.tested,
+        occlusionSkipped: occlusion.skipped,
+        // The diagnostic that was on screen when this capture was taken, so
+        // the retained record shows which refusal the occlusion check ran
+        // against rather than only that some refusal did.
+        ...(surfaceDiagnostic === null
+          ? {}
+          : { diagnostic: surfaceDiagnostic }),
         surface: surface.name,
         viewport: `${scenario.width}x${scenario.height}@${scenario.scale}x`,
         scheme: scenario.scheme,
         motion: scenario.motion,
+        // What the page actually reported for each emulated feature. The
+        // declared values alone cannot distinguish a legitimately identical
+        // render from the "silently reran the baseline" defect the mode probe
+        // was added to catch.
+        observed: {
+          scheme: mode.scheme,
+          reducedMotion: mode.reduce,
+          hoverNone: mode.hoverNone,
+          pointerCoarse: mode.pointerCoarse,
+          rootFontSizePx: mode.rootFontSizePx,
+          // narrow-900, narrow-1024 and zoom-200 differ from the baseline by
+          // viewport and device pixel ratio alone. Without these two the
+          // observed block could not distinguish a dropped metrics override
+          // from a legitimately identical render -- the same declared-versus-
+          // observed gap this block exists to close.
+          innerWidth: mode.innerWidth,
+          innerHeight: mode.innerHeight,
+          devicePixelRatio: mode.devicePixelRatio,
+        },
+        // Declared beside its observed effect, like every other dimension:
+        // `observed.rootFontSizePx` alone asks the reader to already know the
+        // product's base to judge whether the number is right.
+        textScale: scenario.textScale ?? 1,
+        productRootFontPx: PRODUCT_ROOT_FONT_PX,
         controls: measured.controls,
         names: measured.names,
         horizontalOverflow: measured.horizontalOverflow,
@@ -909,7 +1490,15 @@ for (const [scenarioName, label] of [
   const capturedSurfaces = [
     ...new Set(results.map((result) => result.surface)),
   ];
-  for (const surface of capturedSurfaces) {
+  // Skipped when the run aborted: reporting `ok` for whichever surfaces
+  // happened to complete, above the error that stopped the rest, reads as a
+  // partial pass of a comparison that never ran.
+  // `plumbingFailure` is checked here too: `aborted` does not absorb it until
+  // after this loop, so a late harness failure would otherwise print `ok`
+  // comparison lines above the error that stopped the run.
+  const comparable = aborted === null && plumbingFailure === null;
+  let comparedPairs = 0;
+  for (const surface of comparable ? capturedSurfaces : []) {
     // Compared surface by surface. Comparing the studio's action set against the
     // reviews list's would differ for reasons that have nothing to do with the
     // input mode under test.
@@ -920,6 +1509,7 @@ for (const [scenarioName, label] of [
       (r) => r.scenario === `${scenarioName}-${surface}`,
     );
     if (!baseline || !candidate) continue;
+    comparedPairs += 1;
     const missing = baseline.names.filter(
       (name) => !candidate.names.includes(name),
     );
@@ -936,6 +1526,17 @@ for (const [scenarioName, label] of [
         `ok   AC-38 ${label} retains all ${candidate.names.length} actions unchanged on ${surface}`,
       );
     }
+  }
+  // The baseline is found by a hard-coded scenario name. Renaming or dropping
+  // that scenario would leave every pair unmatched, with no `ok` line, no
+  // problem entry and a zero exit -- the vacuous pass the occlusion check
+  // already guards against.
+  if (comparable && comparedPairs === 0) {
+    console.error(
+      "visual-evidence: the cross-mode comparison matched no surface pair, so " +
+        "it proved nothing; check the baseline scenario name it looks for",
+    );
+    failures += 1;
   }
 }
 

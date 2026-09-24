@@ -11,6 +11,30 @@ import {
 } from "./service.js";
 
 describe("Studio Service protocol dispatch", () => {
+  it("answers an inherited property name as method-not-found", () => {
+    // `requestSchemas` is a plain object literal, so the `in` form this site
+    // used was true for every `Object.prototype` name: the method-not-found
+    // branch was skipped and `validateRequest` then threw, above the `try`
+    // below it, which ends the read loop instead of answering the request.
+    const service = new Proxy({} as StudioService, {
+      get: () => () => undefined,
+    });
+
+    for (const method of ["toString", "constructor", "__proto__"]) {
+      const response = dispatchRequest(service, {
+        jsonrpc: "2.0",
+        id: "inherited-name",
+        method,
+        params: {},
+      });
+
+      expect(response).toMatchObject({
+        id: "inherited-name",
+        error: { code: -32601, message: "Method not found" },
+      });
+    }
+  });
+
   it("AC-21 refuses an incompatible system.hello before dispatching another method", () => {
     let dispatchCount = 0;
     const service = new Proxy({} as StudioService, {

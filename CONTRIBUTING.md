@@ -43,6 +43,14 @@ Vitest must fail when it collects no tests. Component tests opt into jsdom with
 a per-file `// @vitest-environment jsdom` docblock; Node-side tests do not carry
 that docblock.
 
+Rendered evidence is captured by `pnpm visual-evidence:skeleton` and
+`pnpm visual-evidence:connect`, one per spec that retains captures. **Publishing
+replaces that spec's retained set wholesale**, so the plain `pnpm visual-evidence`
+refuses to run without being told which set to replace, and only those two
+directories are accepted. Adding a third means adding it to `KNOWN_ROOTS` in
+`apps/desktop/tools/visual-evidence.mjs` and adding its `.next` and `.previous`
+staging directories to `.gitignore`.
+
 ## Documentation
 
 Keep living documentation truthful in the same change as the behavior it

@@ -16,9 +16,25 @@ import { basename } from "node:path";
 import { parse as parseToml } from "smol-toml";
 
 import {
+  documentNestingDepth,
   isInadmissibleKey,
+  jsonTextNestingDepth,
+  PARSE_NESTING_DEPTH_BOUND,
   withoutInadmissibleKeys,
 } from "./inadmissible-keys.js";
+
+/**
+ * The parse guards and the *Parse nesting depth* bound are owned by
+ * `@agent-ready/protocol` so the northbound transport site can reach them too.
+ * They are re-exported here because this module's own tests and callers name
+ * them at this path.
+ */
+export {
+  documentNestingDepth,
+  jsonTextNestingDepth,
+  PARSE_NESTING_DEPTH_BOUND,
+} from "./inadmissible-keys.js";
+
 import {
   ConfinementError,
   readContainedFile,
@@ -37,23 +53,46 @@ export const PERMITTED_READ_SURFACE = [
 
 export type PermittedReadName = (typeof PERMITTED_READ_SURFACE)[number];
 
+/**
+ * The workspace declaration, and the canonical statement of why it is named.
+ *
+ * **AC-0059's carve-out.** That criterion's repository-file branch covers only
+ * a declaration file that is *not* the workspace declaration — in this slice,
+ * `.agentbundle-state.toml`. A malformed `workspace.toml` is instead the
+ * `malformed` condition, produced by the inspector's own `invalid_workspace`
+ * finding, and the *Reasons for `inspection-stopped`* table carries no row for
+ * any refusal on this file. So routing a refused `workspace.toml` to the
+ * declaration-file row would stop an inspection under a reason the contract
+ * says does not cover it.
+ *
+ * The carve-out is keyed on the **file**, not on the refusal class, because
+ * that is how the spec states it. Every other site that depends on this rule
+ * points here rather than restating it.
+ */
+export const WORKSPACE_DECLARATION_NAME = PERMITTED_READ_SURFACE[0];
+
 /** *Resource bounds*, *Declared-value read*: 2 files, 1 MiB each. */
 export const DECLARED_READ_FILE_BOUND = 2;
 export const DECLARED_READ_BYTE_BOUND = SINGLE_FILE_BOUND_BYTES;
 
-/** *Resource bounds*, *Parse nesting depth*. */
-export const PARSE_NESTING_DEPTH_BOUND = 64;
-
-/** The key a repository declares its workspace version marker under. */
 export const DECLARED_VERSION_KEY = "schema-version";
 
-export type DeclaredReadRefusal =
-  | "outside-permitted-read-surface"
-  | "exceeds-file-count-bound"
-  | "exceeds-byte-bound"
-  | "exceeds-nesting-depth"
-  | "parse-failed"
-  | "unreadable";
+/**
+ * The closed set of refusals, as data. A consumer reading a refusal that
+ * crossed a process boundary checks membership against this rather than
+ * asserting the string into the union -- an unchecked assertion is what let
+ * the child and the Service drift onto different vocabularies.
+ */
+export const DECLARED_READ_REFUSALS = [
+  "outside-permitted-read-surface",
+  "exceeds-file-count-bound",
+  "exceeds-byte-bound",
+  "exceeds-nesting-depth",
+  "parse-failed",
+  "unreadable",
+] as const;
+
+export type DeclaredReadRefusal = (typeof DECLARED_READ_REFUSALS)[number];
 
 export type ParseAttribution = "repository" | "Studio" | "network";
 
@@ -120,85 +159,6 @@ function refused(
     diagnostic,
     stop: PARSE_FAILURE_STOP_REASONS[subject],
   };
-}
-
-/**
- * The maximum bracket nesting in a JSON document, measured over the text
- * **before it is parsed**.
- *
- * AC-0056 requires the bound to be enforced before the recursion it guards, and
- * `JSON.parse` is itself that recursion: a document deep enough to exhaust the
- * stack does so inside the parser, before any guard placed after it could run.
- * Counting brackets outside string literals is the only check that precedes it.
- *
- * The scan stops as soon as the bound is exceeded, so a hostile document costs
- * no more than the prefix it takes to refuse it.
- */
-export function jsonTextNestingDepth(text: string, stopAt: number): number {
-  let depth = 0;
-  let deepest = 0;
-  let inString = false;
-  let escaped = false;
-  for (const character of text) {
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (character === "\\") {
-        escaped = true;
-      } else if (character === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (character === '"') {
-      inString = true;
-      continue;
-    }
-    if (character === "{" || character === "[") {
-      depth += 1;
-      deepest = Math.max(deepest, depth);
-      if (deepest > stopAt) {
-        return deepest;
-      }
-      continue;
-    }
-    if (character === "}" || character === "]") {
-      depth -= 1;
-    }
-  }
-  return deepest;
-}
-
-/**
- * The structural depth of an already-parsed document, walked with an explicit
- * stack rather than by recursion, and abandoned as soon as the bound is passed.
- * Nothing here recurses, so the bound is enforced rather than merely reported.
- */
-export function documentNestingDepth(
-  document: unknown,
-  stopAt: number,
-): number {
-  let deepest = 0;
-  const pending: { node: unknown; depth: number }[] = [
-    { node: document, depth: 0 },
-  ];
-  while (pending.length > 0) {
-    const { node, depth } = pending.pop() as { node: unknown; depth: number };
-    if (node === null || typeof node !== "object") {
-      continue;
-    }
-    deepest = Math.max(deepest, depth + 1);
-    if (deepest > stopAt) {
-      return deepest;
-    }
-    const children = Array.isArray(node)
-      ? node
-      : Object.keys(node).map((key) => (node as Record<string, unknown>)[key]);
-    for (const child of children) {
-      pending.push({ node: child, depth: depth + 1 });
-    }
-  }
-  return deepest;
 }
 
 /**

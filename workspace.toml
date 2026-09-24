@@ -51,6 +51,58 @@ open = [
   # the condition for reopening and this is a second, independent trigger.
   # Evidence: notes/verification-ledger.md#review-round-29-2026-09-18.
   { slug = "liveness-read-fails-open-to-reclaim", source = "connect-and-orient/2026-09-18" },
+  # The northbound transport line buffer accepts unbounded bytes. Owner decision
+  # of 2026-09-23 routed this out of T15 rather than widening a locked plan; the
+  # ledger said "routed to Follow-ons" and round 13's security review found the
+  # routing had reached no durable record, which this entry is.
+  # validator.ts consume() appends every chunk to `this.buffer` and only looks
+  # for a newline, so the pre-parse depth guard runs per line, after the whole
+  # line is already buffered -- a northbound stream that never emits a newline
+  # grows the Electron main process's heap without limit. AC-0056 names this
+  # line a parse of attacker-influenced structure, and AC-0037's 8 MiB refusal
+  # "while being read, before a full buffer exists" is the precedent shape for
+  # the mirror case on the trial-result path. Not reachable today, but not
+  # because repository content stays off this stream -- a repository-derived
+  # diagnostic does travel it, bounded in runtime-supervisor.ts. What holds is
+  # the framing: only the Service writes this stream and it newline-frames
+  # every message, so the unbounded no-newline case has no producer.
+  # Needs a spec-backed change, because a bound needs a new *Resource bounds*
+  # row naming its mechanism and owner, and the spec is immutable during
+  # implementation.
+  # Evidence: notes/verification-ledger.md#t15-owner-decisions-2026-09-23.
+  { slug = "northbound-line-buffer-has-no-byte-bound", source = "connect-and-orient/2026-09-23" },
+  # The spec's Follow-ons enumeration pins six parse sites by file and line, and
+  # nothing resolves them. Raised by the 2026-09-23 pre-EXECUTE review of the
+  # pin-repair amendment and routed out of it, because either repair is wider
+  # than the authorization that amendment carried.
+  # The entry has drifted twice from ordinary edits -- 4d0fef7 moved two pins
+  # seven lines, and a later round moved a third -- and each time the spec kept
+  # pointing at unrelated code while every gate stayed green. pnpm governance
+  # runs ADR and RFC checks only; spec-coupling-check resolves tables and
+  # criterion citations, not file:line; criterion-trace is not in pnpm verify.
+  # Two candidate repairs, both needing an owner decision: pin by a resolvable
+  # symbolic handle, which needs a second convention because two of the sites
+  # are module-scope with no enclosing function; or keep line pins and add a
+  # gate that resolves them. The spec calls this entry "the single enumeration
+  # of the sites that rule excludes", so a reader follows the pins.
+  # Evidence: notes/verification-ledger.md#amendment-2026-09-23-followons-pin-repair.
+  { slug = "followons-line-pins-have-no-resolving-gate", source = "connect-and-orient/2026-09-23" },
+  # Thirty of the sixty-four retained visual captures are nondeterministic, so
+  # the baseline cannot detect a regression on the surfaces they cover. Found
+  # on 2026-09-23 while running T13's Stage 2 evidence: two consecutive runs of
+  # the same commit differ in 30 of 64 scenarios, with every difference the
+  # image digest alone -- no control count, overflow, viewport, text scale,
+  # scheme or motion value moves.
+  # The split is sharp and points somewhere: `connect` is stable 8 of 8 and
+  # `module` 6 of 8, while `reviews`, `strategy` and `studio` are stable only
+  # in their `text-200` variant, 1 of 8 each. Whatever varies is on those three
+  # screens and is suppressed at 200% text scale, which is the thread to pull.
+  # Consequence: a future diff on those screens is indistinguishable from noise,
+  # so those captures are retained without being a baseline. The connect
+  # surfaces this slice owns are unaffected and were byte-identical to the
+  # 2026-09-22 set.
+  # Evidence: notes/verification-ledger.md#t13-stage-2-visual-evidence-2026-09-23.
+  { slug = "visual-captures-are-nondeterministic-on-three-surfaces", source = "connect-and-orient/2026-09-23" },
   # Spawn-failure sentinel reaches a signal site as pid 1. Found by round 31's
   # secure-design review of Package 4 and routed out by owner decision rather
   # than widening that amendment, which does not touch this file.
@@ -102,12 +154,12 @@ open = [
   # secure-design review of Package 4 and routed out by owner decision rather
   # than widening that amendment. removeEntry in per-request-state-root.ts
   # recurses per directory level with try blocks wrapping only the syscalls,
-  # and the recursive call in the loop at :356-358 is outside them, so a
+  # and the recursive call in the loop at :362-364 is outside them, so a
   # RangeError from stack exhaustion on a sufficiently deep tree escapes
   # removePerRequestStateRoot and sweepDomain, abandoning the remaining
   # candidates and their AC-0083 diagnostics unswept. The child's mirrored
   # recursion does NOT carry this: its recursion sits inside the try at
-  # :245-260 and degrades to intact = false. Pre-existing -- limbs 1 and 2
+  # runtime-child.ts:269-282 and degrades to intact = false. Pre-existing -- limbs 1 and 2
   # already traversed arbitrary trees -- and it needs the sweep domain's own
   # uid, which is a path that can already write the tree. Adjudication recorded
   # the proposed mechanism as absent: the required outcome is that stack
@@ -115,22 +167,25 @@ open = [
   # recorded as an accepted residual with its ground, and which is the owner's
   # choice. Evidence: notes/verification-ledger.md#review-round-36-2026-09-18.
   { slug = "connect-orient-sweep-walk-depth-bound", source = "connect-and-orient/2026-09-18" },
-  # The result carries no stop reason, wait window or secondary diagnostic, so
-  # five criteria are verified at the projection and have no user-visible
-  # realization. Found by the T12/T13 review of Package 4 and routed out rather
-  # than widening that slice, because carrying them needs fields on
-  # `sourceInspectionResultSchema` and the canonical schema, which is the
-  # protocol approval path T8 straddles. Specifically: AC-0088's human reason is
-  # never composed with the `inspection-stopped` label, though the spec requires
-  # it "in both the rendered surface and the announcement"; AC-0091 and AC-0092
-  # fall away for that state, because `project()` supplies attribution and
-  # retryability only when a reason is passed; AC-0097's wait window is never
-  # shown; and AC-0099's `secondaryDiagnostic` reaches no surface. The
-  # projection already computes all four -- `state-vocabulary.ts` STOP_REASONS
-  # and the `waitWindow`/`secondaryDiagnostic` fields -- so the work is carrying
-  # them over the boundary, not deriving them.
-  # Evidence: notes/verification-ledger.md#t12-composition-2026-09-19.
-  { slug = "connect-orient-result-carries-no-reason-or-wait-window", source = "connect-and-orient/2026-09-19" },
+  # A restored result loses the three fields the live result now carries. The
+  # owner approved `stopReason`, `waitWindow` and `secondaryDiagnostic` onto
+  # `sourceInspectionResultSchema` and the canonical schema, and they render --
+  # so AC-0097 and AC-0099 hold for a result the lead is watching. AC-0088,
+  # AC-0091 and AC-0092 do NOT: they need a stop reason to arrive, and nothing
+  # resolves one (see `connect-orient-stop-reason-never-resolved`). An earlier
+  # version of this comment claimed all five; corrected 2026-09-20 after the
+  # audit. The stored record has no column for any of the three, so
+  # `createStorageStore`'s read sets them null explicitly and says why at the
+  # site. After a restart the same five criteria degrade: the lead sees the
+  # verdict and its diagnostics, and an `inspection-stopped` result loses the
+  # reason that distinguishes a resolution timeout from an unusable branch
+  # name. Closing it is a storage migration -- three columns, a schema version
+  # and a read-back across a reopened database -- which the owner's protocol
+  # approval did not cover. Owner routed it here on 2026-09-20 rather than
+  # widening this slice.
+  # Evidence: notes/verification-ledger.md#t12-result-fields-2026-09-19 and
+  # notes/verification-ledger.md#acceptance-audit-2026-09-20.
+  { slug = "connect-orient-restored-result-drops-reason-and-wait-window", source = "connect-and-orient/2026-09-20" },
   # No trusted inspector runs against the materialized tree, so the verdict
   # derivation (AC-0061 to AC-0068) is composed and unit-tested but unexercised
   # end to end: every real inspection returns `inspector-unavailable`. The
@@ -140,8 +195,125 @@ open = [
   # is recorded so the gap is not read as a defect in the derivation.
   # Evidence: notes/verification-ledger.md#t12-composition-2026-09-19.
   { slug = "connect-orient-no-inspector-runs", source = "connect-and-orient/2026-09-19" },
+  # AC-0088, AC-0091 and AC-0092 need the reason an inspection stopped to reach
+  # the surface. The field crosses the wire and the projection and renderer both
+  # consume it correctly -- two reasons under one condition render different
+  # attributions, which a case asserts. Nothing populates it: no production site
+  # maps a terminating condition to a `StopReasonKey`, and `trial-result.ts`
+  # carries a separate, unmapped `TrialStopReason` union. So a real stopped
+  # inspection reaches the lead with no attribution and no retryability.
+  # Found by the 157-criterion audit.
+  # Evidence: notes/acceptance-audit.md, finding 2.
+  { slug = "connect-orient-stop-reason-never-resolved", source = "connect-and-orient/2026-09-20" },
+  # AC-0148 says the default suite reaches no network, and it does.
+  # apps/desktop/src/e2e/connect-and-orient.test.ts submits an accepted URL with
+  # no `skipIf`, while that file's own docblock says accepted cases are gated
+  # behind CONNECT_ORIENT_E2E_NETWORK=1; its two networked siblings carry the
+  # gate. `connect` returns synchronously and runs the pipeline behind it, so
+  # the assertion passes while `git ls-remote` goes to github.com.
+  # There are TWO such cases, not one: `:86-103` and `:140-161`. An earlier
+  # version of this entry and of the audit named only the first, and rested
+  # the rationale below on it being the only one.
+  # Left open for an owner decision rather than fixed: gating both removes the
+  # only default-gate cases binding accepted dispatch, which is the artifact
+  # the retraction exists to preserve, so keeping both properties needs a
+  # transport injected into the spawned service. That is a design call, not a
+  # two-line gate. Found by the 157-criterion audit; the undercount was found
+  # by the round-13 adversarial reviewer.
+  # Evidence: notes/acceptance-audit.md, finding 5.
+  { slug = "connect-orient-default-suite-reaches-the-network", source = "connect-and-orient/2026-09-20" },
+  # No test can reach any logic inside apps/desktop/tools/visual-evidence.mjs.
+  # The module refuses at import without VISUAL_EVIDENCE_ROOT and then runs a
+  # multi-minute capture, so `settleRender` and the `tokens.css` reader --
+  # both pure enough to unit test -- are reachable only by running the whole
+  # harness. Six defects in those two functions were found by review rather
+  # than by a test on 2026-09-20, each of which a fixture table would have
+  # caught in seconds:
+  #   1. `settleRender` read its baseline after the action rather than before,
+  #      so it could not tell an arrived surface from a pending one.
+  #   2. It required a change from a click that correctly changes nothing.
+  #   3. It latched "changed", so a transient that settled back to the
+  #      pre-click state was reported as arrived -- fixed on one branch first
+  #      and on the other two rounds later.
+  #   4. Its deadline message chose on the wrong variable and could say
+  #      "never changed" for a document that was visibly churning.
+  #   5. The `tokens.css` reader said "found 0 declarations" for a `:root`
+  #      block it had never located, and a strictness edit for it was recorded
+  #      as applied while never being in the tree.
+  #   6. The replacement deadline message asserted a transition the function
+  #      cannot observe once the latch is gone -- that the document had
+  #      settled *back* to its pre-click state, which it cannot distinguish
+  #      from never having moved.
+  # Six, and the count has been one behind twice; a fixture table would make
+  # it unnecessary to count at all.
+  #
+  # Those two functions are not the whole of it. Also untested, and higher
+  # cost, both in visual-evidence.mjs and named by function rather than by
+  # line, because the line numbers written for them in an earlier version had
+  # already drifted by the same commit that wrote them: the evidence server's
+  # directory-confinement check on a requested path, and the publish sequence
+  # -- the swap of `<root>.next` into place, its stranded-set recovery on a
+  # prior interrupted run, and its rollback. That publish path is the one
+  # that actually replaced a Shipped spec's retained captures on 2026-09-20
+  # and it still has no test.
+  #
+  # The seam that blocks extraction is module-scope execution: the env guard,
+  # PUBLIC_GITHUB_ONLY_REFUSAL, PRODUCT_ROOT_FONT_PX, `mkdtempSync` and both
+  # `spawn` calls all run at import, so nothing in the file can be imported
+  # at all. The first enabling move is to lift the pure units into sibling
+  # modules and leave the runner as composition, which is the shape
+  # `apps/desktop/tools/delta-e2000.ts` and its test already use.
+  # `apps/desktop/tools/delta-e2000.ts` with its sibling test is the shape
+  # this repository already uses for a tested tool module. Raised by the
+  # round-8 quality reviewer, who scoped it explicitly as separate work
+  # rather than part of that diff.
+  # Evidence: notes/verification-ledger.md#review-round-46-2026-09-20.
+  { slug = "visual-evidence-harness-logic-is-untestable", source = "connect-and-orient/2026-09-20" },
+  # The next connect-and-orient slice, chosen by the owner on 2026-09-22 from
+  # the 157-criterion audit's clusters. Wire the modules that are written,
+  # unit-tested and reached by nothing, which is the defect class that caused
+  # the T12/T13 retraction and is still the largest single cause of unmet
+  # criteria.
+  #
+  # Closes 19 open criteria directly -- AC-0012, AC-0032, AC-0034 to AC-0038,
+  # AC-0043 to AC-0046, AC-0048, AC-0054 to AC-0057, AC-0059, AC-0060,
+  # AC-0155 -- plus AC-0088, AC-0091 and AC-0092 once a terminating condition
+  # resolves to a StopReasonKey, and AC-0148 is adjacent because the e2e
+  # cases that would exercise the wired path are the ungated ones. 23
+  # distinct criteria.
+  #
+  # The modules: locateTrustedInspector and selectConformingInterpreter
+  # (inspector-locator.ts), readDeclaredValues and normalizeDeclared
+  # (declared-value-reader.ts), normalizeTrialResult, BoundedResultReader,
+  # BoundedDiagnosticBuffer and observedVersions (trial-result.ts),
+  # buildNorthboundRequest (trial-enrichment-seam.ts), and materializeRevision
+  # (git-driver.ts). Each has zero production callers today.
+  #
+  # Two of them are resource bounds at a trust boundary and are the reason
+  # this is not purely a wiring exercise: the Service's real readers
+  # accumulate child stdout and stderr without limit while the child
+  # materializes repository-controlled content.
+  #
+  # Evidence: notes/acceptance-audit.md, findings 1, 2, 3 and 5.
+  { slug = "connect-orient-wire-the-uncalled-modules", source = "connect-and-orient/2026-09-22" },
 ]
-closed = []
+closed = [
+  # Closed 2026-09-20, and narrower than first written. The owner-approved
+  # protocol change at notes/verification-ledger.md#t12-result-fields-2026-09-19
+  # put `stopReason`, `waitWindow` and `secondaryDiagnostic` on the canonical
+  # schema and its Zod mirror, and the surface renders them. That closes
+  # AC-0097 and AC-0099, which the 157-criterion audit confirms met.
+  # It does NOT close AC-0088, AC-0091 or AC-0092: those need a stop reason to
+  # actually arrive, and no production site maps a terminating condition to a
+  # `StopReasonKey` -- `source-inspection.ts` returns `inspection-stopped` with
+  # no reason at :296, :498 and :535, so the field is always null on the wire.
+  # The audit records all three not met and `spec.md` leaves them unchecked.
+  # An earlier version of this entry claimed all five; corrected after the
+  # adversarial reviewer caught the register contradicting the audit committed
+  # beside it. The unresolved half is tracked at
+  # `connect-orient-stop-reason-never-resolved` in the `open` array.
+  { slug = "connect-orient-result-carries-no-reason-or-wait-window", source = "connect-and-orient/2026-09-19" },
+]
 
 ["ini-001"]
 name      = "Studio Foundation and Workspace Kernel"

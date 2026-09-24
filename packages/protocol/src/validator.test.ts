@@ -3,6 +3,7 @@ import { PassThrough } from "node:stream";
 
 import { describe, expect, it } from "vitest";
 
+import { PARSE_NESTING_DEPTH_BOUND } from "./guarded-parse.js";
 import { StudioTransport, validateRequest } from "./validator.js";
 
 describe("validateRequest", () => {
@@ -28,6 +29,452 @@ describe("validateRequest", () => {
         },
       },
     });
+  });
+});
+
+describe("validateRequest resolves a method name", () => {
+  it("refuses an inherited property name instead of throwing", () => {
+    // `requestSchemas` is a plain object literal, so `in` was true for every
+    // `Object.prototype` name and the `safeParse` below it read off an
+    // inherited member and threw. This site's answer is a refusal, and a throw
+    // here escapes `dispatchRequest` above its own `try` and ends the Service
+    // read loop rather than returning method-not-found.
+    for (const method of [
+      "toString",
+      "valueOf",
+      "constructor",
+      "hasOwnProperty",
+      "__proto__",
+      "propertyIsEnumerable",
+    ]) {
+      const result = validateRequest({
+        jsonrpc: "2.0",
+        id: "request-1",
+        method,
+        params: {},
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error("expected a refusal");
+      expect(result.error.data.issues[0]?.message).toBe("Unknown method");
+    }
+  });
+});
+
+describe("StudioTransport guards the northbound envelope", () => {
+  // AC-0056 and AC-0057 at the transport call site. The helper's own coverage
+  // is in guarded-parse.test.ts; these drive the real transport, because a
+  // guard proven only for the helper is not proven where it is used.
+
+  it("AC-0056 refuses a line past the parse nesting-depth bound and yields no value", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", () => {
+      // Structurally a valid notification, so the pre-existing shape check
+      // cannot be what answers it -- only the depth bound can. Without the
+      // guard this parses, fails strict params validation, is dropped
+      // silently, and the pending request times out instead.
+      const depth = PARSE_NESTING_DEPTH_BOUND + 1;
+      let params = "1";
+      for (let level = 0; level < depth; level += 1) {
+        params = `{"a":${params}}`;
+      }
+      responses.write(
+        `{"jsonrpc":"2.0","method":"workspace.created","params":${params}}\n`,
+      );
+    });
+
+    // The owner's recorded answer for a framing fault: the guard yields no
+    // value and the existing disconnect stands, which rejects the in-flight
+    // request rather than failing only that one line.
+    await expect(transport.request("health.get", {})).rejects.toMatchObject({
+      kind: "disconnected",
+    });
+    transport.shutdown();
+  });
+
+  it("AC-0057 drops an inadmissible key before the envelope is validated", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    const seen: Record<string, unknown>[] = [];
+    const sentinelArrived = new Promise<void>((settle) => {
+      transport.subscribe("workspace.created", (params) => {
+        const received = params as unknown as Record<string, unknown>;
+        seen.push(received);
+        // Settle on the stream rather than on a fixed delay. The two
+        // notifications are written to one stream in order, so the second
+        // arriving means the first was already admitted or rejected; keying on
+        // the sentinel rather than on a count keeps a removed guard a failed
+        // assertion below instead of a timeout.
+        if (received.workspaceId === "clean") {
+          settle();
+        }
+      });
+    });
+
+    const base = {
+      protocolVersion: "1",
+      occurredAt: "2026-09-23T12:00:00.000Z",
+    };
+    // The hostile notification is valid apart from the inadmissible key. The
+    // guard drops that key, so strict params validation admits it and the
+    // subscriber sees it. Without the guard the extra own key survives, strict
+    // validation rejects the notification, and it never arrives -- so its
+    // arrival is what binds the guard here.
+    responses.write(
+      `${JSON.stringify({
+        jsonrpc: "2.0",
+        method: "workspace.created",
+        params: {
+          ...base,
+          workspaceId: "hostile",
+          ["__proto__"]: { polluted: true },
+        },
+      })}\n`,
+    );
+    responses.write(
+      `${JSON.stringify({
+        jsonrpc: "2.0",
+        method: "workspace.created",
+        params: { ...base, workspaceId: "clean" },
+      })}\n`,
+    );
+    await sentinelArrived;
+
+    const ids = seen.map((params) => params.workspaceId);
+    expect(ids).toContain("clean");
+    expect(ids).toContain("hostile");
+    for (const params of seen) {
+      expect(Object.hasOwn(params, "__proto__")).toBe(false);
+    }
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    transport.shutdown();
+  });
+
+  it("AC-0056 admits a line at exactly the bound", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      // Paired with the over-bound case above, so the comparison itself is
+      // bound at this site and not only at the helper and the protocol-line
+      // site. The envelope is the first level, so `params` carries the
+      // remaining `bound - 1` and the line measures exactly the bound.
+      let params = "1";
+      for (let level = 0; level < PARSE_NESTING_DEPTH_BOUND - 1; level += 1) {
+        params = `{"a":${params}}`;
+      }
+      responses.write(
+        `{"jsonrpc":"2.0","method":"workspace.created","params":${params}}\n`,
+      );
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            kind: "health",
+            status: "ok",
+            protocolVersion: "1",
+          },
+        })}\n`,
+      );
+    });
+
+    // The pending request is the observable. An admitted line is a valid
+    // notification whose params fail validation, which returns quietly, so the
+    // result behind it still resolves. A `>=` mutant refuses the line in the
+    // guard instead, and a guard refusal at this site disconnects and rejects
+    // every pending request -- so this settles as `disconnected` rather than
+    // resolving. Asserting on a later notification could not bind it, because
+    // `disconnect` does not stop the stream being consumed.
+    await expect(transport.request("health.get", {})).resolves.toMatchObject({
+      kind: "health",
+    });
+    transport.shutdown();
+  });
+
+  it("AC-0057 resolves a method name only against declared methods", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      // `toString` is an own property of no schema table and an inherited
+      // property of every object literal. With `in`, this passed the
+      // membership test and `safeParse` was then read off
+      // `Object.prototype.toString` -- a function with no such method. The
+      // throw left `consume` inside the readable's data listener, which the
+      // repository installs no `uncaughtException` handler for, so it ended
+      // the host process rather than taking this site's disconnected outcome.
+      responses.write('{"jsonrpc":"2.0","method":"toString","params":{}}\n');
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          result: { kind: "health", status: "ok", protocolVersion: "1" },
+        })}\n`,
+      );
+    });
+
+    // The pending request is the observable: an undeclared method name is
+    // ignored quietly, so the result written behind it still resolves. Under
+    // the `in` form the throw unwinds out of `consume` through the stream
+    // write, whose catch rejects the pending request -- so it settles as
+    // `disconnected`, not as a timeout.
+    await expect(transport.request("health.get", {})).resolves.toMatchObject({
+      kind: "health",
+    });
+    transport.shutdown();
+  });
+
+  it("AC-0057 rebuilds the error payload a caller receives", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32602,
+            message: "Invalid params",
+            data: { kind: "validation", issues: [{ path: "a", message: "b" }] },
+          },
+        })}\n`,
+      );
+    });
+
+    const refusal = await transport.request("health.get", {}).then(
+      () => undefined,
+      (cause: unknown) => cause as { data?: unknown },
+    );
+
+    // The transport's second consumer boundary. `error.data` resolves to the
+    // caller of `request` and to the desktop IPC reply, and it used to be the
+    // parsed subtree itself. AC-0057's third clause at this site: what leaves
+    // is built from the fields the contract declares for this code, so an
+    // ordinary prototype is what proves the caller holds a fresh construction
+    // rather than the guarded parse -- forwarding `message.error.data` again
+    // reddens this, because the guard nulls that object's prototype.
+    expect(refusal?.data).toMatchObject({ kind: "validation" });
+    expect(Object.getPrototypeOf(refusal?.data as object)).not.toBeNull();
+    transport.shutdown();
+  });
+
+  it("AC-0057 delivers a -32002 resource payload through to the caller", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32002,
+            message: "Revision base is not a Product Intent",
+            data: {
+              kind: "resource",
+              resourceType: "artifact-revision",
+              id: "revision-not-intent",
+            },
+          },
+        })}\n`,
+      );
+    });
+
+    const refusal = await transport.request("health.get", {}).then(
+      () => undefined,
+      (cause: unknown) => cause as { data?: { id?: string } },
+    );
+
+    // The Service-side case in `service.integration.test.ts` asserts what the
+    // Service emits; this is the other half, the observable a caller actually
+    // gets. The rebuild is keyed by code, so a wrong `-32002` row would leave
+    // the emission green and drop the payload here -- which is exactly what
+    // happened to this refusal while it rode the wrong code.
+    expect(refusal?.data).toMatchObject({
+      kind: "resource",
+      resourceType: "artifact-revision",
+      id: "revision-not-intent",
+    });
+    transport.shutdown();
+  });
+
+  it("AC-0057 yields no error payload a declared shape does not admit", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32602,
+            message: "Invalid params",
+            data: {
+              kind: "validation",
+              issues: [],
+              invented: "carried nowhere",
+            },
+          },
+        })}\n`,
+      );
+    });
+
+    const refusal = await transport.request("health.get", {}).then(
+      () => undefined,
+      (cause: unknown) =>
+        cause as { kind?: string; code?: number; data?: unknown },
+    );
+
+    // Refused whole rather than trimmed, which is how this site answers every
+    // other payload that does not match its declared shape. The code and
+    // message still reach the caller, so the refusal costs only the payload.
+    // `null`, not `undefined`: that is this class's own absent value for the
+    // field, which its constructor defaults to.
+    expect(refusal?.data).toBeNull();
+    expect(refusal?.kind).toBe("service");
+    expect(refusal?.code).toBe(-32602);
+    transport.shutdown();
+  });
+
+  it("AC-0057 materializes an unnormalized error payload without a prototype", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    requests.once("data", (chunk) => {
+      const request = JSON.parse(String(chunk)) as { id: string };
+      // A code the contract does not declare. Normalization is keyed by code,
+      // so this payload is the one value at this site that still crosses as
+      // the guarded parse built it -- which the owner accepted on
+      // 2026-09-23, because the contract names no envelope for such a code.
+      responses.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32099,
+            message: "Undeclared",
+            data: { nested: { leaf: 1 } },
+          },
+        })}\n`,
+      );
+    });
+
+    const refusal = await transport.request("health.get", {}).then(
+      () => undefined,
+      (cause: unknown) => cause as { data?: { nested?: object } },
+    );
+
+    // So this is where AC-0057's null-prototype clause is observable at this
+    // site, and the only place: every normalized path replaces the parsed
+    // object with a schema-built one carrying an ordinary prototype. Removing
+    // the guard's rebuild leaves these prototypes ordinary and reddens.
+    expect(refusal?.data).toBeDefined();
+    expect(Object.getPrototypeOf(refusal?.data as object)).toBeNull();
+    expect(Object.getPrototypeOf(refusal?.data?.nested as object)).toBeNull();
+    transport.shutdown();
+  });
+
+  it("AC-0057 delivers a freshly normalized envelope, not the parsed line", async () => {
+    const responses = new PassThrough();
+    const requests = new PassThrough();
+    const transport = new StudioTransport(
+      { readable: responses, writable: requests },
+      100,
+    );
+
+    let delivered: Record<string, unknown> | undefined;
+    const arrived = new Promise<void>((settle) => {
+      transport.subscribe("workspace.created", (params) => {
+        delivered = params as unknown as Record<string, unknown>;
+        settle();
+      });
+    });
+
+    responses.write(
+      `${JSON.stringify({
+        jsonrpc: "2.0",
+        method: "workspace.created",
+        params: {
+          protocolVersion: "1",
+          occurredAt: "2026-09-23T12:00:00.000Z",
+          workspaceId: "fresh",
+          invented: "carried nowhere",
+        },
+      })}\n`,
+    );
+    responses.write(
+      `${JSON.stringify({
+        jsonrpc: "2.0",
+        method: "workspace.created",
+        params: {
+          protocolVersion: "1",
+          occurredAt: "2026-09-23T12:00:00.000Z",
+          workspaceId: "fresh-2",
+        },
+      })}\n`,
+    );
+    await arrived;
+
+    // AC-0057's third clause at this site. The guard rebuilds the parsed line
+    // with a null prototype, and strict validation then builds the envelope a
+    // subscriber receives from the schema's named fields alone. So the
+    // delivered object carrying an ordinary prototype is what proves it is a
+    // fresh construction rather than the parsed line handed on: handing
+    // `message.params` to the listener instead of the validated value reddens
+    // here, and nothing a line invented beyond the named fields can travel.
+    expect(delivered).toBeDefined();
+    expect(Object.getPrototypeOf(delivered as object)).not.toBeNull();
+    // The first notification is the one that carried the invented field, and
+    // strict validation refused the whole envelope rather than trimming it, so
+    // the subscriber's first delivery is the clean one. That is what binds the
+    // refuse-rather-than-trim behaviour; an assertion that the delivered
+    // object lacks the invented field could not fail, because the envelope
+    // carrying it never reaches a subscriber under any mutant.
+    expect(delivered?.workspaceId).toBe("fresh-2");
+    transport.shutdown();
   });
 });
 
