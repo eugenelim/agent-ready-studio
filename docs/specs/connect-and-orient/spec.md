@@ -509,7 +509,7 @@ assisted authoring and has known false negatives.
 
 ### Trusted inspector
 
-- [ ] **AC-0043.** Studio records the trusted inspector's resolved path, pack name, pack version and the SHA-256 of both inspector files with each inspection.
+- [x] **AC-0043.** Studio records the trusted inspector's resolved path, pack name, pack version and the SHA-256 of both inspector files with each inspection.
 - [x] **AC-0044.** An inspector whose pack name, version or file digests do not match the pin in *Canonical values* yields `inspector-unavailable` naming the mismatch, rather than being used.
 - [x] **AC-0045.** Studio refuses an inspector whose resolved real path lies inside the materialization root.
 - [x] **AC-0046.** Studio verifies the resolved Python interpreter reports version 3.11 or later before using it to inspect.

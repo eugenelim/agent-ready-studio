@@ -8802,7 +8802,114 @@ exactly the residue `tools/acceptance-audit-counts.py` records as out of reach i
 docstring: it catches a citation that cannot resolve, not one resolving to the wrong place. So on
 the round that most changed a cited file, the human check was the only check, and it failed.
 
-The rows are recomputed against describe boundaries rather than remembered ranges. The general
-exposure stands and is worth stating plainly: **any round that adds cases to a cited file
-invalidates that file's citations silently.** Recomputing them belongs in the same step as
-running the gate, not in the step that edits prose.
+**The rule first recorded here was narrower than the defect, and the next round proved it.** It
+said "any round that adds cases to a cited file invalidates that file's citations silently" —
+stated in terms of *cases*, read as a property of test files, and duly missed the fact that the
+same rows' **production** citations had broken on the very round that fixed their test citations.
+Twelve citations across ten rows, six of them for criteria neither Step C nor Step D touched.
+
+The general form needs no mention of tests: **any insertion into any cited file invalidates every
+citation below it, in every row, whether or not that row is the one being edited.**
+
+**Remapping them mechanically found the true scale.** Building a `difflib` correspondence from
+each cited file at `HEAD` to the file now, and moving each citation by the same amount, corrected
+**116 citation parts** — drift accumulated silently across the session, in rows nobody had
+touched. A further 24 pointed at lines the work had deleted and were repaired to the next
+substantive line.
+
+**Two mechanical gates for the residue were attempted and both were unsound.** They are recorded
+because the second looked convincing and produced a confident, entirely false number.
+
+The first asked whether the *row* had been edited when a cited file changed. Its negative
+control — inserting a line at the top of a cited file — produced **no finding at all**, because
+the check skips rows the audit itself has edited and every round that moves criteria edits most
+of them.
+
+The second compared each citation against the `HEAD`-to-now line map. That is sound only while
+the citations are still expressed in `HEAD` terms; the moment one is corrected it holds a
+*current* line number, and mapping a current number through a base-to-current map yields a number
+about nothing. It reported **244 drifted citations on a tree whose citations had just been
+remapped correctly** — every one an artifact of the check.
+
+**So the class stays open, and the reason is in the script rather than in this entry alone.** The
+table does not record what a citation is *for*. A line number is a claim about current content,
+nothing knows what content was meant, and no amount of diff arithmetic can confirm it. Closing it
+needs the rows to carry something verifiable — a symbol name, a snippet — which is a change to
+the table's schema and an owner's call, registered at
+`connect-orient-audit-citations-record-no-verifiable-anchor`.
+
+## owner-approved-carried-items-2026-09-25
+
+The five items Step C and Step D carried out to the owner, all five authorized and all five
+closed. Four needed no contract change; two shared one.
+
+**The contract change, serving two items at once.** `sourceInspectionResult` gains
+`declaredVersionState` (`declared` / `absent` / `unreadable`) and `inspector` (the four AC-0043
+values, or null). Both are added to the canonical JSON Schema, mirrored in the Zod validator that
+`contracts.test.ts` holds at parity, and persisted by `connected_sources` schema **migration 4**.
+`readInspector` parses the identity back under guard rather than casting it.
+
+**AC-0043 is met.** The resolved path, pack name, pack version and both file digests now travel
+as a field. Before this they existed only inside the inspector-unavailable diagnostic sentence,
+and the two digests did not travel at all — two SHA-256 hashes in a sentence a lead reads are
+noise. `inspectorDiagnostic` returns the located identity beside its sentence rather than
+formatting it away.
+
+**Mutation proof, both directions.** `readInspector` returning `null` unconditionally reddens the
+storage round-trip (6 cases ran, 1 failed). The composition's `inspector: located?.inspector ??
+null` replaced with `null` reddens the locate suite (19 cases ran, 1 failed). A locator returning
+the pack identity with an empty digest map is caught separately by the digest-shape assertion.
+
+**The third state settles an inherited decision.** An unreadable declaration used to refuse the
+result on the `result-invalid-repository` row. It now reports `declaredVersionState:
+"unreadable"` and lets the inspection reach its ordinary no-inspector answer, so once an
+inspector runs a malformed `workspace.toml` still reaches it and can still be reported as
+`malformed`. AC-0059's carve-out keeps its letter and its intent, and
+`connect-orient-no-inspector-runs` inherits an answer instead of a decision.
+
+Three assertions hold the three states apart — `unreadable`, `absent` and `declared` each
+asserted on a separate run. Any one alone is satisfied by a constant.
+
+**A test that would have gone quietly vacuous was removed rather than left.** The stop-diagnostic
+distinctness set in `trial-result-line.test.ts` carried an unreadable-declaration entry. That
+entry now emits no stop diagnostic at all, so it would have passed while checking nothing. The
+set is one entry smaller and says why.
+
+**The install-root question is answered, not deferred.** This repository has no packaging step —
+no electron-builder or forge configuration exists — so the built layout is the only shipped
+layout. The desktop main process loads the service from `apps/studio-service/dist/service.js`,
+three directories below the pack state and inside the eight-directory walk.
+`inspector-locate.test.ts` runs that walk from the built directory rather than asserting the
+arithmetic about it. A real packaging slice reopens the question.
+
+**Citations can now carry a verifiable anchor.** `file.ts:192#symbol` fails the governance gate
+when the symbol is no longer inside the cited span. It is optional, so the table gains anchors a
+row at a time. Both directions are mutation-proven: an always-true `_anchor_in_span` misses the
+stale fixture, an always-false one flags the sound one, and the self-test's expected problem
+count moves 17 → 18.
+
+**Substring, not an identifier parse**, deliberately. A Python-side parse of TypeScript would be
+a second thing to keep correct for no gain. The cost is that a name appearing only in a comment
+inside the span satisfies the check; the job is catching a citation that drifted off its subject
+entirely, not grading precision.
+
+**The gate keeps its default and gains a second reading.** `pnpm test:capped` is
+`vitest run --maxWorkers=2`. Capping the default would slow every run for every contributor to
+hide a timing sensitivity worth seeing. `CONTRIBUTING.md` records the two signs that separate
+host-load flake from a real defect: a failing set that varies between runs, and each failing case
+passing on its own.
+
+**One failure this session looked like that flake and was not.** `index.test.ts` pins the applied
+migration list to keep a new migration deliberate, so migration 4 failed it — on a loaded host,
+inside a run whose other failures were genuine flake. The two signs did the work: it failed
+identically in isolation, at load, and alone.
+
+**The remapper is not idempotent, and running it twice cost a rebuild.** It maps index-line to
+worktree-line. Run once it is correct; run again on its own output it shifts every citation a
+second time by the same deltas. The recovery is to restore the audit from the index and redo the
+single pass — and to write new citations **after** the remap, never before, because a
+freshly-correct worktree citation is exactly what a second pass corrupts.
+
+**Gate.** `pnpm verify` exit 0 at host load 10 — **800 passed, 3 skipped**, 803 total. The same
+tree failed twice at loads of 27 and 31 with a varying set, and `pnpm test:capped` was green at
+load 11. The audit stands at **93 met of 157 rows**, every citation resolving.

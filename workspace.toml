@@ -212,10 +212,16 @@ open = [
   # condition, and AC-0059's carve-out loses its intent while keeping its
   # letter.
   #
-  # Two ways out, both contract decisions: let a malformed workspace
-  # declaration through to the inspector's finding, or give the trial result a
-  # third state for "marker not determined" so the absence and the finding can
-  # both be true. Evidence:
+  # **Settled 2026-09-25, so this slice inherits an answer rather than a
+  # decision.** The second option was taken: the result carries
+  # declaredVersionState beside the marker, `unreadable` means Studio could
+  # not determine what the repository declares and `absent` means it
+  # determined the repository declares none. An unreadable declaration no
+  # longer stops the inspection, so a malformed workspace.toml reaches the
+  # inspector and can still be reported as malformed -- AC-0059's carve-out
+  # keeps both its letter and its intent. What remains open here is only the
+  # original scope: AC-0061 to AC-0068 composed but unexercised, because no
+  # inspector runs. Evidence:
   # notes/verification-ledger.md#slice-f1-step-c-2026-09-24.
   { slug = "connect-orient-no-inspector-runs", source = "connect-and-orient/2026-09-19" },
   # AC-0088, AC-0091 and AC-0092 need the reason an inspection stopped to reach
@@ -359,77 +365,47 @@ open = [
   # AC-0073 stays not met on a new reason: the check it names is now performed
   # and no case can reach it.
   { slug = "connect-orient-wire-the-uncalled-modules", source = "connect-and-orient/2026-09-22" },
-  # Measured 2026-09-24. `pnpm verify` did not go green in thirteen
-  # consecutive attempts on a host carrying 54 users at a load average
-  # between 17 and 276, with 1 to 7 failures and a varying set every time --
-  # always the trial-runtime process-group suites. Capping vitest's workers
-  # settles it: `--maxWorkers=2` and `--maxWorkers=1` each gave 773 passed, 3
-  # skipped, 0 failed, and the one failure across three low-concurrency runs
-  # was an unrelated renderer test.
-  #
-  # So the suite passes in full and the gate's default concurrency is what
-  # fails. A detached worktree at ea7a96a, carrying none of the Step C work,
-  # flaked the same way, so this is not a regression -- it is
-  # pre-existing-trial-runtime-load-flake with its mechanism identified.
-  #
-  # The question for the owner is whether `pnpm test` should cap its own
-  # workers. Against: it hides real contention bugs and slows the gate
-  # (98s at 2 workers versus 28s at default when default succeeds). For: a
-  # gate that cannot pass on a loaded developer machine is a gate people
-  # learn to retry rather than read.
-  { slug = "connect-orient-gate-cannot-pass-at-default-concurrency", source = "connect-and-orient/2026-09-24" },
-  # AC-0043 wants Studio to record the trusted inspector's resolved path, pack
-  # name, pack version and the SHA-256 of both inspector files with each
-  # inspection. Step D locates the inspector on the live path and carries the
-  # first three to the lead in the inspector-unavailable diagnostic, which is
-  # a rendered sentence rather than a record, and it carries neither digest --
-  # two SHA-256 hashes in a sentence a lead reads would be noise.
-  #
-  # The obstacle is that there is nowhere structured to put them. The trial
-  # result has no field for inspector identity, and the source.get projection
-  # is the versioned public contract under contracts/. Adding a field to
-  # either is an owner call. Until then AC-0043 stays not met, and the value
-  # Step D did add is that the locator has a production caller at all.
-  { slug = "connect-orient-inspector-identity-has-nowhere-to-be-recorded", source = "connect-and-orient/2026-09-24" },
-  # studioInstallRoot() walks up at most eight directories from the module
-  # looking for .agentbundle-state.toml, and returns undefined when it finds
-  # none. In this worktree the walk always succeeds -- the repo root carries
-  # the pack state three levels above src/ and two above dist/ -- so the
-  # located branch is the development branch.
-  #
-  # Whether a packaged desktop build places the pack state within that walk's
-  # reach is NOT established anywhere, which means the untested branch is
-  # plausibly the shipped one. The branch now names itself rather than
-  # reporting the benign "no trusted inspector ran" sentence, and has a case,
-  # so the failure is visible if it happens -- but visible is not the same as
-  # known not to happen.
-  #
-  # Two things to settle: establish the packaged layout, and decide whether
-  # the heuristic is right at all. It returns the nearest ancestor that looks
-  # like a pack install, which need not be Studio's own.
-  { slug = "connect-orient-inspector-install-root-unproven", source = "connect-and-orient/2026-09-24" },
-  # spec.md's Reasons for inspection-stopped table says a malformed
-  # workspace.toml is NOT in it -- it is the malformed condition, from the
-  # inspector's own invalid_workspace finding. Step C's fix for the
-  # declares-none falsehood stops the inspection on an unparseable
-  # workspace.toml, carrying result-invalid-repository. That row is not the
-  # declaration-file row the exclusion names, so the exclusion's letter holds,
-  # and while no inspector runs the malformed condition is unreachable
-  # anyway -- the live choice was between asserting a falsehood and stopping,
-  # and stopping is better. But the sentence and the implementation now
-  # disagree and nothing else tracks it.
-  #
-  # Two ways to settle it, both owner calls: amend the sentence to admit the
-  # result-invalid-repository row for a refused workspace declaration while no
-  # inspector runs, or give the trial result a third state for "marker not
-  # determined" so no stop is needed. The second also settles the decision
-  # this hands the inspector slice, recorded on
-  # connect-orient-no-inspector-runs.
-  #
-  # Evidence: notes/verification-ledger.md#slice-f1-step-c-2026-09-24.
-  { slug = "connect-orient-malformed-workspace-declaration-stops-the-inspection", source = "connect-and-orient/2026-09-24" },
 ]
 closed = [
+  # Closed 2026-09-25. `pnpm test` keeps its default worker count and a
+  # documented `pnpm test:capped` (`vitest run --maxWorkers=2`) was added
+  # beside it. Capping the default would slow every run to hide a timing
+  # sensitivity worth seeing. CONTRIBUTING.md records the two signs that tell
+  # host-load flake from a real defect -- a failing set that varies between
+  # runs, and each failing case passing on its own -- so a loaded machine has
+  # a documented second reading rather than a gate people learn to retry.
+  { slug = "connect-orient-gate-cannot-pass-at-default-concurrency", source = "connect-and-orient/2026-09-24" },
+  # Closed 2026-09-25. The owner approved the contract change. AC-0043's four
+  # values now travel as a structured `inspector` field on the trial result,
+  # the `source.get` projection and the `connected_sources` row -- both
+  # digests included -- and schema migration 4 adds the columns. AC-0043 is
+  # met, bound by a deep-equality round-trip through storage and by the
+  # built-desktop startup test that pins the applied migration list.
+  { slug = "connect-orient-inspector-identity-has-nowhere-to-be-recorded", source = "connect-and-orient/2026-09-24" },
+  # Closed 2026-09-25 as answered, not as fixed. This repository has **no
+  # packaging step**: no electron-builder or forge configuration exists, and
+  # `pnpm build` emits `apps/desktop/out/` and `apps/studio-service/dist/`
+  # inside the tree. So the built layout is the only shipped layout, and the
+  # desktop main process loads the service from `studio-service/dist/`, three
+  # directories below the pack state and well inside the eight-directory
+  # walk. `inspector-locate.test.ts` runs that walk from the built directory
+  # rather than asserting the arithmetic. A real packaging slice reopens this.
+  { slug = "connect-orient-inspector-install-root-unproven", source = "connect-and-orient/2026-09-24" },
+  # Closed 2026-09-25. A citation may now carry a `#symbol` anchor --
+  # `inspector-locator.ts:192#locateTrustedInspector` -- and the governance
+  # gate fails when the symbol is no longer inside the cited span. The anchor
+  # is optional so the table gains them a row at a time rather than in one
+  # 390-citation rewrite; AC-0043's row carries the first six.
+  { slug = "connect-orient-audit-citations-record-no-verifiable-anchor", source = "connect-and-orient/2026-09-24" },
+  # Closed 2026-09-25 by the second of the two options, the third state. The
+  # result carries `declaredVersionState` beside the marker: `unreadable`
+  # says Studio could not determine what the repository declares, `absent`
+  # says it determined the repository declares none. An unreadable
+  # declaration no longer stops the inspection, so once an inspector runs a
+  # malformed `workspace.toml` still reaches it and can still be reported as
+  # `malformed` -- which is also the decision this had handed
+  # `connect-orient-no-inspector-runs`, now settled rather than inherited.
+  { slug = "connect-orient-malformed-workspace-declaration-stops-the-inspection", source = "connect-and-orient/2026-09-24" },
   # Closed 2026-09-20, and narrower than first written. The owner-approved
   # protocol change at notes/verification-ledger.md#t12-result-fields-2026-09-19
   # put `stopReason`, `waitWindow` and `secondaryDiagnostic` on the canonical

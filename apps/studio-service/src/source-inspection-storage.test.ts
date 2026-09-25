@@ -168,6 +168,8 @@ describe("AC-0104 the persisted-content bound", () => {
       resolvedSha: SHA,
       inspectedAt: "2026-09-19T00:00:00.000Z",
       declaredVersionMarker: null,
+      declaredVersionState: "absent",
+      inspector: null,
       inspectorContractVersion: null,
       diagnostics: huge,
       stopReason: null,
@@ -181,6 +183,45 @@ describe("AC-0104 the persisted-content bound", () => {
     expect(held?.diagnostics, "the breaching write replaced the record").toBe(
       "inspected cleanly",
     );
+    first.storage.close?.();
+  });
+
+  it("round-trips the inspector identity and the declared state", async () => {
+    // AC-0043. Before this, Studio identified the inspector it declined to
+    // run and had nowhere to record it: the four values existed only inside
+    // a diagnostic sentence, so nothing downstream could read them and no
+    // restart could recover them.
+    const path = databasePath();
+    const first = deps(clean, path);
+    const sources = createSourceInspections(first.dependencies);
+    const started = sources.connect("https://github.com/acme/widgets");
+    await settled();
+
+    const inspector = {
+      resolvedPath: "/studio/packs/core/scripts",
+      packName: "core",
+      packVersion: "2.26.14",
+      fileDigests: { "inspect.py": "a".repeat(64) },
+    };
+    const current = sources.get(started.sourceId);
+    if (current === undefined) throw new Error("fixture source went missing");
+    first.dependencies.store.persist({
+      ...current,
+      declaredVersionState: "unreadable",
+      inspector,
+    });
+
+    const held = first.storage.getConnectedSource(started.sourceId);
+    expect(held?.declaredVersionState).toBe("unreadable");
+    // Deep equality, not presence: a writer that stored the object's shape
+    // and dropped the digests satisfies a truthiness check.
+    expect(held?.inspector).toEqual(inspector);
+    // And through the projection a restart reads, which is the path that
+    // makes the record worth writing at all.
+    expect(
+      createSourceInspections(first.dependencies).get(started.sourceId)
+        ?.inspector,
+    ).toEqual(inspector);
     first.storage.close?.();
   });
 

@@ -166,6 +166,20 @@ export type ConnectedSourceRecord = {
   versionUnverified: boolean;
   diagnostics: string;
   declaredVersionMarker: string | null;
+  /**
+   * Which of three things an absent marker means. Stored beside the marker
+   * rather than inferred from it, because `null` carried two meanings and one
+   * of them — "the repository declares none" — was false whenever the
+   * declaration simply could not be read.
+   */
+  declaredVersionState: string;
+  /** AC-0043's four values, or null when no trusted inspector was located. */
+  inspector: {
+    resolvedPath: string;
+    packName: string;
+    packVersion: string;
+    fileDigests: Record<string, string>;
+  } | null;
   inspectorContractVersion: string | null;
   /** Field name to provenance marker, as AC-0040 requires it to survive. */
   provenance: Record<string, string>;
@@ -270,7 +284,68 @@ const migrations = [
       `CREATE UNIQUE INDEX connected_sources_identity ON connected_sources(owner, repository);`,
     ],
   },
+  {
+    // AC-0043 and AC-0064. Two things the version-3 shape could not express:
+    // which of three states an absent declared marker is in, and the identity
+    // of the trusted inspector an inspection used. Added rather than
+    // backfilled -- an existing row records an inspection that ran before
+    // either was distinguishable, so `absent` is the honest default for it
+    // only because no pre-migration row could have been written from an
+    // unreadable declaration: the composition refused those outright.
+    version: 4,
+    statements: [
+      `ALTER TABLE connected_sources ADD COLUMN declared_version_state TEXT NOT NULL DEFAULT 'absent';`,
+      `ALTER TABLE connected_sources ADD COLUMN inspector TEXT;`,
+    ],
+  },
 ] as const;
+
+/**
+ * The stored inspector identity, read defensively.
+ *
+ * It is stored as JSON in one column rather than four, because the digest map
+ * has one entry per inspector file and a column per file would make adding a
+ * file a migration. The parse is guarded for the same reason every other
+ * stored-structure read is: a row can predate the column, and a malformed
+ * value is an absent identity rather than a crash on read.
+ */
+function readInspector(value: unknown): ConnectedSourceRecord["inspector"] {
+  if (typeof value !== "string" || value === "") {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (parsed === null || typeof parsed !== "object") {
+      return null;
+    }
+    const held = parsed as Record<string, unknown>;
+    if (
+      typeof held.resolvedPath !== "string" ||
+      typeof held.packName !== "string" ||
+      typeof held.packVersion !== "string" ||
+      held.fileDigests === null ||
+      typeof held.fileDigests !== "object"
+    ) {
+      return null;
+    }
+    const digests: Record<string, string> = {};
+    for (const [name, digest] of Object.entries(
+      held.fileDigests as Record<string, unknown>,
+    )) {
+      if (typeof digest === "string") {
+        digests[name] = digest;
+      }
+    }
+    return {
+      resolvedPath: held.resolvedPath,
+      packName: held.packName,
+      packVersion: held.packVersion,
+      fileDigests: digests,
+    };
+  } catch {
+    return null;
+  }
+}
 
 export function openStorage(path: string): Storage {
   const database = new Database(path);
@@ -292,6 +367,8 @@ export function openStorage(path: string): Storage {
     diagnostics: stringField(row, "diagnostics"),
     declaredVersionMarker:
       (row.declared_version_marker as string | null) ?? null,
+    declaredVersionState: stringField(row, "declared_version_state"),
+    inspector: readInspector(row.inspector),
     inspectorContractVersion:
       (row.inspector_contract_version as string | null) ?? null,
     provenance: JSON.parse(stringField(row, "provenance")) as Record<
@@ -304,7 +381,7 @@ export function openStorage(path: string): Storage {
     upsertConnectedSource(value) {
       database
         .prepare(
-          "INSERT INTO connected_sources (id, owner, repository, requested_ref, resolved_sha, inspected_at, verdict, condition_value, version_unverified, diagnostics, declared_version_marker, inspector_contract_version, provenance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET owner = excluded.owner, repository = excluded.repository, requested_ref = excluded.requested_ref, resolved_sha = excluded.resolved_sha, inspected_at = excluded.inspected_at, verdict = excluded.verdict, condition_value = excluded.condition_value, version_unverified = excluded.version_unverified, diagnostics = excluded.diagnostics, declared_version_marker = excluded.declared_version_marker, inspector_contract_version = excluded.inspector_contract_version, provenance = excluded.provenance",
+          "INSERT INTO connected_sources (id, owner, repository, requested_ref, resolved_sha, inspected_at, verdict, condition_value, version_unverified, diagnostics, declared_version_marker, declared_version_state, inspector, inspector_contract_version, provenance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET owner = excluded.owner, repository = excluded.repository, requested_ref = excluded.requested_ref, resolved_sha = excluded.resolved_sha, inspected_at = excluded.inspected_at, verdict = excluded.verdict, condition_value = excluded.condition_value, version_unverified = excluded.version_unverified, diagnostics = excluded.diagnostics, declared_version_marker = excluded.declared_version_marker, declared_version_state = excluded.declared_version_state, inspector = excluded.inspector, inspector_contract_version = excluded.inspector_contract_version, provenance = excluded.provenance",
         )
         .run(
           value.id,
@@ -318,6 +395,8 @@ export function openStorage(path: string): Storage {
           value.versionUnverified ? 1 : 0,
           value.diagnostics,
           value.declaredVersionMarker,
+          value.declaredVersionState,
+          value.inspector === null ? null : JSON.stringify(value.inspector),
           value.inspectorContractVersion,
           json(value.provenance),
         );

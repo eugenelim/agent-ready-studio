@@ -22,6 +22,8 @@ const base: Inspection = {
   resolvedSha: null,
   inspectedAt: null,
   declaredVersionMarker: null,
+  declaredVersionState: "absent",
+  inspector: null,
   inspectorContractVersion: null,
   diagnostics: "",
   stopReason: null,

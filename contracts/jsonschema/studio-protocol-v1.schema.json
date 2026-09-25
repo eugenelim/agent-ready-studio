@@ -443,7 +443,7 @@
     "sourceInspectionResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "sourceId", "phase", "verdict", "condition", "versionUnverified", "owner", "repository", "requestedRef", "resolvedSha", "inspectedAt", "declaredVersionMarker", "inspectorContractVersion", "diagnostics", "stopReason", "waitWindow", "secondaryDiagnostic"],
+      "required": ["kind", "sourceId", "phase", "verdict", "condition", "versionUnverified", "owner", "repository", "requestedRef", "resolvedSha", "inspectedAt", "declaredVersionMarker", "declaredVersionState", "inspector", "inspectorContractVersion", "diagnostics", "stopReason", "waitWindow", "secondaryDiagnostic"],
       "properties": {
         "kind": { "const": "source-inspection" },
         "sourceId": { "type": "string", "minLength": 1 },
@@ -457,6 +457,8 @@
         "resolvedSha": { "type": ["string", "null"] },
         "inspectedAt": { "type": ["string", "null"] },
         "declaredVersionMarker": { "type": ["string", "null"] },
+        "declaredVersionState": { "enum": ["declared", "absent", "unreadable"] },
+        "inspector": { "oneOf": [{ "type": "object", "additionalProperties": false, "required": ["resolvedPath", "packName", "packVersion", "fileDigests"], "properties": { "resolvedPath": { "type": "string", "minLength": 1 }, "packName": { "type": "string", "minLength": 1 }, "packVersion": { "type": "string", "minLength": 1 }, "fileDigests": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } } }, { "type": "null" }] },
         "inspectorContractVersion": { "type": ["string", "null"] },
         "diagnostics": { "type": "string" },
         "stopReason": { "oneOf": [{ "enum": ["remote-ref-charset", "head-mismatch", "request-identifier-mismatch", "result-invalid-studio", "result-invalid-repository", "result-too-large", "inspector-inside-target", "file-count", "resolution-timeout", "inspection-timeout", "parse-failure-studio", "parse-failure-repository-echoed", "parse-failure-declaration-file"] }, { "type": "null" }] },

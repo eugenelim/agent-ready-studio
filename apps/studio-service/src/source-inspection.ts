@@ -101,6 +101,26 @@ export type InspectionOutcome =
        * columns for travel further.
        */
       readonly result?: NormalizedTrialResult;
+      /**
+       * Which of three things an absent declared marker means. It rides beside
+       * the result, not inside it: `declaredVersionMarker` is the Runtime's
+       * report, and this is Studio's reading of whether that report could be
+       * made at all. Before this field existed, a marker Studio could not read
+       * was reported as a repository that declares nothing -- a falsehood
+       * about the repository, stated in Studio's own voice.
+       */
+      readonly declaredVersionState?: "declared" | "absent" | "unreadable";
+      /**
+       * AC-0043. The inspector Studio located, where it located one. Null
+       * where the walk turned nothing up; the diagnostic beside it says which
+       * of the reasons in `inspectorDiagnostic` applied.
+       */
+      readonly inspector?: {
+        readonly resolvedPath: string;
+        readonly packName: string;
+        readonly packVersion: string;
+        readonly fileDigests: Record<string, string>;
+      } | null;
       readonly condition:
         | "inspector-unavailable"
         | "inspection-stopped"
@@ -183,6 +203,8 @@ function base(
     resolvedSha: null,
     inspectedAt: null,
     declaredVersionMarker: null,
+    declaredVersionState: "absent",
+    inspector: null,
     inspectorContractVersion: null,
     diagnostics: "",
     stopReason: null,
@@ -305,6 +327,11 @@ export function createSourceInspections(
           // reached no valid result reports neither.
           declaredVersionMarker:
             inspected.result?.declaredVersionMarker.value ?? null,
+          // The state travels even where the marker does not. A run that
+          // reached no valid result determined nothing, so it reports
+          // `unreadable` rather than claiming the repository declares none.
+          declaredVersionState: inspected.declaredVersionState ?? "unreadable",
+          inspector: inspected.inspector ?? null,
           versionUnverified: inspected.result?.versionUnverified ?? false,
         });
         return;
@@ -326,6 +353,8 @@ export function createSourceInspections(
         inspectedAt: clock(),
         inspectorContractVersion: inspected.inspectorContractVersion ?? null,
         diagnostics: inspected.diagnostics,
+        declaredVersionState: "absent",
+        inspector: null,
         // The declared marker and its qualifier are not copied here, because
         // no producer reaches this branch yet -- see the note on the `ok:
         // true` variant. The inspector slice adds both alongside the field it
@@ -461,6 +490,8 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
       versionUnverified: record.versionUnverified,
       diagnostics: record.diagnostics,
       declaredVersionMarker: record.declaredVersionMarker,
+      declaredVersionState: record.declaredVersionState,
+      inspector: record.inspector,
       inspectorContractVersion: record.inspectorContractVersion,
       provenance: PERSISTED_PROVENANCE,
     });
@@ -489,6 +520,9 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
       resolvedSha: held.resolvedSha,
       inspectedAt: held.inspectedAt,
       declaredVersionMarker: held.declaredVersionMarker,
+      declaredVersionState:
+        held.declaredVersionState as SourceInspection["declaredVersionState"],
+      inspector: held.inspector,
       inspectorContractVersion: held.inspectorContractVersion,
       diagnostics: held.diagnostics,
       // Not persisted: the stored record has no column for these, so a
@@ -773,6 +807,9 @@ export function settledRuntimeOutcome(
   // interpreter requirement — and a conforming inspector that Studio holds and
   // did not use is a fifth thing again. One generic sentence for all of them
   // tells the lead nothing they can act on.
+  const located = record.completedResponse
+    ? inspectorDiagnostic(record)
+    : undefined;
   return {
     ok: false,
     condition: "inspector-unavailable",
@@ -782,10 +819,15 @@ export function settledRuntimeOutcome(
     // difference needs no new vocabulary -- it is the same cause-with-fallback
     // shape `stoppedBy` uses. Which *termination* stopped it still needs a
     // `StopReasonKey` mapping, which is `connect-orient-stop-reason-never-resolved`.
-    diagnostics: record.completedResponse
-      ? inspectorDiagnostic(record)
-      : "the Runtime stopped before it reported a result",
-    ...(validated.ok ? { result: validated.result } : {}),
+    diagnostics:
+      located?.diagnostic ?? "the Runtime stopped before it reported a result",
+    ...(validated.ok
+      ? {
+          result: validated.result,
+          declaredVersionState: validated.declaredVersionState,
+        }
+      : {}),
+    inspector: located?.inspector ?? null,
   };
 }
 
@@ -894,24 +936,49 @@ const PROBE_VERSION_BOUND_CHARACTERS = 64;
  * identify, and the locator refuses containment before digests for the same
  * reason — reading a file to hash it is already a use of it.
  */
-function inspectorDiagnostic(record: SettledRuntimeRecord): string {
+/**
+ * AC-0043's four values, where Studio identified an inspector.
+ *
+ * Kept separate from the record so the two things travel apart: the diagnostic
+ * says *why no verdict*, and this says *which inspector Studio holds*. Null
+ * everywhere the walk turned nothing up, so a reader cannot mistake an absent
+ * identity for an unidentified one -- the diagnostic beside it names which of
+ * the six reasons applied.
+ */
+export interface LocatedInspector {
+  readonly resolvedPath: string;
+  readonly packName: string;
+  readonly packVersion: string;
+  readonly fileDigests: Record<string, string>;
+}
+
+function inspectorDiagnostic(record: SettledRuntimeRecord): {
+  readonly diagnostic: string;
+  readonly inspector: LocatedInspector | null;
+} {
+  const unidentified = (diagnostic: string) =>
+    ({ diagnostic, inspector: null }) as const;
   // Three facts, kept apart: Studio delivered no list to walk, the Runtime
   // reported no probes, and a walked list turned nothing up. The refusal below
   // names the third, so reaching it from either of the first two would assert
   // something that did not happen.
   if (record.interpreterSearchList === undefined) {
-    return "Studio delivered no interpreter search list, so none was walked";
+    return unidentified(
+      "Studio delivered no interpreter search list, so none was walked",
+    );
   }
   const reported = readInterpreterProbes(record);
   if (!reported.reported) {
-    return "the Runtime did not report which interpreters it probed, so Studio could not verify one";
+    return unidentified(
+      "the Runtime did not report which interpreters it probed, so Studio could not verify one",
+    );
   }
   const interpreter = selectConformingInterpreter(
     reported.probes,
     MINIMUM_INTERPRETER_VERSION,
   );
   if (!interpreter.ok) {
-    return interpreter.mismatch;
+    return unidentified(interpreter.mismatch);
   }
 
   // Concern 3's branch, named rather than reported as the benign sentence.
@@ -920,7 +987,9 @@ function inspectorDiagnostic(record: SettledRuntimeRecord): string {
   // located branch is the development branch and this one is plausibly the
   // shipped one. Registered at `connect-orient-inspector-install-root-unproven`.
   if (record.inspectorSearchRoot === undefined) {
-    return "Studio could not locate its own install root, so the trusted inspector was not looked for";
+    return unidentified(
+      "Studio could not locate its own install root, so the trusted inspector was not looked for",
+    );
   }
   const located = locateTrustedInspector({
     searchRoot: record.inspectorSearchRoot,
@@ -929,12 +998,20 @@ function inspectorDiagnostic(record: SettledRuntimeRecord): string {
       : { materializationRoot: record.materializationRoot }),
   });
   if (!located.ok) {
-    return located.mismatch;
+    return unidentified(located.mismatch);
   }
-  // AC-0043's four values, carried in the one place this slice has for them.
-  // They record that Studio identified the inspector it declined to run; the
-  // slice that runs one gives them a field of their own.
-  return `the pinned inspector was located at ${located.resolvedPath} (${located.packName} ${located.packVersion}) and was not run: running an inspector is outside this Runtime's authorization`;
+  // The identity travels as a field now, not only inside this sentence. The
+  // sentence keeps the path and pack because a diagnostic a reader can act on
+  // should not require reading a second column beside it.
+  return {
+    diagnostic: `the pinned inspector was located at ${located.resolvedPath} (${located.packName} ${located.packVersion}) and was not run: running an inspector is outside this Runtime's authorization`,
+    inspector: {
+      resolvedPath: located.resolvedPath,
+      packName: located.packName,
+      packVersion: located.packVersion,
+      fileDigests: { ...located.fileDigests },
+    },
+  };
 }
 
 /**
@@ -982,10 +1059,12 @@ function stoppedBy(
  * `connect-orient-no-inspector-runs` slice, and the row is unreachable before
  * it.
  */
-function validatedTrialResult(
-  record: SettledRuntimeRecord,
-):
-  | { readonly ok: true; readonly result: NormalizedTrialResult }
+function validatedTrialResult(record: SettledRuntimeRecord):
+  | {
+      readonly ok: true;
+      readonly result: NormalizedTrialResult;
+      readonly declaredVersionState: "declared" | "absent" | "unreadable";
+    }
   | { readonly ok: false; readonly refusal: InspectionOutcome } {
   const raw = record.protocolLines.find((line) => line.type === "result");
   if (raw === undefined) {
@@ -1030,53 +1109,35 @@ function validatedTrialResult(
     };
   }
   // A marker that could not be **determined** is neither a marker nor an
-  // absence, and the result has no third state for it: `null` means the
-  // repository declares none, and saying that of a repository whose
-  // declaration Studio could not read is the falsehood AC-0064 turns on. So
-  // the result is refused.
+  // absence. `declaredVersionMarker: null` is the contract's way of saying
+  // *the repository declares none*, and saying that of a repository whose
+  // declaration Studio could not read is the falsehood AC-0064 turns on.
+  //
+  // So the result carries a third state beside the marker. `unreadable` says
+  // Studio could not determine what the repository declares; `absent` says it
+  // determined that the repository declares nothing. Both send `null` as the
+  // marker, and the state is what tells them apart.
+  //
+  // **This settles the `connect-orient-no-inspector-runs` decision.** That
+  // note asked a later slice to choose between letting a malformed workspace
+  // declaration through to an inspector's `invalid_workspace` finding, or
+  // giving the result a third state so both can be true at once. The third
+  // state is the choice: the result no longer stops on an unreadable
+  // declaration, so once an inspector runs, a malformed `workspace.toml`
+  // still reaches it and can still be reported as `malformed`. AC-0059's
+  // carve-out keeps both its letter and its intent.
   //
   // This covers every refusal on a permitted read, not only an over-long
   // marker. A refused `.agentbundle-state.toml` never reaches here --
   // `declaredRefusalOutcome` above routes it first -- so in practice this is
   // the `workspace.toml` path, which AC-0059's carve-out deliberately
   // excludes from that routing.
-  //
-  // **The carve-out's letter is respected and its intent has a deadline.**
-  // It governs whether a refused workspace declaration becomes a
-  // declaration-file *stop*, reserving `malformed` for the inspector's own
-  // `invalid_workspace` finding. Refusing the result here takes a different
-  // row, so the letter holds. But this returns before `normalizeTrialResult`,
-  // and it is the **parse-failure** branch that sets the flag for
-  // `workspace.toml` -- which is exactly the syntactically invalid workspace
-  // declaration an inspector is meant to report. So the moment an inspector
-  // runs, a malformed `workspace.toml` stops the inspection instead of
-  // reaching `malformed`, and that is the carve-out's intent lost.
-  //
-  // Nothing is wrong today, because no inspector runs. The slice that changes
-  // that must decide between two things this loop had no authority to pick:
-  // let a malformed workspace declaration through to the inspector's finding,
-  // or give the result a third state for *marker not determined* so both can
-  // be true at once. Registered at `connect-orient-no-inspector-runs`.
-  //
-  // `result-invalid-repository`, not the Studio row: the structure that could
-  // not be read is repository-derived, and attributing it to Studio is the
-  // crossing AC-0093 forbids. This is the first reachable instance of that
-  // row -- the *Reasons for `inspection-stopped`* table has carried it since
-  // the start against content an inspector echoes.
-  if (record.declared.markerUndetermined === true) {
-    return {
-      ok: false,
-      // Through `stoppedBy` like every sibling, with its own cause. Building
-      // the outcome here instead emitted the row's bare wording -- "The
-      // repository's content could not be read as a result" -- while the
-      // identical event reaching the operator through the other permitted
-      // file named the file, the key and the bound.
-      refusal: stoppedBy(
-        "result-invalid-repository",
-        "a permitted declaration file was refused, so the result cannot report whether the repository declares a version marker",
-      ),
-    };
-  }
+  const declaredVersionState =
+    record.declared.markerUndetermined === true
+      ? "unreadable"
+      : record.declared.versionMarker !== undefined
+        ? "declared"
+        : "absent";
   const outcome = normalizeTrialResult(
     {
       ...raw,
@@ -1087,7 +1148,7 @@ function validatedTrialResult(
     record.requestId,
   );
   if (outcome.ok) {
-    return { ok: true, result: outcome.result };
+    return { ok: true, result: outcome.result, declaredVersionState };
   }
   if (outcome.stopReason === "request-identifier-mismatch") {
     return { ok: false, refusal: stoppedBy("request-identifier-mismatch") };

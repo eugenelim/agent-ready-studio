@@ -381,23 +381,13 @@ describe("AC-0035 and AC-0036 the result is validated in full, and a refusal con
       }),
       // a result claiming an inspection state no inspector produced
       diagnosticsOf(recordWith({ ...CONFORMING, workspacePresent: true })),
-      // a declaration that could not be read — a different row, and it
-      // belongs in the same set: checked separately it could emit text
-      // identical to one of the others with nothing reddening.
-      diagnosticsOf({
-        requestId: "req-studio-minted-one",
-        completedResponse: true,
-        protocolLines: [
-          { type: "materialized", status: 0 },
-          { type: "result", ...CONFORMING },
-        ],
-        resultRefused: false,
-        declared: {
-          reads: [],
-          versionMarker: undefined,
-          markerUndetermined: true,
-        },
-      }),
+      // **An unreadable declaration is deliberately not in this set.** It
+      // used to refuse the result on the `result-invalid-repository` row;
+      // it now reports `declaredVersionState: "unreadable"` and lets the
+      // inspection reach its ordinary answer, so it emits no stop
+      // diagnostic. Left here it would pass vacuously -- an entry that
+      // checks nothing while reading as though it does. `declared-read.ts`
+      // owns the three states, and asserts all three.
     ];
 
     expect(new Set([...emitted, identifierMismatch]).size).toBe(

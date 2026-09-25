@@ -43,6 +43,38 @@ const sourceInspectionResultSchema = z
     resolvedSha: z.string().nullable(),
     inspectedAt: z.string().nullable(),
     declaredVersionMarker: z.string().nullable(),
+    /**
+     * Which of three things the marker's absence means, because `null` alone
+     * could only carry two and one of them was a falsehood.
+     *
+     * `declared` — the repository declares the marker in `declaredVersionMarker`.
+     * `absent` — the declaration was read and names no marker. This is
+     * AC-0064's case, and the only one where reporting "declares no version"
+     * is true.
+     * `unreadable` — the declaration could not be read, so nothing is asserted
+     * about what the repository declares. Studio previously had to choose
+     * between saying `absent` here, which is false, and stopping the
+     * inspection, which pre-empts the inspector's own `invalid_workspace`
+     * finding.
+     */
+    declaredVersionState: z.enum(["declared", "absent", "unreadable"]),
+    /**
+     * AC-0043. The trusted inspector Studio identified for this inspection —
+     * resolved path, pinned pack name and version, and the SHA-256 of each
+     * inspector file. `null` when none was located.
+     *
+     * It is a record rather than a sentence because the criterion asks Studio
+     * to *record* the four values, and three of them inside a rendered
+     * diagnostic with the digests omitted is not that.
+     */
+    inspector: z
+      .object({
+        resolvedPath: z.string().min(1),
+        packName: z.string().min(1),
+        packVersion: z.string().min(1),
+        fileDigests: z.record(z.string(), z.string().regex(/^[0-9a-f]{64}$/)),
+      })
+      .nullable(),
     inspectorContractVersion: z.string().nullable(),
     diagnostics: z.string(),
     /**

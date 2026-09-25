@@ -78,6 +78,8 @@ function record(
       inspectedAt: "2026-09-17T04:00:00.000Z",
       condition: "ok",
       result: outcome.result,
+      declaredVersionState: "absent",
+      inspector: null,
     }),
     ...overrides,
   };

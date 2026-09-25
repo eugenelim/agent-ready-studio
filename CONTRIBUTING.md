@@ -39,6 +39,22 @@ if the desktop package is missing and otherwise stays running until the
 development process is stopped. The command builds the Studio Service before
 starting Electron.
 
+### When the trial-runtime suites fail without a code change
+
+The suites that spawn a real Runtime child (`apps/studio-service/src/trials/`)
+wait on process-group signals with real timeouts. Under host load those waits
+can expire, so `pnpm test` at its default worker count fails a varying set of
+cases on a tree that is otherwise green. Two signs tell this apart from a real
+defect: the failing set changes between runs, and each failing case passes on
+its own.
+
+Re-run with `pnpm test:capped`, which is `vitest run --maxWorkers=2`. If the
+capped run is green, the tree is green.
+
+The default is deliberately left uncapped. Capping it would slow every run for
+every contributor to hide a timing sensitivity that is worth seeing, and it
+would silently weaken the concurrency the rest of the suite is exercised at.
+
 Vitest must fail when it collects no tests. Component tests opt into jsdom with
 a per-file `// @vitest-environment jsdom` docblock; Node-side tests do not carry
 that docblock.

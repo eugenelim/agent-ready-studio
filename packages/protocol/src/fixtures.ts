@@ -202,6 +202,8 @@ const sourceInspection = {
   resolvedSha: "a".repeat(40),
   inspectedAt: timestamp,
   declaredVersionMarker: null,
+  declaredVersionState: "absent",
+  inspector: null,
   inspectorContractVersion: "1",
   diagnostics: "",
   stopReason: null,
@@ -286,6 +288,13 @@ export const validResultFixtures: Record<StudioMethod, unknown> = {
     condition: "malformed",
     versionUnverified: true,
     declaredVersionMarker: "0.4",
+    declaredVersionState: "declared",
+    inspector: {
+      resolvedPath: "/opt/studio/.claude/skills/workspace-status/scripts",
+      packName: "core",
+      packVersion: "0.4",
+      fileDigests: { "check-spec-status.py": "b".repeat(64) },
+    },
   },
   // In flight, so the verdict is absent and `phase` carries the progress state.
   "source.cancel": {
