@@ -1,10 +1,7 @@
 // biome-ignore-all lint/suspicious/noPrototypeBuiltins: the approved AC-0057 plan
 // stub calls Object.prototype.hasOwnProperty.call and must stay byte-identical to
 // plan.md. This file has no other use of a prototype builtin.
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   DECLARED_READ_BYTE_BOUND,
@@ -18,28 +15,7 @@ import {
   PERMITTED_READ_SURFACE,
   parseDeclared,
   parseDeclaredJson,
-  readDeclaredValues,
 } from "./declared-value-reader.js";
-
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
-
-/** A materialization root carrying whatever a case needs to declare. */
-function buildRoot(files: Record<string, string> = {}): string {
-  const root = mkdtempSync(join(tmpdir(), "connect-orient-declared-"));
-  roots.push(root);
-  const tree = join(root, "tree");
-  mkdirSync(tree, { recursive: true, mode: 0o700 });
-  for (const [name, contents] of Object.entries(files)) {
-    writeFileSync(join(tree, name), contents, "utf8");
-  }
-  return tree;
-}
 
 /** A TOML document nested `depth` levels through dotted table headers. */
 function nestedToml(depth: number): string {
@@ -49,7 +25,13 @@ function nestedToml(depth: number): string {
   return `[${path}]\nleaf = 1\n`;
 }
 
-describe("AC-0054 only the permitted read surface is read", () => {
+describe("the surface and the bounds this module delivers", () => {
+  // Constants only. The read itself happens in the Runtime child and is bound
+  // there, on the live path, by `declared-read.test.ts` -- AC-0054 under
+  // "the declared read stays inside the permitted read surface", AC-0055
+  // under "the declared read is bounded before it reads". Neither criterion
+  // is claimed here: pinning a constant is not evidence for a behaviour, and
+  // labelling this block with them would invite a reader to think it is.
   it("admits both permitted files and nothing else", () => {
     expect(PERMITTED_READ_SURFACE).toEqual([
       "workspace.toml",
@@ -57,83 +39,8 @@ describe("AC-0054 only the permitted read surface is read", () => {
     ]);
   });
 
-  it("reads both permitted files", () => {
-    const tree = buildRoot({
-      "workspace.toml": "ready = true\n",
-      ".agentbundle-state.toml": 'schema-version = "0.4"\n',
-    });
-
-    const result = readDeclaredValues(tree, [...PERMITTED_READ_SURFACE]);
-
-    expect(result.refusal).toBeUndefined();
-    expect(result.reads.map((read) => read.name)).toEqual([
-      "workspace.toml",
-      ".agentbundle-state.toml",
-    ]);
-    for (const read of result.reads) {
-      expect(read.outcome.refusal).toBeUndefined();
-    }
-  });
-
-  it("refuses a file outside the surface before reading it", () => {
-    const tree = buildRoot({ "secrets.toml": "token = 'leaked'\n" });
-
-    const result = readDeclaredValues(tree, ["secrets.toml"]);
-
-    expect(result).toMatchObject({
-      refusal: "outside-permitted-read-surface",
-    });
-    expect(result.reads).toEqual([]);
-    expect(result.diagnostic).toContain("secrets.toml");
-  });
-
-  it("refuses a traversal that ends in a permitted name", () => {
-    const tree = buildRoot({ "workspace.toml": "ready = true\n" });
-
-    const result = readDeclaredValues(tree, ["../workspace.toml"]);
-
-    expect(result.refusal).toBe("outside-permitted-read-surface");
-    expect(result.reads).toEqual([]);
-  });
-});
-
-describe("AC-0055 the declared read is bounded before it happens", () => {
-  it("refuses more files than the bound, before reading any", () => {
-    const tree = buildRoot({
-      "workspace.toml": "ready = true\n",
-      ".agentbundle-state.toml": 'schema-version = "0.4"\n',
-    });
-
-    const result = readDeclaredValues(tree, [
-      "workspace.toml",
-      ".agentbundle-state.toml",
-      "workspace.toml",
-    ]);
-
-    expect(result).toMatchObject({ refusal: "exceeds-file-count-bound" });
-    expect(result.reads).toEqual([]);
+  it("pins the two declared-read bounds", () => {
     expect(DECLARED_READ_FILE_BOUND).toBe(2);
-  });
-
-  it("refuses a file beyond the byte bound", () => {
-    const tree = buildRoot({
-      "workspace.toml": `ready = true\n# ${"x".repeat(DECLARED_READ_BYTE_BOUND)}\n`,
-    });
-
-    const result = readDeclaredValues(tree, ["workspace.toml"]);
-
-    expect(result.reads[0]?.outcome).toMatchObject({
-      refusal: "exceeds-byte-bound",
-      value: undefined,
-    });
-  });
-
-  it("admits a file inside the byte bound", () => {
-    const tree = buildRoot({ "workspace.toml": "ready = true\n" });
-
-    const result = readDeclaredValues(tree, ["workspace.toml"]);
-
-    expect(result.reads[0]?.outcome.refusal).toBeUndefined();
     expect(DECLARED_READ_BYTE_BOUND).toBe(1024 * 1024);
   });
 });
@@ -326,7 +233,7 @@ describe("AC-0060 no declared value carries a lifecycle meaning", () => {
   it("reports the declared marker as an observed string and nothing more", () => {
     const parsed = parseDeclared('schema-version = "0.4"\n').value;
 
-    expect(declaredVersionMarker(parsed)).toBe("0.4");
+    expect(declaredVersionMarker(parsed)).toEqual({ marker: "0.4" });
   });
 
   it("reports no marker when the repository declares none", () => {
@@ -334,7 +241,7 @@ describe("AC-0060 no declared value carries a lifecycle meaning", () => {
     // repository, which is why the permitted surface admits the second file.
     const parsed = parseDeclared("ready = true\n").value;
 
-    expect(declaredVersionMarker(parsed)).toBeUndefined();
+    expect(declaredVersionMarker(parsed)).toEqual({});
   });
 
   it("draws no lifecycle conclusion from a declared value", () => {

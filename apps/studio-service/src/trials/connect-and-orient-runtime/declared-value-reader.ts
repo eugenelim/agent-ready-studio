@@ -10,9 +10,19 @@
  * What this module deliberately does **not** do is decide anything. It reports
  * what a repository declared; the verdict comes only from trusted inspector
  * output (AC-0062), and no field here carries a lifecycle meaning (AC-0060).
+ *
+ * It also does **not** read. A `readDeclaredValues` here read each permitted
+ * name through `readContainedFile`; it had no production caller and could
+ * never acquire one, because the read happens in the Runtime child, whose
+ * working directory is the state root, and the Service opens no path under a
+ * materialization root. That split -- the child reads, the Service parses --
+ * is recorded at `notes/verification-ledger.md#slice-f1-step-b-2026-09-22`,
+ * and the reader was removed on 2026-09-24 rather than kept, because a
+ * Service-side reader of untrusted content is an invitation to falsify the
+ * one isolation claim the process boundary exists to make. What remains is
+ * the parse half, which is the half needing a dependency the child cannot
+ * import.
  */
-import { basename } from "node:path";
-
 import { parse as parseToml } from "smol-toml";
 
 import {
@@ -35,11 +45,7 @@ export {
   PARSE_NESTING_DEPTH_BOUND,
 } from "./inadmissible-keys.js";
 
-import {
-  ConfinementError,
-  readContainedFile,
-  SINGLE_FILE_BOUND_BYTES,
-} from "./materialization-confinement.js";
+import { SINGLE_FILE_BOUND_BYTES } from "./materialization-confinement.js";
 
 /**
  * *Canonical values*, *Permitted read surface*. `.agentbundle-state.toml` is
@@ -76,6 +82,28 @@ export const DECLARED_READ_FILE_BOUND = 2;
 export const DECLARED_READ_BYTE_BOUND = SINGLE_FILE_BOUND_BYTES;
 
 export const DECLARED_VERSION_KEY = "schema-version";
+
+/**
+ * *Resource bounds*, *Declared version marker*: 1 KiB.
+ *
+ * The marker is repository-authored and is persisted as a `repository-derived`
+ * value, so it counts against AC-0104's 256 KiB bound — and that bound
+ * **refuses the whole write**. Without a bound here a repository could declare
+ * a 300 KiB version string and make every inspection of itself unpersistable,
+ * leaving whatever record was stored before it.
+ *
+ * It is bounded **where the marker is extracted**, not truncated where it is
+ * persisted. Those are different, and the *Persisted repository-derived
+ * content* row rules out only the second: a truncated value still carries
+ * AC-0039's provenance marker and reads as a complete attributed value when it
+ * is not. An over-long declaration is refused *as a declaration*, reported as
+ * an observed refusal, and never acquires a marker at all.
+ *
+ * 1 KiB is three orders of magnitude above any version string and two below
+ * the bound it protects, so it discriminates a hostile value from a real one
+ * without being a limit an honest repository can reach.
+ */
+export const DECLARED_VERSION_MARKER_BOUND_BYTES = 1024;
 
 /**
  * The closed set of refusals, as data. A consumer reading a refusal that
@@ -224,82 +252,8 @@ export function parseDeclaredJson(
   return { value: withoutInadmissibleKeys(parsed) };
 }
 
-export interface DeclaredFileRead {
-  readonly name: PermittedReadName;
-  readonly outcome: DeclaredParseOutcome;
-}
-
-export interface DeclaredReadResult {
-  readonly reads: readonly DeclaredFileRead[];
-  readonly refusal?: DeclaredReadRefusal;
-  readonly diagnostic?: string;
-  readonly stop?: StopReason;
-}
-
 export function isPermittedReadName(name: string): name is PermittedReadName {
   return (PERMITTED_READ_SURFACE as readonly string[]).includes(name);
-}
-
-/**
- * Reads the declared values from the materialization root.
- *
- * Both bounds are checked **before** anything is read: the file count against
- * the requested set, and each name against the permitted surface. The byte
- * bound and path containment are delegated to `readContainedFile`, which is
- * the single read path for repository content and already checks size before
- * the open.
- */
-export function readDeclaredValues(
-  materializationRoot: string,
-  names: readonly string[],
-): DeclaredReadResult {
-  if (names.length > DECLARED_READ_FILE_BOUND) {
-    return {
-      reads: [],
-      refusal: "exceeds-file-count-bound",
-      diagnostic: `${names.length} files requested, bound is ${DECLARED_READ_FILE_BOUND}`,
-      stop: PARSE_FAILURE_STOP_REASONS["repository-declaration-file"],
-    };
-  }
-  for (const name of names) {
-    if (!isPermittedReadName(basename(name)) || !isPermittedReadName(name)) {
-      return {
-        reads: [],
-        refusal: "outside-permitted-read-surface",
-        diagnostic: `${name} is outside the permitted read surface`,
-        stop: PARSE_FAILURE_STOP_REASONS["repository-declaration-file"],
-      };
-    }
-  }
-
-  const reads: DeclaredFileRead[] = [];
-  for (const name of names as readonly PermittedReadName[]) {
-    let text: string;
-    try {
-      text = readContainedFile(
-        materializationRoot,
-        `${materializationRoot}/${name}`,
-        DECLARED_READ_BYTE_BOUND,
-      );
-    } catch (cause) {
-      const refusal: DeclaredReadRefusal =
-        cause instanceof ConfinementError &&
-        cause.refusal === "exceeds-single-file-bound"
-          ? "exceeds-byte-bound"
-          : "unreadable";
-      reads.push({
-        name,
-        outcome: refused(
-          refusal,
-          `${name}: ${String(cause)}`,
-          "repository-declaration-file",
-        ),
-      });
-      continue;
-    }
-    reads.push({ name, outcome: parseDeclared(text) });
-  }
-  return { reads };
 }
 
 /**
@@ -333,10 +287,23 @@ export function normalizeDeclared<Field extends string>(
  * output contract, and AC-0068 forbids comparing it against any version set
  * neither party declared — so this reports the string and draws no conclusion.
  */
-export function declaredVersionMarker(parsed: unknown): string | undefined {
+export function declaredVersionMarker(parsed: unknown): {
+  readonly marker?: string;
+  readonly refusal?: DeclaredReadRefusal;
+} {
   if (parsed === null || typeof parsed !== "object") {
-    return undefined;
+    return {};
   }
   const declared = (parsed as Record<string, unknown>)[DECLARED_VERSION_KEY];
-  return typeof declared === "string" && declared !== "" ? declared : undefined;
+  if (typeof declared !== "string" || declared === "") {
+    return {};
+  }
+  // Refused, not truncated, and not silently dropped: dropping it would report
+  // "the repository declares none", which is the falsehood AC-0064 turns on.
+  if (
+    Buffer.byteLength(declared, "utf8") > DECLARED_VERSION_MARKER_BOUND_BYTES
+  ) {
+    return { refusal: "exceeds-byte-bound" };
+  }
+  return { marker: declared };
 }

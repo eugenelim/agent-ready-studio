@@ -38,13 +38,19 @@ export interface RevisionTransport {
     fetchUrl: string,
     requestedRef?: string,
   ): Promise<{ reportedRef: string; sha: string }>;
-  materialize(
-    fetchUrl: string,
-    resolvedSha: string,
-    materializationRoot: string,
-  ): Promise<void>;
-  readHead(materializationRoot: string): Promise<string>;
 }
+
+// **Materialization is not here.** The Runtime child fetches, checks out and
+// verifies `HEAD` itself, because the tree is untrusted content and the
+// Service having written it would make the process boundary's central
+// isolation claim false. A `materialize`/`readHead` pair and a
+// `materializeRevision` over them lived here until 2026-09-24, unreached by
+// any production path since materialization moved; the reason they were
+// deleted rather than wired is at
+// `notes/verification-ledger.md#slice-f1-step-c-2026-09-24`.
+//
+// A line comment, not a doc block: there is no declaration for it to
+// document, and a `/** */` here attaches to whatever happens to follow.
 
 export interface ResolvedRevision {
   identity: CanonicalSourceIdentity;
@@ -58,15 +64,6 @@ export type RevisionResolution =
   | {
       ok: false;
       code: "invalid-remote-ref" | "invalid-resolved-sha";
-    };
-
-export type MaterializationVerification =
-  | ({ ok: true; inspectedSha: string } & ResolvedRevision)
-  | {
-      ok: false;
-      code: "head-mismatch";
-      expectedSha: string;
-      actualSha: string;
     };
 
 export interface GitInvocation {
@@ -135,40 +132,6 @@ export function createGitTransport(
       });
       return parseResolutionOutput(output.stdout, requestedRef);
     },
-
-    async materialize(fetchUrl, resolvedSha, materializationRoot) {
-      await run({
-        executable: gitExecutable,
-        args: gitArgs("init", "--", "."),
-        cwd: materializationRoot,
-      });
-      await run({
-        executable: gitExecutable,
-        args: gitArgs(
-          "fetch",
-          "--depth=1",
-          "--no-tags",
-          "--",
-          fetchUrl,
-          resolvedSha,
-        ),
-        cwd: materializationRoot,
-      });
-      await run({
-        executable: gitExecutable,
-        args: gitArgs("checkout", "--detach", "--force", "FETCH_HEAD"),
-        cwd: materializationRoot,
-      });
-    },
-
-    async readHead(materializationRoot) {
-      const output = await run({
-        executable: gitExecutable,
-        args: gitArgs("rev-parse", "--verify", "HEAD"),
-        cwd: materializationRoot,
-      });
-      return output.stdout.trim();
-    },
   };
 }
 
@@ -194,26 +157,4 @@ export async function resolveRevision(
     resolvedRef: resolved.reportedRef,
     resolvedSha: resolved.sha,
   };
-}
-
-export async function materializeRevision(
-  revision: ResolvedRevision,
-  materializationRoot: string,
-  transport: RevisionTransport,
-): Promise<MaterializationVerification> {
-  await transport.materialize(
-    buildFetchUrl(revision.identity),
-    revision.resolvedSha,
-    materializationRoot,
-  );
-  const actualSha = await transport.readHead(materializationRoot);
-  if (actualSha !== revision.resolvedSha) {
-    return {
-      ok: false,
-      code: "head-mismatch",
-      expectedSha: revision.resolvedSha,
-      actualSha,
-    };
-  }
-  return { ok: true, ...revision, inspectedSha: actualSha };
 }

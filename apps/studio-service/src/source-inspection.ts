@@ -7,6 +7,9 @@
  * between them, so a submitted URL reached no inspection and the connect
  * surface could not work. That gap is recorded at
  * `notes/verification-ledger.md#retraction-2026-09-19-t12-t13-delivery-claims`.
+ * Of that list, `materializeRevision` was deleted rather than wired --
+ * materialization belongs to the Runtime child -- and `locateTrustedInspector`
+ * is still uncalled, which is the inspector slice's work.
  *
  * The shape is dictated by the dispatch being synchronous while an inspection
  * is not. `connect` performs the refusal check inline -- a refused URL is a
@@ -16,9 +19,10 @@
  */
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import type { StopReasonKey, StudioResult } from "@agent-ready/protocol";
 import { project, STOP_REASONS } from "@agent-ready/protocol";
@@ -26,19 +30,30 @@ import type { Storage } from "@agent-ready/storage-sqlite";
 import { persistConnectedSource } from "./connected-source.js";
 import type { CanonicalSourceIdentity } from "./source-identity.js";
 import { buildFetchUrl, canonicalizeSource } from "./source-identity.js";
-import type { Provenance } from "./trial-result.js";
+import type { NormalizedTrialResult, Provenance } from "./trial-result.js";
 import {
   deriveCondition,
   deriveVerdict,
   mintRequestIdentifier,
+  normalizeTrialResult,
+  TRIAL_CONTRACT,
 } from "./trial-result.js";
-import { resolveGitIdentity } from "./trials/connect-and-orient-runtime/executable-identity.js";
+import {
+  MINIMUM_INTERPRETER_VERSION,
+  resolveGitIdentity,
+} from "./trials/connect-and-orient-runtime/executable-identity.js";
 import {
   createGitTransport,
   type GitCommandRunner,
   type RevisionTransport,
   resolveRevision,
 } from "./trials/connect-and-orient-runtime/git-driver.js";
+import {
+  type InterpreterProbe,
+  locateTrustedInspector,
+  PACK_STATE_RELATIVE_PATH,
+  selectConformingInterpreter,
+} from "./trials/connect-and-orient-runtime/inspector-locator.js";
 import {
   beginTrialInspection,
   type DeclaredReadReport,
@@ -66,9 +81,26 @@ export type InspectionOutcome =
       readonly invalidWorkspace: boolean;
       readonly inspectorContractVersion?: string | null;
       readonly diagnostics: string;
+      /**
+       * **No `result` here, deliberately.** Nothing in this slice returns
+       * `ok: true`: a verdict needs trusted inspector output and no inspector
+       * runs, so a field on this branch could carry nothing and be bound by
+       * nothing. The slice that runs an inspector
+       * (`connect-orient-no-inspector-runs`) adds it here, with the case that
+       * drives it -- and until then its absence is what says so.
+       */
     }
   | {
       readonly ok: false;
+      /**
+       * The validated trial result, where one was admitted. It rides on the
+       * `false` branch because `ok` answers "did the inspection reach a
+       * verdict", and a result can be complete and valid while the answer is
+       * still no -- which is exactly this slice. AC-0038's five reported
+       * elements live here; only the two the `source.get` projection has
+       * columns for travel further.
+       */
+      readonly result?: NormalizedTrialResult;
       readonly condition:
         | "inspector-unavailable"
         | "inspection-stopped"
@@ -267,6 +299,13 @@ export function createSourceInspections(
           stopReason: inspected.stopReason ?? null,
           waitWindow: projected.waitWindow ?? null,
           secondaryDiagnostic: projected.secondaryDiagnostic ?? null,
+          // AC-0038 and AC-0065. What the repository declared is an observed
+          // value, so it survives a degraded outcome; the qualifier follows
+          // it whatever the verdict and whatever the condition. A run that
+          // reached no valid result reports neither.
+          declaredVersionMarker:
+            inspected.result?.declaredVersionMarker.value ?? null,
+          versionUnverified: inspected.result?.versionUnverified ?? false,
         });
         return;
       }
@@ -287,6 +326,10 @@ export function createSourceInspections(
         inspectedAt: clock(),
         inspectorContractVersion: inspected.inspectorContractVersion ?? null,
         diagnostics: inspected.diagnostics,
+        // The declared marker and its qualifier are not copied here, because
+        // no producer reaches this branch yet -- see the note on the `ok:
+        // true` variant. The inspector slice adds both alongside the field it
+        // adds there.
       });
     } catch (cause) {
       if (run?.cancelled) return;
@@ -419,20 +462,7 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
       diagnostics: record.diagnostics,
       declaredVersionMarker: record.declaredVersionMarker,
       inspectorContractVersion: record.inspectorContractVersion,
-      // The provenance each value actually has, matching what
-      // `normalizeTrialResult` marks. This is what AC-0104's bound is
-      // computed over: `repositoryDerivedValues` selects exactly the
-      // `repository-derived` fields, so marking everything with a string
-      // outside the `Provenance` union -- as an earlier version did with
-      // "non-originated" -- measured zero bytes and made the 256 KiB check
-      // unable to trip. `provenance` is typed `Record<string, string>`, so
-      // the compiler did not catch it.
-      provenance: {
-        diagnostics: "repository-derived",
-        declaredVersionMarker: "repository-derived",
-        resolvedSha: "transport-reported",
-        inspectorContractVersion: "inspector-authored",
-      } satisfies Record<string, Provenance>,
+      provenance: PERSISTED_PROVENANCE,
     });
     if (!outcome.ok) {
       // AC-0104's refusal is observable rather than silent: the prior record
@@ -470,6 +500,28 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
     };
   }
 }
+
+/**
+ * AC-0039 and AC-0040 at the storage boundary: the provenance each persisted
+ * value actually has, matching what `normalizeTrialResult` marks. AC-0104's
+ * bound is computed over it -- `repositoryDerivedValues` selects exactly the
+ * `repository-derived` fields, so marking everything with a string outside the
+ * `Provenance` union, as an earlier version did with "non-originated",
+ * measured zero bytes and made the 256 KiB check unable to trip. `provenance`
+ * is typed `Record<string, string>` at the call site, so the compiler did not
+ * catch it.
+ *
+ * Exported so a test can pin it against the markers the normalizer assigns.
+ * The two are separate objects -- the record crossing this boundary is a
+ * `SourceInspection`, which carries no markers of its own -- and pinning them
+ * is what stops them drifting apart.
+ */
+export const PERSISTED_PROVENANCE = {
+  diagnostics: "repository-derived",
+  declaredVersionMarker: "repository-derived",
+  resolvedSha: "transport-reported",
+  inspectorContractVersion: "inspector-authored",
+} as const satisfies Record<string, Provenance>;
 
 /**
  * AC-0059. A declared-value read or parse that refused becomes
@@ -554,9 +606,13 @@ export async function inspectInRuntime(
       diagnostics: "the inspection was cancelled before the Runtime started",
     };
   }
+  // AC-0033 and AC-0034. Minted here and held, so the identifier the result
+  // echoes is compared against Studio's own value rather than against
+  // anything read back out of the Runtime.
+  const requestId = mintRequestIdentifier();
   const admission = beginTrialInspection(
     {
-      requestId: mintRequestIdentifier(),
+      requestId,
       identity: request.identity,
       sweepDomain: request.sweepDomain,
     },
@@ -594,7 +650,48 @@ export async function inspectInRuntime(
       diagnostics: "the Runtime was stopped before it finished",
     };
   }
-  return settledRuntimeOutcome(record);
+  return settledRuntimeOutcome({
+    ...record,
+    requestId,
+    inspectorSearchRoot: studioInstallRoot(),
+    // AC-0045, from **Studio's own value**. `reserveStateRoot` created this
+    // root and `per-request-state-root.ts` derives the materialization child
+    // from it, so the child never supplies it. That matters: the containment
+    // check refuses an inspector resolving inside the materialization root,
+    // and a child that could name the root it is checked against could name
+    // one it is not inside.
+    materializationRoot: record.stateRoot.materializationRoot,
+    interpreterSearchList: record.interpreterSearchList,
+  });
+}
+
+/**
+ * Studio's own install root — the only place AC-0047 admits looking for the
+ * trusted inspector, since a repository-projected skill is never a fallback.
+ *
+ * Resolved by walking up from this module to the directory holding the pack
+ * state, on the same reasoning as `defaultChildEntry`: the built artifact and
+ * the source tree sit at different depths, so a fixed number of `..` segments
+ * would be right in exactly one of them.
+ *
+ * Exported for one reason: it is the only function joining this whole unit to
+ * production, and its sole caller needs a network fetch no gate can reach. So
+ * replacing its body with `return undefined` left the entire service suite
+ * green while making every inspection take the not-found branch — the locator
+ * thoroughly tested and the thing that reaches it asserted by nothing, which
+ * is this slice's own defect class one layer out.
+ */
+export function studioInstallRoot(): string | undefined {
+  let directory = dirname(fileURLToPath(import.meta.url));
+  for (let depth = 0; depth < 8; depth += 1) {
+    if (existsSync(join(directory, PACK_STATE_RELATIVE_PATH))) {
+      return directory;
+    }
+    const parent = dirname(directory);
+    if (parent === directory) break;
+    directory = parent;
+  }
+  return undefined;
 }
 
 /**
@@ -609,6 +706,20 @@ export async function inspectInRuntime(
 export function settledRuntimeOutcome(
   record: SettledRuntimeRecord,
 ): InspectionOutcome {
+  // First, because a refused run refuses *before* it materializes anything.
+  // Read after the materialization gate this branch was unreachable, and a
+  // contract-mismatch run reported "the Runtime did not materialize the
+  // revision" -- true, and not the reason.
+  const refused = record.protocolLines.find((line) => line.type === "refused");
+  if (refused !== undefined) {
+    return {
+      ok: false,
+      condition: "inspection-stopped",
+      stopReason: "result-invalid-studio",
+      diagnostics: "the Runtime refused the request it was given",
+    };
+  }
+
   const materialized = record.protocolLines.find(
     (line) => line.type === "materialized",
   ) as { status?: number; mismatch?: string } | undefined;
@@ -638,19 +749,396 @@ export function settledRuntimeOutcome(
     return declaredStopped;
   }
 
-  // The Runtime materialized the tree but ran no trusted inspector, so no
+  // A run that was terminated before it responded never reached its result
+  // line, so there is no result to validate and its absence says nothing
+  // about readability. This is the answer that shipped before the result was
+  // validated at all, and it is kept deliberately: naming *which* termination
+  // stopped it needs a terminating-condition-to-`StopReasonKey` mapping that
+  // no production site has yet, which is `connect-orient-stop-reason-never-resolved`.
+  const validated = record.completedResponse
+    ? validatedTrialResult(record)
+    : ({ ok: false, refusal: undefined } as const);
+  if (!validated.ok && validated.refusal !== undefined) {
+    return validated.refusal;
+  }
+
+  // The Runtime materialized the tree and ran no trusted inspector, so no
   // trusted output exists to derive a verdict from. Saying so is the honest
   // answer; deriving one from Studio's own reading is what AC-0061 forbids.
+  // The result still travels, because AC-0038's five reported elements are the
+  // Runtime's observations, not a verdict.
+  //
+  // **Why it is unavailable is four different sentences, not one.** AC-0044
+  // wants the pin mismatch named, AC-0045 the containment refusal, AC-0048 the
+  // interpreter requirement — and a conforming inspector that Studio holds and
+  // did not use is a fifth thing again. One generic sentence for all of them
+  // tells the lead nothing they can act on.
   return {
     ok: false,
     condition: "inspector-unavailable",
-    diagnostics:
-      "the revision was materialized, and no trusted inspector ran against it",
+    // A run that stopped before responding and a run that finished cleanly
+    // without an inspector are the same condition and not the same event, and
+    // the absent `result` that distinguishes them is not rendered. Naming the
+    // difference needs no new vocabulary -- it is the same cause-with-fallback
+    // shape `stoppedBy` uses. Which *termination* stopped it still needs a
+    // `StopReasonKey` mapping, which is `connect-orient-stop-reason-never-resolved`.
+    diagnostics: record.completedResponse
+      ? inspectorDiagnostic(record)
+      : "the Runtime stopped before it reported a result",
+    ...(validated.ok ? { result: validated.result } : {}),
+  };
+}
+
+/**
+ * The interpreter probes the child reported, read field by field rather than
+ * cast.
+ *
+ * The probe list is the one value on this path that crosses the process
+ * boundary, and `Array.isArray` establishes only that it is an array --
+ * everything inside it is whatever the line said. Casting it had three
+ * consequences, each of which this reader closes.
+ *
+ * A `version` that parsed to an object made the version regex throw rather
+ * than refuse, because `exec` applies `ToString` and `parseGuardedJson` gives
+ * every rebuilt object a null prototype. An uncaught `TypeError` here becomes
+ * "the inspection stopped: TypeError...", which is the failure the northbound
+ * parse site exists to prevent.
+ *
+ * An unbounded probe list reached a **persisted and rendered** field: the
+ * refusal names what each probe reported, and that text is stored under the
+ * `repository-derived` marker and counted against AC-0104's bound. Each
+ * version is bounded here, so a long list cannot make a record unpersistable.
+ *
+ * And the selected `path` became an executable Studio had not offered.
+ * Nothing runs it in this slice, but the slice that does would inherit a path
+ * the child chose. Only a member of the search list **Studio delivered** is
+ * admitted, the discipline `declaredFromProtocol` already applies to a name
+ * the Service itself delivered.
+ */
+function readInterpreterProbes(record: SettledRuntimeRecord): {
+  readonly reported: boolean;
+  readonly probes: InterpreterProbe[];
+} {
+  const line = record.protocolLines.find(
+    (message) => message.type === "interpreter",
+  );
+  // An absent line is a Runtime that did not get that far, not a healthy
+  // probe. Reading it as "an interpreter was fine" would let a truncated
+  // stream look like a conforming one -- and collapsing it into an empty
+  // probe list would make the refusal claim the search list was walked, in
+  // the one case where it was not. The child pushes an entry for every
+  // candidate, absent ones included, so a genuinely empty list is a
+  // different fact again.
+  if (line === undefined || !Array.isArray(line.probes)) {
+    return { reported: false, probes: [] };
+  }
+  const delivered = new Set(record.interpreterSearchList ?? []);
+  const probes: InterpreterProbe[] = [];
+  // **At most one probe per delivered path.** Membership alone bounds what a
+  // path may be, not how many times it may appear, and the refusal names every
+  // admitted probe -- so a child repeating one delivered path a hundred
+  // thousand times, each with a bounded version, still composes megabytes into
+  // a field that is persisted and rendered. Deduping here makes the
+  // diagnostic's size follow from the list **Studio delivered** rather than
+  // from how many entries the child chose to send.
+  const seen = new Set<string>();
+  for (const entry of line.probes) {
+    if (entry === null || typeof entry !== "object") {
+      continue;
+    }
+    const probe = entry as Record<string, unknown>;
+    const path = typeof probe.path === "string" ? probe.path : undefined;
+    if (path === undefined || !delivered.has(path) || seen.has(path)) {
+      continue;
+    }
+    seen.add(path);
+    const version =
+      typeof probe.version === "string"
+        ? probe.version.slice(0, PROBE_VERSION_BOUND_CHARACTERS)
+        : undefined;
+    probes.push({
+      path,
+      ...(version === undefined ? {} : { version }),
+      // Read but never consulted: `selectConformingInterpreter` decides from
+      // the version, and this is the child's own judgement of its own probe.
+      conforming: probe.conforming === true,
+    });
+  }
+  return { reported: true, probes };
+}
+
+/**
+ * How much of a reported version may reach a persisted field. An interpreter
+ * prints something like `Python 3.14.7`, so this is generous for the value.
+ *
+ * Size is bounded on **both** axes, and this is only one of them: the reader
+ * admits at most one probe per delivered path, so the whole refusal is at
+ * most the search list's length times this. Bounding the value alone left the
+ * cardinality open, and a repeated path is the cheapest way to fill a field.
+ */
+const PROBE_VERSION_BOUND_CHARACTERS = 64;
+
+/**
+ * Why no trusted inspector ran, in the lead's terms — AC-0044, AC-0045,
+ * AC-0046, AC-0048, and the case none of them covers.
+ *
+ * **Locating is not running.** Every branch returns `inspector-unavailable`,
+ * including the one where the pinned inspector was found: Studio holding an
+ * inspector it did not use is a different sentence from Studio not having one,
+ * and reporting the second would be false. Running it is
+ * `connect-orient-no-inspector-runs`, a separate slice outside this Runtime's
+ * authorization.
+ *
+ * The order matches the locator's own: the interpreter is decided first,
+ * because an inspector Studio cannot execute is not worth hashing two files to
+ * identify, and the locator refuses containment before digests for the same
+ * reason — reading a file to hash it is already a use of it.
+ */
+function inspectorDiagnostic(record: SettledRuntimeRecord): string {
+  // Three facts, kept apart: Studio delivered no list to walk, the Runtime
+  // reported no probes, and a walked list turned nothing up. The refusal below
+  // names the third, so reaching it from either of the first two would assert
+  // something that did not happen.
+  if (record.interpreterSearchList === undefined) {
+    return "Studio delivered no interpreter search list, so none was walked";
+  }
+  const reported = readInterpreterProbes(record);
+  if (!reported.reported) {
+    return "the Runtime did not report which interpreters it probed, so Studio could not verify one";
+  }
+  const interpreter = selectConformingInterpreter(
+    reported.probes,
+    MINIMUM_INTERPRETER_VERSION,
+  );
+  if (!interpreter.ok) {
+    return interpreter.mismatch;
+  }
+
+  // Concern 3's branch, named rather than reported as the benign sentence.
+  // Whether a packaged desktop build places the pack state within the walk's
+  // reach is **not established**; in this worktree it always is, so the
+  // located branch is the development branch and this one is plausibly the
+  // shipped one. Registered at `connect-orient-inspector-install-root-unproven`.
+  if (record.inspectorSearchRoot === undefined) {
+    return "Studio could not locate its own install root, so the trusted inspector was not looked for";
+  }
+  const located = locateTrustedInspector({
+    searchRoot: record.inspectorSearchRoot,
+    ...(record.materializationRoot === undefined
+      ? {}
+      : { materializationRoot: record.materializationRoot }),
+  });
+  if (!located.ok) {
+    return located.mismatch;
+  }
+  // AC-0043's four values, carried in the one place this slice has for them.
+  // They record that Studio identified the inspector it declined to run; the
+  // slice that runs one gives them a field of their own.
+  return `the pinned inspector was located at ${located.resolvedPath} (${located.packName} ${located.packVersion}) and was not run: running an inspector is outside this Runtime's authorization`;
+}
+
+/**
+ * A refusal mapped onto the *Reasons for `inspection-stopped`* table.
+ *
+ * `cause` names **which** refusal fired. Several distinct causes share the
+ * `result-invalid-studio` row -- the count has gone stale twice, so it is not
+ * restated here; `trial-result-line.test.ts` enumerates them and asserts they
+ * stay pairwise distinct. A reader given only the row's wording cannot tell
+ * them apart without reproducing the run. `declaredRefusalOutcome` above
+ * already sets the precedent: the specific diagnostic leads and the table's
+ * wording is the fallback, so the row still owns the wording wherever no
+ * specific cause exists.
+ */
+function stoppedBy(
+  stopReason:
+    | "result-invalid-studio"
+    | "result-invalid-repository"
+    | "request-identifier-mismatch",
+  cause?: string,
+): InspectionOutcome {
+  return {
+    ok: false,
+    condition: "inspection-stopped",
+    stopReason,
+    diagnostics: cause ?? STOP_REASONS[stopReason].reason,
+  };
+}
+
+/**
+ * AC-0032, AC-0034, AC-0035, AC-0036 and AC-0038 at the one site where a trial
+ * result crosses the process boundary into Studio.
+ *
+ * The whole shape is checked by `normalizeTrialResult` before a single field
+ * is copied, so a refusal consumes nothing. Each refusal carries a distinct
+ * **diagnostic**; several share the `result-invalid-studio` **row**, because
+ * the table has one row for a result Studio cannot read. See `stoppedBy`.
+ *
+ * **Which row a wrong contract name takes.** The table carries no
+ * contract-mismatch row: a result naming another contract is a result Studio
+ * cannot read as this contract's result, which is AC-0036's Studio-produced
+ * row. Its sibling row, `result-invalid-repository`, covers a result whose
+ * failing structure is repository-derived, and nothing echoes repository
+ * content into a result until a trusted inspector runs — that is the
+ * `connect-orient-no-inspector-runs` slice, and the row is unreachable before
+ * it.
+ */
+function validatedTrialResult(
+  record: SettledRuntimeRecord,
+):
+  | { readonly ok: true; readonly result: NormalizedTrialResult }
+  | { readonly ok: false; readonly refusal: InspectionOutcome } {
+  const raw = record.protocolLines.find((line) => line.type === "result");
+  if (raw === undefined) {
+    // The Runtime responded and still wrote no result. A run that was
+    // *terminated* before responding never reaches here — `settledRuntimeOutcome`
+    // checks `completedResponse` first, for the attribution reason recorded there.
+    return {
+      ok: false,
+      refusal: stoppedBy(
+        "result-invalid-studio",
+        "the Runtime completed without reporting a result",
+      ),
+    };
+  }
+  // AC-0061, enforced where the result is admitted rather than left to the
+  // branch that happens to consume it. No trusted inspector runs in this
+  // slice, so a result claiming workspace state claims something no trusted
+  // output supports -- and `normalizeTrialResult` would turn that claim into
+  // a verdict. Refusing it here is what keeps the verdict derivable only from
+  // trusted inspector output. When an inspector does run, this is the guard
+  // that must be relaxed deliberately rather than discovered.
+  if (raw.workspacePresent !== undefined || raw.status === "completed") {
+    return {
+      ok: false,
+      refusal: stoppedBy(
+        "result-invalid-studio",
+        "the Runtime reported an inspection state no trusted inspector produced",
+      ),
+    };
+  }
+  // `declaredVersionMarker: null` is the contract's way of saying *the
+  // repository declares none*. An absent declared report means the read never
+  // happened, so composing `null` from it would make Studio assert something
+  // the tree never said — the distinction AC-0064 turns on.
+  if (record.declared === undefined) {
+    return {
+      ok: false,
+      refusal: stoppedBy(
+        "result-invalid-studio",
+        "the Runtime reported a result without reporting what the repository declared",
+      ),
+    };
+  }
+  // A marker that could not be **determined** is neither a marker nor an
+  // absence, and the result has no third state for it: `null` means the
+  // repository declares none, and saying that of a repository whose
+  // declaration Studio could not read is the falsehood AC-0064 turns on. So
+  // the result is refused.
+  //
+  // This covers every refusal on a permitted read, not only an over-long
+  // marker. A refused `.agentbundle-state.toml` never reaches here --
+  // `declaredRefusalOutcome` above routes it first -- so in practice this is
+  // the `workspace.toml` path, which AC-0059's carve-out deliberately
+  // excludes from that routing.
+  //
+  // **The carve-out's letter is respected and its intent has a deadline.**
+  // It governs whether a refused workspace declaration becomes a
+  // declaration-file *stop*, reserving `malformed` for the inspector's own
+  // `invalid_workspace` finding. Refusing the result here takes a different
+  // row, so the letter holds. But this returns before `normalizeTrialResult`,
+  // and it is the **parse-failure** branch that sets the flag for
+  // `workspace.toml` -- which is exactly the syntactically invalid workspace
+  // declaration an inspector is meant to report. So the moment an inspector
+  // runs, a malformed `workspace.toml` stops the inspection instead of
+  // reaching `malformed`, and that is the carve-out's intent lost.
+  //
+  // Nothing is wrong today, because no inspector runs. The slice that changes
+  // that must decide between two things this loop had no authority to pick:
+  // let a malformed workspace declaration through to the inspector's finding,
+  // or give the result a third state for *marker not determined* so both can
+  // be true at once. Registered at `connect-orient-no-inspector-runs`.
+  //
+  // `result-invalid-repository`, not the Studio row: the structure that could
+  // not be read is repository-derived, and attributing it to Studio is the
+  // crossing AC-0093 forbids. This is the first reachable instance of that
+  // row -- the *Reasons for `inspection-stopped`* table has carried it since
+  // the start against content an inspector echoes.
+  if (record.declared.markerUndetermined === true) {
+    return {
+      ok: false,
+      // Through `stoppedBy` like every sibling, with its own cause. Building
+      // the outcome here instead emitted the row's bare wording -- "The
+      // repository's content could not be read as a result" -- while the
+      // identical event reaching the operator through the other permitted
+      // file named the file, the key and the bound.
+      refusal: stoppedBy(
+        "result-invalid-repository",
+        "a permitted declaration file was refused, so the result cannot report whether the repository declares a version marker",
+      ),
+    };
+  }
+  const outcome = normalizeTrialResult(
+    {
+      ...raw,
+      // Last, deliberately: the marker is the one the Service parsed from the
+      // declared read, not one the line across the boundary supplied.
+      declaredVersionMarker: record.declared.versionMarker ?? null,
+    },
+    record.requestId,
+  );
+  if (outcome.ok) {
+    return { ok: true, result: outcome.result };
+  }
+  if (outcome.stopReason === "request-identifier-mismatch") {
+    return { ok: false, refusal: stoppedBy("request-identifier-mismatch") };
+  }
+  return {
+    ok: false,
+    refusal: stoppedBy(
+      "result-invalid-studio",
+      // Neither cause echoes a value off the line. What crossed the boundary
+      // is unbounded and repository-influenced, and this text is persisted
+      // and rendered -- and counted against AC-0104's bound as
+      // `repository-derived`, so echoing a megabyte here would let a result
+      // make its own inspection unpersistable. Naming the cause is what a
+      // reader needs; the line itself is on the protocol stream, bounded.
+      outcome.stopReason === "contract-mismatch"
+        ? `the result names a contract other than ${TRIAL_CONTRACT}`
+        : "the result does not conform to the trial contract",
+    ),
   };
 }
 
 /** Exactly what `settledRuntimeOutcome` reads off a settled trial record. */
 export interface SettledRuntimeRecord {
+  /**
+   * AC-0034. The identifier **Studio minted**, so the comparison against the
+   * one the result echoes is against Studio's own value rather than against
+   * anything the child supplied.
+   */
+  readonly requestId: string;
+  /**
+   * Where the pinned inspector is looked for. Optional because most cases
+   * have no inspector tree to point at; production supplies Studio's own
+   * install root, which is the only place AC-0047 admits looking.
+   */
+  readonly inspectorSearchRoot?: string | undefined;
+  /** AC-0045. Supplied so an inspector resolving inside it can be refused. */
+  readonly materializationRoot?: string;
+  /**
+   * The interpreter paths **Studio delivered** to the child. A probe naming
+   * anything else is not a probe of an interpreter Studio offered, and is
+   * dropped rather than decided on.
+   */
+  readonly interpreterSearchList?: readonly string[];
+  /**
+   * Whether a completed response arrived before the Service decided to
+   * terminate. A run killed at a deadline **after** materializing writes no
+   * result line, and reporting that absence as an unreadable result would
+   * attribute a Runtime-side stop to Studio -- the crossing AC-0093 forbids.
+   * The supervisor already computes this; it was only missing from this type.
+   */
+  readonly completedResponse: boolean;
   readonly protocolLines: readonly Record<string, unknown>[];
   readonly resultRefused: boolean;
   readonly declared: DeclaredReadReport | undefined;

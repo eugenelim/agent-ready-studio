@@ -46,6 +46,7 @@ inspected snapshot is read.
 | --- | --- |
 | Trial code root | `apps/studio-service/src/trials/connect-and-orient-runtime/` |
 | Trial contract name | `connect-orient-trial.v0` |
+| Removal outcomes | `removed`, `not-removed`, `retained` — the closed set AC-0038's removal outcome may take. A value outside it is a non-conforming result under AC-0036, not a removal outcome Studio does not recognise |
 | Evidence note | `docs/product/research/connect-and-orient-trial-runtime-evidence.md` |
 | Sweep domain | `$HOME/Library/Application Support/agent-ready-studio/trial-materializations/` on Darwin, `$XDG_STATE_HOME/agent-ready-studio/trial-materializations/` otherwise — a per-user, non-world-writable fixed parent, created mode `0700`, deliberately **not** under the OS temp root and **not** the per-request `TMPDIR` |
 | Per-request state root | a per-request `mkdtemp` directory created inside the sweep domain at mode `0700`. It holds four children: the ownership marker, the materialization root, the per-request `HOME`, and the per-request `TMPDIR`. The parent is fixed so the sweep can enumerate; this child is unpredictable. **It is the unit of reclaim** |
@@ -316,6 +317,7 @@ writer, the bound states a measured tolerance rather than an asserted one.
 | Trial result bytes | 8 MiB | the Studio Service refuses the NDJSON line while reading, before a full buffer exists | none — exact |
 | Child diagnostic bytes | 256 KiB per child | the Studio Service bounds the child's stderr while reading, before a full buffer exists, retaining the leading and trailing halves. Diagnostics are truncated, never refused: refusing would let a repository suppress its own verdict by emitting warnings | none — exact |
 | Declared-value read | 2 files, 1 MiB each | the reader checks before each read | none — exact |
+| Declared version marker | 1 KiB | checked where the marker is **extracted**, and an over-long declaration is refused as a declaration — reported as `exceeds-byte-bound`, contributing no value and no provenance marker. It is deliberately not truncated at the persistence sink: the row below rules that out, because a truncated repository-derived value still carries AC-0039's marker and reads as complete when it is not. Without a bound here the marker is the one repository-authored value that can breach *Persisted repository-derived content* on its own, and that breach refuses the whole write — so a repository could make every inspection of itself unpersistable | none — exact |
 | Persisted repository-derived content | 256 KiB per connected source, over every persisted repository-derived value and not one class of them | the persistence layer checks the total before the write and **rejects** a write that would breach it, recording a diagnostic naming the measured size and the bound. Truncating was refused because a truncated repository-derived value still carries AC-0039's provenance marker, so it reads as a complete attributed value when it is not; eviction was refused because a retention order is a primitive this contract has nowhere else | none — exact |
 | Progress text cadence | the `resolving` and `inspecting` text channel updates at least every 2 s and no more often than every 1 s | the renderer's progress text channel, per AC-0129, which is deliberately not a live region | none — both bounds are exact, and the lower bound exists to keep the channel perceptibly live under a reduced-motion preference |
 | Inadmissible parse keys | `__proto__`, `constructor`, `prototype`, at any depth | the parser guard, at the parse sites AC-0057 binds and to the depth that criterion states, refusing the key before any value is produced from the document | none — exact, and the refusal is asserted independently by AC-0143 |
@@ -353,6 +355,17 @@ the next Runtime-dependent initiative. **On expiry:** deleted or rewritten.
 ## Boundaries
 
 ### Always do
+
+- **Refuse a trial result that reports an inspection state no trusted
+  inspector produced.** While no inspector runs, a result carrying
+  `workspace_present`, or a status of `completed`, asserts something no
+  trusted output supports — and the verdict mapping would turn that assertion
+  into `agent-ready`. The refusal belongs at the boundary where the result is
+  admitted, not on the branch that happens to consume it: holding AC-0061 with
+  a constant in the consumer means the guarantee moves the moment a second
+  consumer exists. **This is the control that must be relaxed deliberately
+  when a trusted inspector first runs**, and it is stated here so that
+  relaxation is a contract change rather than a discovery.
 
 - Resolve the source to an exact commit SHA before any inspection begins, and
   show that SHA wherever the answer is shown.
@@ -480,14 +493,14 @@ assisted authoring and has known false negatives.
 
 ### Provisional contract
 
-- [ ] **AC-0032.** The provisional contract is named as *Canonical values* states, and a request carrying any other contract name is refused.
+- [x] **AC-0032.** The provisional contract is named as *Canonical values* states, and a request carrying any other contract name is refused.
 - [x] **AC-0033.** The Studio Service mints each request identifier within the charset in *Canonical values*, and a request identifier is never taken from client input.
-- [ ] **AC-0034.** A result whose request identifier does not match the request is refused.
-- [ ] **AC-0035.** The trial result is validated in full against the trial contract before any part of it is normalized or persisted.
-- [ ] **AC-0036.** A trial result that is well-named and well-identified but does not conform is refused with a distinct diagnostic and is not partially consumed.
+- [x] **AC-0034.** A result whose request identifier does not match the request is refused.
+- [x] **AC-0035.** The trial result is validated in full against the trial contract before any part of it is normalized or persisted.
+- [x] **AC-0036.** A trial result that is well-named and well-identified but does not conform is refused with a distinct diagnostic and is not partially consumed.
 - [x] **AC-0037.** A trial result exceeding the result-bytes bound is refused while being read, before a full buffer exists.
-- [ ] **AC-0038.** The trial result reports the resolved SHA, an inspection status, the inspector's diagnostics, the declared workspace version marker or its absence, and a removal outcome.
-- [ ] **AC-0039.** Every repository-derived value in the trial result carries a provenance marker, where repository-derived means any value whose content originates in the inspected repository, whether Studio extracted it or the inspector echoed it.
+- [x] **AC-0038.** The trial result reports the resolved SHA, an inspection status, the inspector's diagnostics, the declared workspace version marker or its absence, and a removal outcome.
+- [x] **AC-0039.** Every repository-derived value in the trial result carries a provenance marker, where repository-derived means any value whose content originates in the inspected repository, whether Studio extracted it or the inspector echoed it.
 - [x] **AC-0040.** The provenance marker survives normalization into the persisted representation.
 - [x] **AC-0041.** The Studio-Service half of the enrichment seam lives in one named module that no non-seam surface imports, so removing the seam requires editing no code outside it.
 - [x] **AC-0042.** The northbound request contains no field whose value is a local filesystem path.
@@ -497,11 +510,11 @@ assisted authoring and has known false negatives.
 ### Trusted inspector
 
 - [ ] **AC-0043.** Studio records the trusted inspector's resolved path, pack name, pack version and the SHA-256 of both inspector files with each inspection.
-- [ ] **AC-0044.** An inspector whose pack name, version or file digests do not match the pin in *Canonical values* yields `inspector-unavailable` naming the mismatch, rather than being used.
-- [ ] **AC-0045.** Studio refuses an inspector whose resolved real path lies inside the materialization root.
-- [ ] **AC-0046.** Studio verifies the resolved Python interpreter reports version 3.11 or later before using it to inspect.
+- [x] **AC-0044.** An inspector whose pack name, version or file digests do not match the pin in *Canonical values* yields `inspector-unavailable` naming the mismatch, rather than being used.
+- [x] **AC-0045.** Studio refuses an inspector whose resolved real path lies inside the materialization root.
+- [x] **AC-0046.** Studio verifies the resolved Python interpreter reports version 3.11 or later before using it to inspect.
 - [x] **AC-0047.** When no trusted inspector is available, the result is `inspector-unavailable` and no repository-projected skill is used as a fallback.
-- [ ] **AC-0048.** When no conforming Python interpreter is found, the result is `inspector-unavailable` and names the interpreter requirement.
+- [x] **AC-0048.** When no conforming Python interpreter is found, the result is `inspector-unavailable` and names the interpreter requirement.
 - [x] **AC-0049.** Submodule content is neither fetched nor traversed.
 - [x] **AC-0051.** Materialization is killed by the Runtime supervisor when a sample observes the file-count bound crossed, within the tolerance the *Materialized file count* row in *Canonical values* records — the file count written in one 250 ms interval plus the measured worst-case duration of the sample itself.
 - [x] **AC-0052.** Resolution is killed at its exact deadline with its own diagnostic.

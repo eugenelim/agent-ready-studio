@@ -9,6 +9,7 @@ import {
   type InspectionOutcome,
   type SourceInspectionDependencies,
 } from "./source-inspection.js";
+import { provenanced, TRIAL_CONTRACT } from "./trial-result.js";
 
 const SHA = "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d";
 
@@ -18,8 +19,6 @@ function deps(
   return {
     transport: {
       resolve: vi.fn(async () => ({ sha: SHA, reportedRef: "main" })),
-      materialize: vi.fn(async () => undefined),
-      readHead: vi.fn(async () => SHA),
     },
     inspect: vi.fn(
       async (): Promise<InspectionOutcome> => ({
@@ -82,12 +81,62 @@ describe("an accepted URL runs the pipeline", () => {
 
     // The tree is untrusted content. The Service asking the Runtime for it,
     // rather than writing it here, is the isolation the boundary exists for.
+    // The Service-side transport has no materialization member at all now,
+    // so this is enforced by the type rather than by a spy that was never
+    // called -- a spy proves this run did not materialize; the absent member
+    // proves no run can.
     expect(d.inspect).toHaveBeenCalledTimes(1);
-    expect(d.transport.materialize).not.toHaveBeenCalled();
+    expect(Object.keys(d.transport)).toEqual(["resolve"]);
     const request = (d.inspect as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
     expect(request.revision.resolvedSha).toBe(SHA);
     expect(request.revision.fetchUrl).toContain("github.com/acme/widgets");
     expect(sources.get(started.sourceId)?.resolvedSha).toBe(SHA);
+  });
+
+  it("records what the repository declared, from the validated result", async () => {
+    // The two fields the `source.get` projection has columns for. Without a
+    // case here, replacing both copies with `null` and `false` keeps every
+    // other suite green -- the production lines this drives were added with
+    // nothing exercising them.
+    const sources = createSourceInspections(
+      deps({
+        inspect: vi.fn(
+          async (): Promise<InspectionOutcome> => ({
+            ok: false,
+            condition: "inspector-unavailable",
+            diagnostics: "no trusted inspector ran",
+            result: {
+              contract: TRIAL_CONTRACT,
+              requestId: "req-studio-minted-one",
+              status: "inspector-not-run",
+              resolvedSha: provenanced(SHA, "transport-reported"),
+              inspectorDiagnostics: provenanced("", "repository-derived"),
+              declaredVersionMarker: provenanced("7.4.1", "repository-derived"),
+              inspectorContractVersion: provenanced(null, "inspector-authored"),
+              removalOutcome: "removed",
+              verdict: "no-verdict",
+              versionUnverified: true,
+            },
+          }),
+        ),
+      }),
+    );
+    const started = sources.connect("https://github.com/acme/widgets");
+    await settled();
+
+    const held = sources.get(started.sourceId);
+    expect(held?.declaredVersionMarker).toBe("7.4.1");
+    expect(held?.versionUnverified).toBe(true);
+  });
+
+  it("records no marker when the result carried none", async () => {
+    const sources = createSourceInspections(deps());
+    const started = sources.connect("https://github.com/acme/widgets");
+    await settled();
+
+    const held = sources.get(started.sourceId);
+    expect(held?.declaredVersionMarker).toBeNull();
+    expect(held?.versionUnverified).toBe(false);
   });
 
   it("reports inspector-unavailable rather than inventing a verdict", async () => {
@@ -156,8 +205,6 @@ describe("an accepted URL runs the pipeline", () => {
           resolve: vi.fn(async () => {
             throw new Error("host unreachable");
           }),
-          materialize: vi.fn(async () => undefined),
-          readHead: vi.fn(async () => SHA),
         },
       }),
     );

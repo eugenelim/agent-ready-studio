@@ -1,14 +1,10 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { CanonicalSourceIdentity } from "../../source-identity.js";
 import {
   createGitTransport,
   GIT_REDIRECT_REFUSAL,
   type GitInvocation,
-  materializeRevision,
   type RevisionTransport,
   resolveRevision,
 } from "./git-driver.js";
@@ -18,10 +14,9 @@ const identity: CanonicalSourceIdentity = {
   repository: "repository",
 };
 const exactSha = "0123456789abcdef0123456789abcdef01234567";
-const temporaryRoots: string[] = [];
 
 function injectedTransport(
-  options: { defaultBranch?: string; sha?: string; head?: string } = {},
+  options: { defaultBranch?: string; sha?: string } = {},
 ): RevisionTransport {
   return {
     async resolve() {
@@ -30,24 +25,8 @@ function injectedTransport(
         sha: options.sha ?? exactSha,
       };
     },
-    async materialize() {},
-    async readHead() {
-      return options.head ?? options.sha ?? exactSha;
-    },
   };
 }
-
-function temporaryMaterializationRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "connect-orient-t3-"));
-  temporaryRoots.push(root);
-  return root;
-}
-
-afterEach(() => {
-  for (const root of temporaryRoots.splice(0)) {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
 
 // biome-ignore format: approved plan stub must remain byte-identical
 it("AC-0008 refuses a remote default branch outside the ref charset", async () => {
@@ -106,182 +85,46 @@ describe("remote revision resolution", () => {
   });
 });
 
-describe("materialized revision verification", () => {
-  it("AC-0012 verifies HEAD inside the supplied materialization root", async () => {
-    const root = temporaryMaterializationRoot();
-    const calls: string[] = [];
-    const transport = injectedTransport();
-    transport.materialize = async (_url, _sha, materializationRoot) => {
-      calls.push(`materialize:${materializationRoot}`);
-    };
-    transport.readHead = async (materializationRoot) => {
-      calls.push(`head:${materializationRoot}`);
-      return exactSha;
-    };
-    const resolution = await resolveRevision(identity, transport);
-    expect(resolution.ok).toBe(true);
-    if (!resolution.ok) {
-      return;
-    }
-
-    await expect(
-      materializeRevision(resolution, root, transport),
-    ).resolves.toMatchObject({ ok: true, inspectedSha: exactSha });
-    expect(calls).toEqual([`materialize:${root}`, `head:${root}`]);
-  });
-
-  it("AC-0012 refuses a materialized HEAD that differs from the resolved SHA", async () => {
-    const resolution = await resolveRevision(identity, injectedTransport());
-    expect(resolution.ok).toBe(true);
-    if (!resolution.ok) {
-      return;
-    }
-    const otherSha = "f".repeat(40);
-
-    await expect(
-      materializeRevision(
-        resolution,
-        temporaryMaterializationRoot(),
-        injectedTransport({ head: otherSha }),
-      ),
-    ).resolves.toEqual({
-      ok: false,
-      code: "head-mismatch",
-      expectedSha: exactSha,
-      actualSha: otherSha,
-    });
-  });
-
-  it("AC-0014 exposes the exact SHA without replacing it with an abbreviation", async () => {
-    const resolution = await resolveRevision(identity, injectedTransport());
-    expect(resolution.ok).toBe(true);
-    if (!resolution.ok) {
-      return;
-    }
-
-    const result = await materializeRevision(
-      resolution,
-      temporaryMaterializationRoot(),
-      injectedTransport(),
-    );
-    expect(result).toMatchObject({
-      ok: true,
-      resolvedSha: exactSha,
-      inspectedSha: exactSha,
-    });
-    expect(result.ok && result.inspectedSha).toHaveLength(40);
-  });
-});
-
 describe("git transport command contract", () => {
-  it("AC-0009 pins redirect refusal on both Git phases", async () => {
+  it("carries the redirect refusal on the resolution vector", async () => {
+    // Resolution is the only Git phase this module still performs.
+    // AC-0009's materialization leg is bound where materialization happens,
+    // against every vector a real child emits:
+    // `runtime-supervisor.test.ts` "AC-0022 carries the complete pinned git
+    // configuration on every git argument vector". The audit's AC-0009 row
+    // cites that case, not this file.
     const invocations: GitInvocation[] = [];
     const transport = createGitTransport("/usr/bin/git", async (invocation) => {
       invocations.push(invocation);
-      if (invocation.args.includes("ls-remote")) {
-        return {
-          stdout: `${exactSha}\trefs/heads/feature/one\n`,
-        };
-      }
-      if (invocation.args.includes("rev-parse")) {
-        return { stdout: `${exactSha}\n` };
-      }
-      return { stdout: "" };
+      return { stdout: `${exactSha}\trefs/heads/feature/one\n` };
     });
 
-    const resolution = await resolveRevision(
-      identity,
-      transport,
-      "feature/one",
-    );
-    expect(resolution.ok).toBe(true);
-    if (!resolution.ok) {
-      return;
-    }
-    await materializeRevision(
-      resolution,
-      temporaryMaterializationRoot(),
-      transport,
-    );
+    await resolveRevision(identity, transport, "feature/one");
 
-    expect(invocations).toHaveLength(5);
-    const materializationRoot = invocations[1]?.cwd;
-    expect(materializationRoot).toBeDefined();
-    expect(invocations.slice(1).map(({ cwd }) => cwd)).toEqual([
-      materializationRoot,
-      materializationRoot,
-      materializationRoot,
-      materializationRoot,
-    ]);
+    expect(invocations).toHaveLength(1);
     for (const invocation of invocations) {
       expect(invocation.executable).toBe("/usr/bin/git");
       expect(invocation.args).toContain(GIT_REDIRECT_REFUSAL);
     }
   });
 
-  it("uses the canonical identity for both remote Git phases", async () => {
+  it("uses the canonical identity on the resolution vector", async () => {
     const invocations: GitInvocation[] = [];
     const transport = createGitTransport("/usr/bin/git", async (invocation) => {
       invocations.push(invocation);
-      if (invocation.args.includes("ls-remote")) {
-        return {
-          stdout: `${exactSha}\trefs/heads/feature/one\n`,
-        };
-      }
-      if (invocation.args.includes("rev-parse")) {
-        return { stdout: `${exactSha}\n` };
-      }
-      return { stdout: "" };
+      return { stdout: `${exactSha}\trefs/heads/feature/one\n` };
     });
-    const resolution = await resolveRevision(
-      identity,
-      transport,
-      "feature/one",
-    );
-    expect(resolution.ok).toBe(true);
-    if (!resolution.ok) {
-      return;
-    }
-    await materializeRevision(
-      resolution,
-      temporaryMaterializationRoot(),
-      transport,
-    );
 
-    const target = "https://github.com/owner/repository";
+    await resolveRevision(identity, transport, "feature/one");
+
     const resolutionInvocation = invocations.find(({ args }) =>
       args.includes("ls-remote"),
-    );
-    const materializationInvocation = invocations.find(({ args }) =>
-      args.includes("fetch"),
-    );
-    const checkoutInvocation = invocations.find(({ args }) =>
-      args.includes("checkout"),
-    );
-    const headInvocation = invocations.find(({ args }) =>
-      args.includes("rev-parse"),
     );
     expect(
       resolutionInvocation?.args.slice(
         resolutionInvocation.args.indexOf("--") + 1,
       ),
-    ).toEqual([target, "feature/one"]);
-    expect(
-      materializationInvocation?.args.slice(
-        materializationInvocation.args.indexOf("--") + 1,
-      ),
-    ).toEqual([target, exactSha]);
-    expect(checkoutInvocation?.args.slice(-4)).toEqual([
-      "checkout",
-      "--detach",
-      "--force",
-      "FETCH_HEAD",
-    ]);
-    expect(headInvocation?.args.slice(-3)).toEqual([
-      "rev-parse",
-      "--verify",
-      "HEAD",
-    ]);
+    ).toEqual(["https://github.com/owner/repository", "feature/one"]);
   });
 
   it("parses the remote-reported default branch and its exact SHA", async () => {

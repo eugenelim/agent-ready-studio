@@ -7,6 +7,7 @@ import type { CanonicalSourceIdentity } from "../../source-identity.js";
 import {
   BoundedDiagnosticBuffer,
   BoundedResultReader,
+  TRIAL_CONTRACT,
   type TrialStopReason,
 } from "../../trial-result.js";
 import {
@@ -14,6 +15,7 @@ import {
   DECLARED_READ_FILE_BOUND,
   DECLARED_READ_REFUSALS,
   DECLARED_VERSION_KEY,
+  DECLARED_VERSION_MARKER_BOUND_BYTES,
   type DeclaredReadRefusal,
   declaredVersionMarker,
   isPermittedReadName,
@@ -117,6 +119,12 @@ export interface TrialRequest {
 }
 
 export interface TrialInspectionOptions {
+  /**
+   * Names a contract other than the canonical one, so AC-0032's refusal can be
+   * observed firing on the live path. Production never sets it, on the
+   * precedent `declaredReadNames` and `resultByteBound` set.
+   */
+  readonly trialContract?: string;
   /**
    * Records each descendant's argument vector and environment as the group is
    * sampled. The observer is the parent-side half of the process boundary.
@@ -266,6 +274,25 @@ export interface DeclaredReadReport {
    * is. `undefined` means no admitted document declared one.
    */
   readonly versionMarker: string | undefined;
+  /**
+   * Whether the marker could not be **determined**, as distinct from
+   * determined to be absent. Set when any admitted read was refused, for any
+   * reason: an over-long marker, a refusal the child reported, a payload that
+   * did not arrive in the agreed transport, a parse that failed.
+   *
+   * It is reported here rather than left on the reads, because the per-read
+   * refusals have exactly one production consumer -- `declaredRefusalOutcome`
+   * -- and that consumer skips `workspace.toml` by AC-0059's carve-out. A
+   * refused read of that file therefore left `versionMarker` undefined and
+   * reached the result as `null`, which the contract defines as *the
+   * repository declares none*: Studio asserting, of a repository whose
+   * declaration it could not read, that it declared nothing. `undefined`
+   * cannot carry that distinction, so this flag does.
+   *
+   * **An absent file does not set it.** A repository that declares no
+   * `workspace.toml` has been read, and the answer is an absence.
+   */
+  readonly markerUndetermined?: boolean;
 }
 
 export interface TrialInspectionRecord {
@@ -456,6 +483,10 @@ export function beginTrialInspection(
 
   const plan = {
     requestId: request.requestId,
+    // *Canonical values*, *Trial contract name*. The child holds its own
+    // literal and compares the two, which is AC-0032's refusal; a test
+    // overrides this to reach it.
+    trialContract: options.trialContract ?? TRIAL_CONTRACT,
     stateRoot: stateRoot.stateRoot,
     // Canonical names, delivered rather than duplicated: the child cannot
     // import a sibling module, so these keep one source of truth for the
@@ -907,6 +938,7 @@ export function declaredFromProtocol(
   }
 
   let versionMarker: string | undefined;
+  let markerUndetermined = false;
   const reads: DeclaredFileReport[] = [];
   // The container is read like its elements. `reads` arrives from the same
   // untrusted line, so a value that is not an array must yield no reads --
@@ -931,6 +963,7 @@ export function declaredFromProtocol(
     }
     const readRefusal = classifyRefusal(read.refusal);
     if (readRefusal.kind !== "absent") {
+      markerUndetermined = true;
       reads.push({
         name,
         routesToDeclarationFileStop,
@@ -947,6 +980,7 @@ export function declaredFromProtocol(
     }
     const decoded = decodeDeclaredText(read);
     if (decoded === undefined) {
+      markerUndetermined = true;
       reads.push({
         name,
         routesToDeclarationFileStop,
@@ -957,6 +991,7 @@ export function declaredFromProtocol(
     }
     const outcome = parseDeclared(decoded);
     if (outcome.refusal !== undefined) {
+      markerUndetermined = true;
       reads.push({
         name,
         routesToDeclarationFileStop,
@@ -968,10 +1003,29 @@ export function declaredFromProtocol(
     // Only the criterion-named field travels further, on a freshly built
     // object -- AC-0057's third clause.
     const normalized = normalizeDeclared(outcome.value, [DECLARED_VERSION_KEY]);
-    versionMarker ??= declaredVersionMarker(normalized);
+    const marker = declaredVersionMarker(normalized);
+    if (marker.refusal !== undefined) {
+      // An over-long marker is a refused declaration, not a repository that
+      // declares none: reporting the second would be the falsehood AC-0064
+      // turns on, and dropping it silently would let repository content
+      // decide whether the record is persisted at all.
+      markerUndetermined = true;
+      reads.push({
+        name,
+        routesToDeclarationFileStop,
+        refusal: marker.refusal,
+        diagnostic: `${name}: the declared ${DECLARED_VERSION_KEY} is longer than ${DECLARED_VERSION_MARKER_BOUND_BYTES} bytes`,
+      });
+      continue;
+    }
+    versionMarker ??= marker.marker;
     reads.push({ name, routesToDeclarationFileStop, value: normalized });
   }
-  return { reads, versionMarker };
+  return {
+    reads,
+    versionMarker,
+    ...(markerUndetermined ? { markerUndetermined } : {}),
+  };
 }
 
 /**

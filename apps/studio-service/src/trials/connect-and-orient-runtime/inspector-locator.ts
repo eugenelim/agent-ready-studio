@@ -280,6 +280,34 @@ export function locateTrustedInspector(
   };
 }
 
+/**
+ * Whether a reported version string is at least the minimum.
+ *
+ * The string is what an interpreter printed — `Python 3.14.7` — so the numbers
+ * are read out of it rather than assumed to be the whole of it. Anything that
+ * yields no major and minor pair is **not** at least the minimum: an
+ * unreadable version is a version Studio has not verified, and treating it as
+ * conforming is the failure AC-0046 exists to prevent.
+ */
+function atLeastVersion(
+  reported: string | undefined,
+  minimum: readonly [number, number],
+): boolean {
+  if (reported === undefined) {
+    return false;
+  }
+  const found = /(\d+)\.(\d+)/.exec(reported);
+  if (found === null) {
+    return false;
+  }
+  const major = Number(found[1]);
+  const minor = Number(found[2]);
+  if (major !== minimum[0]) {
+    return major > minimum[0];
+  }
+  return minor >= minimum[1];
+}
+
 export interface InterpreterProbe {
   readonly path: string;
   readonly version?: string;
@@ -300,7 +328,15 @@ export function selectConformingInterpreter(
   probes: readonly InterpreterProbe[],
   minimumVersion: readonly [number, number],
 ): { readonly ok: true; readonly executable: string } | InspectorUnavailable {
-  const conforming = probes.find((probe) => probe.conforming);
+  // **Decided from the reported version, not from the probe's own flag.**
+  // AC-0046 says Studio verifies the interpreter reports 3.11 or later; a
+  // `conforming` boolean the child computed is the child's verification, and
+  // consuming it would make this function agree with whatever it was handed.
+  // The flag is left on the probe because the child's diagnostics use it, and
+  // it is deliberately not read here.
+  const conforming = probes.find((probe) =>
+    atLeastVersion(probe.version, minimumVersion),
+  );
   if (conforming !== undefined) {
     return { ok: true, executable: conforming.path };
   }
