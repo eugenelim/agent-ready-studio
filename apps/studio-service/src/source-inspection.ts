@@ -808,8 +808,23 @@ export function settledRuntimeOutcome(
   const validated = record.completedResponse
     ? validatedTrialResult(record)
     : ({ ok: false, refusal: undefined } as const);
+
+  // The locator is a filesystem walk from Studio's install root and does not
+  // depend on the Runtime's outcome. It runs for every path that reaches here,
+  // including stopped, timed-out, cancelled, and validation-refused runs, so
+  // AC-0043's universal "with each inspection" holds on all of them.
+  const located = inspectorDiagnostic(record);
+
+  // A run whose result failed validation returns the refusal with the inspector
+  // identity attached, so a lead can see which inspector Studio held even when
+  // the result was not admitted. The refusal is always `ok: false` — every
+  // path in `validatedTrialResult` that sets a refusal does so — but the field
+  // is typed as `InspectionOutcome` (a union), so we narrow before spreading.
   if (!validated.ok && validated.refusal !== undefined) {
-    return validated.refusal;
+    const refusal = validated.refusal;
+    return refusal.ok
+      ? refusal
+      : { ...refusal, inspector: located.inspector };
   }
 
   // The Runtime materialized the tree and ran no trusted inspector, so no
@@ -823,27 +838,26 @@ export function settledRuntimeOutcome(
   // interpreter requirement — and a conforming inspector that Studio holds and
   // did not use is a fifth thing again. One generic sentence for all of them
   // tells the lead nothing they can act on.
-  const located = record.completedResponse
-    ? inspectorDiagnostic(record)
-    : undefined;
   return {
     ok: false,
     condition: "inspector-unavailable",
     // A run that stopped before responding and a run that finished cleanly
     // without an inspector are the same condition and not the same event, and
-    // the absent `result` that distinguishes them is not rendered. Naming the
-    // difference needs no new vocabulary -- it is the same cause-with-fallback
-    // shape `stoppedBy` uses. Which *termination* stopped it still needs a
-    // `StopReasonKey` mapping, which is `connect-orient-stop-reason-never-resolved`.
-    diagnostics:
-      located?.diagnostic ?? "the Runtime stopped before it reported a result",
+    // the absent `result` that distinguishes them is not rendered. The
+    // diagnostic distinguishes them: a stopped run names that the Runtime
+    // stopped, a settled run names which of the locator's checks turned
+    // nothing up. Which *termination* stopped it still needs a `StopReasonKey`
+    // mapping, which is `connect-orient-stop-reason-never-resolved`.
+    diagnostics: record.completedResponse
+      ? located.diagnostic
+      : "the Runtime stopped before it reported a result",
     ...(validated.ok
       ? {
           result: validated.result,
           declaredVersionState: validated.declaredVersionState,
         }
       : {}),
-    inspector: located?.inspector ?? null,
+    inspector: located.inspector,
   };
 }
 

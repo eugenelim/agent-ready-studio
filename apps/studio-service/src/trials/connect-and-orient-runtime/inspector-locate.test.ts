@@ -505,3 +505,79 @@ describe("AC-0043, AC-0044 and AC-0045 the pinned inspector is located, and neve
     }
   });
 });
+
+describe("AC-0043 inspector identity on non-settled terminal outcomes", () => {
+  /**
+   * A conforming probe on a path Studio delivered. Both cases below need it.
+   */
+  const terminalProbe = [
+    {
+      path: "/opt/homebrew/bin/python3",
+      version: "Python 3.14.7",
+      conforming: true,
+    },
+  ];
+
+  it("carries a non-null inspector on a stopped run when the Runtime reported probes", () => {
+    // A run terminated before it completed (timed-out, stopped, cancelled)
+    // that still wrote interpreter probes before it was killed. The defect:
+    // `located` was only computed when `completedResponse` was true, so every
+    // stopped run wrote `inspector: null` — asserting Studio looked and found
+    // nothing on runs where it never looked.
+    const outcome = settledRuntimeOutcome({
+      requestId: MINTED,
+      interpreterSearchList: DELIVERED,
+      completedResponse: false,
+      protocolLines: [
+        { type: "materialized", status: 0 },
+        { type: "interpreter", probes: terminalProbe },
+      ],
+      resultRefused: false,
+      declared: undefined,
+      inspectorSearchRoot: studioInstallRoot() as string,
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.ok === false && outcome.condition).toBe(
+      "inspector-unavailable",
+    );
+    const inspector = outcome.ok === false ? outcome.inspector : undefined;
+    expect(inspector).toBeDefined();
+    expect(inspector).not.toBeNull();
+    expect(inspector?.packName).toBe("core");
+    expect(inspector?.resolvedPath).toContain("scripts");
+    expect(Object.keys(inspector?.fileDigests ?? {}).length).toBeGreaterThan(0);
+    for (const digest of Object.values(inspector?.fileDigests ?? {})) {
+      expect(digest).toMatch(/^[0-9a-f]{64}$/);
+    }
+  });
+
+  it("carries a non-null inspector when a completed run's result fails validation", () => {
+    // `completedResponse: true` but the result carries status "completed",
+    // which AC-0061 refuses. The early return at the validation-refusal branch
+    // previously returned `validated.refusal` as-is, skipping the inspector
+    // lookup — leaving `inspector` absent, stored as null.
+    const outcome = settledRuntimeOutcome({
+      ...recordWith(terminalProbe),
+      inspectorSearchRoot: studioInstallRoot() as string,
+      protocolLines: [
+        { type: "materialized", status: 0 },
+        { type: "interpreter", probes: terminalProbe },
+        { ...CONFORMING_RESULT, status: "completed" },
+      ],
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.ok === false && outcome.condition).toBe(
+      "inspection-stopped",
+    );
+    const inspector = outcome.ok === false ? outcome.inspector : undefined;
+    expect(inspector).toBeDefined();
+    expect(inspector).not.toBeNull();
+    expect(inspector?.packName).toBe("core");
+    expect(Object.keys(inspector?.fileDigests ?? {}).length).toBeGreaterThan(0);
+    for (const digest of Object.values(inspector?.fileDigests ?? {})) {
+      expect(digest).toMatch(/^[0-9a-f]{64}$/);
+    }
+  });
+});
