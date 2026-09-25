@@ -21,7 +21,6 @@ import {
   REQUEST_IDENTIFIER_PATTERN,
   TRIAL_CONTRACT,
   TRIAL_RESULT_BYTE_BOUND,
-  toPersistedRepresentation,
 } from "./trial-result.js";
 
 const SERVICE_SOURCE = dirname(fileURLToPath(import.meta.url));
@@ -281,26 +280,6 @@ describe("AC-0039 and AC-0040 provenance is carried and survives", () => {
 
     expect(outcome.result.resolvedSha.provenance).toBe("transport-reported");
     expect(isNonOriginated(outcome.result.resolvedSha)).toBe(true);
-  });
-
-  it("carries every marker into the persisted representation", () => {
-    const outcome = normalizeTrialResult(
-      conformingResult({ declaredVersionMarker: "0.4" }),
-    );
-    expect(outcome.ok).toBe(true);
-    if (!outcome.ok) {
-      return;
-    }
-
-    const persisted = toPersistedRepresentation(outcome.result);
-
-    for (const [field, marked] of Object.entries(persisted.values)) {
-      expect(marked.provenance, field).toBeDefined();
-    }
-    expect(persisted.values.declaredVersionMarker?.provenance).toBe(
-      "repository-derived",
-    );
-    expect(persisted.values.resolvedSha?.provenance).toBe("transport-reported");
   });
 });
 

@@ -352,9 +352,26 @@ open = [
   # fixture repository needs. Binding it needs the live smoke, or a change to
   # that row, which is an owner call.
   #
-  # Remaining: Step D, the inspector locator (AC-0043 to AC-0046, AC-0048),
-  # and Step E's leftovers (AC-0088, AC-0091, AC-0092, routed separately at
-  # connect-orient-stop-reason-never-resolved).
+  # Step D, the inspector locator, landed on 2026-09-25: AC-0043 to AC-0046 and
+  # AC-0048 are all met, and AC-0043's "with each inspection" was widened the
+  # same day from the one completed-response branch to every path that can
+  # determine an identity. Step E's leftovers (AC-0088, AC-0091, AC-0092) are
+  # routed separately at connect-orient-stop-reason-never-resolved.
+  #
+  # Every module this entry named now has a settled disposition, which is the
+  # point of the cluster: a module written, tested and called by nothing is the
+  # defect class it exists to remove, and leaving one undecided reproduces it.
+  # locateTrustedInspector, selectConformingInterpreter, normalizeDeclared,
+  # normalizeTrialResult, BoundedResultReader and BoundedDiagnosticBuffer are
+  # wired. readDeclaredValues, materializeRevision and toPersistedRepresentation
+  # were deleted -- the child reads and materializes, the Service opens no path
+  # under a materialization root, and AC-0040 is bound against the real storage
+  # path in source-inspection.ts, so a second persisted representation could
+  # never acquire a caller. Two are deliberately kept with no production caller:
+  # buildNorthboundRequest cannot have one, because AC-0041 requires the seam
+  # module to have no non-seam importer and a caller would redden it; and
+  # observedVersions carries AC-0068's absence proof, so deleting it would move
+  # a met verdict, and it is the function AC-0067's renderer work will call.
   #
   # Four contract decisions the review rounds carried out of the loop were
   # authorized by the owner on 2026-09-24 and are landed: a 1 KiB source bound
@@ -364,6 +381,14 @@ open = [
   # notes/verification-ledger.md#owner-decision-2026-09-24-step-c-carried-items.
   # AC-0073 stays not met on a new reason: the check it names is now performed
   # and no case can reach it.
+  #
+  # Remaining, and why the entry stays open: AC-0055, AC-0059 and AC-0060 are
+  # still not met. Each is a reporting clause rather than a wiring one -- the
+  # file-count leg, the declaration-file branch, and a criterion bound only to
+  # the reader's output shape -- so the wiring this cluster owns is done and
+  # three criteria of its twenty-three are not. AC-0012 left the set on
+  # 2026-09-25 as not verifiable here rather than as a defect, by owner
+  # decision at notes/verification-ledger.md#owner-decisions-2026-09-25-review-round-12.
   { slug = "connect-orient-wire-the-uncalled-modules", source = "connect-and-orient/2026-09-22" },
 ]
 closed = [

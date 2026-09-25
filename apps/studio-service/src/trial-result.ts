@@ -275,38 +275,6 @@ export function normalizeTrialResult(
 }
 
 /**
- * AC-0040. The persisted representation is built by copying named fields onto a
- * fresh object, and each provenance marker travels with its value rather than
- * being recomputed from the field name at the far end.
- */
-export interface PersistedTrialResult {
-  readonly requestId: string;
-  readonly status: string;
-  readonly verdict: Verdict;
-  readonly versionUnverified: boolean;
-  readonly removalOutcome: string;
-  readonly values: Readonly<Record<string, Provenanced<string | null>>>;
-}
-
-export function toPersistedRepresentation(
-  result: NormalizedTrialResult,
-): PersistedTrialResult {
-  return {
-    requestId: result.requestId,
-    status: result.status,
-    verdict: result.verdict,
-    versionUnverified: result.versionUnverified,
-    removalOutcome: result.removalOutcome,
-    values: {
-      resolvedSha: result.resolvedSha,
-      inspectorDiagnostics: result.inspectorDiagnostics,
-      declaredVersionMarker: result.declaredVersionMarker,
-      inspectorContractVersion: result.inspectorContractVersion,
-    },
-  };
-}
-
-/**
  * AC-0037. The result is refused **while being read**: each chunk is counted as
  * it arrives and the reader refuses the moment the running total passes the
  * bound, so no full buffer of an oversized result ever exists.

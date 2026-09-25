@@ -822,9 +822,7 @@ export function settledRuntimeOutcome(
   // is typed as `InspectionOutcome` (a union), so we narrow before spreading.
   if (!validated.ok && validated.refusal !== undefined) {
     const refusal = validated.refusal;
-    return refusal.ok
-      ? refusal
-      : { ...refusal, inspector: located.inspector };
+    return refusal.ok ? refusal : { ...refusal, inspector: located.inspector };
   }
 
   // The Runtime materialized the tree and ran no trusted inspector, so no

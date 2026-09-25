@@ -537,8 +537,9 @@ def _resolve_length(
     return None if matches else -1
 
 
-# **Why there is no mechanical check for a citation that resolves to the wrong
-# line, after two attempts at one.**
+# **How a citation that resolves to the wrong line is caught, and why two
+# earlier attempts at it were unsound.** Both are recorded so neither is
+# re-proposed.
 #
 # The first asked whether the *row* had been edited when a cited file changed.
 # That reads as a reasonable proxy and is not one: it goes vacuous exactly when
@@ -554,16 +555,26 @@ def _resolve_length(
 # nothing. It reported 244 drifted citations on a tree whose citations had just
 # been remapped correctly — every one an artifact of the check.
 #
-# The class stays open because the table does not record what a citation is
-# *for*. A line number is a claim about current content, and nothing here knows
-# what content was meant, so no amount of diff arithmetic can confirm it.
-# Closing it needs the rows to carry something verifiable — a symbol name, a
-# snippet — which is a change to the table's schema and an owner's call. It is
-# registered at `connect-orient-audit-citations-record-no-verifiable-anchor`.
+# Both attempts failed for one reason: the table did not record what a citation
+# was *for*. A line number is a claim about current content, and neither check
+# knew what content was meant.
 #
-# What remains below is what can be checked without knowing intent: that a
-# citation resolves, that it lands inside the file, and that it does not start
-# on a blank or bracket-only line.
+# **That is what the optional `#symbol` anchor now supplies**, and
+# `connect-orient-audit-citations-record-no-verifiable-anchor` closed with it. A
+# citation written `inspector-locator.ts:192#locateTrustedInspector` fails the
+# gate when the symbol is no longer inside the cited span, so the row states its
+# own subject and the check can read it. `_anchor_in_span` above is that check.
+#
+# **Its limit is worth knowing before trusting it.** The anchor is matched as a
+# substring of the span's text, so it catches a citation that drifted off its
+# subject and not one that landed on a different mention of the same name. And
+# the anchor is optional by design, so the table gains them a row at a time: an
+# unanchored citation is still checked only for the three properties below.
+#
+# What is checked without an anchor is what can be checked without knowing
+# intent: that a citation resolves, that it lands inside the file, and that it
+# does not start on a blank or bracket-only line. A bare `return;` passes all
+# three, which is why an anchor is the stronger form.
 
 
 def main() -> int:
