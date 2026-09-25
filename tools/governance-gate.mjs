@@ -8,10 +8,12 @@
 // it never reads docs/. `tools/lint-intent-inventory.mjs` covers capability
 // intents, not decision records.
 //
-// It deliberately owns NO checking logic. Every check is a skill's own script,
-// reached through whichever adapter root the pack was projected into. A second
-// implementation of a shape check would drift from the pack's, and the pack is
-// the authority on its own format.
+// It deliberately owns NO checking logic. Every check is a script's, not this
+// file's. Pack checks are reached through whichever adapter root the pack was
+// projected into — a second implementation of a shape check would drift from
+// the pack's, and the pack is the authority on its own format. Repository-owned
+// checks live in `tools/` and are run from there, because a repository script
+// placed in a pack-managed skill tree is removed by the next pack upgrade.
 //
 // docs/rfc gets the ordinal check but NOT an index check: that index is
 // hand-written by decision, so `index-records.py --check` would fail on it by
@@ -28,7 +30,7 @@
 // Exits non-zero on any failure, running every check rather than stopping at
 // the first, so one run yields the whole worklist.
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -102,10 +104,57 @@ for (const { skill, script, args } of CHECKS) {
   console.log(`governance-gate: ok  ${label}`);
 }
 
+// Repository-owned checks. These are not skill scripts, so they are not
+// probed under an adapter root: a script placed in a pack-managed skill tree
+// is removed by the next pack upgrade. The gate still owns no checking logic
+// -- each entry delegates to a script in `tools/`.
+// Discovered rather than named: a literal path here fails `pnpm verify` for
+// reasons unrelated to the change making it, the moment that note is moved,
+// renamed or removed as its spec ships. A spec with no audit note contributes
+// no check.
+const auditNotes = existsSync(join(REPO_ROOT, "docs/specs"))
+  ? readdirSync(join(REPO_ROOT, "docs/specs"), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => `docs/specs/${entry.name}/notes/acceptance-audit.md`)
+      .filter((relative) => existsSync(join(REPO_ROOT, relative)))
+      .sort()
+  : [];
+
+const LOCAL_CHECKS = [
+  { script: "acceptance-audit-counts.py", args: ["--self-test"] },
+  ...auditNotes.map((relative) => ({
+    script: "acceptance-audit-counts.py",
+    args: ["--check", relative],
+  })),
+];
+
+for (const { script, args } of LOCAL_CHECKS) {
+  const label = `tools/${script} ${args.join(" ")}`;
+  const result = spawnSync(PYTHON, [join(REPO_ROOT, "tools", script), ...args], {
+    cwd: REPO_ROOT,
+    stdio: "inherit",
+  });
+  if (result.error) {
+    failures.push(`${label}: could not run ${PYTHON} (${result.error.message})`);
+    continue;
+  }
+  if (result.signal !== null) {
+    failures.push(`${label}: killed by signal ${result.signal}`);
+    continue;
+  }
+  if (result.status !== 0) {
+    failures.push(`${label}: exit ${result.status}`);
+    continue;
+  }
+  console.log(`governance-gate: ok  ${label}`);
+}
+
 if (failures.length > 0) {
   console.error(`\ngovernance-gate: ${failures.length} check(s) failed:`);
   for (const failure of failures) console.error(`  ${failure}`);
   process.exit(1);
 }
 
-console.log(`governance-gate: all ${CHECKS.length} checks passed (${skillsRoot})`);
+console.log(
+  `governance-gate: all ${CHECKS.length + LOCAL_CHECKS.length} checks passed (${skillsRoot} plus tools/)`,
+);

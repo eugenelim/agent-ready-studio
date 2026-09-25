@@ -148,6 +148,13 @@ open = [
   # over -- so the hazard is unchanged, but the reason for deferring is weaker
   # than when it was recorded and the next amendment should not read it as
   # still standing.
+  # UPDATE 2026-09-24: materializeRevision is deleted, with the materialize and
+  # readHead transport members under it, so the second settle-question above --
+  # where the shape rule must hold -- now has one site rather than two. The
+  # child fetches with plan.revision.resolvedSha, which resolveRevision already
+  # gated with EXACT_COMMIT_SHA before the Service handed it over. Nothing
+  # re-validates it at the child, which is the open question; the ungated
+  # second copy that made it two questions is gone.
   { slug = "connect-orient-transport-operand-sink-scope", source = "connect-and-orient/2026-09-18" },
   # The Service-side sweep's removal walk recurses without a depth bound, and
   # its recursive call sits outside the guarded blocks. Found by round 36's
@@ -194,6 +201,22 @@ open = [
   # authorization is for the boundary, not for shipping an inspector -- and it
   # is recorded so the gap is not read as a defect in the derivation.
   # Evidence: notes/verification-ledger.md#t12-composition-2026-09-19.
+  # 2026-09-24: this slice inherits a decision Step C could not make. The
+  # result refuses when a permitted declaration read was refused, so that
+  # Studio never asserts "the repository declares none" of a repository whose
+  # declaration it could not read. The branch that fires for workspace.toml is
+  # the parse failure -- which is exactly the malformed workspace declaration
+  # an inspector is meant to report as invalid_workspace. The refusal returns
+  # before normalizeTrialResult, so once an inspector runs, a malformed
+  # workspace.toml stops the inspection rather than reaching the malformed
+  # condition, and AC-0059's carve-out loses its intent while keeping its
+  # letter.
+  #
+  # Two ways out, both contract decisions: let a malformed workspace
+  # declaration through to the inspector's finding, or give the trial result a
+  # third state for "marker not determined" so the absence and the finding can
+  # both be true. Evidence:
+  # notes/verification-ledger.md#slice-f1-step-c-2026-09-24.
   { slug = "connect-orient-no-inspector-runs", source = "connect-and-orient/2026-09-19" },
   # AC-0088, AC-0091 and AC-0092 need the reason an inspection stopped to reach
   # the surface. The field crosses the wire and the projection and renderer both
@@ -295,7 +318,116 @@ open = [
   # materializes repository-controlled content.
   #
   # Evidence: notes/acceptance-audit.md, findings 1, 2, 3 and 5.
+  #
+  # Progress, by the criteria each step actually moved.
+  # Step A, 2026-09-22, the two resource bounds: AC-0037, AC-0155.
+  # Step B, 2026-09-22, the declared-value read on the live path, the child
+  # reading and the Service parsing: AC-0054, AC-0056, AC-0057. AC-0055 was
+  # not closed and is still recorded not met.
+  # Step C, 2026-09-24, the child writes a full result line and the Service
+  # validates it in full before normalizing: AC-0032, AC-0034, AC-0035,
+  # AC-0036, AC-0038, AC-0039. That closes the whole Provisional contract
+  # group, 12 of 12.
+  #
+  # Three of the listed modules now have a settled disposition.
+  # `normalizeTrialResult` has its live caller. `readDeclaredValues` and
+  # `materializeRevision` were both deleted -- the child does the reading and
+  # the materializing, and the Service opens no path under a materialization
+  # root, so neither could ever acquire a production caller. Deleting
+  # `materializeRevision` moved no verdict: AC-0009 is bound against the
+  # vectors a real child emits and AC-0014 against the verdict surface, which
+  # a review round established by reading their audit rows after this entry
+  # had claimed the opposite.
+  #
+  # AC-0012 is now known to be unreachable offline rather than merely
+  # untested. Reaching the child's HEAD check needs a fetch, and Canonical
+  # values, Permitted git transports admits https only via
+  # GIT_ALLOW_PROTOCOL=https, which refuses the file transport a local
+  # fixture repository needs. Binding it needs the live smoke, or a change to
+  # that row, which is an owner call.
+  #
+  # Remaining: Step D, the inspector locator (AC-0043 to AC-0046, AC-0048),
+  # and Step E's leftovers (AC-0088, AC-0091, AC-0092, routed separately at
+  # connect-orient-stop-reason-never-resolved).
+  #
+  # Four contract decisions the review rounds carried out of the loop were
+  # authorized by the owner on 2026-09-24 and are landed: a 1 KiB source bound
+  # on the declared version marker, a closed removal-outcome value set,
+  # real-path containment in the child's declared read, and the AC-0061
+  # boundary refusal moved from a code comment into Boundaries. Recorded at
+  # notes/verification-ledger.md#owner-decision-2026-09-24-step-c-carried-items.
+  # AC-0073 stays not met on a new reason: the check it names is now performed
+  # and no case can reach it.
   { slug = "connect-orient-wire-the-uncalled-modules", source = "connect-and-orient/2026-09-22" },
+  # Measured 2026-09-24. `pnpm verify` did not go green in thirteen
+  # consecutive attempts on a host carrying 54 users at a load average
+  # between 17 and 276, with 1 to 7 failures and a varying set every time --
+  # always the trial-runtime process-group suites. Capping vitest's workers
+  # settles it: `--maxWorkers=2` and `--maxWorkers=1` each gave 773 passed, 3
+  # skipped, 0 failed, and the one failure across three low-concurrency runs
+  # was an unrelated renderer test.
+  #
+  # So the suite passes in full and the gate's default concurrency is what
+  # fails. A detached worktree at ea7a96a, carrying none of the Step C work,
+  # flaked the same way, so this is not a regression -- it is
+  # pre-existing-trial-runtime-load-flake with its mechanism identified.
+  #
+  # The question for the owner is whether `pnpm test` should cap its own
+  # workers. Against: it hides real contention bugs and slows the gate
+  # (98s at 2 workers versus 28s at default when default succeeds). For: a
+  # gate that cannot pass on a loaded developer machine is a gate people
+  # learn to retry rather than read.
+  { slug = "connect-orient-gate-cannot-pass-at-default-concurrency", source = "connect-and-orient/2026-09-24" },
+  # AC-0043 wants Studio to record the trusted inspector's resolved path, pack
+  # name, pack version and the SHA-256 of both inspector files with each
+  # inspection. Step D locates the inspector on the live path and carries the
+  # first three to the lead in the inspector-unavailable diagnostic, which is
+  # a rendered sentence rather than a record, and it carries neither digest --
+  # two SHA-256 hashes in a sentence a lead reads would be noise.
+  #
+  # The obstacle is that there is nowhere structured to put them. The trial
+  # result has no field for inspector identity, and the source.get projection
+  # is the versioned public contract under contracts/. Adding a field to
+  # either is an owner call. Until then AC-0043 stays not met, and the value
+  # Step D did add is that the locator has a production caller at all.
+  { slug = "connect-orient-inspector-identity-has-nowhere-to-be-recorded", source = "connect-and-orient/2026-09-24" },
+  # studioInstallRoot() walks up at most eight directories from the module
+  # looking for .agentbundle-state.toml, and returns undefined when it finds
+  # none. In this worktree the walk always succeeds -- the repo root carries
+  # the pack state three levels above src/ and two above dist/ -- so the
+  # located branch is the development branch.
+  #
+  # Whether a packaged desktop build places the pack state within that walk's
+  # reach is NOT established anywhere, which means the untested branch is
+  # plausibly the shipped one. The branch now names itself rather than
+  # reporting the benign "no trusted inspector ran" sentence, and has a case,
+  # so the failure is visible if it happens -- but visible is not the same as
+  # known not to happen.
+  #
+  # Two things to settle: establish the packaged layout, and decide whether
+  # the heuristic is right at all. It returns the nearest ancestor that looks
+  # like a pack install, which need not be Studio's own.
+  { slug = "connect-orient-inspector-install-root-unproven", source = "connect-and-orient/2026-09-24" },
+  # spec.md's Reasons for inspection-stopped table says a malformed
+  # workspace.toml is NOT in it -- it is the malformed condition, from the
+  # inspector's own invalid_workspace finding. Step C's fix for the
+  # declares-none falsehood stops the inspection on an unparseable
+  # workspace.toml, carrying result-invalid-repository. That row is not the
+  # declaration-file row the exclusion names, so the exclusion's letter holds,
+  # and while no inspector runs the malformed condition is unreachable
+  # anyway -- the live choice was between asserting a falsehood and stopping,
+  # and stopping is better. But the sentence and the implementation now
+  # disagree and nothing else tracks it.
+  #
+  # Two ways to settle it, both owner calls: amend the sentence to admit the
+  # result-invalid-repository row for a refused workspace declaration while no
+  # inspector runs, or give the trial result a third state for "marker not
+  # determined" so no stop is needed. The second also settles the decision
+  # this hands the inspector slice, recorded on
+  # connect-orient-no-inspector-runs.
+  #
+  # Evidence: notes/verification-ledger.md#slice-f1-step-c-2026-09-24.
+  { slug = "connect-orient-malformed-workspace-declaration-stops-the-inspection", source = "connect-and-orient/2026-09-24" },
 ]
 closed = [
   # Closed 2026-09-20, and narrower than first written. The owner-approved

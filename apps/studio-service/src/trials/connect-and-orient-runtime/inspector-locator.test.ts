@@ -38,7 +38,12 @@ afterEach(() => {
  * everything else genuinely matching.
  */
 function buildSearchRoot(
-  options: { packVersion?: string; packName?: string } = {},
+  options: {
+    packVersion?: string;
+    packName?: string;
+    /** Extra adapter entries, so a pack can disagree with itself. */
+    extraAdapters?: readonly { name: string; version?: string }[];
+  } = {},
 ): string {
   const root = mkdtempSync(join(tmpdir(), "connect-orient-inspector-"));
   temporaryRoots.push(root);
@@ -52,9 +57,19 @@ function buildSearchRoot(
   }
   const packName = options.packName ?? PINNED_INSPECTOR.packName;
   const packVersion = options.packVersion ?? PINNED_INSPECTOR.packVersion;
+  const extra = (options.extraAdapters ?? [])
+    .map(
+      (adapter) =>
+        `\n[pack.${packName}.adapters.${adapter.name}]\n${
+          adapter.version === undefined
+            ? ""
+            : `installed-version = "${adapter.version}"\n`
+        }scope = "repo"\n`,
+    )
+    .join("");
   writeFileSync(
     join(root, PACK_STATE_RELATIVE_PATH),
-    `schema-version = "0.4"\n\n[pack.${packName}.adapters.claude-code]\ninstalled-version = "${packVersion}"\nscope = "repo"\n`,
+    `schema-version = "0.4"\n\n[pack.${packName}.adapters.claude-code]\ninstalled-version = "${packVersion}"\nscope = "repo"\n${extra}`,
     "utf8",
   );
   return root;
@@ -154,6 +169,39 @@ describe("AC-0044 an inspector that does not match the pin is not used", () => {
 
     expect(locateTrustedInspector({ searchRoot }).ok).toBe(true);
   });
+  it("refuses a pack whose adapters disagree about their version", () => {
+    // The rule is stated as an invariant — a pack whose adapters disagree is
+    // not one version, so it cannot match a pin that names one — and every
+    // fixture wrote a single adapter, so relaxing the check to `< 1` left the
+    // whole suite green and a disagreeing pack matching the pin.
+    const located = locateTrustedInspector({
+      searchRoot: buildSearchRoot({
+        extraAdapters: [{ name: "codex", version: "9.9.9" }],
+      }),
+    });
+
+    expect(located.ok).toBe(false);
+    expect(located.ok === false && located.mismatch).toContain("disagree");
+  });
+
+  it("refuses a pinned pack whose adapters record no version at all", () => {
+    // Keeping the **pinned** pack name matters: naming a different pack sends
+    // this down the pack-absent branch the case above already covers, and the
+    // only assertion — `ok === false` — cannot tell the two apart. The
+    // message is what distinguishes them, as the disagree case shows.
+    const root = buildSearchRoot();
+    writeFileSync(
+      join(root, PACK_STATE_RELATIVE_PATH),
+      `schema-version = "0.4"\n\n[pack.${PINNED_INSPECTOR.packName}.adapters.claude-code]\nscope = "repo"\n`,
+      "utf8",
+    );
+    const located = locateTrustedInspector({ searchRoot: root });
+
+    expect(located.ok).toBe(false);
+    expect(located.ok === false && located.mismatch).toContain(
+      "records no installed version",
+    );
+  });
 });
 
 describe("AC-0045 an inspector inside the materialization root is refused", () => {
@@ -184,6 +232,29 @@ describe("AC-0045 an inspector inside the materialization root is refused", () =
     });
 
     expect(located.ok).toBe(true);
+  });
+  it("compares the major version, not only the minor", () => {
+    // Every probe fixture reported major 3, so deleting the major branch and
+    // keeping `minor >= minimum[1]` left the suite green — after which
+    // `Python 1.99` conforms.
+    expect(
+      selectConformingInterpreter(
+        [{ path: "/usr/bin/python", version: "Python 1.99", conforming: true }],
+        [3, 11],
+      ).ok,
+    ).toBe(false);
+    expect(
+      selectConformingInterpreter(
+        [
+          {
+            path: "/usr/bin/python4",
+            version: "Python 4.0",
+            conforming: false,
+          },
+        ],
+        [3, 11],
+      ).ok,
+    ).toBe(true);
   });
 });
 

@@ -30,6 +30,7 @@ import {
   openSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmdirSync,
   unlinkSync,
   writeFileSync,
@@ -39,6 +40,12 @@ import { isAbsolute, join } from "node:path";
 
 interface RuntimeChildPlan {
   readonly requestId: string;
+  /**
+   * *Canonical values*, *Trial contract name*, delivered rather than
+   * duplicated. AC-0032: the Runtime refuses a plan naming any other
+   * contract, before it claims a state root or reads anything.
+   */
+  readonly trialContract: string;
   /** Reserved by the Service; its children are created here, after the marker. */
   readonly stateRoot: string;
   readonly ownershipMarkerName: string;
@@ -190,6 +197,16 @@ const plan = JSON.parse(namedArgument("--plan") ?? "{}") as RuntimeChildPlan;
 
 /** Admitted by *Permitted executables* as of the 2026-09-17 amendment. */
 const PS_EXECUTABLE = "/bin/ps";
+
+/**
+ * *Canonical values*, *Trial contract name*. Held here as a literal **and**
+ * delivered in the plan, so that the two can be compared rather than either
+ * being the only copy: that comparison is AC-0032's refusal, and a literal
+ * that drifted from the canonical value would redden it rather than pass
+ * silently. That is the same discipline that makes `PS_EXECUTABLE` a safe
+ * exception to the module header's delivery rule.
+ */
+const TRIAL_CONTRACT = "connect-orient-trial.v0";
 
 const materializationRoot = join(plan.stateRoot, plan.materializationChildName);
 
@@ -650,6 +667,52 @@ function readDeclaredValues(): Record<string, unknown> {
       });
       continue;
     }
+    // AC-0073, in the child, because the child is the only reader of
+    // repository content and cannot import `readContainedFile` -- it may
+    // import nothing but `node:` builtins. Containment is compared against
+    // the **resolved real path** on a path-segment boundary, so a sibling
+    // whose name extends the root is outside it.
+    //
+    // The name allowlist above already makes a traversal unreachable today:
+    // two literal file names admit no separator and no `..`. That is
+    // confinement by construction, and confinement by construction is one
+    // edit to the surface away from not holding. This is the check the
+    // criterion actually names, so it is performed rather than argued.
+    //
+    // **No test reaches it, and that is a property of the check rather than
+    // a gap in the suite.** What it catches is an *ancestor* that resolves
+    // elsewhere -- a sibling whose name extends the root. The symlink
+    // rejection above already takes every case a repository can plant at the
+    // leaf, the root is created by this process, and a bare name admits no
+    // ancestor of its own. So it is defensive depth, recorded as
+    // unfalsifiable at `notes/verification-ledger.md#slice-f1-step-c-2026-09-24`,
+    // and AC-0073 is not claimed on it.
+    //
+    // Both sides are resolved, not just the candidate: on Darwin the state
+    // root sits under `/var`, which is itself a link to `/private/var`, so
+    // comparing a resolved path against an unresolved root would refuse
+    // every read on the delivery platform.
+    let realPath: string;
+    let realRoot: string;
+    try {
+      realPath = realpathSync(path);
+      realRoot = realpathSync(materializationRoot);
+    } catch (cause) {
+      reads.push({
+        name,
+        refusal: "unreadable",
+        diagnostic: `${name}: ${String(cause)}`,
+      });
+      continue;
+    }
+    if (realPath !== realRoot && !realPath.startsWith(`${realRoot}/`)) {
+      reads.push({
+        name,
+        refusal: "unreadable",
+        diagnostic: `${name} resolves outside the materialization root`,
+      });
+      continue;
+    }
     // Before the open, so an oversized declaration is never read at all.
     if (status.size > plan.declaredReadByteBound) {
       reads.push({
@@ -665,7 +728,10 @@ function readDeclaredValues(): Record<string, unknown> {
       reads.push({
         name,
         encoding: "base64",
-        text: readFileSync(path).toString("base64"),
+        // The **resolved** path, so the bytes read are the bytes the
+        // containment check admitted rather than whatever the name resolves
+        // to a second time.
+        text: readFileSync(realPath).toString("base64"),
       });
     } catch (cause) {
       reads.push({
@@ -1059,6 +1125,28 @@ async function runResolutionPhase(interpreter: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  // AC-0032, before anything else. A plan naming another contract is refused
+  // here rather than after the state root is claimed, so the Runtime consumes
+  // no part of the request: it creates nothing under the root, reads nothing
+  // from the tree, and writes no completed response.
+  //
+  // What does survive is the state root the **Service** already reserved at
+  // `runtime-supervisor.ts:439`, before the spawn. The refusal leaves it
+  // markerless, so it is the sweep's limb 3 that reclaims it at the
+  // markerless-reclaim age rather than this process.
+  if (plan.trialContract !== TRIAL_CONTRACT) {
+    protocol({
+      type: "refused",
+      reason: "contract-mismatch",
+      expected: TRIAL_CONTRACT,
+    });
+    diagnostic(
+      `the plan names contract ${JSON.stringify(plan.trialContract)}, not ${TRIAL_CONTRACT}`,
+    );
+    process.exitCode = 2;
+    return;
+  }
+
   // Before anything else writes under the root, and before any descendant can
   // run: the marker, then the three children.
   claimStateRoot();
@@ -1266,27 +1354,73 @@ async function main(): Promise<void> {
   clearTimeout(deadline);
   // AC-0079, the success path. Removal is reported before the completed line,
   // so a reader of the protocol sees the disposal that the response implies.
-  dispose("completed");
+  const removalOutcome = dispose("completed");
+
+  // AC-0038. Written after disposal, so it can report the removal outcome,
+  // and before the completed line, so a reader of the protocol has the result
+  // the response refers to.
+  //
+  // `declaredVersionMarker` is deliberately **not** on this line. Reporting it
+  // means parsing TOML, and this module imports nothing but node builtins, so
+  // the split recorded at `notes/verification-ledger.md#slice-f1-step-b-2026-09-22`
+  // holds here too: the child reads, the Service parses. The Service composes
+  // the marker onto this result from the `declared` line above, and refuses to
+  // compose one at all when that line is missing.
+  protocol({
+    type: "result",
+    contract: TRIAL_CONTRACT,
+    requestId: plan.requestId,
+    // No trusted inspector runs in this slice, so the Runtime reports its own
+    // status and claims nothing about the workspace. `workspacePresent` is
+    // **absent** rather than false: absent yields `no-verdict`, and false
+    // would assert `not-agent-ready` from Studio's own reading of the tree,
+    // which AC-0061 forbids.
+    status: "inspector-not-run",
+    resolvedSha: plan.revision?.resolvedSha ?? "",
+    // AC-0039: the inspector authors both of these, and none ran.
+    inspectorDiagnostics: "",
+    inspectorContractVersion: null,
+    removalOutcome,
+    findings: [],
+  });
   protocol({ type: "completed", requestId: plan.requestId });
 }
 
-/** Runs at most once, whichever of the three paths reaches it first. */
-let disposed = false;
-function dispose(reason: string): void {
-  if (disposed) {
-    return;
+/**
+ * Runs at most once, whichever of the three paths reaches it first, and
+ * returns AC-0038's fifth reported element.
+ *
+ * The outcome is **returned** rather than held in a variable the result line
+ * reads later. Holding it needed an initial value standing for "disposal has
+ * not run", and no such value is reachable: the result line is written
+ * strictly after `dispose`, so the initial value could only ever be dead code
+ * documented as a reported element.
+ */
+let disposed: string | undefined;
+function dispose(reason: string): string {
+  if (disposed !== undefined) {
+    return disposed;
   }
-  disposed = true;
   if (plan.retainStateRoot === true) {
+    disposed = "retained";
     protocol({ type: "disposed", reason, removed: false, retained: true });
-    return;
+    return disposed;
   }
+  // The guard is taken **before** the work it guards. `removeRoot` is wholly
+  // synchronous, so no signal handler can run inside it today and the order
+  // does not matter today -- but a once-guard that is correct only because
+  // of an unstated property of the thing it guards is a guard waiting to
+  // stop working. An `await` in the removal walk would otherwise open a
+  // double-removal window in a disposal control.
+  disposed = "not-removed";
   const removed = removeRoot(plan.stateRoot);
+  disposed = removed ? "removed" : "not-removed";
   protocol({ type: "disposed", reason, removed });
   if (!removed) {
     // AC-0083's discipline: a removal that did not complete is never silent.
     diagnostic(`state root was not fully removed on ${reason}`);
   }
+  return disposed;
 }
 
 // AC-0079, the signal path. `SIGKILL` cannot be handled, which is why the

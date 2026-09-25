@@ -16,6 +16,24 @@ import { randomUUID } from "node:crypto";
 /** *Canonical values*, *Trial contract name*. */
 export const TRIAL_CONTRACT = "connect-orient-trial.v0";
 
+/**
+ * *Canonical values*, *Removal outcomes*. The closed set AC-0038's fifth
+ * reported element may take.
+ *
+ * It is a set rather than a free string because `isString` validates a shape
+ * and this criterion is about a *value*: without it a Runtime reporting
+ * `removalOutcome: "probably"` conforms. The Runtime child holds the same
+ * three literals, because it may import nothing; a test pins its literals
+ * against this set, so a drift reddens rather than passing as conforming.
+ */
+export const REMOVAL_OUTCOMES = ["removed", "not-removed", "retained"] as const;
+
+export type RemovalOutcome = (typeof REMOVAL_OUTCOMES)[number];
+
+function isRemovalOutcome(value: unknown): value is RemovalOutcome {
+  return (REMOVAL_OUTCOMES as readonly unknown[]).includes(value);
+}
+
 /** *Canonical values*, *Request identifier*. */
 export const REQUEST_IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9-]{7,63}$/;
 
@@ -117,7 +135,7 @@ export interface NormalizedTrialResult {
   readonly inspectorDiagnostics: Provenanced<string>;
   readonly declaredVersionMarker: Provenanced<string | null>;
   readonly inspectorContractVersion: Provenanced<string | null>;
-  readonly removalOutcome: string;
+  readonly removalOutcome: RemovalOutcome;
   readonly verdict: Verdict;
   readonly versionUnverified: boolean;
 }
@@ -201,7 +219,7 @@ export function normalizeTrialResult(
     !isString(raw.status) ||
     !isString(raw.resolvedSha) ||
     !isString(raw.inspectorDiagnostics) ||
-    !isString(raw.removalOutcome) ||
+    !isRemovalOutcome(raw.removalOutcome) ||
     (raw.declaredVersionMarker !== null &&
       raw.declaredVersionMarker !== undefined &&
       !isString(raw.declaredVersionMarker)) ||

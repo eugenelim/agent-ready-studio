@@ -24,10 +24,12 @@ import {
   refusedResultOutcome,
   settledRuntimeOutcome,
 } from "../../source-inspection.js";
+import { TRIAL_CONTRACT } from "../../trial-result.js";
 import {
   DECLARED_READ_BYTE_BOUND,
   DECLARED_READ_FILE_BOUND,
   DECLARED_VERSION_KEY,
+  DECLARED_VERSION_MARKER_BOUND_BYTES,
   PERMITTED_READ_SURFACE,
   WORKSPACE_DECLARATION_NAME,
 } from "./declared-value-reader.js";
@@ -115,6 +117,21 @@ describe("AC-0054 the declared read stays inside the permitted read surface", ()
     expect(record.declared?.versionMarker).toBeUndefined();
   });
 
+  it("refuses a traversal whose final segment is a permitted name", async () => {
+    // The deleted Service-side reader had this case and compared `basename`
+    // as well as the whole name. The child's guard is exact membership in the
+    // delivered surface, which refuses a traversal for a different reason —
+    // so the behaviour needs its own case here rather than being assumed
+    // from the `secrets.toml` one above.
+    const record = await run("declared-traversal-name", {
+      declaredReadNames: [`../${WORKSPACE_DECLARATION_NAME}`],
+    });
+
+    expect(record.declared?.refusal).toBe("outside-permitted-read-surface");
+    expect(record.declared?.reads).toEqual([]);
+    expect(record.declared?.versionMarker).toBeUndefined();
+  });
+
   it("delivers the canonical surface rather than a copy that can drift", async () => {
     // The child cannot import the reader that owns this list, so the only
     // thing keeping one source of truth is that the Service ships it.
@@ -186,6 +203,173 @@ describe("AC-0055 the declared read is bounded before it reads", () => {
     expect(read?.refusal).toBe("exceeds-byte-bound");
     expect(read?.diagnostic).toContain("bound is 64");
     expect(read?.value).toBeUndefined();
+  });
+});
+
+describe("the declared version marker is bounded where it is extracted", () => {
+  it("refuses a marker longer than the bound rather than reporting none", async () => {
+    const record = await run("declared-marker-over-bound", {
+      declaredFixtures: [
+        {
+          name: STATE_DECLARATION_NAME,
+          contents: `${DECLARED_VERSION_KEY} = "${"9".repeat(DECLARED_VERSION_MARKER_BOUND_BYTES + 1)}"\n`,
+        },
+      ],
+    });
+
+    const read = record.declared?.reads.find(
+      (entry) => entry.name === STATE_DECLARATION_NAME,
+    );
+    expect(read?.refusal).toBe("exceeds-byte-bound");
+    // Not "the repository declares none", which is the AC-0064 falsehood, and
+    // not a value that would count against AC-0104's persistence bound.
+    expect(record.declared?.versionMarker).toBeUndefined();
+    expect(read?.value).toBeUndefined();
+
+    // **The outcome, not only the report.** One event takes two rows
+    // depending on which file declared it: this file routes through
+    // AC-0059's declaration-file stop, and `workspace.toml` does not. Both
+    // legs are pinned end-to-end, so the split stays deliberate rather than
+    // drifting on one side unnoticed.
+    expect(
+      settledRuntimeOutcome({
+        requestId: record.requestId,
+        completedResponse: record.completedResponse,
+        protocolLines: [
+          { type: "materialized", status: 0 },
+          ...record.protocolLines,
+        ],
+        resultRefused: record.resultRefused,
+        declared: record.declared,
+      }),
+    ).toMatchObject({
+      ok: false,
+      condition: "inspection-stopped",
+      stopReason: "parse-failure-declaration-file",
+    });
+  });
+
+  it("does not let a refused marker read as a repository that declares none", async () => {
+    // The hole this control could have opened. `workspace.toml` is outside
+    // AC-0059's declaration-file stop, so its per-read refusal reaches no
+    // production consumer -- and `versionMarker: undefined` composes to
+    // `null`, which the contract defines as *the repository declares none*.
+    const record = await run("declared-marker-over-bound-workspace", {
+      declaredFixtures: [
+        {
+          name: WORKSPACE_DECLARATION_NAME,
+          contents: `${DECLARED_VERSION_KEY} = "${"9".repeat(DECLARED_VERSION_MARKER_BOUND_BYTES + 1)}"\n`,
+        },
+      ],
+    });
+
+    expect(record.declared?.markerUndetermined).toBe(true);
+    // AC-0059's carve-out still holds: this is not a declaration-file stop.
+    expect(declaredRefusalOutcome(record.declared)).toBeUndefined();
+
+    const outcome = settledRuntimeOutcome({
+      requestId: record.requestId,
+      completedResponse: record.completedResponse,
+      protocolLines: [
+        { type: "materialized", status: 0 },
+        ...record.protocolLines,
+      ],
+      resultRefused: record.resultRefused,
+      declared: record.declared,
+    });
+
+    // Refused, and attributed to the repository rather than to Studio.
+    expect(outcome).toMatchObject({
+      ok: false,
+      condition: "inspection-stopped",
+      stopReason: "result-invalid-repository",
+    });
+    expect(outcome.ok === false && outcome.result).toBeUndefined();
+  });
+
+  it.each([
+    [
+      "a file over the declared-read byte bound",
+      {
+        name: WORKSPACE_DECLARATION_NAME,
+        contents: `${DECLARED_VERSION_KEY} = "7.4.1"\n# `,
+        repeat: 1,
+      },
+      { declaredReadByteBound: 32 },
+    ],
+    [
+      "a document that does not parse",
+      { name: WORKSPACE_DECLARATION_NAME, contents: "schema-version = \n" },
+      {},
+    ],
+  ])("does not assert an absence when %s is refused", async (label, fixture, options) => {
+    // Every refusal of a permitted read, not only an over-long marker.
+    // `workspace.toml` reaches no production consumer of the per-read
+    // refusals, so each of these composed `declaredVersionMarker: null` --
+    // "the repository declares none" -- of a repository that declares one.
+    const record = await run(`declared-refused-${label.slice(0, 12)}`, {
+      declaredReadNames: [WORKSPACE_DECLARATION_NAME],
+      declaredFixtures: [
+        { ...fixture, contents: `${fixture.contents}${"x".repeat(40)}` },
+      ],
+      ...options,
+    });
+
+    expect(record.declared?.markerUndetermined).toBe(true);
+    expect(declaredRefusalOutcome(record.declared)).toBeUndefined();
+    expect(
+      settledRuntimeOutcome({
+        requestId: record.requestId,
+        completedResponse: record.completedResponse,
+        protocolLines: [
+          { type: "materialized", status: 0 },
+          ...record.protocolLines,
+        ],
+        resultRefused: record.resultRefused,
+        declared: record.declared,
+      }),
+    ).toMatchObject({
+      ok: false,
+      condition: "inspection-stopped",
+      stopReason: "result-invalid-repository",
+    });
+  });
+
+  it("still reports a genuine absence as an absence", async () => {
+    // The other side: a repository that declares no `workspace.toml` has
+    // been read, and the answer is an absence rather than an unknown.
+    const record = await run("declared-genuinely-absent", {
+      declaredReadNames: [WORKSPACE_DECLARATION_NAME],
+    });
+
+    expect(record.declared?.markerUndetermined).toBeUndefined();
+    expect(
+      settledRuntimeOutcome({
+        requestId: record.requestId,
+        completedResponse: record.completedResponse,
+        protocolLines: [
+          { type: "materialized", status: 0 },
+          ...record.protocolLines,
+        ],
+        resultRefused: record.resultRefused,
+        declared: record.declared,
+      }),
+    ).toMatchObject({ ok: false, condition: "inspector-unavailable" });
+  });
+
+  it("admits a marker of exactly the bound, so the refusal is not blanket", async () => {
+    const marker = "9".repeat(DECLARED_VERSION_MARKER_BOUND_BYTES);
+    const record = await run("declared-marker-at-bound", {
+      declaredFixtures: [
+        {
+          name: STATE_DECLARATION_NAME,
+          contents: `${DECLARED_VERSION_KEY} = "${marker}"\n`,
+        },
+      ],
+    });
+
+    expect(record.declared?.versionMarker).toBe(marker);
+    expect(DECLARED_VERSION_MARKER_BOUND_BYTES).toBe(1024);
   });
 });
 
@@ -581,6 +765,12 @@ describe("the Service checks the line rather than trusting it", () => {
     expect(report?.reads[0]?.refusal).toBe("unreadable");
     expect(report?.reads[0]?.value).toBeUndefined();
     expect(report?.versionMarker).toBeUndefined();
+    // And the marker is **undetermined**, not absent: `versionMarker` being
+    // undefined is how a transport fault and a repository that declares
+    // nothing look identical, which is the AC-0064 distinction. This is the
+    // one refusal branch no live child can produce -- the child always writes
+    // the agreed transport -- so it is bound here rather than through a spawn.
+    expect(report?.markerUndetermined).toBe(true);
   });
 
   it("extracts nothing from an unlabelled payload", () => {
@@ -657,6 +847,19 @@ describe("the Service checks the line rather than trusting it", () => {
 
 describe("the settled record routes to one outcome, in a fixed order", () => {
   const materialized = [{ type: "materialized", status: 0 }];
+  const MINTED = "req-studio-minted-one";
+  /** A conforming result line, so a case can reach the branch past it. */
+  const result = {
+    type: "result",
+    contract: TRIAL_CONTRACT,
+    requestId: MINTED,
+    status: "inspector-not-run",
+    resolvedSha: "a".repeat(40),
+    inspectorDiagnostics: "",
+    inspectorContractVersion: null,
+    removalOutcome: "removed",
+    findings: [],
+  };
 
   it("prefers a refused result over the declared read", () => {
     // Order is load-bearing: a refused result means the declared line was cut
@@ -664,6 +867,8 @@ describe("the settled record routes to one outcome, in a fixed order", () => {
     // attribute a repository-caused stop to Studio.
     expect(
       settledRuntimeOutcome({
+        requestId: MINTED,
+        completedResponse: true,
         protocolLines: materialized,
         resultRefused: true,
         declared: {
@@ -683,6 +888,8 @@ describe("the settled record routes to one outcome, in a fixed order", () => {
   it("routes a refused declaration when the result was read in full", () => {
     expect(
       settledRuntimeOutcome({
+        requestId: MINTED,
+        completedResponse: true,
         protocolLines: materialized,
         resultRefused: false,
         declared: {
@@ -702,7 +909,9 @@ describe("the settled record routes to one outcome, in a fixed order", () => {
   it("reaches inspector-unavailable only when nothing refused", () => {
     expect(
       settledRuntimeOutcome({
-        protocolLines: materialized,
+        requestId: MINTED,
+        completedResponse: true,
+        protocolLines: [...materialized, result],
         resultRefused: false,
         declared: {
           reads: PERMITTED_READ_SURFACE.map((name) => ({
@@ -719,6 +928,8 @@ describe("the settled record routes to one outcome, in a fixed order", () => {
   it("stops before either refusal when nothing was materialized", () => {
     expect(
       settledRuntimeOutcome({
+        requestId: MINTED,
+        completedResponse: true,
         protocolLines: [{ type: "materialized", status: 1 }],
         resultRefused: true,
         declared: undefined,

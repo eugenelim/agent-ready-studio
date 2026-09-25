@@ -7894,3 +7894,915 @@ also held in a local bundle outside the repository, deliberately, as the only wa
 **Verification.** The rewritten tip tree is byte-identical to the pre-rewrite tip
 (`afb31578be010cb88eab39c529fab6b10e347d0a`), the commit count is unchanged at 143, and no commit
 reachable from any remote ref contains the string.
+
+## slice-f1-step-c-2026-09-24
+
+Step C of `connect-orient-wire-the-uncalled-modules`: the child writes a full trial result and
+the Service validates it. `normalizeTrialResult` had zero production callers; it has one now, and
+the whole *Provisional contract* group is met — 6 of 12 to 12 of 12. Six criteria moved: AC-0032,
+AC-0034, AC-0035, AC-0036, AC-0038 and AC-0039.
+
+Three reviewers ran against the diff and **changed the result rather than only its description**;
+what they changed is recorded in its own section below rather than folded in silently.
+
+### The shape, and the one thing the child cannot do
+
+The child composes the result inline and writes it as a protocol line, because it imports nothing
+but `node:` builtins. The Service reads that line, hands it to `normalizeTrialResult` with the
+identifier it minted, and routes the outcome.
+
+**`declaredVersionMarker` is deliberately not on the child's line.** Reporting it means parsing
+TOML, and `smol-toml` is exactly what the child's import graph may not reach. That is the same
+split Step B settled at `#slice-f1-step-b-2026-09-22` — the child reads, the Service parses — so
+the Service composes the marker onto the result from the child's own `declared` line, last in the
+spread, so a marker the line across the boundary tried to supply cannot win.
+
+**An absent declared report is refused rather than filled in.** `declaredVersionMarker: null`
+means *the repository declares none*. Composing that from a read that never happened would make
+Studio assert something the tree never said, and AC-0064 turns on that exact distinction.
+
+### No verdict was invented, and the boundary now enforces that rather than assuming it
+
+The child's result carries no `workspacePresent` at all. Absent yields `no-verdict`; `false` would
+assert `not-agent-ready` from Studio's own reading of the tree, which is what AC-0061 forbids and
+what the whole spec exists to prevent. `status` is `inspector-not-run`, `inspectorDiagnostics` is
+empty, and the Service's answer past a valid result is still `inspector-unavailable`.
+
+The security review found that this rested on a constant rather than a check: `normalizeTrialResult`
+derives `agent-ready` from `status === "completed"` with `workspacePresent: true`, and what stopped
+that reaching a surface was the consuming branch hard-coding `no-verdict`, not anything at the
+boundary. The Service now **refuses** a result claiming an inspection state no trusted inspector
+produced. When an inspector does run, that guard is what has to be relaxed deliberately instead of
+being discovered missing.
+
+### AC-0032 is about a request, and the brief said result
+
+The criterion reads "a **request** carrying any other contract name is refused", and the audit's
+row named the live northbound plan. So the plan now carries `trialContract` and the child holds
+its own literal and compares the two. Holding a literal is the module header's stated exception
+rather than a lapse: it is safe precisely because it is compared against a delivered value, the
+same reason `PS_EXECUTABLE` is safe — and a source audit pins the literal to `TRIAL_CONTRACT`,
+because the delivery assertion alone compares the canonical constant with itself. The refusal runs
+before `claimStateRoot`, so the Runtime creates nothing and reads nothing. What *does* survive is
+the state root the **Service** reserved before the spawn; the sweep reclaims it at the
+markerless-reclaim age. An earlier draft of this entry said "nothing is created", which was true
+of the child and false of the request.
+
+**Which stop reason a wrong contract name takes.** The *Reasons for `inspection-stopped`* table
+carries no contract-mismatch row, and adding one would change contract vocabulary. A result naming
+another contract is a result Studio cannot read as this contract's result, which is AC-0036's
+Studio-produced row. Its sibling `result-invalid-repository` stays unreachable until an inspector
+echoes repository content into a result — the `connect-orient-no-inspector-runs` slice.
+
+Four distinct causes share that one row, so each now carries its own diagnostic and the row's
+wording is the fallback, on the precedent `declaredRefusalOutcome` already set. A case asserts all
+five refusals emit pairwise-distinct text.
+
+**None of those diagnostics echoes a value off the line.** A first version interpolated the
+refused contract name, which is content that crossed the process boundary unbounded — and this
+text is persisted, rendered, and counted against AC-0104's bound as `repository-derived`, so a
+result could have made its own inspection unpersistable by naming a megabyte-long contract. The
+cause is what a reader needs; the line itself is on the protocol stream, already bounded by
+AC-0037. A case asserts the refused name does not appear.
+
+### AC-0012 cannot be bound offline, and now it is known why
+
+The audit recorded AC-0012 not met because "no case sets `plan.revision`". The real cause is
+stronger. Reaching the child's live `rev-parse --verify HEAD` needs a fetch, and *Canonical
+values*, *Permitted git transports* admits `https` only through `GIT_ALLOW_PROTOCOL=https`.
+A local fixture repository was built and tried: the child answered
+`fatal: transport 'file' not allowed`. AC-0024 states that refusal outright.
+
+That measurement also cost the case a `head-mismatch` leg that would otherwise have worked. An
+annotated tag object is peeled on `checkout --detach FETCH_HEAD`, so fetching the tag object and
+reading `HEAD` gives the commit instead — a genuine mismatch produced by git rather than a stub.
+It is recorded here because it is the fixture to reach for if that transport row ever moves.
+
+Binding AC-0012 therefore needs the live smoke, or an owner decision on the transport row.
+Neither is this unit's to make, so the row stays not met with the reason recorded.
+
+### What the review changed
+
+**A premise this entry asserted as fact was false, and reading two rows refuted it.** An earlier
+draft kept `materializeRevision` on the ground that AC-0009 and AC-0014 were *recorded met
+against* it, so deleting it would clear two met verdicts. The adversarial review read the rows:
+AC-0009 cites `runtime-supervisor.test.ts:411-455`, the vectors a **real child** emits, and
+AC-0014 cites `VerdictSurface.tsx` and carries no git binding at all. The claim was reasoning
+about the rows instead of reading them — the exact habit this audit exists to correct, committed
+while writing about that habit. `materializeRevision` is now **deleted**, together with the
+`materialize` and `readHead` transport members beneath it, and no verdict moved. The
+`git-driver.test.ts` cases over it went with it; the two that were testing the live resolution
+phase were kept and narrowed to it.
+
+**AC-0038's resolved-SHA element was pinned by a tautology.** Both the adversarial and the quality
+reviewer found it independently: the child wrote `plan.revision?.resolvedSha ?? ""`, no case set
+`plan.revision`, and the one assertion pinned `""` — so replacing the whole expression with the
+literal `""` left every case green. The five-element claim rested on four elements and a default.
+The plan now carries a revision whose **fetch fails** (that same transport rule), which is enough:
+what is bound is that the child reports the SHA it was *given*. The absent case is bound beside it.
+
+**A terminated run was being reported as an unreadable result.** Also found independently by two
+reviewers. A run killed at a deadline *after* materializing never reaches its result line, and
+mapping that absence to `result-invalid-studio` attributes a Runtime-side stop to Studio — the
+crossing AC-0093 forbids, and a behaviour change from what shipped before. `completedResponse` is
+now on `SettledRuntimeRecord` and a run that did not respond takes the answer it took before.
+
+**Two new production lines had no test, and one limb of the new type was unreachable.** The copies
+that put the declared marker into the stored record were exercised by nothing, and the optional
+`result` on the `ok: true` variant could never be populated, because nothing in this slice returns
+`ok: true`. The reachable limb now has a case that drives a validated result through to the stored
+record; the unreachable one is deleted, with a note naming what the inspector slice must add back.
+
+**Deleting the Service-side reader dropped a case with no live successor.** `readDeclaredValues`'s
+tests included AC-0054's traversal case (`../workspace.toml`), and the live suite covered only
+`secrets.toml`. The child refuses a traversal for a *different* reason — exact membership rather
+than a `basename` comparison — so the behaviour needed its own live case rather than being assumed.
+
+**Round 2 repairs.** A terminated run and a healthy inspector-less run were emitting byte-identical
+text, with only an unrendered absent `result` between them; they now say which happened. The
+`refused`-line reader added in round 1 was **unreachable** — it sat behind the materialization gate,
+and a refused run refuses before it materializes anything, so a contract mismatch still reported
+"the Runtime did not materialize the revision". It is consulted first now, and bound by a case. And
+`dispose`'s once-guard, which the round-1 refactor had moved to *after* `removeRoot`, is taken
+before it again: the ordering is safe only because that walk is synchronous, and a guard correct
+only through an unstated property of what it guards is a guard waiting to stop working.
+
+**Round 3 repairs, and a generator fixed rather than an instance.** The audit's `file:line`
+citations were wrong again, having been reported recomputed twice — the offsets were systematic,
+computed against an intermediate tree rather than the committed one. Recomputing them a third time
+would have bought one more round, so `tools/acceptance-audit-counts.py --check` now **resolves
+every citation in the Bindings column**: the file must exist, by literal path or by the suffix
+shorthand the column actually uses, and every cited line must be inside it. It found fourteen more
+broken citations immediately, in rows this change never touched — my deletions had invalidated
+`git-driver.ts` and `declared-value-reader.ts` ranges elsewhere in the table — plus two that were
+already wrong before this slice began. What it catches is a citation that cannot resolve at all;
+a citation resolving to the *wrong* line is still uncaught, so the class is narrowed, not closed.
+
+**Round 4 went further on the same generator.** Four citations resolved but pointed at the wrong
+line — the residue the checker's own docstring names as out of reach. Rather than fix four
+pinpoints and leave the class open, the residue was measured: flagging any citation starting on a
+comment or non-statement line would have caught 58 of 450 starts, and most were legitimate, since
+rows deliberately cite a doc block or the comment that *is* the evidence. Narrowing to a start
+that is **nothing but a closing bracket** — what a range start looks like once the code above it
+has moved — flagged 14, every one of them genuinely stale, six of them this change's own and the
+rest older. Those fourteen are repaired and that narrow class is now gated too. The broader
+residue stays open, and the script says so rather than implying the citations are sound.
+
+**Round 5 closed the class, with a rule better than the one I looked for.** I had asked the
+reviewer whether the residue could be caught by matching a cited line against an identifier the
+row names, and measured that it could not. The answer was a different rule: a citation whose
+start is a **blank line or a bare doc-block `*`** is stale by construction, for the same reason a
+bracket-only start is — nobody cites an empty line. Measured: **20 of 450 starts across eighteen
+rows**, and re-running the resolver after the repair finds **0 of 450**.
+
+**What the repair actually did, stated carefully, because the first version of this paragraph
+overstated it twice.** Every start was bumped mechanically to the first following line that is
+not blank, bare `*`, or brackets. That reached the construct the row cites in about twelve of the
+twenty; the rest land on an interior line of the right region — `return {` inside
+`resolveRevision`, an `expect` inside the right test, a line of the doc block above the right
+function. They are not chased further, deliberately: a rule that could catch "a start inside a
+doc block or a test body" is the broader rule measured and rejected above, at a false-positive
+rate that would train a reader to ignore the gate. Four that were furthest off and were this
+change's own bump are corrected by hand.
+
+Both overstatements came from **transcribing the reviewer's round-5 wording as fact** — "exactly
+one line above its target" and "precisely what the citer meant". The reviewer had generalised
+from the cases it sampled, said so in round 6, and checked all twenty; this entry had already
+recorded the generalisation as measurement. That is the trap this slice's handover names, met
+from the one direction it does not warn about: a reviewer's own words, in a round about the
+accuracy of records.
+
+**And the checker now has its own tests, because it did not.** `--self-test` exercised only the
+count renderer, so the half the gate rests on could regress while every count still looked
+plausible — the exact failure the self-test's own docstring names. It now runs the citation path
+against a fixture tree. Writing it produced two lessons worth keeping:
+
+- **The first attempt at it never reached disk.** An edit raised part-way through and only the
+  later, separate change persisted; the self-test looked present in the plan and was absent from
+  the file. It was caught by mutating the checker and watching three mutations survive, not by
+  reading the diff.
+- **The first assertions were too loose to bind.** Two mutations survived a self-test that
+  looked complete: removing the missing-file branch still produced a message naming the file, and
+  breaking shorthand resolution removed no problem because every shorthand in the fixture was
+  sound. The assertions now pin the exact message and the fixture cites a *broken* shorthand.
+
+**Then the quality review found the tests bound the checker's branches and not its inputs.** Every
+branch deletion reddened, and six one-line edits to *what it examines* did not: check only the
+first citation on a row, skip `**not met**` rows, drop an extension, drop either comma split,
+check only a range's first line. Measured against the real table, each silently stopped checking
+between 55 and 233 of its 390 citations with the self-test green — the failure this self-test was
+written after, one level up. The fixture is now built from the shapes the table actually uses
+rather than from the classes the checker reports.
+
+Extending it surfaced two defects in the checker itself. A malformed spec — `:12-` from a typo —
+was **silently dropped**, turning the bounds check off for that citation with no signal; so was a
+zero line number, which `0 > length` cannot catch. Both are reported now. And reporting them
+immediately failed five sound rows, because the parser did not understand the column's own
+continuation forms: `:85-101,:138-160` repeats the colon, and a spec may end in a comma where
+prose follows it in the cell. Both are normalized, and both have a fixture row, so a parser that
+stops understanding either reddens rather than flagging the table.
+
+Thirteen mutations of the checker now redden it: five branch deletions — missing-file, past-end,
+stale-start, shorthand resolution, unreadable-spec reporting — and eight input-shape edits.
+
+Also from round 3: two comments contradicting each other about whether refusals share a table row
+(both now state the property rather than a count, which had gone stale twice); the handover's
+cluster arithmetic was off by one against the backlog enumeration added in the same change; the
+governance gate stopped naming one feature's audit note by literal path and discovers them
+instead; and AC-0064 and AC-0065 were re-judged, because this change refuted the reason recorded
+for each while leaving both verdicts standing on a different clause.
+
+**Smaller repairs.** `removalOutcome` no longer carries an unreachable `not-disposed` default;
+`dispose` returns its outcome instead. Seven child spawns became four, by sharing one record per
+distinct configuration, in suites the load flake feeds on. The audit generator moved out of the
+pack-managed skill tree, its heading regex stopped rewriting any prose `###` containing an em dash,
+and it gained a self-test and a gate.
+
+### Carried to the owner rather than applied
+
+- **The declared marker is unbounded, and this change is what first lets it reach the persistence
+  bound.** A repository declaring a ~300 KiB `schema-version` makes every inspection of itself
+  unpersistable: the marker is `repository-derived`, so it counts against AC-0104's 256 KiB, and a
+  breach refuses the whole write, leaving whatever record was stored before and a `stderr` line as
+  the only trace.
+
+  **The first disposition of this was wrong and the second round corrected it.** It was carried on
+  the ground that *Resource bounds*, *Persisted repository-derived content* already specifies that
+  refusal and records that truncation was refused on purpose. That owner decision refuses
+  **truncation at the sink** — a truncated value still carries AC-0039's marker and reads as
+  complete when it is not — and it says nothing about a **bound at the source**, where an over-long
+  declaration is refused *as a declaration*, is reported as an observed refusal, and never acquires
+  a marker at all. Those are different things and the citation did not reach the second.
+
+  The reviewer also named an inconsistency inside this very change, and it holds: one function away,
+  `source-inspection.ts` declines to echo a refused contract name for exactly this reason — "echoing
+  a megabyte here would let a result make its own inspection unpersistable". Same sink, same bound,
+  same effect, and the opposite answer.
+
+  It is **still carried rather than applied**, for one reason only: *Resource bounds* is a contract
+  surface, it has no declared-marker row, and every candidate bound is a number this loop would be
+  inventing. That is an amendment, not a correction. The shape the owner is being asked to approve
+  is known — refuse at the read, as `exceeds-byte-bound` already does for the file — and only the
+  value is open.
+
+  Separately open, and pre-existing: the northbound field is `z.string().nullable()` with no
+  maximum in `packages/protocol`, which is approval-gated.
+- **`removalOutcome` admits any string.** Rejecting a stranger needs a value set, and the contract
+  names none. It is an owner call, not an invention.
+- **The AC-0061 boundary refusal has no contract text.** `validatedTrialResult` refuses a result
+  carrying `workspacePresent`, or `status: "completed"`, and both are values the trial contract
+  *admits* — `normalizeTrialResult` validates them as conforming. So this is a Studio-side policy
+  refusal of a contract-conforming result, reported as `result-invalid-studio`, "Studio could not
+  read the inspection result", and that is a slightly false thing to say about a result Studio
+  read perfectly well and declined.
+
+  It is kept rather than reverted because the alternative is worse: without it, a result line
+  alone mints `agent-ready`, and what prevented that reaching a surface was a hard-coded constant
+  in the consuming branch rather than any check. But it belongs in the contract — a *Boundaries*
+  or *Testing Strategy* line, and a citation in AC-0061's row — and adding either is an amendment
+  this loop has no authority to make. The AC-0061 row now names the refusal and points here.
+  **It is also the guard that must be relaxed deliberately when an inspector first runs**, which
+  is the one thing a future reader most needs to find.
+- **Live-path confinement is allowlist-only.** Deleting `readDeclaredValues` left `readContainedFile`
+  with no production caller at all; the child's read is confined by exact membership in a
+  two-literal delivered surface rather than by resolved-real-path containment. Pre-existing from
+  Step B, and AC-0073 is already recorded not met for this reason.
+
+### Mutation proof
+
+Each mutation below was applied to production source, run against the suite named beside it, and
+reverted. Case counts are read from every run, so an empty run cannot pass as a survived mutant.
+**The total is not restated in prose** — it drifted from this table twice, and once from the
+audit — so count the rows.
+
+| Mutation | Suite | Result |
+| --- | --- | --- |
+| delete the child's contract refusal | `trial-result-line` | 1 failed, 20 passed (21) |
+| drift the child's literal from the canonical value | `trial-result-line` | 7 failed, 14 passed (21) |
+| stop refusing another contract name in `normalizeTrialResult` | `trial-result-line` | 1 failed, 20 passed (21) |
+| pass `undefined` instead of Studio's minted identifier | `trial-result-line` | 1 failed, 20 passed (21) |
+| drop `removalOutcome` from the full-shape check | `trial-result-line` | 1 failed, 20 passed (21) |
+| collapse the four Studio-side causes onto the table row | `trial-result-line` | 2 failed, 19 passed (21) |
+| drop the removal outcome from the child's result line | `trial-result-line` | 5 failed, 16 passed (21) |
+| report the default SHA instead of the one the plan carried | `trial-result-line` | 1 failed, 20 passed (21) |
+| report `null` instead of the marker that was read | `trial-result-line` | 2 failed, 19 passed (21) |
+| compose a marker from a declared read that never happened | `trial-result-line` | 2 failed, 19 passed (21) |
+| stop copying the marker into the stored record | `source-inspection` | 1 failed, 16 passed (17) |
+| mark the declared marker `studio-produced` | `trial-result-line` | 2 failed, 19 passed (21) |
+| drift one entry of the persisted provenance map | `trial-result-line` | 1 failed, 20 passed (21) |
+| the child emits no result line at all | `trial-result-line` | 6 failed, 15 passed (21) |
+| admit a result claiming workspace state | `trial-result-line` | 1 failed, 20 passed (21) |
+| call a terminated run an unreadable result | `trial-result-line` | 1 failed, 20 passed (21) |
+| let the result line's own marker win the spread | `trial-result-line` | 1 failed, 20 passed (21) |
+| validate the result before the declared refusal | `declared-read` | 1 failed, 37 passed (38) |
+| validate the result before the too-large refusal | `declared-read` | 1 failed, 37 passed (38) |
+| a terminated run says what a healthy one says | `trial-result-line` | 1 failed, 21 passed (22) |
+| consult the refusal after the materialization gate | `trial-result-line` | 1 failed, 21 passed (22) |
+| collapse the refused-run cause onto the table fallback | `trial-result-line` | 1 failed, 21 passed (22) |
+| collapse the AC-0061 claim cause onto the table fallback | `trial-result-line` | 1 failed, 21 passed (22) |
+
+**Every row above reddens.** One further mutation survived and has no row, because it is not a
+proof of anything; it is recorded in prose under this table so a reader counting rows does not go
+looking for an exception among them. The two ordering rows are the ordering proofs: a refused declaration and a refused result must both route before the result is
+read, or a repository-caused stop is attributed to Studio.
+
+**The last two rows were added because the first attempt at them survived.** Round 3 found that
+two causes reaching the `result-invalid-studio` row were outside the distinctness case, so either
+could be collapsed onto the row's generic wording with the suite green. Adding them to the case
+was **not enough** — collapsing one cause leaves the set pairwise distinct, so both mutations
+survived again. What binds them is the separate assertion that no cause sharing that row may emit
+the row's own fallback wording, which is precisely the failure: the row saying "Studio could not
+read the inspection result" without saying why.
+
+**One mutation survived, and it is recorded as survived rather than dropped.** Moving `dispose`'s
+once-guard back to *after* `removeRoot` leaves `disposal.test.ts` green at 8 of 8. That is honest:
+the ordering is observable only if a signal handler runs inside the removal walk, and the walk is
+wholly synchronous, so no test in this repository can reach it. The guard is placed before the
+work anyway — a once-guard that is correct only through an unstated property of the thing it
+guards is a guard waiting to stop working, and an `await` added to that walk would open a
+double-removal window in a disposal control. **No criterion is claimed on it.**
+
+### Gate evidence, and the flake in both directions
+
+`pnpm verify` exit 0: **768 passed, 3 skipped, 55 files, 26.2 s**.
+
+It was run after each of the seven review rounds, and the flake showed every face:
+
+| Run | Attempts to green | Red attempts |
+| --- | ---: | --- |
+| before review | 4 | `disposal` ×2 + `materialization` ×1; then `runtime-supervisor` AC-0025 ×1; then `disposal` ×2 + AC-0025 ×1 |
+| after rounds 1 and 2 | 2 | `runtime-supervisor` AC-0025 ×1 |
+| after round 3 | 1 | none |
+| after round 4 | 1 | none |
+| after round 5 | 1 | none |
+| after round 6 | 2 | `runtime-supervisor` AC-0025 ×1 |
+| after round 7 | 1 | none |
+
+**The varying failure set is now evidenced rather than inferred.** Passing twice in isolation
+rules out a deterministic bug in each suite; it does not distinguish contention from an ordering
+or shared-resource defect appearing only above a concurrency the gate never reaches, and eleven
+failures is a step change from the one-to-three this flake had produced before. The
+discriminator is re-running the **same wide invocation**: a stable failure set across runs would
+be a real bug wearing the flake's clothes. Three wide runs gave **6, 17 and 13** failures, and
+the sets differ substantially — run 1 implicated `per-request-state-root` and AC-0023, run 2
+implicated `materialization` and AC-0025, and neither appeared in the other. Varying set, so
+contention.
+
+Every implicated file also passed **twice in isolation** — `disposal` and `materialization` 12 of 12
+twice, `runtime-supervisor` 26 of 26 twice — so this is
+`pre-existing-trial-runtime-load-flake` and not a regression. **Load average predicts nothing,
+again in the other direction:** the green fourth attempt of the first run came in at a one-minute
+load average of 183.3, well above any of its red attempts.
+
+The suite's own contribution to that contention was cut by sharing one record per distinct child
+configuration. This entry has now had its spawn count corrected twice — it said five when there
+were seven, then four when there were still five — so the number is stated once, derived from the
+call sites: **four**, being one memoized plain child, one memoized child with a declared marker,
+and two one-off children whose configurations nothing else shares.
+
+### Verified in the target, not in source
+
+`pnpm build`, then `apps/desktop/src/e2e/connect-and-orient.test.ts`: 5 passed, 2 skipped. The
+built `apps/studio-service/dist/runtime-child.ts` and its `.js` both carry `trialContract`, the
+`result` line and the reordered once-guard, checked by grep against `dist/` rather than source — that is the class of
+failure this slice has shipped three times.
+
+### Counts are generated, and the generator is gated
+
+`tools/acceptance-audit-counts.py` derives the audit's headline and every group header from its
+own rows. It lives in `tools/` rather than beside the skill, because the skill trees under
+`.claude/skills/` and `.agents/skills/` are pack-managed and the next upgrade would remove a
+repository script placed there. `pnpm governance` runs both its `--self-test` and its `--check`,
+so a stale count cannot ship; the negative control was measured — reverting one group header from
+12 met to 11 fails the gate.
+
+Its self-test earned its place immediately, catching a zero-met group rendering the author had
+written down wrong, and its heading regex had a real defect the quality review found: it matched
+any `###` containing an em dash, so a prose heading was silently rewritten to
+`### <its text> — 0 met` and `--check` then reported clean. Rewriting is now confined to headings
+inside *Per-criterion reconciliation*.
+
+The audit reads 157 rows, **88 met, 66 not met, 3 not verifiable here**, and `spec.md`'s checked
+set equals the audit's met set exactly — verified by set difference in both directions, not by
+counting.
+
+## owner-decision-2026-09-24-step-c-carried-items
+
+The owner authorized, on 2026-09-24, all four contract decisions Step C's review rounds carried
+out of the loop, taking the recommendation recorded against each. They are amendments, not
+corrections: three add a control and one moves a control into the contract, and none could be
+made from inside the implementation loop.
+
+**1. A source bound on the declared version marker — 1 KiB.** *Resource bounds* gains a
+*Declared version marker* row. The marker is the one repository-authored value that can breach
+*Persisted repository-derived content* on its own, and that breach refuses the whole write, so
+without a bound a repository could make every inspection of itself unpersistable. It is bounded
+where the marker is **extracted** and an over-long declaration is refused *as a declaration*,
+reported `exceeds-byte-bound`, contributing no value and no provenance marker. That is distinct
+from truncating at the sink, which the *Persisted repository-derived content* row rules out for
+its own stated reason. 1 KiB is three orders of magnitude above any real version string and two
+below the bound it protects.
+
+**2. A closed value set for the removal outcome.** *Canonical values* gains a *Removal outcomes*
+row — `removed`, `not-removed`, `retained`. `isString` validated a shape where AC-0038 is about a
+value: a Runtime reporting `removalOutcome: "probably"` conformed. A value outside the set is now
+a non-conforming result under AC-0036. The child holds the same three literals because it may
+import nothing, and a source audit pins them against the set.
+
+**3. Real-path containment in the child.** AC-0073 names a comparison against the file's resolved
+real path on a segment boundary; the only production reader did `join` plus `lstat`, and the
+helper that implements the comparison lost its last production caller when `readDeclaredValues`
+was deleted. The child performs the check itself now — it cannot import the helper — with **both
+sides resolved**, because Darwin's state root sits under a `/var` link and comparing a resolved
+path against an unresolved root would refuse every read on the delivery platform.
+
+**AC-0073 nonetheless stays not met, for a new reason.** No case reaches the check: what it
+catches is an ancestor resolving elsewhere, and the symlink rejection above it already takes
+every case a repository can plant at the leaf, the root is created by the Runtime, and a bare
+name admits no ancestor of its own. It is defensive depth, recorded as unfalsifiable like the
+`dispose` once-guard, and no verdict rests on it. What it does remove is the fragility: the read
+was confined *by construction*, one edit to the permitted surface away from not being.
+
+**4. The AC-0061 boundary refusal becomes contract.** *Boundaries*, *Always do* now states that a
+trial result reporting an inspection state no trusted inspector produced is refused. It was a
+Studio-side policy refusal of a contract-conforming result, recorded only in a code comment —
+and the thing that kept AC-0061 true before it was a hard-coded constant in the consuming branch,
+which stops being a guarantee the moment a second consumer exists. The clause also states that
+relaxing it when an inspector first runs is a contract change rather than a discovery.
+
+### The control opened a hole, the review found it where it was asked to look, and the first fix was too narrow
+
+The marker bound closed the availability leg — no over-long value is persisted, so AC-0104's
+refusal cannot be triggered by repository content — and **regressed the honesty leg**, which is
+the more important of the two.
+
+A per-read refusal has exactly one production consumer, `declaredRefusalOutcome`, and it skips
+`workspace.toml` by AC-0059's carve-out. So a repository writing
+`schema-version = "<1025 bytes>"` into `workspace.toml` left `versionMarker` undefined, which
+composes to `declaredVersionMarker: null` — and the contract defines `null` as *the repository
+declares none*. Studio would have stated, of a repository that declared a marker, that it
+declared none, with no diagnostic and no qualifier. **That is the exact falsehood the new
+control's own comment cites AC-0064 to prevent.**
+
+**Two follow-on defects in that repair, both found by review.** The new branch hand-built its
+outcome instead of going through `stoppedBy` — because `stoppedBy`'s parameter was typed to two
+reasons — and so emitted the row's bare wording, "The repository's content could not be read as
+a result", while the identical event reaching the operator through the *other* permitted file
+named the file, the key and the bound. And the distinctness case scoped its "no cause may emit
+the row's own fallback" rule to `result-invalid-studio`, so a branch reaching for a different
+row could not be seen. Both are closed: the refusal names its cause, and the rule now covers
+every row in `STOP_REASONS`.
+
+**One event takes two rows, and both legs are now pinned.** An over-bound marker in
+`.agentbundle-state.toml` routes through AC-0059's declaration-file stop as
+`parse-failure-declaration-file`; in `workspace.toml`, which the carve-out excludes, it reaches
+`result-invalid-repository`. Only the second leg was bound end-to-end; the first asserted report
+fields and never called `settledRuntimeOutcome`, so its row and attribution could have drifted
+silently. Both are asserted through the outcome now, which makes the split deliberate.
+
+The result is refused instead. `DeclaredReadReport` carries `markerRefused`, because `undefined`
+cannot distinguish *refused* from *never declared* and the trial result has no third state for
+it. The refusal takes **`result-invalid-repository`**, not the Studio row: the structure that
+could not be read is repository-derived, and attributing it to Studio is the crossing AC-0093
+forbids. It is the first reachable instance of that row, which the *Reasons for
+`inspection-stopped`* table has carried since the start against content an inspector echoes.
+
+Widening AC-0059's carve-out would also have closed it, and was rejected — **but the reason first
+recorded here was wrong, and a review round caught it.** That reason was "it would make a refused
+`workspace.toml` stop the inspection". What shipped *does* stop the inspection on a refused
+`workspace.toml`; `declared-read.test.ts` drives a real child with an unparseable one and asserts
+`inspection-stopped`. The difference from the rejected alternative is **which row the stop
+carries**, not whether it stops. Widening the carve-out would have put it on
+`parse-failure-declaration-file`, the declaration-file row the spec excludes for this file and
+which three earlier rounds were refuted for trying to re-key; `result-invalid-repository` is a
+different row and the exclusion does not reach it.
+
+**So one thing genuinely is not closed, and it is re-registered rather than absorbed.**
+`spec.md`'s *Reasons for `inspection-stopped`* table still reads "A malformed `workspace.toml` is
+**not** in this table: it is the `malformed` condition, produced by the inspector's own
+`invalid_workspace` finding" — and while no inspector runs, `malformed` is unreachable, so the
+live choice was only ever between asserting a falsehood and stopping. Stopping is the better of
+the two and is what shipped. But the spec sentence and the implementation now disagree, and that
+is a contract question this loop accepted rather than answered. It is at
+`connect-orient-malformed-workspace-declaration-stops-the-inspection`.
+
+**The adjacent case was registered rather than fixed, and that was wrong.** The first version of
+this entry left every *other* refusal of `workspace.toml` — a parse failure, an over-bound file,
+a payload that did not arrive in the agreed transport — composing the same `null`, on the ground
+that closing it would collide with AC-0059's carve-out. Two reviewers rejected the ground
+independently, and the rejection is right: **the carve-out governs whether a refused workspace
+declaration becomes a declaration-file *stop*, reserving `malformed` for the inspector's own
+`invalid_workspace` finding. The falsehood is the asserted `null`, not a missing stop.** The
+marker fix is its own counter-example — it reached a different row and collided with nothing.
+
+So the flag is `markerUndetermined`, set by **every** refusal of a permitted read, and it means
+*the marker could not be determined* as distinct from *determined to be absent*. An absent file
+does not set it: a repository that declares no `workspace.toml` has been read, and the answer is
+an absence. Five sites set it and all five redden under mutation, including the transport-decode
+branch no live child can reach — the child always writes the agreed transport, so that one is
+bound against `declaredFromProtocol` directly. `connect-orient-refused-workspace-declaration-reads-as-none`
+held two things: the asserted `null`, which this closes, and whether a refused workspace
+declaration may stop the inspection at all, which it does not. The first is closed and the entry
+withdrawn; the second is re-registered under its own slug above, scoped to the contract question
+alone.
+
+**And the fix hands the inspector slice a decision, which is named rather than left to be
+discovered.** The carve-out's *letter* is respected — the refusal takes a different row than the
+declaration-file stop. Its *intent* has a deadline. The branch that sets the flag for
+`workspace.toml` is the **parse failure**, which is exactly the syntactically invalid workspace
+declaration an inspector is meant to report as `invalid_workspace`; and the refusal returns before
+`normalizeTrialResult`, so `hasInvalidWorkspace` never runs. The moment a trusted inspector
+exists, a malformed `workspace.toml` will stop the inspection rather than reach the `malformed`
+condition the carve-out reserves for it.
+
+Nothing is wrong today, because no inspector runs. The choice belongs to the slice that changes
+that — let the malformed declaration through to the inspector's finding, or give the result a
+third state for *marker not determined* so the absence and the finding can both be true — and it
+is recorded on `connect-orient-no-inspector-runs` so that slice meets it as an inherited decision
+rather than as a surprise. An earlier version of the code comment asserted the tension away
+instead of scoping it, which is the same shape as the deferral reason two reviewers had already
+rejected in this entry.
+
+### Mutation proof
+
+| Mutation | Suite | Result |
+| --- | --- | --- |
+| stop refusing an over-long marker | `declared-read` | 1 failed, 39 passed (40) |
+| stop refusing a result whose marker was refused | `declared-read` | 1 failed, 40 passed (41) |
+| stop flagging the refused marker on the report | `declared-read` | 1 failed, 40 passed (41) |
+| attribute the refused marker to Studio instead | `declared-read` | 1 failed, 40 passed (41) |
+| let the repository refusal fall back to its row's bare wording | `trial-result-line` | 1 failed, 23 passed (24) |
+| route the state-file leg to the repository row instead of its own | `declared-read` | 2 failed, 39 passed (41) |
+| widen the marker bound by one byte | `declared-read` | 1 failed, 39 passed (40) |
+| drop the marker refusal instead of reporting it | `declared-read` | 1 failed, 39 passed (40) |
+| accept any string as a removal outcome again | `trial-result-line` | 1 failed, 23 passed (24) |
+| drift the child's removal-outcome literal | `trial-result-line` | 5 failed, 19 passed (24) |
+
+The real-path check has no row: see above — it is unfalsifiable through the child's own
+interface, and is recorded rather than claimed.
+
+### The reset is required, and the reference document does not say so
+
+A review round held that `loop-cohort reset` was never needed — the controlled-amendment
+procedure at `references/delivery-contract-lifecycle.md` prescribes
+`loop-engine transition contract-amendment`, and `reset` appears nowhere in it. That reading is
+correct about the document and **wrong about the tool**, which was established by running it
+rather than by arguing:
+
+```
+loop-engine: stop — schedule check-current failed: schedule check-current: plan.md no
+longer matches the scheduled baseline … recover the cohort only: … (2) `loop-cohort reset
+<spec-dir>` …
+(stored='9b41cd78…' current='7bf646e9…')
+```
+
+`contract-amendment` carries a `schedule check-current` guard, and that guard fails on the
+**plan** baseline, which has been stale since before this session — `8398223` rewrote one commit
+SHA inside the plan's Changelog during the privacy remap, and at least one earlier Changelog edit
+had already broken it. The same refusal is recorded at `#cohort-state-loss-and-repair-2026-09-23`.
+So the ceremony cannot begin until the cohort baseline is repaired, and the tool's own message
+names `reset` as the recovery.
+
+The refused transition **mutated nothing**: the engine stayed at `CODE-IMPLEMENTATION` sequence
+151, and `state.json` is byte-identical to the copy taken before the attempt. Recorded because
+the next reader will otherwise re-derive the reference document's answer and reach the same wrong
+conclusion.
+
+### Gate evidence, and a gate that could not be certified at the end
+
+`pnpm verify` exit 0 on the first attempt — **772 passed, 3 skipped, 55 files, 61.4 s** — for the
+amendment as it stood before the review repairs below.
+
+**After those repairs it could not be run green, and the reason is the host rather than the
+tree.** Three consecutive attempts failed with 7, 11 and 11 failures, every one of them in the
+trial-runtime process-group suites, against a one-minute load average of **276** on a machine
+carrying 54 users. No orphaned child of this session was present — `ps` found two
+`connect-orient` matches, both the grep itself. Applying the isolation rule at that load did not
+settle it either: four runs of the four implicated files gave pass, one failure, one failure,
+pass, with the single failure varying.
+
+What *is* established:
+
+- **The suites this change touched are clean and stable.** `declared-read`, `trial-result-line`,
+  `declared-value-reader`, `trial-result`, `source-inspection` and `git-driver` — 165 of 165,
+  three times consecutively, at the same load.
+- `pnpm lint`, `pnpm typecheck` and `pnpm governance` all exit 0.
+- Every mutation in the tables above was measured on this tree.
+
+**The flake was then measured against a baseline tree rather than argued about.** Nine further
+`pnpm verify` attempts gave 6, 1, 4, 3, 2, 1, 4 failures and no green, which is worse than the
+1-to-7-attempts this slice had recorded, so a regression was the first hypothesis. The
+discriminator is a tree without this work in it: a detached worktree at `ea7a96a` — the branch
+tip, carrying none of Step C — was built and the five implicated suites run three times against
+the same five on the working tree:
+
+| Tree | Run 1 | Run 2 | Run 3 |
+| --- | --- | --- | --- |
+| `ea7a96a`, carrying none of this work | 84 passed, 0 failed | 84 passed, 0 failed | 80 passed, **4 failed** |
+| working tree | 84 passed, 0 failed | 84 passed, 0 failed | 84 passed, 0 failed |
+
+The flake is pre-existing and this change does not worsen it; `disposal.test.ts` alone passed
+8 of 8 four times consecutively.
+
+**The load-bearing step is that baseline, and it is worth saying why.** Capping workers would
+equally mask a concurrency bug *introduced here*, so the capped-run greens below prove nothing on
+their own. What rules that out is the comparison above, plus the fact that the suites this change
+adds or touches appear in **no** failure set at any concurrency: `trial-result-line` and the new
+`declared-read` cases never failed once across every run recorded in this entry, and the six
+touched suites ran 165 of 165 three times consecutively.
+
+**Two things about the host are worth recording for whoever reads the attempt counts.** The
+machine carried 54 users and a one-minute load average that ranged from 17 to 276 during these
+runs, and **the runs themselves drive it**: each `pnpm verify` starts dozens of detached process
+groups whose teardown lags, so back-to-back attempts compound their own contention. Attempts
+were spaced by waiting for the load to settle rather than issued consecutively, which is the
+difference between measuring the flake and feeding it. No orphaned child of this session was
+ever found — `ps` for `connect-orient` and `runtime-child` returned zero matches at every check.
+
+**The whole suite is green, and getting there identified the flake's mechanism.** Thirteen
+`pnpm verify` attempts never went green on this host. Rather than keep retrying, the contention
+hypothesis was tested directly by capping vitest's workers:
+
+| Run | Concurrency | Host load (1 min) | Result |
+| --- | --- | ---: | --- |
+| 13 × `pnpm verify` | default | 17–276 | 1 to 7 failures, never green, sets varying |
+| `vitest run --maxWorkers=2` | 2 | ~250 | **773 passed, 3 skipped, 0 failed** |
+| `vitest run --maxWorkers=2` | 2 | ~250 | 1 failed — `App.test.tsx` AC-42, a renderer test in no way related |
+| `vitest run --maxWorkers=1` | 1 | ~250 | **773 passed, 3 skipped, 0 failed** |
+| `vitest run --maxWorkers=2` | 2 | ~30 | **776 passed, 3 skipped, 0 failed** |
+| **`pnpm verify`** | default | **13** | **exit 0 — 776 passed, 3 skipped** |
+
+**The gate is green.** It took the host dropping to a load average of 13; at 17 and above it
+never passed in thirteen attempts. So the conclusion is not "the gate is broken" but something
+narrower and more useful: **this suite needs either a quiet host or capped workers, and capping
+is the faster of the two to reach for.** The single capped-run failure landing in a renderer
+suite rather than a trial-runtime one was further evidence of load sensitivity rather than a
+defect here.
+
+`pnpm lint`, `pnpm typecheck`, `pnpm governance` and `pnpm build` are each green in their own
+right as well.
+
+**Verified in the target.** `apps/studio-service/dist/runtime-child.js` carries
+`markerUndetermined` and `realpathSync` — three matches, grepped against `dist/` rather than
+source — and `apps/desktop/src/e2e/connect-and-orient.test.ts` passes 5 with 2 skipped against
+that build.
+
+Whether the gate should cap its own workers remains an owner call, registered at
+`connect-orient-gate-cannot-pass-at-default-concurrency` — this run answers whether the tree is
+sound, not whether a gate that needs a quiet host is a good gate.
+
+One measurement worth keeping: running the whole `connect-and-orient-runtime` directory plus two
+sibling files in a single `vitest` invocation produced **eleven** failures across `disposal`,
+`materialization` and `sweep` — far more than any `pnpm verify` attempt this session. All three
+files then passed **twice in isolation at 38 of 38**. That is `pre-existing-trial-runtime-load-flake`
+under heavier concurrency than the gate itself creates, and it is recorded because an eleven-failure
+run looks nothing like a flake until the isolation rule is applied to it.
+
+### What the gate caught in its own author's work
+
+Amending the spec and the three controls shifted citations in the audit onto blank or
+bracket-only lines, in rows this amendment does not own. `tools/acceptance-audit-counts.py --check`
+failed the governance gate on every one of them before anything could be committed, and the
+mechanical bump repaired them — **twice**: 21 after the controls landed, and 5 more after the
+honesty repair below moved the code again. The count is not restated here, because the first
+version of this sentence said 21 and was read by a review at a moment when 5 were outstanding;
+the gate's own output is the record.
+
+That is the check written two rounds earlier catching the next instance of the class it was
+written for, on the same day, against the person who wrote it — and then catching a second
+instance an hour later, in the repair for the first.
+
+## adjudication-envelope-2026-09-24
+
+Three dispatches were needed to get one clean security adjudication past
+`loop-cohort review inspect --adjudication`, and the verdict was never in doubt in any of them.
+Recorded because the cost is entirely in the artifact's shape, and two earlier notes about this
+same classifier already exist elsewhere.
+
+| Attempt | Classifier verdict | What the adjudicator had written |
+| --- | --- | --- |
+| 1 | `invalid` — `sustained-line-shape` | markdown bullets in the basis prose, read as sustained-finding lines |
+| 2 | `invalid` — `indeterminate-audit-not-none` | a basis paragraph after `## Indeterminate audit`, so that section no longer read exactly `None.` |
+| 3 | dispatched with the six literal lines specified | — |
+
+**The envelope is exactly three sections, and for a clean verdict the artifact is six lines with
+nothing else in it.** No basis, no preamble, no trailing prose. `review inspect` consumes only
+`## Main-loop result` and treats any audit-section content other than `None.` as invalid before
+fingerprinting. The adjudicator's reasoning has no home in the artifact; it belongs in the reply
+to the controller, which is where it was read from on all three attempts.
+
+**The rule that mattered here was not to fix it by editing.** Attempt 2's artifact was one
+paragraph away from passing, and deleting that paragraph would have produced a green
+classification without changing the verdict — which is exactly why it was not done. An
+adjudication the controller has reshaped to satisfy a classifier is no longer an independent
+verdict, and the distinction is invisible afterwards. Each attempt was a fresh dispatch carrying
+the constraint, and both rejected artifacts are retained beside their raw reports for audit.
+
+The friction is real and worth naming for whoever meets it next: the strict envelope is not
+documented by example anywhere the adjudicator reads, so it has to be supplied in the dispatch
+brief. Supplying the six literal lines is what attempt 3 does.
+
+## slice-f1-step-d-2026-09-24
+
+Step D of `connect-orient-wire-the-uncalled-modules`: the inspector locator reaches a live path.
+`locateTrustedInspector` and `selectConformingInterpreter` had zero production callers between
+them; both have one now. Four criteria moved — AC-0044, AC-0045, AC-0046 and AC-0048 — and the
+audit reads **92 met of 157**.
+
+### Locating is not running, and the scope reading is stated rather than assumed
+
+The brief flagged this as an unconfirmed scope judgement. The reading taken is the conservative
+one: **locate and record, never execute.** Running an inspector is `connect-orient-no-inspector-runs`,
+the owner's next slice, and nothing here starts a process. Every branch still answers
+`inspector-unavailable`, including the one where the pinned inspector *was* found — Studio
+holding an inspector it did not use is a different sentence from Studio not having one, and
+reporting the second would be false.
+
+What changed is that the sentence is now four sentences. A pack mismatch, a containment refusal,
+a nonconforming interpreter and a located-but-unused inspector each say which thing was wrong,
+where one generic line said nothing a lead could act on.
+
+### The defect the audit named, reproduced and then fixed
+
+AC-0046's row said `selectConformingInterpreter` "consumes the flag rather than the version and
+every test hands it the value it should decide". The first version of this wiring reproduced that
+exactly: it read `probe.conforming`, a boolean **the child computed**, which makes the Service
+agree with whatever it is handed. AC-0046 says *Studio* verifies the interpreter reports 3.11 or
+later.
+
+It decides from the reported version now, parsed out of what the interpreter printed. A version
+that cannot be read at all is refused rather than admitted, because an unreadable version is one
+Studio has not verified. Both directions are bound: a `conforming: true` flag on Python 3.9.6 is
+refused, and a `conforming: false` flag on 3.14.7 is not — so neither reading of the probe passes
+the suite. The flag stays on the probe because the child's own diagnostics use it, and is
+deliberately unread here.
+
+### AC-0043 is not claimed, and why
+
+The locator now has a production caller, which is what its row said was missing. It is still
+**not met**: AC-0043 asks Studio to *record* the resolved path, pack name, pack version and the
+SHA-256 of both inspector files with each inspection. Three of the four reach the lead, in a
+rendered sentence rather than a record, and the two digests do not — two hashes inside a sentence
+a lead reads would be noise rather than a record.
+
+The obstacle is structural: the trial result has no field for inspector identity, and the
+`source.get` projection is the versioned public contract under `contracts/`. Adding a field to
+either is an owner call, registered at
+`connect-orient-inspector-identity-has-nowhere-to-be-recorded`. Ticking AC-0043 on three values
+in a diagnostic string would be the partial-credit this audit exists to refuse.
+
+### What the review changed
+
+**The Step C class came back in a new place.** The probe list is the one value on this path that
+crosses the process boundary, and the first wiring **cast** it — `Array.isArray` establishes only
+that it is an array. Three consequences, all found by the security review and all now closed:
+
+A `version` that parsed to an object made the version regex **throw** rather than refuse, because
+`exec` applies `ToString` and a guarded-parse object has a null prototype. That surfaces as "the
+inspection stopped: TypeError…", which is the failure the northbound parse site exists to
+prevent, and the same defect already fixed once for `String(refused.reason)`.
+
+An unbounded probe list reached a **persisted and rendered** field, stored under the
+`repository-derived` marker and counted against AC-0104's bound, so a long enough list made a
+record unpersistable. Each version is bounded at 64 characters now.
+
+And the selected path became an **executable Studio had not offered**. Nothing runs it here, but
+the slice that does would have inherited a path the child chose. Only a member of the delivered
+search list is admitted, which is the discipline `declaredFromProtocol` already applies.
+
+**The bound was per value and not per list, which is a bound with a hole in it.** Admitting only
+paths Studio delivered constrains *what* a path may be, not *how many times* it may appear, and
+the refusal names every admitted probe — so a child repeating one delivered path a hundred
+thousand times, each with a version bounded at 64 characters, still composes megabytes into a
+field that is persisted under the `repository-derived` marker and rendered. That is well inside
+the result reader's 8 MiB ceiling and far past AC-0104's 256 KiB, so the record becomes
+unpersistable and the prior one stands.
+
+The comment claimed the bound was "small enough that the whole search list cannot approach
+AC-0104's bound" — true of the three-entry list Studio delivers, and not of the list the code
+would actually build from it. **At most one probe per delivered path** now, so the size follows
+from Studio's own list rather than from what the child chose to send, and the comment says size
+is bounded on both axes because one axis alone was the defect.
+
+**Two conflations, both the absent-versus-determined shape this slice keeps repairing.** An
+absent `interpreter` line and a walked search list that found nothing collapsed into the same
+empty array, so the refusal claimed the list had been walked in the one case where it had not —
+the child pushes an entry for every candidate, absent ones included, so a genuinely empty list
+cannot occur. And a failure to locate Studio's **own install root** reported the benign "no
+trusted inspector ran" sentence, byte-identical to a healthy machine with nothing installed. Both
+name themselves now, and both have cases; the mis-titled case that asserted the search-list
+message against an empty array is re-fixtured.
+
+**Three load-bearing behaviours had no test that could fail, and one was the unit's whole join to
+production.** `studioInstallRoot` walks up from the module looking for the pack state; replacing
+its body with `return undefined` left the **entire service suite green** — 526 passed, 0 failed —
+while making every inspection take the not-found branch and Step D inert. Every locator case
+supplies a search root explicitly, and the only production caller needs a network fetch no gate
+can reach. That is this slice's own defect class one layer out: the module thoroughly tested, the
+thing that reaches it asserted by nothing. It is exported now and bound in the positive
+direction — the walk resolves a directory holding the pack state, and that directory is a real
+ancestor of the module rather than any directory that happens to carry one.
+
+The other two were invariants stated in prose with no fixture able to violate them. A pack whose
+adapters **disagree** about their version cannot match a pin that names one — but every fixture
+wrote a single adapter, so relaxing `versions.size !== 1` to `< 1` left the suite green and a
+disagreeing pack matching the pin. And the **major**-version comparison: every probe fixture
+reported major 3, so deleting that branch left the suite green, after which `Python 1.99`
+conforms. Both have fixtures that can violate them now.
+
+**A false fact in an evidence cell, pointing the wrong way.** The AC-0045 row and the code comment
+both credited the child's `started` line as the authority for the materialization root. Nothing
+reads that line: the root is `reserveStateRoot`'s own value, derived Service-side, and never
+crosses the boundary. The code was right and all the prose was wrong — the dangerous direction,
+since a reader reconciling them would have moved the code and inverted the trust rule this slice
+applies everywhere else. Both corrected, and the dead `=== undefined` ternary that made the code
+*look* like it was reading an optional protocol value went with them.
+
+### Mutation proof
+
+| Mutation | Suite | Result |
+| --- | --- | --- |
+| admit a probe path Studio never delivered | `inspector-locate` | 1 failed, 13 passed (14) |
+| stop deduping by delivered path | `inspector-locate` | 1 failed, 16 passed (17) |
+| stop recording which paths were seen | `inspector-locate` | 1 failed, 16 passed (17) |
+| report a missing search list as a walked-and-empty one | `inspector-locate` | 1 failed, 16 passed (17) |
+| `studioInstallRoot` returns nothing | `inspector-locate` | 1 failed, 14 passed (15) |
+| relax the adapters-disagree rule | `inspector-locator` | 1 failed, 16 passed (17) |
+| drop the major-version branch | `inspector-locator` | 1 failed, 16 passed (17) |
+| stop bounding the reported version | `inspector-locate` | 1 failed, 13 passed (14) |
+| accept a non-string version again | `inspector-locate` | 2 failed, 12 passed (14) |
+| collapse the absent line back into an empty list | `inspector-locate` | 1 failed, 13 passed (14) |
+| report the benign sentence for a missing install root | `inspector-locate` | 1 failed, 13 passed (14) |
+| never consult the interpreter probes | `inspector-locate` | 3 failed, 4 passed (7) |
+| treat an absent interpreter line as conforming | `inspector-locate` | 1 failed, 6 passed (7) |
+| never consult the locator | `inspector-locate` | 2 failed, 5 passed (7) |
+| stop passing the materialization root to the locator | `inspector-locate` | 1 failed, 6 passed (7) |
+| collapse every cause onto the generic sentence | `inspector-locate` | 6 failed, 1 passed (7) |
+| consume the probe's flag again instead of the version | `inspector-locate` | 2 failed, 7 passed (9) |
+| treat an unreadable version as conforming | `inspector-locate` | 1 failed, 8 passed (9) |
+| ignore the minor version | `inspector-locate` | 2 failed, 7 passed (9) |
+
+The first five were measured before the flag-versus-version repair, against a seven-case suite;
+the last three after, against nine. Both counts are stated so neither reads as a stale total.
+
+### Gate evidence
+
+`pnpm verify` exit 0: **794 passed, 3 skipped, 56 files, 36.5 s**, at a host load of 11, after
+the review repairs. The pre-review run was 785 passed at load 18.
+
+It took three runs, and each failure was a different thing worth separating. The first stopped at
+`pnpm governance`: six citations had shifted onto blank or bracket-only lines and one ran past
+end of file, all in rows this unit does not own — the citation checker catching its author for
+the third time in two units, which is now the routine cost of touching production code under a
+157-row table. The second failed one `disposal` case at a load average of 45, the recorded flake.
+The third, at 18, was green.
+
+`pnpm lint` and `pnpm typecheck` exit 0 in their own right, and the suite is green at capped
+concurrency independently of host load.
+
+## reviewer-mutation-race-2026-09-24
+
+**A reviewer's mutation was left in the working tree, and the only thing that caught it was that
+it happened to be syntactically detectable.** Recorded because this slice's whole evidentiary
+regime is gate readings and mutation tables, and this failure mode makes a reading silently
+describe somebody else's edit.
+
+The read-only reviewers are read-only with respect to *authoring*; they still mutate production
+source to test whether a binding fails, exactly as the controller does. They operate on the
+**same working tree**. During Step D's first review round a quality-pass mutation of
+`studioInstallRoot` — its body replaced by `return undefined` — was still present after the
+reviewer believed it had reverted: its restore raced a concurrent edit of mine to the same file.
+`pnpm lint` failed it as unreachable code, which is luck rather than a control. A mutation that
+changed a value rather than stranding a statement would have passed lint, passed typecheck, and
+been measured as if it were the tree.
+
+**This also explains an earlier observation that looked like flake.** A quality round reported a
+red gate and a red case that "went green minutes later"; a later adversarial round reported
+`pnpm governance` red from that same window. Both were real at the moment read and stale by the
+time reported, and neither was the flake.
+
+**The mitigation is cheap and is now the practice on both sides.** Before trusting any gate
+reading taken during a review round, diff the tree against the index and scan for mutation
+signatures — a stranded `return`, an `if (false)`, a flipped comparison. The reviewer has
+undertaken to diff at the end of every round; the controller checks before recording a number.
+The tree was verified clean after the incident: the only `return undefined;` in the Step D diff
+is `studioInstallRoot`'s legitimate terminal.
+
+## citation-residue-2026-09-24
+
+**Five audit rows cited test ranges that missed their evidence, and the citation checker could not
+see it.** The Step D review rounds grew `inspector-locate.test.ts` by about 40 percent while the
+rows were edited for prose only. Two of the five cited ranges did not intersect their evidence at
+all — AC-0043 and AC-0044 pointed at lines inside a different describe, and AC-0045 pointed at a
+block added in a later round — and the AC-0046 and AC-0048 ranges excluded the two cases added
+for the concerns those rows describe.
+
+Every one of those numbers **resolved**, and none started on a blank or bracket-only line. That is
+exactly the residue `tools/acceptance-audit-counts.py` records as out of reach in its own
+docstring: it catches a citation that cannot resolve, not one resolving to the wrong place. So on
+the round that most changed a cited file, the human check was the only check, and it failed.
+
+The rows are recomputed against describe boundaries rather than remembered ranges. The general
+exposure stands and is worth stating plainly: **any round that adds cases to a cited file
+invalidates that file's citations silently.** Recomputing them belongs in the same step as
+running the gate, not in the step that edits prose.
