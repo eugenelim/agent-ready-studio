@@ -278,13 +278,18 @@ describe("the declared version marker is bounded where it is extracted", () => {
       declared: record.declared,
     });
 
-    // Refused, and attributed to the repository rather than to Studio.
+    // Reported rather than refused. The inspection reaches its ordinary
+    // no-inspector answer, and the third state is what says Studio could not
+    // determine the declaration -- so the marker's `null` is no longer read
+    // as "the repository declares none".
     expect(outcome).toMatchObject({
       ok: false,
-      condition: "inspection-stopped",
-      stopReason: "result-invalid-repository",
+      condition: "inspector-unavailable",
+      declaredVersionState: "unreadable",
     });
-    expect(outcome.ok === false && outcome.result).toBeUndefined();
+    expect(
+      outcome.ok === false && outcome.result?.declaredVersionMarker.value,
+    ).toBeNull();
   });
 
   it.each([
@@ -330,8 +335,8 @@ describe("the declared version marker is bounded where it is extracted", () => {
       }),
     ).toMatchObject({
       ok: false,
-      condition: "inspection-stopped",
-      stopReason: "result-invalid-repository",
+      condition: "inspector-unavailable",
+      declaredVersionState: "unreadable",
     });
   });
 
@@ -354,7 +359,14 @@ describe("the declared version marker is bounded where it is extracted", () => {
         resultRefused: record.resultRefused,
         declared: record.declared,
       }),
-    ).toMatchObject({ ok: false, condition: "inspector-unavailable" });
+    ).toMatchObject({
+      ok: false,
+      condition: "inspector-unavailable",
+      // **The discriminator, not just the refused side.** A state pinned to
+      // the constant `"unreadable"` satisfies both tests above while making
+      // every repository unreadable; this is the assertion that reddens it.
+      declaredVersionState: "absent",
+    });
   });
 
   it("admits a marker of exactly the bound, so the refusal is not blanket", async () => {
@@ -370,6 +382,19 @@ describe("the declared version marker is bounded where it is extracted", () => {
 
     expect(record.declared?.versionMarker).toBe(marker);
     expect(DECLARED_VERSION_MARKER_BOUND_BYTES).toBe(1024);
+    // The third of the three states, so no constant satisfies the set.
+    expect(
+      settledRuntimeOutcome({
+        requestId: record.requestId,
+        completedResponse: record.completedResponse,
+        protocolLines: [
+          { type: "materialized", status: 0 },
+          ...record.protocolLines,
+        ],
+        resultRefused: record.resultRefused,
+        declared: record.declared,
+      }),
+    ).toMatchObject({ declaredVersionState: "declared" });
   });
 });
 

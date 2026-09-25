@@ -59,7 +59,16 @@ ROW = re.compile(r"^\| (AC-\d{4}) \| (\*\*not met\*\*|met|not verifiable here) \
 # Bindings column uses to cite several places in one file.
 # `file.ts:12`, `:12-34`, and the two continuation forms the Bindings column
 # actually uses: `:12,34` and `:12,:34`, the latter repeating the colon.
-CITATION = re.compile(r"\b([\w./-]+\.(?:ts|tsx|mjs|py|md|json|toml)):(\d[\d,:-]*)")
+# An optional `#symbol` anchor follows the lines: `inspector-locator.ts:192#locateTrustedInspector`.
+# Line numbers alone go stale silently -- they keep resolving and keep landing
+# inside the file while pointing at unrelated code, which is how this table
+# drifted twice. An anchor makes the citation self-checking: the symbol has to
+# still be inside the cited span. It is optional so the table can gain anchors
+# a row at a time rather than in one 390-citation rewrite.
+CITATION = re.compile(
+    r"\b([\w./-]+\.(?:ts|tsx|mjs|py|md|json|toml)):(\d[\d,:-]*)"
+    r"(?:#([A-Za-z_][\w.]*))?"
+)
 # What a range start looks like once the code above it has moved: a line
 # holding only brackets, or holding nothing at all. Both are stale by
 # construction -- nobody cites an empty line or a closing brace as the start
@@ -232,6 +241,8 @@ CITATION_FIXTURE = """## Per-criterion reconciliation
 | AC-0017 | met | S | apps/real.ts:1,3 | a continuation whose own start is stale |
 | AC-0018 | met | S | apps/real.ts:1,:90 | a colon-repeating continuation |
 | AC-0019 | met | S | apps/real.ts:89, and prose after it | a trailing separator is not a defect |
+| AC-0020 | met | S | apps/real.ts:1-3#b | an anchor still inside its span |
+| AC-0021 | met | S | apps/real.ts:5#b | an anchor the code moved away from |
 """
 
 CITATION_SOURCE = "const a = {\n  b: 1,\n};\n\nconst c = 2;\n"
@@ -282,6 +293,10 @@ def _self_test_citations() -> list[str]:
             ("a zero line number", "apps/real.ts:0 is not a line"),
             ("a colon-repeating continuation", "apps/real.ts:90 is past end"),
             ("a citation before a trailing separator", "apps/real.ts:89 is past end"),
+            # The anchor check, which is the whole point of the `#symbol`
+            # suffix: a citation that still resolves and is still in bounds,
+            # and no longer points at its subject.
+            ("a citation that moved off its anchor", "apps/real.ts:5 no longer contains b"),
         ):
             if needle not in blob:
                 failures.append(f"citation check missed {label}: {found}")
@@ -290,6 +305,10 @@ def _self_test_citations() -> list[str]:
         # flags everything.
         if "real.ts:1 starts" in blob:
             failures.append(f"citation check flagged a sound citation: {found}")
+        # And the anchor check discriminates. Without this, a check that
+        # reports every anchored citation satisfies the needle above.
+        if any("1-3 no longer contains" in f for f in found):
+            failures.append(f"a sound anchor was reported stale: {found}")
         # The count is load-bearing, not decoration: AC-0017's continuation
         # start is the only thing a `_citation_starts` that stops splitting on
         # commas would drop, and its message is indistinguishable from
@@ -297,9 +316,9 @@ def _self_test_citations() -> list[str]:
         # AC-0019's trailing comma must contribute no problem of its own.
         if any("is not a line number" in f and "real.ts:89" in f for f in found):
             failures.append(f"a trailing separator was reported as a defect: {found}")
-        if len(found) != 17:
+        if len(found) != 18:
             failures.append(
-                f"citation check reported {len(found)} problems, expected 17: {found}"
+                f"citation check reported {len(found)} problems, expected 18: {found}"
             )
     return failures
 
@@ -382,7 +401,7 @@ def check_citations(path: pathlib.Path, repo_root: pathlib.Path) -> list[str]:
     for index, line in enumerate(path.read_text().splitlines(), start=1):
         if not line.startswith("| AC-"):
             continue
-        for name, spec in CITATION.findall(line):
+        for name, spec, anchor in CITATION.findall(line):
             if name not in lengths:
                 lengths[name] = _resolve_length(name, repo_root, by_name)
             length = lengths[name]
@@ -410,7 +429,42 @@ def check_citations(path: pathlib.Path, repo_root: pathlib.Path) -> list[str]:
                         f" bracket-only line ({text.strip()!r}) — the code"
                         f" above it moved"
                     )
+            if anchor and not _anchor_in_span(
+                name, spec, anchor, repo_root, by_name
+            ):
+                problems.append(
+                    f"{path}:{index}: {name}:{spec} no longer contains"
+                    f" {anchor} — the citation moved off its anchor"
+                )
     return problems
+
+
+def _anchor_in_span(
+    name: str,
+    spec: str,
+    anchor: str,
+    repo_root: pathlib.Path,
+    by_name: dict[str, list[pathlib.Path]],
+) -> bool:
+    """Whether the anchor text appears anywhere in the cited lines.
+
+    Substring, not an identifier parse. The anchors this table carries are
+    function, type, and constant names, and a Python-side parse of TypeScript
+    would be a second thing to keep correct for no gain -- a name that appears
+    in the span at all is enough to say the citation still points at its
+    subject. The cost is that a name also appearing in a comment satisfies it;
+    that is a false pass, and the check's job is to catch a citation that
+    drifted off its subject entirely.
+    """
+    for part in _spec_parts(spec):
+        bounds = part.split("-")
+        if not (bounds and all(b.isdigit() and int(b) > 0 for b in bounds)):
+            continue
+        for number in range(int(bounds[0]), int(bounds[-1]) + 1):
+            text = _line_text(name, number, repo_root, by_name)
+            if text is not None and anchor in text:
+                return True
+    return False
 
 
 def _spec_parts(spec: str) -> list[str]:
@@ -481,6 +535,35 @@ def _resolve_length(
     # file this checker cannot pick. Not a finding -- the row is readable and
     # the ambiguity is the table's convention, not a broken reference.
     return None if matches else -1
+
+
+# **Why there is no mechanical check for a citation that resolves to the wrong
+# line, after two attempts at one.**
+#
+# The first asked whether the *row* had been edited when a cited file changed.
+# That reads as a reasonable proxy and is not one: it goes vacuous exactly when
+# the audit is heavily edited, which is every round that moves criteria. Its
+# negative control settled it — inserting a line at the top of a cited file
+# produced no finding at all.
+#
+# The second compared each citation against a `difflib` map from the file at
+# `HEAD` to the file now, reporting a citation whose line had moved. That is
+# sound only while the citations are still expressed in `HEAD` terms. The
+# moment any of them is corrected it holds a *current* line number, and mapping
+# a current number through a base-to-current map produces a number about
+# nothing. It reported 244 drifted citations on a tree whose citations had just
+# been remapped correctly — every one an artifact of the check.
+#
+# The class stays open because the table does not record what a citation is
+# *for*. A line number is a claim about current content, and nothing here knows
+# what content was meant, so no amount of diff arithmetic can confirm it.
+# Closing it needs the rows to carry something verifiable — a symbol name, a
+# snippet — which is a change to the table's schema and an owner's call. It is
+# registered at `connect-orient-audit-citations-record-no-verifiable-anchor`.
+#
+# What remains below is what can be checked without knowing intent: that a
+# citation resolves, that it lands inside the file, and that it does not start
+# on a blank or bracket-only line.
 
 
 def main() -> int:

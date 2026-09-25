@@ -664,9 +664,15 @@ describe("Electron main service connection", () => {
       .prepare("SELECT version FROM schema_migrations ORDER BY version")
       .all()
       .map((row) => row.version);
-    // Migration 3 is Connect and Orient's connected_sources table. This
-    // list is the anchor that keeps a migration appearing here deliberate.
-    expect(appliedVersions).toEqual([1, 2, 3]);
+    // Migration 3 is Connect and Orient's connected_sources table.
+    // Migration 4 adds `declared_version_state` and `inspector` to it: the
+    // third state that separates "the repository declares no version" from
+    // "Studio could not read the declaration", and AC-0043's inspector
+    // identity. This list is the anchor that keeps a migration appearing
+    // here deliberate, and it runs against the real built desktop path --
+    // so it also proves both columns survive a genuine startup migration
+    // rather than only a test-opened database.
+    expect(appliedVersions).toEqual([1, 2, 3, 4]);
     database.close();
   });
 });

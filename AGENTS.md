@@ -76,6 +76,12 @@ and build in that order. `pnpm governance` checks the decision records under
 `docs/adr` and `docs/rfc`; it runs before `test` so a sub-second content gate
 fails ahead of the `pretest` build.
 
+The trial-runtime suites spawn real child processes and can fail under host
+load with no code change. `pnpm test:capped` re-runs at two workers; a green
+capped run means a green tree. It is a diagnostic, not a gate — the default
+stays uncapped. `CONTRIBUTING.md` has the two signs that tell load flake apart
+from a real defect.
+
 Component test files opt into jsdom with a per-file
 `// @vitest-environment jsdom` docblock. Node-side test files must not carry the
 docblock because their process and `node:` URL behavior needs the Node

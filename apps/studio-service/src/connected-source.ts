@@ -94,6 +94,10 @@ export function toConnectedSourceRecord(input: {
   readonly inspectedAt: string;
   readonly condition: string;
   readonly result: NormalizedTrialResult;
+  /** Studio's reading of whether the declared marker could be determined. */
+  readonly declaredVersionState: string;
+  /** AC-0043. The inspector Studio identified, or null where it located none. */
+  readonly inspector: ConnectedSourceRecord["inspector"];
 }): ConnectedSourceRecord {
   const { result } = input;
   return {
@@ -108,6 +112,8 @@ export function toConnectedSourceRecord(input: {
     versionUnverified: result.versionUnverified,
     diagnostics: result.inspectorDiagnostics.value,
     declaredVersionMarker: result.declaredVersionMarker.value,
+    declaredVersionState: input.declaredVersionState,
+    inspector: input.inspector,
     inspectorContractVersion: result.inspectorContractVersion.value,
     provenance: {
       diagnostics: result.inspectorDiagnostics.provenance,

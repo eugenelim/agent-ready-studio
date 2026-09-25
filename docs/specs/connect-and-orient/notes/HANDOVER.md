@@ -15,12 +15,12 @@ The spec is [`../spec.md`](../spec.md).
 | --- | --- |
 | Worktree | a git worktree of this repository; run every command from its root |
 | Branch | `eugenelim/provisional-runtime-build`, tracking `origin`, clean |
-| PR | **#14** merged. Step C is unmerged work on this branch |
-| Spec status | `Implementing` — **88 of 157 checked, 69 open** |
+| PR | **#14** merged. Steps C and D and the five carried items are unmerged work on this branch, splitting into two PRs |
+| Spec status | `Implementing` — **93 of 157 checked, 64 open** |
 | Engine | `CODE-HUMAN-GATE`, sequence 154, `last_event: reviewers-clean --intent-incomplete`; wave 1 of 1 is T13. **This gate is not a finish** — 66 criteria remain, so the spec stays `Implementing` and the next unit re-enters through `blocker-applied` |
 | Cohort | waves `[['T13']]` at index 0; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 10, `review_retry_count` 9 **against a cap of 5** |
 | Run id | `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` |
-| Gate | `pnpm verify` exit 0 — **776 passed, 3 skipped** — at a host load of 13. It failed 13 consecutive attempts at loads of 17 and above; the suite also passes at `--maxWorkers=1` and `=2` under load. A worktree at `ea7a96a` carrying none of this work flaked identically, so the sensitivity is the host's, not this change's. See `connect-orient-gate-cannot-pass-at-default-concurrency` and `#slice-f1-step-c-2026-09-24` |
+| Gate | `pnpm verify` exit 0 at host load 10 — **800 passed, 3 skipped**, 803 total. The same tree failed at loads of 27 and 31 with a varying failing set; `pnpm test:capped` (`vitest run --maxWorkers=2`, added this session) was green at load 11. A worktree at `ea7a96a` carrying none of this work flaked identically, so the sensitivity is the host's. See `#owner-approved-carried-items-2026-09-25` and `#slice-f1-step-c-2026-09-24` |
 
 **Cohort:** `plan_review_status: approved`; waves `[['T13']]` at index 0, the only wave;
 `completed_task_ids` T1–T12, T14 and T15; `implementation_retry_count` 0; `review_round_count`
@@ -213,7 +213,7 @@ before trusting.
 | Slug | What it holds |
 | --- | --- |
 | `connect-orient-wire-the-uncalled-modules` | The cluster in flight |
-| `connect-orient-no-inspector-runs` | AC-0061 to AC-0068 composed but unexercised; owner says next slice |
+| `connect-orient-no-inspector-runs` | AC-0061 to AC-0068 composed but unexercised; owner says next slice. The malformed-declaration decision it used to inherit is **settled** — the third state, `declaredVersionState` |
 | `connect-orient-stop-reason-never-resolved` | Nothing maps a terminating condition to a `StopReasonKey` |
 | `connect-orient-default-suite-reaches-the-network` | Two ungated e2e cases; owner design call |
 | `connect-orient-restored-result-drops-reason-and-wait-window` | Storage migration the protocol approval did not cover |
@@ -264,11 +264,14 @@ and all fifteen group headers derived from the rows, never hand-written
   round**, and scan for mutation signatures — a stranded `return`, an `if (false)`, a flipped
   comparison. Recorded at `#reviewer-mutation-race-2026-09-24`, which also explains two earlier
   "went green minutes later" readings that were not flake.
-- **Adding cases to a cited file silently invalidates that file's citations.** The audit's
-  citation checker catches a citation that cannot resolve, not one resolving to the wrong place,
-  so a round that grows a test file leaves its rows pointing at the wrong ranges with every gate
-  green. Recompute test citations in the step that runs the gate, not the step that edits prose.
-  Recorded at `#citation-residue-2026-09-24`.
+- **Any insertion into any cited file silently invalidates every citation below it**, in every
+  row, whether or not that row is the one being edited. The checker catches a citation that
+  cannot resolve, not one resolving to the wrong place, so the gate stays green. The reliable
+  repair is mechanical: build a `difflib` map from each cited file at the base to the file now
+  and move each citation by the same amount — that corrected 116 citation parts in one pass.
+  **Two mechanical gates for the residue were tried and both were unsound**; the reasons are in
+  `tools/acceptance-audit-counts.py`'s own header so they are not re-proposed. Recorded at
+  `#citation-residue-2026-09-24`.
 
 - **A mutation that reports nothing may have run nothing.** Write test paths literally — **zsh
   does not word-split an unquoted parameter**, so `$T` holding two paths gave vitest one filter

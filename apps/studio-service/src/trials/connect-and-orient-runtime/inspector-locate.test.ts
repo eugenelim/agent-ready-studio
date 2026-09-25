@@ -22,7 +22,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterAll, describe, expect, it } from "vitest";
@@ -241,6 +241,81 @@ describe("the walk that joins this unit to production", () => {
       new URL("../../source-inspection.ts", import.meta.url),
     );
     expect(walker.startsWith(`${resolved}/`)).toBe(true);
+  });
+
+  it("reaches the pack state from the built artifact, not only from source", () => {
+    // `connect-orient-inspector-install-root-unproven` asked whether a
+    // shipped layout puts the pack state within the walk's reach. **This
+    // repository has no packaging step** — no electron-builder or forge
+    // configuration exists, and `pnpm build` emits `apps/desktop/out/` and
+    // `apps/studio-service/dist/` inside the tree. So the built layout is the
+    // only shipped layout there is, and this is the claim about it.
+    //
+    // The desktop main process loads the service from
+    // `apps/studio-service/dist/service.js` (`apps/desktop/src/main/index.ts`).
+    // The source module sits three directories deeper than that, so a walk
+    // sized for the source tree could overshoot in one and undershoot in the
+    // other — which is why the depth is asserted, not assumed.
+    const repositoryRoot = fileURLToPath(
+      new URL("../../../../../", import.meta.url),
+    );
+    const built = join(repositoryRoot, "apps/studio-service/dist");
+    expect(existsSync(join(repositoryRoot, PACK_STATE_RELATIVE_PATH))).toBe(
+      true,
+    );
+    expect(relative(repositoryRoot, built).split("/").length).toBeLessThan(8);
+    // And the walk actually run from the built directory finds it, rather
+    // than the arithmetic above standing in for the walk.
+    let directory = built;
+    let found: string | undefined;
+    for (let depth = 0; depth < 8 && found === undefined; depth += 1) {
+      if (existsSync(join(directory, PACK_STATE_RELATIVE_PATH))) {
+        found = directory;
+      }
+      directory = dirname(directory);
+    }
+    expect(found).toBe(repositoryRoot.replace(/\/$/, ""));
+  });
+
+  it("records the identity of the inspector it located but did not run", () => {
+    // AC-0043. The four values used to exist only inside a diagnostic
+    // sentence, so nothing downstream could read them and a restart could not
+    // recover them. `inspector: null` on every outcome left the whole suite
+    // green, because only the sentence was asserted.
+    const outcome = settledRuntimeOutcome({
+      ...recordWith([
+        {
+          path: "/opt/homebrew/bin/python3",
+          version: "Python 3.14.7",
+          conforming: true,
+        },
+      ]),
+      inspectorSearchRoot: studioInstallRoot() as string,
+    });
+
+    expect(outcome.ok).toBe(false);
+    const inspector = outcome.ok === false ? outcome.inspector : undefined;
+    expect(inspector).toBeDefined();
+    expect(inspector?.packName).toBe("core");
+    expect(inspector?.resolvedPath).toContain("scripts");
+    // Every pinned file, hashed. A locator that returned the pack identity
+    // and an empty digest map satisfies the three assertions above.
+    expect(Object.keys(inspector?.fileDigests ?? {}).length).toBeGreaterThan(0);
+    for (const digest of Object.values(inspector?.fileDigests ?? {})) {
+      expect(digest).toMatch(/^[0-9a-f]{64}$/);
+    }
+  });
+
+  it("records no identity where it located nothing", () => {
+    // The other side. Without it, an `inspector` built unconditionally from
+    // the pin -- rather than from the walk -- passes the case above.
+    const outcome = settledRuntimeOutcome(
+      recordWith([
+        { path: "/usr/bin/python3", version: "Python 3.9.6", conforming: true },
+      ]),
+    );
+
+    expect(outcome.ok === false && outcome.inspector).toBeNull();
   });
 });
 
