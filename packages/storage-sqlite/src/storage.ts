@@ -288,10 +288,10 @@ const migrations = [
     // AC-0043 and AC-0064. Two things the version-3 shape could not express:
     // which of three states an absent declared marker is in, and the identity
     // of the trusted inspector an inspection used. Added rather than
-    // backfilled -- an existing row records an inspection that ran before
-    // either was distinguishable, so `absent` is the honest default for it
-    // only because no pre-migration row could have been written from an
-    // unreadable declaration: the composition refused those outright.
+    // backfilled. The `absent` default is inaccurate for rows written on the
+    // no-valid-result path before this migration, where no declaration was
+    // read; the correct value for those rows is `unreadable`. Backfilling
+    // them is an owner call and is not done here.
     version: 4,
     statements: [
       `ALTER TABLE connected_sources ADD COLUMN declared_version_state TEXT NOT NULL DEFAULT 'absent';`,

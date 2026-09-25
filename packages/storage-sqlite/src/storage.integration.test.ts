@@ -328,6 +328,83 @@ describe("SQLite storage integration", () => {
     storage.close();
   });
 
+  it("migration 4 adds its columns to a populated version-3 database without repeating", () => {
+    // Finding 3. The migration tests opened a fresh database for every run,
+    // so the ALTER TABLE statements were never exercised against an existing
+    // row: a syntax error or a name collision would stay green. This case
+    // opens a pre-existing version-3 row, applies migration 4 through
+    // `openStorage`, and asserts the upgrade path end to end.
+    const path = freshPath();
+
+    // Build a version-3 database by hand: run migrations 1-3 manually so the
+    // version-4 ALTER TABLE statements run against a real populated table.
+    const seed = new Database(path);
+    seed.pragma("foreign_keys = ON");
+    seed.exec(`
+      CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+      CREATE TABLE workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, blueprint_id TEXT NOT NULL, blueprint_version TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+      CREATE TABLE actors (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES workspaces(id), name TEXT NOT NULL, kind TEXT NOT NULL);
+      CREATE TABLE artifacts (id TEXT PRIMARY KEY, workspace_id TEXT REFERENCES workspaces(id), accepted_revision_id TEXT);
+      CREATE TABLE artifact_revisions (id TEXT PRIMARY KEY, artifact_id TEXT NOT NULL REFERENCES artifacts(id), schema_version TEXT NOT NULL, content TEXT NOT NULL, producer TEXT NOT NULL, transformation_id TEXT, input_revision_ids TEXT NOT NULL, created_at TEXT NOT NULL);
+      CREATE TABLE artifact_revision_states (id INTEGER PRIMARY KEY, revision_id TEXT NOT NULL REFERENCES artifact_revisions(id), status TEXT NOT NULL, occurred_at TEXT NOT NULL);
+      CREATE TABLE relations (id TEXT PRIMARY KEY, source_revision_id TEXT NOT NULL REFERENCES artifact_revisions(id), target_revision_id TEXT NOT NULL REFERENCES artifact_revisions(id), kind TEXT NOT NULL, label TEXT NOT NULL, UNIQUE(source_revision_id, target_revision_id, kind));
+      CREATE TABLE reviews (id TEXT PRIMARY KEY, revision_id TEXT NOT NULL REFERENCES artifact_revisions(id), status TEXT NOT NULL);
+      CREATE TABLE review_comments (id TEXT PRIMARY KEY, review_id TEXT NOT NULL REFERENCES reviews(id), actor_id TEXT NOT NULL REFERENCES actors(id), body TEXT NOT NULL, created_at TEXT NOT NULL);
+      CREATE TABLE decisions (id TEXT PRIMARY KEY, review_id TEXT NOT NULL REFERENCES reviews(id), revision_id TEXT NOT NULL REFERENCES artifact_revisions(id), actor_id TEXT NOT NULL REFERENCES actors(id), action TEXT NOT NULL, comment TEXT, created_at TEXT NOT NULL);
+      CREATE TABLE transformations (id TEXT PRIMARY KEY, definition TEXT NOT NULL);
+      CREATE TABLE executions (id TEXT PRIMARY KEY, status TEXT NOT NULL);
+      CREATE TABLE execution_events (id INTEGER PRIMARY KEY, execution_id TEXT NOT NULL REFERENCES executions(id), sequence INTEGER NOT NULL, kind TEXT NOT NULL, message TEXT NOT NULL, occurred_at TEXT NOT NULL, UNIQUE(execution_id, sequence));
+      INSERT INTO schema_migrations VALUES (1, '2026-09-09T00:00:00.000Z');
+      ALTER TABLE artifacts ADD COLUMN artifact_type TEXT NOT NULL DEFAULT 'unknown';
+      ALTER TABLE artifacts ADD COLUMN title TEXT NOT NULL DEFAULT '';
+      ALTER TABLE artifacts ADD COLUMN seed_key TEXT;
+      CREATE UNIQUE INDEX artifacts_workspace_seed_key ON artifacts(workspace_id, seed_key) WHERE seed_key IS NOT NULL;
+      ALTER TABLE reviews ADD COLUMN created_at TEXT NOT NULL DEFAULT '2026-09-09T00:00:00.000Z';
+      CREATE UNIQUE INDEX reviews_revision_id ON reviews(revision_id);
+      CREATE UNIQUE INDEX decisions_review_id ON decisions(review_id);
+      ALTER TABLE executions ADD COLUMN workspace_id TEXT REFERENCES workspaces(id);
+      ALTER TABLE executions ADD COLUMN transformation_id TEXT;
+      ALTER TABLE executions ADD COLUMN input_revision_ids TEXT NOT NULL DEFAULT '[]';
+      ALTER TABLE executions ADD COLUMN output_revision_id TEXT;
+      ALTER TABLE executions ADD COLUMN started_at TEXT NOT NULL DEFAULT '2026-09-09T00:00:00.000Z';
+      ALTER TABLE executions ADD COLUMN completed_at TEXT;
+      INSERT INTO schema_migrations VALUES (2, '2026-09-09T00:00:00.000Z');
+      CREATE TABLE connected_sources (id TEXT PRIMARY KEY, owner TEXT NOT NULL, repository TEXT NOT NULL, requested_ref TEXT, resolved_sha TEXT, inspected_at TEXT, verdict TEXT, condition_value TEXT NOT NULL, version_unverified INTEGER NOT NULL DEFAULT 0, diagnostics TEXT NOT NULL DEFAULT '', declared_version_marker TEXT, inspector_contract_version TEXT, provenance TEXT NOT NULL DEFAULT '{}');
+      CREATE UNIQUE INDEX connected_sources_identity ON connected_sources(owner, repository);
+      INSERT INTO schema_migrations VALUES (3, '2026-09-09T00:00:00.000Z');
+    `);
+    // Insert a row with the version-3 schema: no declared_version_state or inspector.
+    seed
+      .prepare(
+        "INSERT INTO connected_sources (id, owner, repository, condition_value, provenance) VALUES (?, ?, ?, ?, ?)",
+      )
+      .run("source-pre-migration", "acme", "widgets", "resolving", "{}");
+    seed.close();
+
+    // First open: applies migration 4 (the two ALTER TABLE statements).
+    const storage = openStorage(path);
+
+    // New columns take their defaults for the pre-existing row.
+    const row = storage.getConnectedSource("source-pre-migration");
+    expect(row).not.toBeNull();
+    expect(row?.declaredVersionState).toBe("absent");
+    expect(row?.inspector).toBeNull();
+
+    // Pre-existing columns survive intact.
+    expect(row?.owner).toBe("acme");
+    expect(row?.repository).toBe("widgets");
+    expect(row?.condition).toBe("resolving");
+
+    storage.close();
+
+    // Second open: migration 4 is already recorded and must not run again.
+    // A second ALTER TABLE on the same column would throw; `openStorage`
+    // completing without error is the assertion.
+    const second = openStorage(path);
+    expect(second.getConnectedSource("source-pre-migration")).not.toBeNull();
+    second.close();
+  });
+
   it("AC-05 keeps no Initiative table for a migration to drift towards", () => {
     // Narrow on purpose. The composition half of AC-05 — an Initiative as a
     // typed artifact whose revision content carries the desired outcome — is

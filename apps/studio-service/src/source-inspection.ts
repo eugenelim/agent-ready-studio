@@ -183,6 +183,8 @@ interface Run {
   cancelled: boolean;
   readonly cleanup: (() => void)[];
   readonly abort: AbortController;
+  /** The pipeline's own promise. Set immediately after the pipeline starts. */
+  promise?: Promise<void>;
 }
 
 function base(
@@ -203,7 +205,9 @@ function base(
     resolvedSha: null,
     inspectedAt: null,
     declaredVersionMarker: null,
-    declaredVersionState: "absent",
+    // No declaration has been read yet. `absent` means the declaration was
+    // read and names no marker; `unreadable` means nothing was determined.
+    declaredVersionState: "unreadable",
     inspector: null,
     inspectorContractVersion: null,
     diagnostics: "",
@@ -353,12 +357,15 @@ export function createSourceInspections(
         inspectedAt: clock(),
         inspectorContractVersion: inspected.inspectorContractVersion ?? null,
         diagnostics: inspected.diagnostics,
-        declaredVersionState: "absent",
+        // No producer reaches this branch yet -- see the note on the `ok:
+        // true` variant -- so no declaration has been read and nothing is
+        // known about what the repository declares. `unreadable` is the
+        // not-determined value; `absent` would assert a read happened.
+        declaredVersionState: "unreadable",
         inspector: null,
         // The declared marker and its qualifier are not copied here, because
-        // no producer reaches this branch yet -- see the note on the `ok:
-        // true` variant. The inspector slice adds both alongside the field it
-        // adds there.
+        // no producer reaches this branch yet. The inspector slice adds both
+        // alongside the field it adds there.
       });
     } catch (cause) {
       if (run?.cancelled) return;
@@ -396,13 +403,22 @@ export function createSourceInspections(
         phase: "resolving",
         requestedRef: requestedRef ?? null,
       });
-      runs.set(sourceId, {
+      const run: Run = {
         cancelled: false,
         cleanup: [],
         abort: new AbortController(),
-      });
-      void pipeline(sourceId, url, requestedRef);
+      };
+      runs.set(sourceId, run);
+      // pipeline() runs synchronously to its first await, at which point it
+      // has already read runs.get(sourceId). Assigning the promise afterward
+      // is safe: the test path only reads it after connect() returns.
+      run.promise = pipeline(sourceId, url, requestedRef);
       return started;
+    },
+
+    /** The pipeline promise for the named source, for deterministic awaiting. */
+    runFor(sourceId: string): Promise<void> {
+      return runs.get(sourceId)?.promise ?? Promise.resolve();
     },
 
     get(sourceId: string): SourceInspection | undefined {
@@ -1150,23 +1166,41 @@ function validatedTrialResult(record: SettledRuntimeRecord):
   if (outcome.ok) {
     return { ok: true, result: outcome.result, declaredVersionState };
   }
+  // `declaredVersionState` was derived above. Carry it through the refusal so
+  // the caller reports what the declaration determined rather than falling back
+  // to the not-determined value. The result's validation failing does not undo
+  // the read that already happened.
   if (outcome.stopReason === "request-identifier-mismatch") {
-    return { ok: false, refusal: stoppedBy("request-identifier-mismatch") };
+    return {
+      ok: false,
+      refusal: {
+        ok: false,
+        condition: "inspection-stopped",
+        stopReason: "request-identifier-mismatch",
+        diagnostics: STOP_REASONS["request-identifier-mismatch"].reason,
+        declaredVersionState,
+      },
+    };
   }
+  // Neither cause echoes a value off the line. What crossed the boundary is
+  // unbounded and repository-influenced, and this text is persisted and
+  // rendered -- and counted against AC-0104's bound as `repository-derived`,
+  // so echoing a megabyte here would let a result make its own inspection
+  // unpersistable. Naming the cause is what a reader needs; the line itself
+  // is on the protocol stream, bounded.
+  const cause =
+    outcome.stopReason === "contract-mismatch"
+      ? `the result names a contract other than ${TRIAL_CONTRACT}`
+      : "the result does not conform to the trial contract";
   return {
     ok: false,
-    refusal: stoppedBy(
-      "result-invalid-studio",
-      // Neither cause echoes a value off the line. What crossed the boundary
-      // is unbounded and repository-influenced, and this text is persisted
-      // and rendered -- and counted against AC-0104's bound as
-      // `repository-derived`, so echoing a megabyte here would let a result
-      // make its own inspection unpersistable. Naming the cause is what a
-      // reader needs; the line itself is on the protocol stream, bounded.
-      outcome.stopReason === "contract-mismatch"
-        ? `the result names a contract other than ${TRIAL_CONTRACT}`
-        : "the result does not conform to the trial contract",
-    ),
+    refusal: {
+      ok: false,
+      condition: "inspection-stopped",
+      stopReason: "result-invalid-studio",
+      diagnostics: cause,
+      declaredVersionState,
+    },
   };
 }
 

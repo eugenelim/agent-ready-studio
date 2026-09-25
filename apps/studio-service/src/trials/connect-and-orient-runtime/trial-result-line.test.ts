@@ -657,6 +657,33 @@ describe("AC-0038 the removal outcome is a value, not any string", () => {
   });
 });
 
+describe("AC-0064 declaredVersionState is carried through a validation refusal", () => {
+  it("reports absent rather than unreadable when the declaration was cleanly read with no marker", () => {
+    // The declaration was read and found no marker: `versionMarker: undefined`
+    // means `absent`. When `normalizeTrialResult` then refuses the result (here
+    // because the request ID does not match), the already-derived `absent` must
+    // survive into the outcome rather than falling back to the not-determined
+    // value `unreadable`, which would assert the read never happened.
+    const outcome = settledRuntimeOutcome({
+      requestId: "req-studio-minted-one",
+      completedResponse: true,
+      protocolLines: [
+        { type: "materialized", status: 0 },
+        // A different request ID makes `normalizeTrialResult` refuse with
+        // `request-identifier-mismatch`, after `declaredVersionState` has
+        // already been derived from the clean declared read below.
+        { type: "result", ...CONFORMING, requestId: "req-different-id" },
+      ],
+      resultRefused: false,
+      declared: { reads: [], versionMarker: undefined },
+    });
+
+    expect(outcome).toMatchObject({ condition: "inspection-stopped" });
+    // `absent` not `unreadable`: the declaration was read and names nothing.
+    expect(outcome.ok === false && outcome.declaredVersionState).toBe("absent");
+  });
+});
+
 describe("AC-0061 no verdict is derived from Studio's own reading of the tree", () => {
   it("still answers inspector-unavailable after a complete, valid result", async () => {
     const record = await withMarker();
