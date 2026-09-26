@@ -154,12 +154,25 @@ export interface InspectionRequest {
 }
 
 /**
+ * What a write attempt did.
+ *
+ * A write that failed and a row that was never written used to look the same
+ * from outside: both left the store without the record, and the only trace was
+ * a line on stderr that nothing reads back. So a case could not tell a
+ * swallowed failure from an absent row, and neither could anyone reading the
+ * store afterwards.
+ */
+export type SourceInspectionWrite =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly reason: string };
+
+/**
  * Where a terminal inspection is written so it survives a restart, and where
  * `get` reads from when the in-memory store has nothing. Optional so a service
  * created without storage still composes; supplied in production.
  */
 export interface SourceInspectionStore {
-  readonly persist: (record: SourceInspection) => void;
+  readonly persist: (record: SourceInspection) => SourceInspectionWrite;
   readonly read: (sourceId: string) => SourceInspection | undefined;
 }
 
@@ -183,6 +196,8 @@ interface Run {
   cancelled: boolean;
   readonly cleanup: (() => void)[];
   readonly abort: AbortController;
+  /** The pipeline's own promise. Set immediately after the pipeline starts. */
+  promise?: Promise<void>;
 }
 
 function base(
@@ -203,7 +218,9 @@ function base(
     resolvedSha: null,
     inspectedAt: null,
     declaredVersionMarker: null,
-    declaredVersionState: "absent",
+    // No declaration has been read yet. `absent` means the declaration was
+    // read and names no marker; `unreadable` means nothing was determined.
+    declaredVersionState: "unreadable",
     inspector: null,
     inspectorContractVersion: null,
     diagnostics: "",
@@ -353,12 +370,15 @@ export function createSourceInspections(
         inspectedAt: clock(),
         inspectorContractVersion: inspected.inspectorContractVersion ?? null,
         diagnostics: inspected.diagnostics,
-        declaredVersionState: "absent",
+        // No producer reaches this branch yet -- see the note on the `ok:
+        // true` variant -- so no declaration has been read and nothing is
+        // known about what the repository declares. `unreadable` is the
+        // not-determined value; `absent` would assert a read happened.
+        declaredVersionState: "unreadable",
         inspector: null,
         // The declared marker and its qualifier are not copied here, because
-        // no producer reaches this branch yet -- see the note on the `ok:
-        // true` variant. The inspector slice adds both alongside the field it
-        // adds there.
+        // no producer reaches this branch yet. The inspector slice adds both
+        // alongside the field it adds there.
       });
     } catch (cause) {
       if (run?.cancelled) return;
@@ -396,13 +416,34 @@ export function createSourceInspections(
         phase: "resolving",
         requestedRef: requestedRef ?? null,
       });
-      runs.set(sourceId, {
+      const run: Run = {
         cancelled: false,
         cleanup: [],
         abort: new AbortController(),
-      });
-      void pipeline(sourceId, url, requestedRef);
+      };
+      runs.set(sourceId, run);
+      // pipeline() runs synchronously to its first await, at which point it
+      // has already read runs.get(sourceId). Assigning the promise afterward
+      // is safe: the test path only reads it after connect() returns.
+      run.promise = pipeline(sourceId, url, requestedRef);
       return started;
+    },
+
+    /**
+     * The pipeline promise for the named source, for deterministic awaiting.
+     *
+     * An unknown id refuses rather than resolving. Resolving would make a
+     * mistyped id, a stale one, or a source that registered no run at all --
+     * a `url-rejected` connect does not -- indistinguishable from a run that
+     * finished, which is the approximation this seam exists to remove. The
+     * refusal is synchronous so it cannot become an unhandled rejection.
+     */
+    runFor(sourceId: string): Promise<void> {
+      const run = runs.get(sourceId);
+      if (run?.promise === undefined) {
+        throw new Error(`no run to await for source ${sourceId}`);
+      }
+      return run.promise;
     },
 
     get(sourceId: string): SourceInspection | undefined {
@@ -453,16 +494,20 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
   return {
     persist(record) {
       try {
-        persistOrReport(record);
+        return persistOrReport(record);
       } catch (cause) {
         // A store write must not take the service down. The pipeline runs in
         // the background, so a throw here is an unhandled rejection rather
         // than a request failure -- a shut database during shutdown is enough
         // to produce one, and losing the process loses every other inspection
-        // too.
+        // too. It is still reported twice over: on the diagnostic stream for
+        // an operator, and in the returned outcome for a caller that wants to
+        // tell a failed write from a row nobody wrote.
+        const reason = String(cause);
         process.stderr.write(
-          `connected source ${record.sourceId} could not be written: ${String(cause)}\n`,
+          `connected source ${record.sourceId} could not be written: ${reason}\n`,
         );
+        return { ok: false, reason };
       }
     },
     read(sourceId) {
@@ -474,7 +519,7 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
     },
   };
 
-  function persistOrReport(record: SourceInspection): void {
+  function persistOrReport(record: SourceInspection): SourceInspectionWrite {
     const outcome = persistConnectedSource(storage, {
       id: record.sourceId,
       owner: record.owner,
@@ -497,11 +542,15 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
     });
     if (!outcome.ok) {
       // AC-0104's refusal is observable rather than silent: the prior record
-      // stands and the reason is on the diagnostic stream.
+      // stands, the reason is on the diagnostic stream, and it travels back to
+      // the caller so a refused write is distinguishable from one that never
+      // happened.
       process.stderr.write(
         `connected source ${record.sourceId} not persisted: ${outcome.diagnostic}\n`,
       );
+      return { ok: false, reason: outcome.diagnostic };
     }
+    return { ok: true };
   }
 
   function readOrUndefined(sourceId: string): SourceInspection | undefined {
@@ -729,6 +778,22 @@ export function studioInstallRoot(): string | undefined {
 }
 
 /**
+ * Attaches the located identity to a refusal.
+ *
+ * `InspectionOutcome` is a union whose `ok: true` arm has no `inspector`, and
+ * the refusal helpers are typed as the whole union, so the narrowing is what
+ * lets the field be set at all. Every helper that produces one of these
+ * returns `ok: false`; the `ok: true` arm is returned unchanged rather than
+ * asserted away, so a future producer cannot make this silently wrong.
+ */
+function withInspector(
+  outcome: InspectionOutcome,
+  inspector: LocatedInspector | null,
+): InspectionOutcome {
+  return outcome.ok ? outcome : { ...outcome, inspector };
+}
+
+/**
  * What a settled Runtime record means, once cancellation has been ruled out.
  *
  * Extracted from `inspectInRuntime` because that function needs a real
@@ -744,6 +809,11 @@ export function settledRuntimeOutcome(
   // Read after the materialization gate this branch was unreachable, and a
   // contract-mismatch run reported "the Runtime did not materialize the
   // revision" -- true, and not the reason.
+  //
+  // This is the one termination that records no inspector and is honest doing
+  // so. The child refuses the request before it probes any interpreter, so
+  // `readInterpreterProbes` has nothing to read and no identity exists to
+  // record -- `null` here means what the contract says it means.
   const refused = record.protocolLines.find((line) => line.type === "refused");
   if (refused !== undefined) {
     return {
@@ -753,6 +823,18 @@ export function settledRuntimeOutcome(
       diagnostics: "the Runtime refused the request it was given",
     };
   }
+
+  // Everything below this line can carry an identity, so the locator runs
+  // before the first return that could skip it.
+  //
+  // The order matters and is the child's, not Studio's: `runtime-child.ts`
+  // emits its `interpreter` probe line *before* it materializes, before it
+  // reads the declaration and before any result line. So a failed
+  // materialization, a refused result line and a refused declared read all
+  // arrive here with the probes already in the record. Returning `null` on
+  // those three said "Studio looked and found nothing" about runs where it
+  // had simply not looked, which is the claim AC-0043 exists to prevent.
+  const located = inspectorDiagnostic(record);
 
   const materialized = record.protocolLines.find(
     (line) => line.type === "materialized",
@@ -767,6 +849,7 @@ export function settledRuntimeOutcome(
           : materialized?.mismatch === "head-unreadable"
             ? "Studio could not read what was checked out, so it did not verify the commit"
             : "the Runtime did not materialize the revision",
+      inspector: located.inspector,
     };
   }
 
@@ -775,12 +858,12 @@ export function settledRuntimeOutcome(
   // read", not "the repository declares none".
   const resultStopped = refusedResultOutcome(record.resultRefused);
   if (resultStopped !== undefined) {
-    return resultStopped;
+    return withInspector(resultStopped, located.inspector);
   }
 
   const declaredStopped = declaredRefusalOutcome(record.declared);
   if (declaredStopped !== undefined) {
-    return declaredStopped;
+    return withInspector(declaredStopped, located.inspector);
   }
 
   // A run that was terminated before it responded never reached its result
@@ -792,8 +875,15 @@ export function settledRuntimeOutcome(
   const validated = record.completedResponse
     ? validatedTrialResult(record)
     : ({ ok: false, refusal: undefined } as const);
+
+  // A run whose result failed validation returns the refusal with the inspector
+  // identity attached, so a lead can see which inspector Studio held even when
+  // the result was not admitted. The refusal is always `ok: false` — every
+  // path in `validatedTrialResult` that sets a refusal does so — but the field
+  // is typed as `InspectionOutcome` (a union), so we narrow before spreading.
   if (!validated.ok && validated.refusal !== undefined) {
-    return validated.refusal;
+    const refusal = validated.refusal;
+    return refusal.ok ? refusal : { ...refusal, inspector: located.inspector };
   }
 
   // The Runtime materialized the tree and ran no trusted inspector, so no
@@ -807,27 +897,26 @@ export function settledRuntimeOutcome(
   // interpreter requirement — and a conforming inspector that Studio holds and
   // did not use is a fifth thing again. One generic sentence for all of them
   // tells the lead nothing they can act on.
-  const located = record.completedResponse
-    ? inspectorDiagnostic(record)
-    : undefined;
   return {
     ok: false,
     condition: "inspector-unavailable",
     // A run that stopped before responding and a run that finished cleanly
     // without an inspector are the same condition and not the same event, and
-    // the absent `result` that distinguishes them is not rendered. Naming the
-    // difference needs no new vocabulary -- it is the same cause-with-fallback
-    // shape `stoppedBy` uses. Which *termination* stopped it still needs a
-    // `StopReasonKey` mapping, which is `connect-orient-stop-reason-never-resolved`.
-    diagnostics:
-      located?.diagnostic ?? "the Runtime stopped before it reported a result",
+    // the absent `result` that distinguishes them is not rendered. The
+    // diagnostic distinguishes them: a stopped run names that the Runtime
+    // stopped, a settled run names which of the locator's checks turned
+    // nothing up. Which *termination* stopped it still needs a `StopReasonKey`
+    // mapping, which is `connect-orient-stop-reason-never-resolved`.
+    diagnostics: record.completedResponse
+      ? located.diagnostic
+      : "the Runtime stopped before it reported a result",
     ...(validated.ok
       ? {
           result: validated.result,
           declaredVersionState: validated.declaredVersionState,
         }
       : {}),
-    inspector: located?.inspector ?? null,
+    inspector: located.inspector,
   };
 }
 
@@ -1150,23 +1239,41 @@ function validatedTrialResult(record: SettledRuntimeRecord):
   if (outcome.ok) {
     return { ok: true, result: outcome.result, declaredVersionState };
   }
+  // `declaredVersionState` was derived above. Carry it through the refusal so
+  // the caller reports what the declaration determined rather than falling back
+  // to the not-determined value. The result's validation failing does not undo
+  // the read that already happened.
   if (outcome.stopReason === "request-identifier-mismatch") {
-    return { ok: false, refusal: stoppedBy("request-identifier-mismatch") };
+    return {
+      ok: false,
+      refusal: {
+        ok: false,
+        condition: "inspection-stopped",
+        stopReason: "request-identifier-mismatch",
+        diagnostics: STOP_REASONS["request-identifier-mismatch"].reason,
+        declaredVersionState,
+      },
+    };
   }
+  // Neither cause echoes a value off the line. What crossed the boundary is
+  // unbounded and repository-influenced, and this text is persisted and
+  // rendered -- and counted against AC-0104's bound as `repository-derived`,
+  // so echoing a megabyte here would let a result make its own inspection
+  // unpersistable. Naming the cause is what a reader needs; the line itself
+  // is on the protocol stream, bounded.
+  const cause =
+    outcome.stopReason === "contract-mismatch"
+      ? `the result names a contract other than ${TRIAL_CONTRACT}`
+      : "the result does not conform to the trial contract";
   return {
     ok: false,
-    refusal: stoppedBy(
-      "result-invalid-studio",
-      // Neither cause echoes a value off the line. What crossed the boundary
-      // is unbounded and repository-influenced, and this text is persisted
-      // and rendered -- and counted against AC-0104's bound as
-      // `repository-derived`, so echoing a megabyte here would let a result
-      // make its own inspection unpersistable. Naming the cause is what a
-      // reader needs; the line itself is on the protocol stream, bounded.
-      outcome.stopReason === "contract-mismatch"
-        ? `the result names a contract other than ${TRIAL_CONTRACT}`
-        : "the result does not conform to the trial contract",
-    ),
+    refusal: {
+      ok: false,
+      condition: "inspection-stopped",
+      stopReason: "result-invalid-studio",
+      diagnostics: cause,
+      declaredVersionState,
+    },
   };
 }
 

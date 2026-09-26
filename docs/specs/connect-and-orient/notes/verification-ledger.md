@@ -8913,3 +8913,266 @@ freshly-correct worktree citation is exactly what a second pass corrupts.
 **Gate.** `pnpm verify` exit 0 at host load 10 — **800 passed, 3 skipped**, 803 total. The same
 tree failed twice at loads of 27 and 31 with a varying set, and `pnpm test:capped` was green at
 load 11. The audit stands at **93 met of 157 rows**, every citation resolving.
+
+## owner-decisions-2026-09-25-review-round-12
+
+Four decisions the owner took on 2026-09-25, while review round 12 ran over the merged
+PR #16 diff (`git diff 11206d4 69996c2`). State files are gitignored, so this entry is the
+durable record.
+
+**1. The review retry cap is waived for round 12 only.** `review_retry_count` stands at 9
+against a `max_review_retries` of 5, so `findings-remain` and `review record --fingerprint`
+both refuse. The owner waived this one round on both halves rather than raising the cap, so
+each later round has to ask again and the cap keeps announcing itself.
+
+**2. AC-0012 moves to *not verifiable here*.** Binding the child's `HEAD` check needs a fetch,
+and *Canonical values*, *Permitted git transports* admits `https` only through
+`GIT_ALLOW_PROTOCOL=https`, which answers `fatal: transport 'file' not allowed` to the local
+fixture repository a offline binding would need. The row joins AC-0024, AC-0114 and AC-0131,
+taking that set from three to four. The live smoke behind `CONNECT_ORIENT_SMOKE=1` carries it.
+The transports row is unchanged: widening it to admit the file transport was declined.
+
+**3. The intermittent storage case is a determinism defect.** The adversarial reviewer saw
+`source-inspection-storage.test.ts:218` fail once in nine interleaved runs and could not trace
+the cause; twelve further interleaved runs of the same three files were green, 70 of 70 each.
+The owner ruled on what is visible in source without running anything: `settled()` at
+`:55-57` approximates completion with twelve microtask ticks instead of awaiting the run under
+test, and that approximation is the defect to repair. The ruling exists because the
+adjudicator is read-only and returned `indeterminate` on a claim that needed the suite
+executed, which made the whole round's adjudication `invalid` and unrecordable.
+
+**4. Security proofs is the next cluster**, after the wire-the-uncalled-modules cluster's loose
+ends. Twelve criteria, the largest group, and the one with the highest risk reduction per
+criterion: the hostile-repository proofs test a fixture's own `git checkout` rather than
+`pinnedGitConfigurationArgs()`, so removing a pin from `PINNED_GIT_CONFIGURATION` reddens no
+absence proof, and AC-0134, AC-0135 and AC-0137 are vacuous by construction.
+
+## review-round-12-2026-09-25
+
+The first review of the merged PR #16 diff (`git diff 11206d4 69996c2`), run because the engine
+was still at `CODE-REVIEW` for that unit. Two reviewers, twenty raw findings, **seventeen
+sustained** after adjudication and three refuted. Recorded under one round with an owner waiver
+on the retry cap, which stood at 9 against 5.
+
+**The adjudication stalled once, and the recovery is the reusable part.** The adversarial
+reviewer reported an intermittent failure it could not trace — one failure in nine interleaved
+runs of `source-inspection-storage.test.ts:218`. The adjudicator is read-only, so it cannot
+execute a suite, and it returned `indeterminate` rather than guessing. That made the whole
+adjudication `invalid` under strict classification, which stops the round: not one finding of
+twelve could be recorded, and the valid quality-engineer adjudication beside it could not be
+recorded either, because a fan-out round records once. The bounded evidence retry was
+unavailable — it needs an Evidence gate catalog fixed before the raw report exists, and this
+repository declares none. The route out was an owner ruling on the source-visible property the
+observation rested on (decision 3 at `#owner-decisions-2026-09-25-review-round-12`), supplied as
+governing authority to a complete replacement adjudication over the unchanged twelve findings.
+That one returned twelve sustained, nothing indeterminate. Twelve interleaved runs of the three
+files were green at 70 cases each, so the intermittency was never reproduced here; the repair
+rests on the approximation visible in the source, not on the observation.
+
+### The two blockers
+
+**A stopped inspection asserted that the repository declares no version marker.** `base()` seeded
+every source with `declaredVersionState: "absent"`, which the canonical gloss defines as *the
+declaration was read and names no marker*, and the `catch` branch spread that seed through. The
+row reached disk with no throw involved: the in-flight record is persisted, and
+`reconcileAfterRestart` moves an interrupted source to `incomplete` without touching the field.
+The sibling non-throw stop wrote `"unreadable"` for the same case, so the change contradicted
+itself. Repaired by seeding the not-determined value, carrying the state `validatedTrialResult`
+already derives through its refusal returns, and bringing the unreachable `ok: true` branch to the
+same value so it cannot ship the falsehood the day a producer reaches it.
+
+**The AC-0043 storage binding approximated completion instead of awaiting it.** `settled()` spun
+twelve microtask ticks rather than awaiting the run the composition started, so the case's
+ordering rested on a tick count. Repaired by exposing the pipeline promise as `runFor` and
+awaiting it at all three call sites.
+
+### AC-0043's universal, and the owner decision under it
+
+AC-0043 says the identity is recorded *with each inspection*, and it held on the
+completed-response branch alone: every other terminal outcome wrote `null`, which the contract
+defines as *none was located*. The owner chose to widen the recording rather than narrow the
+criterion or add a fourth state. The locator now runs before the validation refusal, so a
+stopped, timed-out, cancelled or refused run records the inspector Studio held. **Four
+terminations stay `null` and are honest there** — a refused request, a failed materialization, a
+refused result line and a refused declared read all end before the Runtime reports which
+interpreters it probed, and `inspectorDiagnostic` needs those probes.
+
+> **Corrected on 2026-09-25 by review round 13.** That last sentence is false for three of the
+> four. The child emits its `interpreter` line *before* it materializes, so a failed
+> materialization, a refused result line and a refused declared read all carry the probes an
+> identity needs — the locator was skipped there, not unavailable. Only the contract-mismatch
+> refusal genuinely precedes the probe line. The recording was widened to the three under owner
+> decision 2 at `#owner-decisions-2026-09-25-review-round-13`.
+
+### Mutation proof
+
+Each repair's own property, not a consequence of it. Case counts read from every run.
+
+| Mutation | Result |
+| --- | --- |
+| `base()` seeds `"absent"` again | 1 failed of 68 — *an in-flight row does not assert the declaration was read* |
+| the locator gated on `completedResponse` again | 1 failed of 22 — *carries a non-null inspector on a stopped run* |
+| the refusal return drops `inspector` | 1 failed of 22 — *carries a non-null inspector when a completed run's result fails validation* |
+| migration 4's default changed to `'declared'` | 1 failed of 6 — *migration 4 adds its columns to a populated version-3 database without repeating* |
+| **positive control:** 80 ms injected into the pipeline, far past any tick count | 7 passed of 7 — the storage case now awaits completion rather than approximating it |
+
+### Records repaired, and one mechanical lesson
+
+Five audit cells stated prose line numbers that contradicted their own Bindings column; three rows
+cited a bare `return;` or a comment line rather than the `deriveVerdict` and `deriveCondition`
+calls they were about; AC-0032 carried an inverted range (`194-193`); and AC-0088's hand-written
+"eleven of thirteen" was read off the source as **nine of thirteen never emitted** — production
+emits only `result-invalid-studio`, `request-identifier-mismatch`, `result-too-large` and
+`parse-failure-declaration-file`.
+
+**The mechanical lesson is about the remapper itself.** The audit writes citations as
+`file.ts:17,209-210` and `file.ts:972-1002, control :1023-1031`. A remapper that matches one line
+reference per filename moves the first and leaves every continuation in base terms — the first
+pass moved 49 numbers where 102 needed moving, and the residue is invisible to the governance
+gate, which only checks that a citation resolves. The corrected pass consumes the whole run of
+references after each filename. Because the remap is not idempotent, the audit was restored from
+the index before the corrected pass rather than run over its own output.
+
+### Gate
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` clean; the audit reads **157 rows, 93 met, 60
+not met, 4 not verifiable here**, every citation resolving. `pnpm test` failed 14 of 807 at load
+204 and 12 of 807 at load 111 — a **varying** failing set, every failing file green in isolation
+(disposal 8 of 8, materialization 4 of 4), and `pnpm test:capped` green at **804 passed, 3
+skipped**. That is the registered `pre-existing-trial-runtime-load-flake`, on both documented
+signs.
+
+## owner-decisions-2026-09-25-review-round-13
+
+Three decisions the owner took on 2026-09-25 while review round 13 ran over the repair diff
+`git diff 69996c2 77d7d5d`.
+
+**1. The retry cap is waived for round 13 as well, one round only.** The owner again chose a
+per-round waiver over raising `max_review_retries`, so round 14 has to ask again.
+
+**2. AC-0043 is repaired in code rather than in its records.** Both reviewers established that
+the widened recording stops three returns short: the child emits its `interpreter` line before it
+materializes, so a failed materialization, a refused result line and a refused declared read all
+carry the probes an identity needs, and the locator is skipped rather than unavailable there.
+Only the contract-mismatch refusal genuinely precedes the probe line. The owner chose to widen the
+recording to those three paths, with a case each, so AC-0043's `[x]` becomes true rather than
+being unchecked through the contract-amendment ceremony. The claim that "all four" terminations
+end before the probes is false and is corrected wherever it was written — the code comment, the
+audit cell, this ledger's round-12 entry and the `workspace.toml` entry.
+
+**3. A swallowed storage write is the defect behind the untraced non-trials failure.** A reviewer
+saw `source-inspection-storage.test.ts:259` fail once under host load and could not reproduce it;
+the adjudicator confirmed two source-visible facts and returned `indeterminate` on the rest,
+stalling the round exactly as round 12 stalled. The facts: `CONTRIBUTING.md` scopes the documented
+load flake to the suites under `apps/studio-service/src/trials/` and this file spawns no Runtime
+child, and `createStorageStore.persist` reports a failed write to stderr and returns, so a case
+reading the row afterwards cannot tell a write that failed from a row that was never written. The
+owner ruled the second the defect to repair, whatever the failure's cause: a storage write that
+fails must be distinguishable from one that never happened, at the surface a case or an operator
+reads. This is the same recovery shape as decision 3 of round 12 — rule on what the source shows,
+rather than on an observation nobody can reproduce on demand.
+
+## review-round-13-2026-09-25
+
+Two reviewers over the round-12 repair diff (`git diff 69996c2 77d7d5d`), **eighteen sustained**
+findings, one refuted, recorded under a second per-round waiver of the retry cap. The adversarial
+adjudication was rejected twice by the strict classifier before it stood: once for an
+indeterminate, once for a sentence before the envelope.
+
+### The blocker, and the shape of the mistake
+
+Round 12's repair of AC-0043 widened the inspector recording and **justified its remaining gap
+with a claim about the child that the child contradicts**. The record read: four terminations
+record `null` honestly, because each ends before the Runtime reports which interpreters it probed.
+`runtime-child.ts` emits its `interpreter` line *before* it materializes, before it reads the
+declaration and before any result line. So a failed materialization, a refused result line and a
+refused declared read all arrive carrying the probes an identity needs — three of the four were
+skipping the lookup, not lacking one. Only the child refusing the request truly precedes the
+probes.
+
+Both reviewers found it independently and both proved it by executing `settledRuntimeOutcome`
+rather than by reading the comment. The claim had been written into four places — the code
+comment, the audit cell, this ledger's round-12 entry and the `workspace.toml` entry — which is
+what a wrong justification does when it is convincing: it propagates as fast as a correct one.
+
+The repair runs the locator before the first return that could skip it, and each of the three
+paths has its own case.
+
+### What else was repaired
+
+| Finding | Repair |
+| --- | --- |
+| The `result-invalid-studio` refusal's declared-state carry-through was unpinned | a case driving that refusal with a clean declared read |
+| The migration-4 upgrade case could not fail for a lost `inspector` column | the case writes an inspector back through the upgraded table |
+| The upgrade case asserted three columns, all at default or NULL | every version-3 column seeded with a distinct value and asserted |
+| The upgrade case hand-copied migrations 1–3 | the seed applies the exported `SCHEMA_MIGRATIONS` instead |
+| The widened locator put an unguarded `readFileSync` on stopped and cancelled paths | the digest read is guarded like its two siblings, returning `unavailable` |
+| A swallowed storage write was indistinguishable from a row never written | `persist` returns a write outcome; the stderr line stays for the operator |
+| `runFor` resolved for a source with no run | it refuses synchronously, so a stale id cannot read as a finished run |
+| The AC-0085 case left its pipeline running past the assertion | the run is drained inside its own case |
+| The migration-4 backfill was an owner call living in a code comment | registered as `connect-orient-migration-4-backfills-a-value-it-calls-wrong`, cited from the comment and the test |
+| Four audit rows cited spans their evidence sentences were not about | repointed, three of them with `#symbol` anchors |
+
+### Mutation proof
+
+Case counts read from every run.
+
+| Mutation | Result |
+| --- | --- |
+| the three terminations skip the identity again | 3 failed of 25 — one per path |
+| the digest read loses its guard | 1 failed of 18 — the unreadable-file case throws instead of returning |
+| the `result-invalid-studio` refusal drops the derived state | 1 failed of 26 |
+| migration 4 adds `inspector_lost` instead of `inspector` | 1 failed of 6 — the vacuity the reviewer found is gone |
+| a failed write reports success again | 1 failed of 9 |
+
+### Gate
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` clean; the audit reads **157 rows, 93 met, 60
+not met, 4 not verifiable here**, every citation resolving. `pnpm test` failed 7 of 814 at load
+166 — a varying set again, disjoint from round 12's — and `pnpm test:capped` was green at **811
+passed, 3 skipped**. The suite grew from 807 cases to 814.
+
+### The lesson worth keeping
+
+A justification is a claim, and this slice tests claims. "These paths cannot determine an
+identity" was never checked against the order the child actually emits its lines; it sounded
+right, and it was written into four records before anything tested it. The cheap check — read the
+producer's emission order — takes a minute and was not done. **Record a reason only after testing
+the reason, not only the behaviour it explains.**
+
+## review-rounds-14-and-15-2026-09-26
+
+Two short rounds that closed the unit.
+
+**Round 14 sustained one defect, found by both reviewers, and it was a defect the repairs
+themselves introduced.** Inserting `SourceInspectionWrite` and `withInspector`, each with its own
+doc comment, put a new comment block between an existing one and the declaration it described. So
+`SourceInspectionStore` and `settledRuntimeOutcome` lost their documentation and the orphaned
+blocks were misattributed to the inserted declarations by any tool that reads them. The quality
+reviewer found one site; the adversarial reviewer found that and a second. Recorded as two
+fingerprints under a third per-round waiver of the retry cap.
+
+The repair moves each inserted declaration above the existing block rather than moving the block,
+which keeps every comment adjacent to what it describes. Its check is the property itself: each of
+the four blocks is read from the file and the declaration immediately after its closing `*/` is
+asserted to be the one it names.
+
+**Round 15 was clean from both reviewers.** The adversarial pass established something worth
+keeping: no acceptance-audit citation falls inside either moved region, and the net line offset
+after each region is zero, so no citation moved and no remap was owed. That is the first change
+this session where the answer to "did this shift the citations" was *no*, established rather than
+assumed.
+
+**Both clean verdicts had to be re-emitted.** Each reviewer returned its clean finding with a
+recap of what it had checked, and the strict classifier refuses a clean report carrying anything
+but the sentinel — `content-before-sentinel`. Both reviewer contracts already say a clean result
+is that one line alone. Asking each to re-emit cost one message and no re-review; the verbose
+returns are retained beside the sentinels for audit.
+
+### Gate
+
+`pnpm verify` exit 0 with `pnpm lint`, `pnpm typecheck` and `pnpm governance` clean; the audit
+reads **157 rows, 93 met, 60 not met, 4 not verifiable here**, every citation resolving.
+`pnpm test:capped` green at **811 passed, 3 skipped** of 814. The uncapped run failed 13 of 814 at
+host load 47 with a varying set, `disposal.test.ts` passing 8 of 8 in isolation — the registered
+`pre-existing-trial-runtime-load-flake` on both documented signs.

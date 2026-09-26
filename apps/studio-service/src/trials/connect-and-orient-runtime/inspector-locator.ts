@@ -261,7 +261,22 @@ export function locateTrustedInspector(
 
   const fileDigests: Record<string, string> = {};
   for (const name of INSPECTOR_FILE_NAMES) {
-    const digest = sha256OfFile(join(resolvedPath, name));
+    // Guarded like the two reads above it, and for a sharper reason since the
+    // locator started running on stopped and cancelled inspections: a file
+    // removed between the `existsSync` above and this read throws out of the
+    // locator, is caught by the pipeline, and replaces an accurate "the
+    // Runtime stopped before it reported a result" with "the inspection
+    // stopped: ENOENT". A read failure is an unavailable inspector, not a
+    // different cause of death for the inspection.
+    let digest: string;
+    try {
+      digest = sha256OfFile(join(resolvedPath, name));
+    } catch (cause) {
+      return unavailable(
+        "inspector-absent",
+        `${name} could not be read from ${resolvedPath}: ${cause}`,
+      );
+    }
     fileDigests[name] = digest;
     if (digest !== pin.fileDigests[name]) {
       return unavailable(

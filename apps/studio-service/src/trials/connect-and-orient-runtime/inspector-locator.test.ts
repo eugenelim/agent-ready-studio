@@ -138,6 +138,34 @@ describe("AC-0044 an inspector that does not match the pin is not used", () => {
     });
   });
 
+  it("reports an unreadable inspector file as unavailable rather than throwing", () => {
+    // The locator now runs on stopped and cancelled inspections too, so a
+    // throw out of the digest read no longer just fails a lookup: it is
+    // caught by the pipeline and replaces the inspection's own cause of
+    // death with "the inspection stopped: EISDIR". The read is guarded like
+    // the realpath and pack-state reads beside it; removing that guard makes
+    // this case throw instead of returning.
+    const searchRoot = buildSearchRoot();
+    const file = join(
+      searchRoot,
+      INSPECTOR_SCRIPTS_RELATIVE_PATH,
+      "workspace_status.py",
+    );
+    rmSync(file);
+    mkdirSync(file);
+
+    const located = locateTrustedInspector({ searchRoot });
+
+    expect(located).toMatchObject({
+      ok: false,
+      result: "inspector-unavailable",
+      code: "inspector-absent",
+    });
+    expect(located.ok === false && located.mismatch).toContain(
+      "workspace_status.py",
+    );
+  });
+
   it("names a file-digest mismatch when an inspector file has changed", () => {
     const searchRoot = buildSearchRoot();
     const changed = join(

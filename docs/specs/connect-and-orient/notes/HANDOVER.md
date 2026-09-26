@@ -1,7 +1,8 @@
 # Handover — connect-and-orient
 
-Written 2026-09-22, updated 2026-09-24 after Step C. Current as of the commit that carries it. This is the whole picture, not
-only the cluster in flight; the cluster section names where to start.
+Written 2026-09-22, updated 2026-09-26 after review round 15. Current as of the commit that
+carries it. This is the whole picture, not only the cluster in flight; the cluster section names
+where to start.
 
 Read next: [`acceptance-audit.md`](acceptance-audit.md) for what is and is not met, then the
 last few entries of [`verification-ledger.md`](verification-ledger.md) for how the work went.
@@ -14,18 +15,18 @@ The spec is [`../spec.md`](../spec.md).
 | | |
 | --- | --- |
 | Worktree | a git worktree of this repository; run every command from its root |
-| Branch | `eugenelim/provisional-runtime-build`, tracking `origin`, clean |
-| PR | **#14** merged. Steps C and D and the five carried items are unmerged work on this branch, splitting into two PRs |
-| Spec status | `Implementing` — **93 of 157 checked, 64 open** |
-| Engine | `CODE-HUMAN-GATE`, sequence 154, `last_event: reviewers-clean --intent-incomplete`; wave 1 of 1 is T13. **This gate is not a finish** — 66 criteria remain, so the spec stays `Implementing` and the next unit re-enters through `blocker-applied` |
-| Cohort | waves `[['T13']]` at index 0; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 10, `review_retry_count` 9 **against a cap of 5** |
+| Branch | `eugenelim/step-e-etc`, tracking `origin`. The `eugenelim/provisional-runtime-build` worktree this file was written in no longer exists; engine state was carried across on 2026-09-25 |
+| PR | **#14, #15 and #16** merged. Four commits on this branch — the round-12 and round-13 repairs and the round-14 comment fix — are unmerged and need a PR |
+| Spec status | `Implementing`. The counts live in [`acceptance-audit.md`](acceptance-audit.md) and are generated from its rows — read them there rather than from a copy here |
+| Engine | `CODE-HUMAN-GATE`, awaiting the merge decision on this branch's four commits. **This gate is not a finish** — 64 criteria remain open, so the spec stays `Implementing` and the next unit re-enters through `blocker-applied` |
+| Cohort | waves `[['T13']]` at index 0; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 15, `review_retry_count` **12 against a cap of 5**. Rounds 12, 13 and 14 each spent their own owner waiver; round 15 recorded clean and consumed none |
 | Run id | `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` |
-| Gate | `pnpm verify` exit 0 at host load 10 — **800 passed, 3 skipped**, 803 total. The same tree failed at loads of 27 and 31 with a varying failing set; `pnpm test:capped` (`vitest run --maxWorkers=2`, added this session) was green at load 11. A worktree at `ea7a96a` carrying none of this work flaked identically, so the sensitivity is the host's. See `#owner-approved-carried-items-2026-09-25` and `#slice-f1-step-c-2026-09-24` |
+| Gate | Read the gate reading from the ledger entry for the round that took it — the latest is [`verification-ledger.md#review-rounds-14-and-15-2026-09-26`](verification-ledger.md). A count copied here is a second source that drifts, which is how this row came to disagree with the ledger written beside it. What does not change: uncapped runs fail a varying set of trial-runtime cases under host load, every failing case passes in isolation, and `pnpm test:capped` is the documented second reading |
 
-**Cohort:** `plan_review_status: approved`; waves `[['T13']]` at index 0, the only wave;
-`completed_task_ids` T1–T12, T14 and T15; `implementation_retry_count` 0; `review_round_count`
-11; `review_retry_count` **9 against a `max_review_retries` of 5** — the Step C round recorded clean, and a clean round does not consume a retry. T14, T12 and T13 were closed
-by verifying their Done-when rather than re-running them. One amendment is in
+**Cohort, beyond the table above.** `plan_review_status: approved`, `implementation_retry_count`
+0. A clean round does not consume a retry, which is why the recorded round count runs ahead of the
+retry count. T14, T12 and T13 were closed by verifying their Done-when rather than re-running
+them. One amendment is in
 `amendment_history` — the 2026-09-23 checkbox refresh — because
 `#cohort-state-loss-and-repair-2026-09-23` records the reset that destroyed the earlier entries.
 
@@ -81,33 +82,26 @@ is to take the criterion's own wording — especially a proviso, a qualifier lik
 
 ---
 
-## 3. The 69 criteria not recorded met
+## 3. The criteria not recorded met
 
 ### By group
 
-Generated from the rows of [`acceptance-audit.md`](acceptance-audit.md) by
-`tools/acceptance-audit-counts.py`: 66 not met and 3 not
-verifiable here. **The *Provisional contract* group has left this table** — Step C closed all
-twelve of its criteria.
+Every count is generated from the rows of [`acceptance-audit.md`](acceptance-audit.md) by
+`tools/acceptance-audit-counts.py`, which `pnpm governance` re-checks. **Read the counts there.**
+Each group's `###` heading carries its own met / not met / not verifiable split, and the headline
+at the top of that file carries the total. A copy here would be a second source that drifts, which
+is the defect this slice keeps producing.
 
-| Group | Not met | Not verifiable |
-| --- | ---: | ---: |
-| Security proofs, and suite-level evidence | 12 | — |
-| Honest states | 10 | — |
-| Trusted inspector, and reading the version marker | 8 | — |
-| Version honesty and the verdict, and path confinement | 8 | — |
-| Process boundary, argument vector and environment | 7 | 1 |
-| Quality floor | 7 | 1 |
-| Desktop surface | 6 | 1 |
-| Disposal and cancellation, and persistence | 6 | — |
-| Source input and identity, and exact revision | 2 | — |
+The *Provisional contract* group is closed, 12 of 12. *Security proofs, and suite-level evidence*
+is the largest group still open and is the next cluster, by owner decision on 2026-09-25.
 
-### The three recorded "not verifiable here"
+### The four recorded "not verifiable here"
 
 Not defects — they need something this repository cannot supply offline.
 
 | Criterion | Needs |
 | --- | --- |
+| AC-0012 | The live smoke. Binding the child's `HEAD` check needs a fetch, and *Permitted git transports* admits `https` only via `GIT_ALLOW_PROTOCOL=https`, which refuses the file transport a local fixture repository needs. Owner decision, 2026-09-25 |
 | AC-0024 | The live smoke behind `CONNECT_ORIENT_SMOKE=1`, which reaches github.com. It **is** asserted there and would bind if enabled |
 | AC-0114 | A browser capture of the verdict surface, which needs a completed inspection |
 | AC-0131 | The built application under Chromium; the check is real and measured |
@@ -119,7 +113,8 @@ after. Only their transport-helper clauses need the smoke, and those are carried
 
 ### The clusters
 
-**A. Modules written, tested, called by nothing — 15 remaining.** In flight; see §4.
+**A. Modules written, tested, called by nothing — closed as a cluster.** The wiring landed and
+every module named in it has a disposition; three reporting clauses remain. See §4.
 
 **B. Hostile-repository proofs test a re-implementation — 13.** `test/hostile-fixture.ts:326-363`
 runs its own `git checkout` with a hand-written `-c` list instead of calling
@@ -143,66 +138,52 @@ where WCAG 2.2 1.4.10 names 320.
 
 ---
 
-## 4. The cluster in flight
+## 4. The cluster, and what it left behind
 
 `connect-orient-wire-the-uncalled-modules` — **23 criteria**, one cause, and it is the defect
-class the retraction came from. **Eleven are closed; twelve remain** — Step A's two (AC-0037, AC-0155), Step B's three (AC-0054, AC-0056, AC-0057; AC-0055 was not closed) and Step C's six, enumerated in the `workspace.toml` entry.
+class the retraction came from. **The wiring is done.** Steps A through D and five
+owner-approved carried items landed across PRs #14, #15 and #16, and review round 12 repaired
+what they got wrong. Three criteria of the twenty-three are still not met, and each is a
+reporting clause rather than a wiring one: **AC-0055** (the file-count leg), **AC-0059** (the
+declaration-file branch) and **AC-0060** (bound only to the reader's output shape). The
+`workspace.toml` entry carries the same list and stays open on it.
 
-**Step A is done.** `BoundedResultReader` and `BoundedDiagnosticBuffer` are wired into
-`runtime-supervisor.ts`, replacing two unbounded `+=` accumulations. AC-0037 and AC-0155 met.
+| Step | What landed | Criteria |
+| --- | --- | --- |
+| A | `BoundedResultReader` and `BoundedDiagnosticBuffer` wired into `runtime-supervisor.ts`, replacing two unbounded `+=` accumulations | AC-0037, AC-0155 |
+| B | the child reads declared values, using a local reader because it deliberately imports nothing but `node:` builtins | AC-0054, AC-0056, AC-0057 |
+| C | the child writes a full `result` line and the Service validates it before normalizing, closing *Provisional contract* 12 of 12 | AC-0032, AC-0034 to AC-0036, AC-0038, AC-0039 |
+| D | the inspector locator, wired to locate and record rather than run | AC-0043 to AC-0046, AC-0048 |
 
-### Remaining steps, dependency-ordered
+> Step C's split is worth keeping in mind: the marker is not on the child's line, because
+> reporting it means parsing TOML and the child's import graph may not reach one. The Service
+> composes it from the child's own `declared` line. An **absent** declared report is refused
+> rather than filled in, because `declaredVersionMarker: null` means *the repository declares
+> none* and AC-0064 turns on that distinction.
 
-**Step B — the child reads declared values.** AC-0054 to AC-0057, AC-0059, AC-0060. Wire
-`readDeclaredValues` (`declared-value-reader.ts`) into `runtime-child.ts` after materialization,
-reading only `workspace.toml` and `.agentbundle-state.toml` from the materialized tree, and
-report on a protocol line.
+**AC-0012 left the set on 2026-09-25** as *not verifiable here* rather than as a defect, by owner
+decision. **AC-0088, AC-0091 and AC-0092** are routed at
+`connect-orient-stop-reason-never-resolved`: they need a production site mapping a terminating
+condition to a `StopReasonKey`. **AC-0148** is routed at
+`connect-orient-default-suite-reaches-the-network` — gating the two ungated e2e cases removes the
+only default-gate binding on accepted dispatch, so it is an owner design call.
 
-**Step C is done** (2026-09-24, `#slice-f1-step-c-2026-09-24`). The child writes a `result`
-protocol line and the Service validates it in full before normalizing. AC-0032, AC-0034, AC-0035,
-AC-0036, AC-0038 and AC-0039 met, which closes the whole *Provisional contract* group, 12 of 12.
+### Zero-caller status — settled
 
-> The marker is not on the child's line. Reporting it means parsing TOML, which the child's
-> import graph may not reach, so the Service composes it from the child's own `declared` line —
-> Step B's split, applied again. An **absent** declared report is refused rather than filled in,
-> because `declaredVersionMarker: null` means *the repository declares none* and AC-0064 turns
-> on that distinction.
+Every module the cluster named now has a disposition, which was the point: leaving one undecided
+reproduces the defect class the cluster exists to remove. Re-check a count before trusting it.
 
-**Step D — the inspector locator.** AC-0043 to AC-0046, AC-0048. Wire `locateTrustedInspector`
-and `selectConformingInterpreter` to **locate and record, not run**. Running an inspector is the
-separate `connect-orient-no-inspector-runs` slice and is outside the trial Runtime's
-authorization. **Confirm this reading with the owner before starting D** — it is an unconfirmed
-scope judgement.
-
-**Step E — the leftovers.** **AC-0012 is out of reach offline**, and that is now measured
-rather than assumed: the child's `rev-parse --verify HEAD` is live, but reaching it needs a
-fetch, and *Permitted git transports* admits `https` only through `GIT_ALLOW_PROTOCOL=https`,
-which answers `fatal: transport 'file' not allowed` to a local fixture repository. It needs the
-live smoke or an owner decision on that row. **`materializeRevision` is deleted**, with the
-`materialize` and `readHead` transport members under it; no verdict moved, because AC-0009 is
-bound against the vectors a real child emits and AC-0014 against the verdict surface. Then
-AC-0088, AC-0091, AC-0092, which need a production site to map a terminating condition to a
-`StopReasonKey`.
-
-AC-0148 is adjacent and **routed separately**: gating the two ungated e2e cases removes the only
-default-gate binding on accepted dispatch, so it is an owner design call.
-
-### Zero-caller status
-
-1 means only the definition; 2 usually a definition plus a comment or type import. Re-check
-before trusting.
-
-| Symbol | Non-test mentions | Note |
-| --- | ---: | --- |
-| `locateTrustedInspector` | 2 | Step D |
-| `selectConformingInterpreter` | 1 | Step D |
-| `observedVersions` | 1 | — |
-| `toPersistedRepresentation` | 1 | — |
-| `buildNorthboundRequest` | 1 | **not a defect** — AC-0041 requires the seam module to have no non-seam importer, so it cannot acquire a production caller |
-| `normalizeDeclared` | — | live, in `runtime-supervisor.ts` |
-| `normalizeTrialResult` | — | live, in `source-inspection.ts` (Step C) |
-| `readDeclaredValues`, the Service-side one in `declared-value-reader.ts` | — | deleted 2026-09-24. The child's own `readDeclaredValues` in `runtime-child.ts` is a different function, is live, and is the only reader of the materialized tree |
-| `materializeRevision` | — | deleted 2026-09-24, with `materialize` and `readHead` |
+| Symbol | Disposition |
+| --- | --- |
+| `locateTrustedInspector`, `selectConformingInterpreter` | wired, Step D |
+| `normalizeDeclared` | live, in `runtime-supervisor.ts` |
+| `normalizeTrialResult` | live, in `source-inspection.ts` |
+| `BoundedResultReader`, `BoundedDiagnosticBuffer` | live, Step A |
+| `readDeclaredValues`, the Service-side one in `declared-value-reader.ts` | **deleted** 2026-09-24. The child's own `readDeclaredValues` in `runtime-child.ts` is a different function, is live, and is the only reader of the materialized tree |
+| `materializeRevision` | **deleted** 2026-09-24, with the `materialize` and `readHead` transport members under it. No verdict moved: AC-0009 is bound against the vectors a real child emits and AC-0014 against the verdict surface |
+| `toPersistedRepresentation` | **deleted** 2026-09-25, with `PersistedTrialResult`. AC-0040 is bound against the real storage path in `source-inspection.ts`, so this second persisted representation could never acquire a caller |
+| `buildNorthboundRequest` | **kept, callerless by contract.** AC-0041 requires the seam module to have no non-seam importer, so a production caller would redden it |
+| `observedVersions` | **kept.** It carries AC-0068's absence proof, so deleting it moves a met verdict, and it is the function AC-0067's renderer work will call |
 
 ---
 
@@ -225,7 +206,8 @@ before trusting.
 | `liveness-read-fails-open-to-reclaim` | — |
 | `spawn-failure-sentinel-signals-init` | — |
 
-Closed: `connect-orient-result-carries-no-reason-or-wait-window`.
+Closed entries live in `workspace.toml` `[backlog].closed`, each with the reason it closed. Read
+them there; a list here would be a second copy to keep in step.
 
 ---
 
@@ -292,6 +274,18 @@ and all fifteen group headers derived from the rows, never hand-written
   is the artifact that catches this class. **Rebuild before running it.**
 - **Renderer production code may not import Studio Service modules** (`AGENTS.md:85-88`).
   Shared vocabulary lives in `packages/protocol`.
+- **A mechanical citation remap must move every number after the filename, not the first.** The
+  audit writes `file.ts:17,209-210` and `file.ts:972-1002, control :1023-1031`. A remapper that
+  matches one line reference per filename moves the first and silently leaves the rest in base
+  terms — 49 numbers moved where 102 needed to. The tell is a citation whose parts disagree with
+  each other. And the remap is **not idempotent**: restore the audit from the index before each
+  run, and write new citations *after* the remap, never before.
+- **An adjudicator cannot settle a claim that needs the suite executed.** It is read-only by
+  design, so a reviewer finding resting on an observed intermittent failure returns
+  `indeterminate`, which makes the whole adjudication `invalid` and the round unrecordable — both
+  reviewers' findings with it. The route out is an owner ruling on the source-visible property the
+  observation rests on, supplied as governing authority to a complete replacement adjudication.
+  Recorded at `#owner-decisions-2026-09-25-review-round-12`.
 
 ---
 
@@ -321,9 +315,11 @@ and all fifteen group headers derived from the rows, never hand-written
 - **Round 15's fixes went in unreviewed** — the owner ended that loop.
 - **`visual-evidence.mjs` has no importable units.** Six defects in two pure functions were
   found by review rather than by a test.
-- **PR #14 is merged**, and the history rewrite at `#history-rewrite-2026-09-24-privacy-path`
-  left its commits on no branch. Step A, B and C are unmerged work on this branch and need a PR
-  of their own.
-- **The review retry cap is already exceeded** — 9 rounds against a cap of 5. The next round
-  that sustains a finding will refuse both `findings-remain` and `review record --fingerprint`
-  until a human either waives that round on both halves or raises the cap in `state.json`.
+- **PRs #14, #15 and #16 are merged**, and the history rewrite at
+  `#history-rewrite-2026-09-24-privacy-path` left #14's commits on no branch. Review round 12's
+  repairs are unmerged work on this branch and need a PR of their own.
+- **The review retry cap is exceeded and is waived one round at a time.** Round 12 sustained
+  seventeen findings and needed an owner waiver on both `findings-remain` and
+  `review record --fingerprint`; the owner chose a per-round waiver over raising the cap, so the
+  next round that sustains anything has to ask again. That is deliberate: it keeps the cap
+  announcing itself.

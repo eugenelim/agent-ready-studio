@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { openStorage } from "./storage.js";
+import { openStorage, SCHEMA_MIGRATIONS } from "./storage.js";
 
 const directories: string[] = [];
 const freshPath = () => {
@@ -326,6 +326,126 @@ describe("SQLite storage integration", () => {
       "workspace-execution-committed",
     ]);
     storage.close();
+  });
+
+  it("migration 4 adds its columns to a populated version-3 database without repeating", () => {
+    // The migration tests opened a fresh database for every run, so the ALTER
+    // TABLE statements were never exercised against an existing row: a syntax
+    // error or a name collision would stay green.
+    //
+    // Three things this case has to do that an earlier version did not.
+    // It builds the version-3 schema from `SCHEMA_MIGRATIONS` rather than from
+    // a hand copy, because a hand copy goes on describing a shape production
+    // stopped producing. It seeds every pre-existing column with a distinct
+    // value, so a later migration that rebuilds the table and loses data
+    // reddens here. And it writes an inspector back through the upgraded
+    // table, because reading `null` off a column that was never created looks
+    // exactly like reading `null` off one that was.
+    const path = freshPath();
+
+    const seed = new Database(path);
+    seed.pragma("foreign_keys = ON");
+    for (const migration of SCHEMA_MIGRATIONS) {
+      if (migration.version > 3) break;
+      for (const statement of migration.statements) seed.exec(statement);
+      seed
+        .prepare(
+          "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+        )
+        .run(migration.version, "2026-09-09T00:00:00.000Z");
+    }
+
+    // Every column the version-3 shape has, each with a value nothing else
+    // would produce, so "survived the upgrade" means the value and not the
+    // column.
+    const beforeUpgrade = {
+      id: "source-pre-migration",
+      owner: "acme",
+      repository: "widgets",
+      requested_ref: "refs/heads/release",
+      resolved_sha: "9".repeat(40),
+      inspected_at: "2026-09-24T11:22:33.000Z",
+      verdict: "no-verdict",
+      condition_value: "inspector-unavailable",
+      version_unverified: 1,
+      diagnostics: "a diagnostic written before migration 4",
+      declared_version_marker: "0.7",
+      inspector_contract_version: "1.2",
+      provenance: JSON.stringify({
+        declaredVersionMarker: "repository-derived",
+      }),
+    };
+    const columns = Object.keys(beforeUpgrade).join(", ");
+    const placeholders = Object.keys(beforeUpgrade)
+      .map(() => "?")
+      .join(", ");
+    seed
+      .prepare(
+        `INSERT INTO connected_sources (${columns}) VALUES (${placeholders})`,
+      )
+      .run(...Object.values(beforeUpgrade));
+    seed.close();
+
+    // First open applies migration 4 -- the two ALTER TABLE statements.
+    const storage = openStorage(path);
+
+    const row = storage.getConnectedSource("source-pre-migration");
+    expect(row).not.toBeNull();
+
+    // The new columns take their defaults. `absent` is knowingly wrong for a
+    // row written where no declaration was read; correcting those rows is
+    // registered at `connect-orient-migration-4-backfills-a-value-it-calls-wrong`,
+    // so this assertion pins today's behaviour rather than endorsing it.
+    expect(row?.declaredVersionState).toBe("absent");
+    expect(row?.inspector).toBeNull();
+
+    // Every pre-existing value survives, not merely every column.
+    expect(row?.owner).toBe(beforeUpgrade.owner);
+    expect(row?.repository).toBe(beforeUpgrade.repository);
+    expect(row?.requestedRef).toBe(beforeUpgrade.requested_ref);
+    expect(row?.resolvedSha).toBe(beforeUpgrade.resolved_sha);
+    expect(row?.inspectedAt).toBe(beforeUpgrade.inspected_at);
+    expect(row?.verdict).toBe(beforeUpgrade.verdict);
+    expect(row?.condition).toBe(beforeUpgrade.condition_value);
+    expect(row?.versionUnverified).toBe(true);
+    expect(row?.diagnostics).toBe(beforeUpgrade.diagnostics);
+    expect(row?.declaredVersionMarker).toBe(
+      beforeUpgrade.declared_version_marker,
+    );
+    expect(row?.inspectorContractVersion).toBe(
+      beforeUpgrade.inspector_contract_version,
+    );
+
+    // The `inspector` column has to be writable, not merely readable as null:
+    // a missing column reads null and would satisfy the assertion above.
+    const inspector = {
+      resolvedPath: "/packs/core/scripts/inspect.py",
+      packName: "core",
+      packVersion: "2.26.14",
+      fileDigests: {
+        "inspect.py": "a".repeat(64),
+        "pack.toml": "b".repeat(64),
+      },
+    };
+    storage.upsertConnectedSource({
+      ...(row as NonNullable<typeof row>),
+      declaredVersionState: "declared",
+      inspector,
+    });
+    const upgraded = storage.getConnectedSource("source-pre-migration");
+    expect(upgraded?.inspector).toEqual(inspector);
+    expect(upgraded?.declaredVersionState).toBe("declared");
+
+    storage.close();
+
+    // Second open: migration 4 is already recorded and must not run again.
+    // A second ALTER TABLE on the same column would throw, so `openStorage`
+    // completing is the assertion.
+    const second = openStorage(path);
+    expect(
+      second.getConnectedSource("source-pre-migration")?.inspector,
+    ).toEqual(inspector);
+    second.close();
   });
 
   it("AC-05 keeps no Initiative table for a migration to drift towards", () => {

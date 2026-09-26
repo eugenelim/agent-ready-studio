@@ -231,7 +231,16 @@ export type Storage = StorageTransaction & {
   close(): void;
 };
 
-const migrations = [
+/**
+ * Every schema version, in order.
+ *
+ * Exported for this package's own upgrade test, which builds a historical
+ * database by applying these statements up to a chosen version. The test used
+ * to hand-copy the version-1 to version-3 DDL, and a hand copy drifts silently:
+ * it goes on describing a shape production stopped producing, and the case
+ * keeps passing against it.
+ */
+export const SCHEMA_MIGRATIONS = [
   {
     version: 1,
     statements: [
@@ -288,10 +297,12 @@ const migrations = [
     // AC-0043 and AC-0064. Two things the version-3 shape could not express:
     // which of three states an absent declared marker is in, and the identity
     // of the trusted inspector an inspection used. Added rather than
-    // backfilled -- an existing row records an inspection that ran before
-    // either was distinguishable, so `absent` is the honest default for it
-    // only because no pre-migration row could have been written from an
-    // unreadable declaration: the composition refused those outright.
+    // backfilled. The `absent` default is inaccurate for rows written on the
+    // no-valid-result path before this migration, where no declaration was
+    // read; the correct value for those rows is `unreadable`. Backfilling
+    // them is an owner call and is not done here -- it is registered at
+    // `connect-orient-migration-4-backfills-a-value-it-calls-wrong`, so the
+    // inaccuracy is findable rather than resting in this comment.
     version: 4,
     statements: [
       `ALTER TABLE connected_sources ADD COLUMN declared_version_state TEXT NOT NULL DEFAULT 'absent';`,
@@ -755,7 +766,7 @@ function migrate(database: Database.Database): void {
             .all()
             .map((row) => numberField(objectRow(row, "migration"), "version")),
         );
-  for (const migration of migrations) {
+  for (const migration of SCHEMA_MIGRATIONS) {
     if (applied.has(migration.version)) continue;
     database.transaction(() => {
       for (const statement of migration.statements) database.exec(statement);

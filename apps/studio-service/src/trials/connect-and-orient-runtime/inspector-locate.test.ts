@@ -505,3 +505,146 @@ describe("AC-0043, AC-0044 and AC-0045 the pinned inspector is located, and neve
     }
   });
 });
+
+describe("AC-0043 inspector identity on non-settled terminal outcomes", () => {
+  /**
+   * A conforming probe on a path Studio delivered. Both cases below need it.
+   */
+  const terminalProbe = [
+    {
+      path: "/opt/homebrew/bin/python3",
+      version: "Python 3.14.7",
+      conforming: true,
+    },
+  ];
+
+  it("carries a non-null inspector on a stopped run when the Runtime reported probes", () => {
+    // A run terminated before it completed (timed-out, stopped, cancelled)
+    // that still wrote interpreter probes before it was killed. The defect:
+    // `located` was only computed when `completedResponse` was true, so every
+    // stopped run wrote `inspector: null` — asserting Studio looked and found
+    // nothing on runs where it never looked.
+    const outcome = settledRuntimeOutcome({
+      requestId: MINTED,
+      interpreterSearchList: DELIVERED,
+      completedResponse: false,
+      protocolLines: [
+        { type: "materialized", status: 0 },
+        { type: "interpreter", probes: terminalProbe },
+      ],
+      resultRefused: false,
+      declared: undefined,
+      inspectorSearchRoot: studioInstallRoot() as string,
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.ok === false && outcome.condition).toBe(
+      "inspector-unavailable",
+    );
+    const inspector = outcome.ok === false ? outcome.inspector : undefined;
+    expect(inspector).toBeDefined();
+    expect(inspector).not.toBeNull();
+    expect(inspector?.packName).toBe("core");
+    expect(inspector?.resolvedPath).toContain("scripts");
+    expect(Object.keys(inspector?.fileDigests ?? {}).length).toBeGreaterThan(0);
+    for (const digest of Object.values(inspector?.fileDigests ?? {})) {
+      expect(digest).toMatch(/^[0-9a-f]{64}$/);
+    }
+  });
+
+  it("carries a non-null inspector when a completed run's result fails validation", () => {
+    // `completedResponse: true` but the result carries status "completed",
+    // which AC-0061 refuses. The early return at the validation-refusal branch
+    // previously returned `validated.refusal` as-is, skipping the inspector
+    // lookup — leaving `inspector` absent, stored as null.
+    const outcome = settledRuntimeOutcome({
+      ...recordWith(terminalProbe),
+      inspectorSearchRoot: studioInstallRoot() as string,
+      protocolLines: [
+        { type: "materialized", status: 0 },
+        { type: "interpreter", probes: terminalProbe },
+        { ...CONFORMING_RESULT, status: "completed" },
+      ],
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.ok === false && outcome.condition).toBe(
+      "inspection-stopped",
+    );
+    const inspector = outcome.ok === false ? outcome.inspector : undefined;
+    expect(inspector).toBeDefined();
+    expect(inspector).not.toBeNull();
+    expect(inspector?.packName).toBe("core");
+    expect(Object.keys(inspector?.fileDigests ?? {}).length).toBeGreaterThan(0);
+    for (const digest of Object.values(inspector?.fileDigests ?? {})) {
+      expect(digest).toMatch(/^[0-9a-f]{64}$/);
+    }
+  });
+
+  /**
+   * The three terminations that return before the settled path.
+   *
+   * Round 13 found the widening stopped short of them: each returned above
+   * the locator call, so each recorded `inspector: null`. The child emits its
+   * `interpreter` line before it materializes, before it reads the
+   * declaration and before any result line, so all three arrive carrying the
+   * probes an identity needs — the lookup was skipped, not unavailable.
+   */
+  const terminations = [
+    {
+      name: "a failed materialization",
+      record: {
+        completedResponse: false,
+        protocolLines: [
+          { type: "interpreter", probes: terminalProbe },
+          { type: "materialized", status: 1 },
+        ],
+        resultRefused: false,
+        declared: undefined,
+      },
+    },
+    {
+      name: "a refused result line",
+      record: {
+        completedResponse: false,
+        protocolLines: [
+          { type: "interpreter", probes: terminalProbe },
+          { type: "materialized", status: 0 },
+        ],
+        resultRefused: true,
+        declared: undefined,
+      },
+    },
+    {
+      name: "a refused declared read",
+      record: {
+        completedResponse: false,
+        protocolLines: [
+          { type: "interpreter", probes: terminalProbe },
+          { type: "materialized", status: 0 },
+        ],
+        resultRefused: false,
+        declared: { reads: [], refusal: "declaration-too-large" },
+      },
+    },
+  ] as const;
+
+  for (const termination of terminations) {
+    it(`records the inspector identity on ${termination.name}`, () => {
+      const outcome = settledRuntimeOutcome({
+        requestId: MINTED,
+        interpreterSearchList: DELIVERED,
+        inspectorSearchRoot: studioInstallRoot() as string,
+        ...termination.record,
+      } as Parameters<typeof settledRuntimeOutcome>[0]);
+
+      expect(outcome.ok).toBe(false);
+      const inspector = outcome.ok === false ? outcome.inspector : undefined;
+      expect(inspector).not.toBeNull();
+      expect(inspector?.packName).toBe("core");
+      expect(Object.keys(inspector?.fileDigests ?? {}).length).toBeGreaterThan(
+        0,
+      );
+    });
+  }
+});
