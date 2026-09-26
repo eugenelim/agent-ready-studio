@@ -154,11 +154,6 @@ export interface InspectionRequest {
 }
 
 /**
- * Where a terminal inspection is written so it survives a restart, and where
- * `get` reads from when the in-memory store has nothing. Optional so a service
- * created without storage still composes; supplied in production.
- */
-/**
  * What a write attempt did.
  *
  * A write that failed and a row that was never written used to look the same
@@ -171,6 +166,11 @@ export type SourceInspectionWrite =
   | { readonly ok: true }
   | { readonly ok: false; readonly reason: string };
 
+/**
+ * Where a terminal inspection is written so it survives a restart, and where
+ * `get` reads from when the in-memory store has nothing. Optional so a service
+ * created without storage still composes; supplied in production.
+ */
 export interface SourceInspectionStore {
   readonly persist: (record: SourceInspection) => SourceInspectionWrite;
   readonly read: (sourceId: string) => SourceInspection | undefined;
@@ -778,15 +778,6 @@ export function studioInstallRoot(): string | undefined {
 }
 
 /**
- * What a settled Runtime record means, once cancellation has been ruled out.
- *
- * Extracted from `inspectInRuntime` because that function needs a real
- * revision to fetch and this repository keeps no test network surface, so
- * nothing in the gate set could reach the routing below while it lived there:
- * both refusal branches were deletable and reorderable with every gate green.
- * The order is load-bearing and is asserted rather than described.
- */
-/**
  * Attaches the located identity to a refusal.
  *
  * `InspectionOutcome` is a union whose `ok: true` arm has no `inspector`, and
@@ -802,6 +793,15 @@ function withInspector(
   return outcome.ok ? outcome : { ...outcome, inspector };
 }
 
+/**
+ * What a settled Runtime record means, once cancellation has been ruled out.
+ *
+ * Extracted from `inspectInRuntime` because that function needs a real
+ * revision to fetch and this repository keeps no test network surface, so
+ * nothing in the gate set could reach the routing below while it lived there:
+ * both refusal branches were deletable and reorderable with every gate green.
+ * The order is load-bearing and is asserted rather than described.
+ */
 export function settledRuntimeOutcome(
   record: SettledRuntimeRecord,
 ): InspectionOutcome {
