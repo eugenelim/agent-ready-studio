@@ -477,8 +477,19 @@ export async function runPositiveControl(
         join(fixture.worktree, "workspace.toml"),
         "utf8",
       ).includes("report ready");
-    case "escaping-symlink":
-      return lstatSync(join(fixture.source, "escape")).isSymbolicLink();
+    case "escaping-symlink": {
+      // The guard is `core.symlinks=false`, and it acts on the *materialized*
+      // tree: with it, git writes the link target as file content; without it,
+      // git restores a real symlink that escapes the worktree. lstat-ing the
+      // source proved only that the fixture planted a link, which is true
+      // whatever the product does.
+      const removed = await buildHostileFixture({
+        caseId: "escaping-symlink",
+        omitPinPrefix: "core.symlinks",
+      });
+      await materialize(removed);
+      return lstatSync(join(removed.worktree, "escape")).isSymbolicLink();
+    }
     case "escaping-reader-path": {
       const sibling = `${fixture.worktree}-extended`;
       mkdirSync(sibling);
