@@ -6,7 +6,7 @@ given its group's criteria, the *Canonical values* table and its own *Testing St
 each told to assume nothing from any ledger entry, code comment or the spec's own prose, and to
 cite `file:line` for every binding.
 
-**Result: 93 met, 60 not met, 4 not verifiable here.** Against 2026-09-20's 77 / 75 / 5 that is
+**Result: 95 met, 58 not met, 4 not verifiable here.** Against 2026-09-20's 77 / 75 / 5 that is
 **+11 met**; the 2026-09-23 re-run itself read 82 / 72 / 3, and the six criteria between that
 figure and this one are the *Provisional contract* group's, closed by Step C on 2026-09-24. Every
 count in this document, including each group header and the headline above, is generated from the
@@ -199,7 +199,7 @@ the name is unique across the repository, as in the previous pass.
 | AC-0066 | met | W | VerdictSurface.tsx:95-103; VerdictSurface.test.tsx:306-322 | the qualifier renders alongside both badges so composition is bound at the surface; weak because no production result can set the prop |
 | AC-0067 | **not met** | W | trial-result.ts:372-379; source-inspection.ts:179,325; VerdictSurface.tsx:107-116 | observedVersions is called only from tests; the live marker is never assigned and the renderer displays neither value |
 | AC-0068 | met | W | trial-result.ts:372-379; trial-result.test.ts:455-486 | an absence proof that no comparison exists, over a function with zero production callers |
-| AC-0069 | **not met** | W | materialization.test.ts:29-75; hostile-fixture.ts:326-363; git-driver.ts:19 | the test inspects a checkout made by the test helper with its own vector, and one assertion is a tautology |
+| AC-0069 | **not met** | W | materialization.test.ts:29-75; hostile-fixture.ts:347-391#materialize; git-driver.ts:19 | the test inspects a checkout made by the test helper with its own vector, and one assertion is a tautology |
 | AC-0070 | met | S | per-request-state-root.ts:226-239,285-295; per-request-state-root.test.ts:87-118 | mkdtemp inside the verified domain plus explicit 0700 on the root and each child, marker asserted outside the materialization root |
 | AC-0071 | met | S | runtime-supervisor.ts:522-529; runtime-child.ts:188; disposal.test.ts:171-174 | the domain arrives on the vector with no environment fallback, and the child's own sweep line reports a domain differing from its TMPDIR |
 | AC-0072 | **not met** | W | per-request-state-root.ts:109-136; sweep.ts:175; per-request-state-root.test.ts:52-84 | existence, link, directory and mode are bound and fail closed, but the owned-by-current-user clause has no test |
@@ -286,19 +286,19 @@ the name is unique across the repository, as in the previous pass.
 | AC-0131 | not verifiable here | W | tokens.css:64,744-748; visual-evidence.mjs:1203-1222 | needs the running app; separately the CSS floor is inert because control-height already clears 24px |
 | AC-0132 | **not met** | W | visual-evidence.mjs:695-721,1362-1366; tokens.css:733-742 | the verdict surface is never captured by any scenario and the narrowest viewport is 720px, so neither clause is bound |
 
-### Security proofs, and suite-level evidence — 9 met, 12 not met
+### Security proofs, and suite-level evidence — 11 met, 10 not met
 
 | Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
 | --- | --- | --- | --- | --- |
-| AC-0133 | **not met** | W | hostile-fixture.ts:335; absence-proofs.test.ts:83; git-driver.ts:18 | the proof toggles the fixture's own literal, never pinnedGitConfigurationArgs, and the hook sits where git's default path would not run it |
-| AC-0134 | **not met** | N | hostile-fixture.ts:169-184; absence-proofs.test.ts:96 | git checkout never runs a package.json script — a guardless checkout was reproduced and the probe log stayed empty; no production mutation reddens it |
-| AC-0135 | **not met** | N | hostile-fixture.ts:186-193; absence-proofs.test.ts:123 | a file under .agents/skills is never executed by checkout, same guardless reproduction, empty log; the control execs the file itself |
-| AC-0136 | **not met** | W | hostile-fixture.ts:338-371; absence-proofs.test.ts:161 | refusal comes from the fixture's own literals and the control observes the source object database with no worktree |
+| AC-0133 | met | S | hostile-fixture.ts:339#materializationPins; hostile-fixture.ts:363; absence-proofs.test.ts:82; git-driver.ts:17 | the checkout vector is built from PINNED_GIT_CONFIGURATION and the probe sits at the clone's default .git/hooks path, so removing core.hooksPath=/dev/null reddens the proof |
+| AC-0134 | **not met** | N | hostile-fixture.ts:171-187; absence-proofs.test.ts:96 | git checkout never runs a package.json script — a guardless checkout was reproduced and the probe log stayed empty; no production mutation reddens it |
+| AC-0135 | **not met** | N | hostile-fixture.ts:188-196; absence-proofs.test.ts:123 | a file under .agents/skills is never executed by checkout, same guardless reproduction, empty log; the control execs the file itself |
+| AC-0136 | **not met** | N | absence-proofs.test.ts:152-159; git-driver.ts:20-21 | vacuous by construction: git refuses `invalid path '.GIT'` with core.protectHFS=false and core.protectNTFS=false both set explicitly, so the named guard is git's built-in path check and no pin removal can redden it. The proof's doc comment attributes the refusal to core.protectHFS and is wrong. Owner decision 2026-09-26: rebind to the spawn-audit surface with AC-0134, AC-0135, AC-0137 and AC-0141 |
 | AC-0137 | **not met** | N | hostile-fixture.ts:197-206; absence-proofs.test.ts:197 | .gitattributes names filter=probe but no smudge or clean command is ever configured, so no filter can run with or without a guard |
 | AC-0138 | **not met** | W | state-projection.test.ts:271-319 | verdict and status legs bind production, but the state clause compares two identical calls with no instruction in either |
-| AC-0139 | **not met** | W | hostile-fixture.ts:339; absence-proofs.test.ts:224-233 | the regular-file outcome comes from a fixture literal and the control lstats the source tree where the link always is |
+| AC-0139 | met | S | hostile-fixture.ts:480; absence-proofs.test.ts:223-240; git-driver.ts:19 | both legs read the materialized worktree and the control drops core.symlinks=false through omitPinPrefix, so removing that pin reddens the proof |
 | AC-0140 | met | S | materialization-confinement.ts:112; absence-proofs.test.ts:251-294 | both clauses run against production readContainedFile, sibling-prefix and traversal, plus a non-blanket admit |
-| AC-0141 | **not met** | W | absence-proofs.test.ts:304-321; git-driver.ts:23 | the materialized leg is a no-op: the fixture commits a .gitmodules file with no gitlink and checkout recurses no submodules by default |
+| AC-0141 | **not met** | N | hostile-fixture.ts:223-229; absence-proofs.test.ts:304-321; git-driver.ts:23 | vacuous by construction: the fixture writes .gitmodules as plain text with no gitlink, so there is no submodule to recurse into whatever submodule.recurse says, and nothing in this environment can set it true with GIT_CONFIG_GLOBAL and GIT_CONFIG_SYSTEM both /dev/null. Owner decision 2026-09-26: rebind with the AC-0136 set |
 | AC-0142 | met | S | source-identity.ts:28; git-driver.ts:143-147; absence-proofs.test.ts:337-343 | production resolveRevision refuses the reported ref before any vector is built, and the hostile upload-pack ref is refused by the same function |
 | AC-0143 | met | S | inadmissible-keys.ts:35; guarded-parse.ts:21-29; absence-proofs.test.ts:376-449 | both TOML and JSON arms parse the materialized hostile files through the production guards, with depth, in-array and non-blanket legs |
 | AC-0144 | met | W | absence-proofs.test.ts:457-514; runtime-child.ts:23,37,38 | leg 1 is near-tautological but leg 2 statically audits the real import list of the one process rooted at the state root |
@@ -306,7 +306,7 @@ the name is unique across the repository, as in the previous pass.
 | AC-0146 | **not met** | N | connected-source.test.ts:334-373 | the planted token is read from the fixture but the persisted record never carries it; the negative runs over a path the credential never reaches |
 | AC-0147 | **not met** | N | hostile-fixture.ts:403-516; hostile-fixture.test.ts:111-129 | the controls do not all remove a guard at the observation level; deleting every pinned configuration entry leaves all 14 controls green |
 | AC-0148 | **not met** | N | e2e/connect-and-orient.test.ts:85-101,:138-160,:83; source-inspection.ts:398#connect | only :163 and :205 are gated; the ungated cases at :91 and :143 submit the accepted URL and connect fires the pipeline, so pnpm test reaches github.com |
-| AC-0149 | met | S | hostile-fixture.test.ts:36-100; hostile-fixture.ts:18-67,134-153 | exact-equality assertions pin all 19 cases and the 18 criterion-to-case entries, with the checkout-observable entry built into the source ODB before checkout |
+| AC-0149 | met | S | hostile-fixture.test.ts:36-100; hostile-fixture.ts:19-68,136-155 | exact-equality assertions pin all 19 cases and the 18 criterion-to-case entries, with the checkout-observable entry built into the source ODB before checkout |
 | AC-0150 | met | N | docs/product/research/connect-and-orient-trial-runtime-evidence.md:17-142 | all twelve required subjects have their own section; no test or governance check reads the note |
 | AC-0151 | met | N | docs/product/research/connect-and-orient-trial-runtime-evidence.md:51-72 | a six-row table classifies each held item Needed or Inherited with its ground |
 | AC-0152 | met | N | docs/product/research/connect-and-orient-trial-runtime-evidence.md:186-190 | states in bold which properties were mandated by the specification rather than discovered, and how to discount it |
