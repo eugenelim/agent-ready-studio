@@ -158,8 +158,21 @@ export interface InspectionRequest {
  * `get` reads from when the in-memory store has nothing. Optional so a service
  * created without storage still composes; supplied in production.
  */
+/**
+ * What a write attempt did.
+ *
+ * A write that failed and a row that was never written used to look the same
+ * from outside: both left the store without the record, and the only trace was
+ * a line on stderr that nothing reads back. So a case could not tell a
+ * swallowed failure from an absent row, and neither could anyone reading the
+ * store afterwards.
+ */
+export type SourceInspectionWrite =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly reason: string };
+
 export interface SourceInspectionStore {
-  readonly persist: (record: SourceInspection) => void;
+  readonly persist: (record: SourceInspection) => SourceInspectionWrite;
   readonly read: (sourceId: string) => SourceInspection | undefined;
 }
 
@@ -416,9 +429,21 @@ export function createSourceInspections(
       return started;
     },
 
-    /** The pipeline promise for the named source, for deterministic awaiting. */
+    /**
+     * The pipeline promise for the named source, for deterministic awaiting.
+     *
+     * An unknown id refuses rather than resolving. Resolving would make a
+     * mistyped id, a stale one, or a source that registered no run at all --
+     * a `url-rejected` connect does not -- indistinguishable from a run that
+     * finished, which is the approximation this seam exists to remove. The
+     * refusal is synchronous so it cannot become an unhandled rejection.
+     */
     runFor(sourceId: string): Promise<void> {
-      return runs.get(sourceId)?.promise ?? Promise.resolve();
+      const run = runs.get(sourceId);
+      if (run?.promise === undefined) {
+        throw new Error(`no run to await for source ${sourceId}`);
+      }
+      return run.promise;
     },
 
     get(sourceId: string): SourceInspection | undefined {
@@ -469,16 +494,20 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
   return {
     persist(record) {
       try {
-        persistOrReport(record);
+        return persistOrReport(record);
       } catch (cause) {
         // A store write must not take the service down. The pipeline runs in
         // the background, so a throw here is an unhandled rejection rather
         // than a request failure -- a shut database during shutdown is enough
         // to produce one, and losing the process loses every other inspection
-        // too.
+        // too. It is still reported twice over: on the diagnostic stream for
+        // an operator, and in the returned outcome for a caller that wants to
+        // tell a failed write from a row nobody wrote.
+        const reason = String(cause);
         process.stderr.write(
-          `connected source ${record.sourceId} could not be written: ${String(cause)}\n`,
+          `connected source ${record.sourceId} could not be written: ${reason}\n`,
         );
+        return { ok: false, reason };
       }
     },
     read(sourceId) {
@@ -490,7 +519,7 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
     },
   };
 
-  function persistOrReport(record: SourceInspection): void {
+  function persistOrReport(record: SourceInspection): SourceInspectionWrite {
     const outcome = persistConnectedSource(storage, {
       id: record.sourceId,
       owner: record.owner,
@@ -513,11 +542,15 @@ export function createStorageStore(storage: Storage): SourceInspectionStore {
     });
     if (!outcome.ok) {
       // AC-0104's refusal is observable rather than silent: the prior record
-      // stands and the reason is on the diagnostic stream.
+      // stands, the reason is on the diagnostic stream, and it travels back to
+      // the caller so a refused write is distinguishable from one that never
+      // happened.
       process.stderr.write(
         `connected source ${record.sourceId} not persisted: ${outcome.diagnostic}\n`,
       );
+      return { ok: false, reason: outcome.diagnostic };
     }
+    return { ok: true };
   }
 
   function readOrUndefined(sourceId: string): SourceInspection | undefined {
@@ -753,6 +786,22 @@ export function studioInstallRoot(): string | undefined {
  * both refusal branches were deletable and reorderable with every gate green.
  * The order is load-bearing and is asserted rather than described.
  */
+/**
+ * Attaches the located identity to a refusal.
+ *
+ * `InspectionOutcome` is a union whose `ok: true` arm has no `inspector`, and
+ * the refusal helpers are typed as the whole union, so the narrowing is what
+ * lets the field be set at all. Every helper that produces one of these
+ * returns `ok: false`; the `ok: true` arm is returned unchanged rather than
+ * asserted away, so a future producer cannot make this silently wrong.
+ */
+function withInspector(
+  outcome: InspectionOutcome,
+  inspector: LocatedInspector | null,
+): InspectionOutcome {
+  return outcome.ok ? outcome : { ...outcome, inspector };
+}
+
 export function settledRuntimeOutcome(
   record: SettledRuntimeRecord,
 ): InspectionOutcome {
@@ -760,6 +809,11 @@ export function settledRuntimeOutcome(
   // Read after the materialization gate this branch was unreachable, and a
   // contract-mismatch run reported "the Runtime did not materialize the
   // revision" -- true, and not the reason.
+  //
+  // This is the one termination that records no inspector and is honest doing
+  // so. The child refuses the request before it probes any interpreter, so
+  // `readInterpreterProbes` has nothing to read and no identity exists to
+  // record -- `null` here means what the contract says it means.
   const refused = record.protocolLines.find((line) => line.type === "refused");
   if (refused !== undefined) {
     return {
@@ -769,6 +823,18 @@ export function settledRuntimeOutcome(
       diagnostics: "the Runtime refused the request it was given",
     };
   }
+
+  // Everything below this line can carry an identity, so the locator runs
+  // before the first return that could skip it.
+  //
+  // The order matters and is the child's, not Studio's: `runtime-child.ts`
+  // emits its `interpreter` probe line *before* it materializes, before it
+  // reads the declaration and before any result line. So a failed
+  // materialization, a refused result line and a refused declared read all
+  // arrive here with the probes already in the record. Returning `null` on
+  // those three said "Studio looked and found nothing" about runs where it
+  // had simply not looked, which is the claim AC-0043 exists to prevent.
+  const located = inspectorDiagnostic(record);
 
   const materialized = record.protocolLines.find(
     (line) => line.type === "materialized",
@@ -783,6 +849,7 @@ export function settledRuntimeOutcome(
           : materialized?.mismatch === "head-unreadable"
             ? "Studio could not read what was checked out, so it did not verify the commit"
             : "the Runtime did not materialize the revision",
+      inspector: located.inspector,
     };
   }
 
@@ -791,12 +858,12 @@ export function settledRuntimeOutcome(
   // read", not "the repository declares none".
   const resultStopped = refusedResultOutcome(record.resultRefused);
   if (resultStopped !== undefined) {
-    return resultStopped;
+    return withInspector(resultStopped, located.inspector);
   }
 
   const declaredStopped = declaredRefusalOutcome(record.declared);
   if (declaredStopped !== undefined) {
-    return declaredStopped;
+    return withInspector(declaredStopped, located.inspector);
   }
 
   // A run that was terminated before it responded never reached its result
@@ -808,12 +875,6 @@ export function settledRuntimeOutcome(
   const validated = record.completedResponse
     ? validatedTrialResult(record)
     : ({ ok: false, refusal: undefined } as const);
-
-  // The locator is a filesystem walk from Studio's install root and does not
-  // depend on the Runtime's outcome. It runs for every path that reaches here,
-  // including stopped, timed-out, cancelled, and validation-refused runs, so
-  // AC-0043's universal "with each inspection" holds on all of them.
-  const located = inspectorDiagnostic(record);
 
   // A run whose result failed validation returns the refusal with the inspector
   // identity attached, so a lead can see which inspector Studio held even when

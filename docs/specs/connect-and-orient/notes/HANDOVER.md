@@ -21,7 +21,7 @@ The spec is [`../spec.md`](../spec.md).
 | Engine | `CODE-IMPLEMENTATION` after `findings-remain`; see `loop-engine status` for the sequence. Round 12's seventeen sustained findings are recorded |
 | Cohort | waves `[['T13']]` at index 0; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 12, `review_retry_count` **10 against a cap of 5**, one owner waiver spent on round 12 |
 | Run id | `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` |
-| Gate | `pnpm verify` exit 0 at host load 10 on 2026-09-25 — **800 passed, 3 skipped**. The same tree failed at loads of 27 and 31 with a varying failing set; `pnpm test:capped` (`vitest run --maxWorkers=2`) was green at load 11. A worktree carrying none of this work flaked identically, so the sensitivity is the host's |
+| Gate | Read the gate reading from the ledger entry for the round that took it — the latest is [`verification-ledger.md#review-round-12-2026-09-25`](verification-ledger.md). A count copied here is a second source that drifts, which is how this row came to disagree with the ledger written beside it. What does not change: uncapped runs fail a varying set of trial-runtime cases under host load, every failing case passes in isolation, and `pnpm test:capped` is the documented second reading |
 
 **Cohort, beyond the table above.** `plan_review_status: approved`, `implementation_retry_count`
 0. A clean round does not consume a retry, which is why the recorded round count runs ahead of the

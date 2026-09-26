@@ -248,8 +248,10 @@ describe("AC-0100 to AC-0104 a result survives a restart", () => {
     const rows = new Map<string, ReturnType<typeof JSON.parse>>();
     return {
       rows,
-      persist: (record: { sourceId: string }) =>
-        rows.set(record.sourceId, JSON.parse(JSON.stringify(record))),
+      persist: (record: { sourceId: string }) => {
+        rows.set(record.sourceId, JSON.parse(JSON.stringify(record)));
+        return { ok: true } as const;
+      },
       read: (sourceId: string) => rows.get(sourceId),
     };
   }
@@ -375,8 +377,10 @@ describe("cancelling", () => {
   it("refuses to cancel a settled result rather than destroying it", async () => {
     const store = {
       rows: new Map<string, ReturnType<typeof JSON.parse>>(),
-      persist: (record: { sourceId: string }) =>
-        store.rows.set(record.sourceId, JSON.parse(JSON.stringify(record))),
+      persist: (record: { sourceId: string }) => {
+        store.rows.set(record.sourceId, JSON.parse(JSON.stringify(record)));
+        return { ok: true } as const;
+      },
       read: (sourceId: string) => store.rows.get(sourceId),
     };
     const sources = createSourceInspections(

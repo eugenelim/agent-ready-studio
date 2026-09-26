@@ -8997,6 +8997,13 @@ terminations stay `null` and are honest there** — a refused request, a failed 
 refused result line and a refused declared read all end before the Runtime reports which
 interpreters it probed, and `inspectorDiagnostic` needs those probes.
 
+> **Corrected on 2026-09-25 by review round 13.** That last sentence is false for three of the
+> four. The child emits its `interpreter` line *before* it materializes, so a failed
+> materialization, a refused result line and a refused declared read all carry the probes an
+> identity needs — the locator was skipped there, not unavailable. Only the contract-mismatch
+> refusal genuinely precedes the probe line. The recording was widened to the three under owner
+> decision 2 at `#owner-decisions-2026-09-25-review-round-13`.
+
 ### Mutation proof
 
 Each repair's own property, not a consequence of it. Case counts read from every run.
@@ -9034,3 +9041,101 @@ not met, 4 not verifiable here**, every citation resolving. `pnpm test` failed 1
 (disposal 8 of 8, materialization 4 of 4), and `pnpm test:capped` green at **804 passed, 3
 skipped**. That is the registered `pre-existing-trial-runtime-load-flake`, on both documented
 signs.
+
+## owner-decisions-2026-09-25-review-round-13
+
+Three decisions the owner took on 2026-09-25 while review round 13 ran over the repair diff
+`git diff 69996c2 77d7d5d`.
+
+**1. The retry cap is waived for round 13 as well, one round only.** The owner again chose a
+per-round waiver over raising `max_review_retries`, so round 14 has to ask again.
+
+**2. AC-0043 is repaired in code rather than in its records.** Both reviewers established that
+the widened recording stops three returns short: the child emits its `interpreter` line before it
+materializes, so a failed materialization, a refused result line and a refused declared read all
+carry the probes an identity needs, and the locator is skipped rather than unavailable there.
+Only the contract-mismatch refusal genuinely precedes the probe line. The owner chose to widen the
+recording to those three paths, with a case each, so AC-0043's `[x]` becomes true rather than
+being unchecked through the contract-amendment ceremony. The claim that "all four" terminations
+end before the probes is false and is corrected wherever it was written — the code comment, the
+audit cell, this ledger's round-12 entry and the `workspace.toml` entry.
+
+**3. A swallowed storage write is the defect behind the untraced non-trials failure.** A reviewer
+saw `source-inspection-storage.test.ts:259` fail once under host load and could not reproduce it;
+the adjudicator confirmed two source-visible facts and returned `indeterminate` on the rest,
+stalling the round exactly as round 12 stalled. The facts: `CONTRIBUTING.md` scopes the documented
+load flake to the suites under `apps/studio-service/src/trials/` and this file spawns no Runtime
+child, and `createStorageStore.persist` reports a failed write to stderr and returns, so a case
+reading the row afterwards cannot tell a write that failed from a row that was never written. The
+owner ruled the second the defect to repair, whatever the failure's cause: a storage write that
+fails must be distinguishable from one that never happened, at the surface a case or an operator
+reads. This is the same recovery shape as decision 3 of round 12 — rule on what the source shows,
+rather than on an observation nobody can reproduce on demand.
+
+## review-round-13-2026-09-25
+
+Two reviewers over the round-12 repair diff (`git diff 69996c2 77d7d5d`), **eighteen sustained**
+findings, one refuted, recorded under a second per-round waiver of the retry cap. The adversarial
+adjudication was rejected twice by the strict classifier before it stood: once for an
+indeterminate, once for a sentence before the envelope.
+
+### The blocker, and the shape of the mistake
+
+Round 12's repair of AC-0043 widened the inspector recording and **justified its remaining gap
+with a claim about the child that the child contradicts**. The record read: four terminations
+record `null` honestly, because each ends before the Runtime reports which interpreters it probed.
+`runtime-child.ts` emits its `interpreter` line *before* it materializes, before it reads the
+declaration and before any result line. So a failed materialization, a refused result line and a
+refused declared read all arrive carrying the probes an identity needs — three of the four were
+skipping the lookup, not lacking one. Only the child refusing the request truly precedes the
+probes.
+
+Both reviewers found it independently and both proved it by executing `settledRuntimeOutcome`
+rather than by reading the comment. The claim had been written into four places — the code
+comment, the audit cell, this ledger's round-12 entry and the `workspace.toml` entry — which is
+what a wrong justification does when it is convincing: it propagates as fast as a correct one.
+
+The repair runs the locator before the first return that could skip it, and each of the three
+paths has its own case.
+
+### What else was repaired
+
+| Finding | Repair |
+| --- | --- |
+| The `result-invalid-studio` refusal's declared-state carry-through was unpinned | a case driving that refusal with a clean declared read |
+| The migration-4 upgrade case could not fail for a lost `inspector` column | the case writes an inspector back through the upgraded table |
+| The upgrade case asserted three columns, all at default or NULL | every version-3 column seeded with a distinct value and asserted |
+| The upgrade case hand-copied migrations 1–3 | the seed applies the exported `SCHEMA_MIGRATIONS` instead |
+| The widened locator put an unguarded `readFileSync` on stopped and cancelled paths | the digest read is guarded like its two siblings, returning `unavailable` |
+| A swallowed storage write was indistinguishable from a row never written | `persist` returns a write outcome; the stderr line stays for the operator |
+| `runFor` resolved for a source with no run | it refuses synchronously, so a stale id cannot read as a finished run |
+| The AC-0085 case left its pipeline running past the assertion | the run is drained inside its own case |
+| The migration-4 backfill was an owner call living in a code comment | registered as `connect-orient-migration-4-backfills-a-value-it-calls-wrong`, cited from the comment and the test |
+| Four audit rows cited spans their evidence sentences were not about | repointed, three of them with `#symbol` anchors |
+
+### Mutation proof
+
+Case counts read from every run.
+
+| Mutation | Result |
+| --- | --- |
+| the three terminations skip the identity again | 3 failed of 25 — one per path |
+| the digest read loses its guard | 1 failed of 18 — the unreadable-file case throws instead of returning |
+| the `result-invalid-studio` refusal drops the derived state | 1 failed of 26 |
+| migration 4 adds `inspector_lost` instead of `inspector` | 1 failed of 6 — the vacuity the reviewer found is gone |
+| a failed write reports success again | 1 failed of 9 |
+
+### Gate
+
+`pnpm lint`, `pnpm typecheck` and `pnpm governance` clean; the audit reads **157 rows, 93 met, 60
+not met, 4 not verifiable here**, every citation resolving. `pnpm test` failed 7 of 814 at load
+166 — a varying set again, disjoint from round 12's — and `pnpm test:capped` was green at **811
+passed, 3 skipped**. The suite grew from 807 cases to 814.
+
+### The lesson worth keeping
+
+A justification is a claim, and this slice tests claims. "These paths cannot determine an
+identity" was never checked against the order the child actually emits its lines; it sounded
+right, and it was written into four records before anything tested it. The cheap check — read the
+producer's emission order — takes a minute and was not done. **Record a reason only after testing
+the reason, not only the behaviour it explains.**

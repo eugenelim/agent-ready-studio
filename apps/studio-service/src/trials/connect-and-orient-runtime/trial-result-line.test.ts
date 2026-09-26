@@ -682,6 +682,41 @@ describe("AC-0064 declaredVersionState is carried through a validation refusal",
     // `absent` not `unreadable`: the declaration was read and names nothing.
     expect(outcome.ok === false && outcome.declaredVersionState).toBe("absent");
   });
+
+  it("carries the derived state through the result-invalid-studio refusal too", () => {
+    // The other refusal site. Round 13 found this one unpinned: deleting
+    // `declaredVersionState` from it left the whole service and storage tree
+    // green, and the contract-mismatch and non-conforming-result paths this
+    // covers are the ones a real repository reaches, unlike an identifier
+    // mismatch between Studio and its own child.
+    const outcome = settledRuntimeOutcome({
+      requestId: "req-studio-minted-one",
+      completedResponse: true,
+      protocolLines: [
+        { type: "materialized", status: 0 },
+        // A result that names another contract is refused as
+        // `result-invalid-studio`, after the clean declared read below has
+        // already produced `declared`.
+        {
+          type: "result",
+          ...CONFORMING,
+          contract: "some-other-contract.v9",
+        },
+      ],
+      resultRefused: false,
+      declared: { reads: [], versionMarker: "0.4" },
+    });
+
+    expect(outcome).toMatchObject({ condition: "inspection-stopped" });
+    expect(outcome.ok === false && outcome.stopReason).toBe(
+      "result-invalid-studio",
+    );
+    // The declaration was read and named a marker, so the state is
+    // `declared` — not the not-determined fallback.
+    expect(outcome.ok === false && outcome.declaredVersionState).toBe(
+      "declared",
+    );
+  });
 });
 
 describe("AC-0061 no verdict is derived from Studio's own reading of the tree", () => {

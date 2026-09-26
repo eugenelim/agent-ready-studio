@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { openStorage } from "./storage.js";
+import { openStorage, SCHEMA_MIGRATIONS } from "./storage.js";
 
 const directories: string[] = [];
 const freshPath = () => {
@@ -329,79 +329,122 @@ describe("SQLite storage integration", () => {
   });
 
   it("migration 4 adds its columns to a populated version-3 database without repeating", () => {
-    // Finding 3. The migration tests opened a fresh database for every run,
-    // so the ALTER TABLE statements were never exercised against an existing
-    // row: a syntax error or a name collision would stay green. This case
-    // opens a pre-existing version-3 row, applies migration 4 through
-    // `openStorage`, and asserts the upgrade path end to end.
+    // The migration tests opened a fresh database for every run, so the ALTER
+    // TABLE statements were never exercised against an existing row: a syntax
+    // error or a name collision would stay green.
+    //
+    // Three things this case has to do that an earlier version did not.
+    // It builds the version-3 schema from `SCHEMA_MIGRATIONS` rather than from
+    // a hand copy, because a hand copy goes on describing a shape production
+    // stopped producing. It seeds every pre-existing column with a distinct
+    // value, so a later migration that rebuilds the table and loses data
+    // reddens here. And it writes an inspector back through the upgraded
+    // table, because reading `null` off a column that was never created looks
+    // exactly like reading `null` off one that was.
     const path = freshPath();
 
-    // Build a version-3 database by hand: run migrations 1-3 manually so the
-    // version-4 ALTER TABLE statements run against a real populated table.
     const seed = new Database(path);
     seed.pragma("foreign_keys = ON");
-    seed.exec(`
-      CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
-      CREATE TABLE workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, blueprint_id TEXT NOT NULL, blueprint_version TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
-      CREATE TABLE actors (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES workspaces(id), name TEXT NOT NULL, kind TEXT NOT NULL);
-      CREATE TABLE artifacts (id TEXT PRIMARY KEY, workspace_id TEXT REFERENCES workspaces(id), accepted_revision_id TEXT);
-      CREATE TABLE artifact_revisions (id TEXT PRIMARY KEY, artifact_id TEXT NOT NULL REFERENCES artifacts(id), schema_version TEXT NOT NULL, content TEXT NOT NULL, producer TEXT NOT NULL, transformation_id TEXT, input_revision_ids TEXT NOT NULL, created_at TEXT NOT NULL);
-      CREATE TABLE artifact_revision_states (id INTEGER PRIMARY KEY, revision_id TEXT NOT NULL REFERENCES artifact_revisions(id), status TEXT NOT NULL, occurred_at TEXT NOT NULL);
-      CREATE TABLE relations (id TEXT PRIMARY KEY, source_revision_id TEXT NOT NULL REFERENCES artifact_revisions(id), target_revision_id TEXT NOT NULL REFERENCES artifact_revisions(id), kind TEXT NOT NULL, label TEXT NOT NULL, UNIQUE(source_revision_id, target_revision_id, kind));
-      CREATE TABLE reviews (id TEXT PRIMARY KEY, revision_id TEXT NOT NULL REFERENCES artifact_revisions(id), status TEXT NOT NULL);
-      CREATE TABLE review_comments (id TEXT PRIMARY KEY, review_id TEXT NOT NULL REFERENCES reviews(id), actor_id TEXT NOT NULL REFERENCES actors(id), body TEXT NOT NULL, created_at TEXT NOT NULL);
-      CREATE TABLE decisions (id TEXT PRIMARY KEY, review_id TEXT NOT NULL REFERENCES reviews(id), revision_id TEXT NOT NULL REFERENCES artifact_revisions(id), actor_id TEXT NOT NULL REFERENCES actors(id), action TEXT NOT NULL, comment TEXT, created_at TEXT NOT NULL);
-      CREATE TABLE transformations (id TEXT PRIMARY KEY, definition TEXT NOT NULL);
-      CREATE TABLE executions (id TEXT PRIMARY KEY, status TEXT NOT NULL);
-      CREATE TABLE execution_events (id INTEGER PRIMARY KEY, execution_id TEXT NOT NULL REFERENCES executions(id), sequence INTEGER NOT NULL, kind TEXT NOT NULL, message TEXT NOT NULL, occurred_at TEXT NOT NULL, UNIQUE(execution_id, sequence));
-      INSERT INTO schema_migrations VALUES (1, '2026-09-09T00:00:00.000Z');
-      ALTER TABLE artifacts ADD COLUMN artifact_type TEXT NOT NULL DEFAULT 'unknown';
-      ALTER TABLE artifacts ADD COLUMN title TEXT NOT NULL DEFAULT '';
-      ALTER TABLE artifacts ADD COLUMN seed_key TEXT;
-      CREATE UNIQUE INDEX artifacts_workspace_seed_key ON artifacts(workspace_id, seed_key) WHERE seed_key IS NOT NULL;
-      ALTER TABLE reviews ADD COLUMN created_at TEXT NOT NULL DEFAULT '2026-09-09T00:00:00.000Z';
-      CREATE UNIQUE INDEX reviews_revision_id ON reviews(revision_id);
-      CREATE UNIQUE INDEX decisions_review_id ON decisions(review_id);
-      ALTER TABLE executions ADD COLUMN workspace_id TEXT REFERENCES workspaces(id);
-      ALTER TABLE executions ADD COLUMN transformation_id TEXT;
-      ALTER TABLE executions ADD COLUMN input_revision_ids TEXT NOT NULL DEFAULT '[]';
-      ALTER TABLE executions ADD COLUMN output_revision_id TEXT;
-      ALTER TABLE executions ADD COLUMN started_at TEXT NOT NULL DEFAULT '2026-09-09T00:00:00.000Z';
-      ALTER TABLE executions ADD COLUMN completed_at TEXT;
-      INSERT INTO schema_migrations VALUES (2, '2026-09-09T00:00:00.000Z');
-      CREATE TABLE connected_sources (id TEXT PRIMARY KEY, owner TEXT NOT NULL, repository TEXT NOT NULL, requested_ref TEXT, resolved_sha TEXT, inspected_at TEXT, verdict TEXT, condition_value TEXT NOT NULL, version_unverified INTEGER NOT NULL DEFAULT 0, diagnostics TEXT NOT NULL DEFAULT '', declared_version_marker TEXT, inspector_contract_version TEXT, provenance TEXT NOT NULL DEFAULT '{}');
-      CREATE UNIQUE INDEX connected_sources_identity ON connected_sources(owner, repository);
-      INSERT INTO schema_migrations VALUES (3, '2026-09-09T00:00:00.000Z');
-    `);
-    // Insert a row with the version-3 schema: no declared_version_state or inspector.
+    for (const migration of SCHEMA_MIGRATIONS) {
+      if (migration.version > 3) break;
+      for (const statement of migration.statements) seed.exec(statement);
+      seed
+        .prepare(
+          "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+        )
+        .run(migration.version, "2026-09-09T00:00:00.000Z");
+    }
+
+    // Every column the version-3 shape has, each with a value nothing else
+    // would produce, so "survived the upgrade" means the value and not the
+    // column.
+    const beforeUpgrade = {
+      id: "source-pre-migration",
+      owner: "acme",
+      repository: "widgets",
+      requested_ref: "refs/heads/release",
+      resolved_sha: "9".repeat(40),
+      inspected_at: "2026-09-24T11:22:33.000Z",
+      verdict: "no-verdict",
+      condition_value: "inspector-unavailable",
+      version_unverified: 1,
+      diagnostics: "a diagnostic written before migration 4",
+      declared_version_marker: "0.7",
+      inspector_contract_version: "1.2",
+      provenance: JSON.stringify({
+        declaredVersionMarker: "repository-derived",
+      }),
+    };
+    const columns = Object.keys(beforeUpgrade).join(", ");
+    const placeholders = Object.keys(beforeUpgrade)
+      .map(() => "?")
+      .join(", ");
     seed
       .prepare(
-        "INSERT INTO connected_sources (id, owner, repository, condition_value, provenance) VALUES (?, ?, ?, ?, ?)",
+        `INSERT INTO connected_sources (${columns}) VALUES (${placeholders})`,
       )
-      .run("source-pre-migration", "acme", "widgets", "resolving", "{}");
+      .run(...Object.values(beforeUpgrade));
     seed.close();
 
-    // First open: applies migration 4 (the two ALTER TABLE statements).
+    // First open applies migration 4 -- the two ALTER TABLE statements.
     const storage = openStorage(path);
 
-    // New columns take their defaults for the pre-existing row.
     const row = storage.getConnectedSource("source-pre-migration");
     expect(row).not.toBeNull();
+
+    // The new columns take their defaults. `absent` is knowingly wrong for a
+    // row written where no declaration was read; correcting those rows is
+    // registered at `connect-orient-migration-4-backfills-a-value-it-calls-wrong`,
+    // so this assertion pins today's behaviour rather than endorsing it.
     expect(row?.declaredVersionState).toBe("absent");
     expect(row?.inspector).toBeNull();
 
-    // Pre-existing columns survive intact.
-    expect(row?.owner).toBe("acme");
-    expect(row?.repository).toBe("widgets");
-    expect(row?.condition).toBe("resolving");
+    // Every pre-existing value survives, not merely every column.
+    expect(row?.owner).toBe(beforeUpgrade.owner);
+    expect(row?.repository).toBe(beforeUpgrade.repository);
+    expect(row?.requestedRef).toBe(beforeUpgrade.requested_ref);
+    expect(row?.resolvedSha).toBe(beforeUpgrade.resolved_sha);
+    expect(row?.inspectedAt).toBe(beforeUpgrade.inspected_at);
+    expect(row?.verdict).toBe(beforeUpgrade.verdict);
+    expect(row?.condition).toBe(beforeUpgrade.condition_value);
+    expect(row?.versionUnverified).toBe(true);
+    expect(row?.diagnostics).toBe(beforeUpgrade.diagnostics);
+    expect(row?.declaredVersionMarker).toBe(
+      beforeUpgrade.declared_version_marker,
+    );
+    expect(row?.inspectorContractVersion).toBe(
+      beforeUpgrade.inspector_contract_version,
+    );
+
+    // The `inspector` column has to be writable, not merely readable as null:
+    // a missing column reads null and would satisfy the assertion above.
+    const inspector = {
+      resolvedPath: "/packs/core/scripts/inspect.py",
+      packName: "core",
+      packVersion: "2.26.14",
+      fileDigests: {
+        "inspect.py": "a".repeat(64),
+        "pack.toml": "b".repeat(64),
+      },
+    };
+    storage.upsertConnectedSource({
+      ...(row as NonNullable<typeof row>),
+      declaredVersionState: "declared",
+      inspector,
+    });
+    const upgraded = storage.getConnectedSource("source-pre-migration");
+    expect(upgraded?.inspector).toEqual(inspector);
+    expect(upgraded?.declaredVersionState).toBe("declared");
 
     storage.close();
 
     // Second open: migration 4 is already recorded and must not run again.
-    // A second ALTER TABLE on the same column would throw; `openStorage`
-    // completing without error is the assertion.
+    // A second ALTER TABLE on the same column would throw, so `openStorage`
+    // completing is the assertion.
     const second = openStorage(path);
-    expect(second.getConnectedSource("source-pre-migration")).not.toBeNull();
+    expect(
+      second.getConnectedSource("source-pre-migration")?.inspector,
+    ).toEqual(inspector);
     second.close();
   });
 

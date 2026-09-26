@@ -354,8 +354,10 @@ open = [
   #
   # Step D, the inspector locator, landed on 2026-09-25: AC-0043 to AC-0046 and
   # AC-0048 are all met, and AC-0043's "with each inspection" was widened the
-  # same day from the one completed-response branch to every path that can
-  # determine an identity. Step E's leftovers (AC-0088, AC-0091, AC-0092) are
+  # same day from the one completed-response branch to every path that carries
+  # the Runtime's interpreter probes. The child emits those probes before it
+  # materializes, so only the contract-mismatch refusal -- which precedes the
+  # probe line -- records no identity. Step E's leftovers (AC-0088, AC-0091, AC-0092) are
   # routed separately at connect-orient-stop-reason-never-resolved.
   #
   # Every module this entry named now has a settled disposition, which is the
@@ -390,6 +392,24 @@ open = [
   # 2026-09-25 as not verifiable here rather than as a defect, by owner
   # decision at notes/verification-ledger.md#owner-decisions-2026-09-25-review-round-12.
   { slug = "connect-orient-wire-the-uncalled-modules", source = "connect-and-orient/2026-09-22" },
+  # Migration 4 backfills a value its own comment calls wrong. The column
+  # `declared_version_state` was added with `DEFAULT 'absent'`, which reads as
+  # "the declaration was read and names no marker". That is right for rows
+  # written from a determined read and wrong for rows written on the
+  # no-valid-result path, where nothing was read and `unreadable` is the true
+  # value. A version-3 row cannot tell the two apart, so correcting them means
+  # deciding what an undistinguishable legacy row should say -- an owner call,
+  # not a repair.
+  #
+  # Until it is taken, an operator reading a legacy row cannot tell a correct
+  # `absent` from a known-wrong one, and
+  # packages/storage-sqlite/src/storage.integration.test.ts pins the wrong
+  # value as current behaviour. Raised by the round-13 reviewers, who noted
+  # that every other open call in this slice carries a slug and this one rested
+  # in a code comment.
+  # Evidence: packages/storage-sqlite/src/storage.ts, migration 4;
+  # notes/verification-ledger.md#review-round-13-2026-09-25.
+  { slug = "connect-orient-migration-4-backfills-a-value-it-calls-wrong", source = "connect-and-orient/2026-09-25" },
 ]
 closed = [
   # Closed 2026-09-25. `pnpm test` keeps its default worker count and a

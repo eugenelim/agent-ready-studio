@@ -580,4 +580,71 @@ describe("AC-0043 inspector identity on non-settled terminal outcomes", () => {
       expect(digest).toMatch(/^[0-9a-f]{64}$/);
     }
   });
+
+  /**
+   * The three terminations that return before the settled path.
+   *
+   * Round 13 found the widening stopped short of them: each returned above
+   * the locator call, so each recorded `inspector: null`. The child emits its
+   * `interpreter` line before it materializes, before it reads the
+   * declaration and before any result line, so all three arrive carrying the
+   * probes an identity needs — the lookup was skipped, not unavailable.
+   */
+  const terminations = [
+    {
+      name: "a failed materialization",
+      record: {
+        completedResponse: false,
+        protocolLines: [
+          { type: "interpreter", probes: terminalProbe },
+          { type: "materialized", status: 1 },
+        ],
+        resultRefused: false,
+        declared: undefined,
+      },
+    },
+    {
+      name: "a refused result line",
+      record: {
+        completedResponse: false,
+        protocolLines: [
+          { type: "interpreter", probes: terminalProbe },
+          { type: "materialized", status: 0 },
+        ],
+        resultRefused: true,
+        declared: undefined,
+      },
+    },
+    {
+      name: "a refused declared read",
+      record: {
+        completedResponse: false,
+        protocolLines: [
+          { type: "interpreter", probes: terminalProbe },
+          { type: "materialized", status: 0 },
+        ],
+        resultRefused: false,
+        declared: { reads: [], refusal: "declaration-too-large" },
+      },
+    },
+  ] as const;
+
+  for (const termination of terminations) {
+    it(`records the inspector identity on ${termination.name}`, () => {
+      const outcome = settledRuntimeOutcome({
+        requestId: MINTED,
+        interpreterSearchList: DELIVERED,
+        inspectorSearchRoot: studioInstallRoot() as string,
+        ...termination.record,
+      } as Parameters<typeof settledRuntimeOutcome>[0]);
+
+      expect(outcome.ok).toBe(false);
+      const inspector = outcome.ok === false ? outcome.inspector : undefined;
+      expect(inspector).not.toBeNull();
+      expect(inspector?.packName).toBe("core");
+      expect(Object.keys(inspector?.fileDigests ?? {}).length).toBeGreaterThan(
+        0,
+      );
+    });
+  }
 });
