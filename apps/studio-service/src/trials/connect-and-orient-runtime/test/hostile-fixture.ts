@@ -14,6 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { PINNED_GIT_CONFIGURATION } from "../git-driver.js";
 
 export const HOSTILE_CASES = [
   "repository-hook",
@@ -84,7 +85,8 @@ export interface HostileFixture {
   source: string;
   worktree: string;
   caseId: HostileCase;
-  pinHooksPath: boolean;
+  /** One product pin to drop, by prefix, so a control can remove a real guard. */
+  omitPinPrefix?: string;
 }
 
 export interface ObservedProcess {
@@ -271,7 +273,7 @@ function populateCase(
 
 export async function buildHostileFixture(
   options: {
-    pinHooksPath?: boolean;
+    omitPinPrefix?: string;
     caseId?: HostileCase;
     boundLimit?: number;
   } = {},
@@ -298,7 +300,7 @@ export async function buildHostileFixture(
     source,
     worktree,
     caseId,
-    pinHooksPath: options.pinHooksPath ?? true,
+    omitPinPrefix: options.omitPinPrefix,
   };
 }
 
@@ -323,6 +325,25 @@ export async function observeProcessTree(
     .map((argv0) => ({ argv0 }));
 }
 
+/**
+ * The `-c` vector this fixture checks out under, taken from the product's own
+ * `PINNED_GIT_CONFIGURATION` rather than restated here. That is the whole point
+ * of the fixture: a pin the product stops setting is a pin this checkout stops
+ * applying, so removing one reddens the control that depends on it instead of
+ * leaving every proof green against a hand-written copy.
+ *
+ * `omitPinPrefix` is how a positive control removes a guard. It drops one
+ * product pin and leaves the rest, so the control demonstrates that *that pin*
+ * is what refuses the hostile behaviour.
+ */
+function materializationPins(fixture: HostileFixture): string[] {
+  return PINNED_GIT_CONFIGURATION.filter(
+    (setting) =>
+      fixture.omitPinPrefix === undefined ||
+      !setting.startsWith(fixture.omitPinPrefix),
+  ).flatMap((setting) => ["-c", setting]);
+}
+
 export async function materialize(fixture: HostileFixture): Promise<void> {
   runGit(fixture.root, [
     "clone",
@@ -330,15 +351,22 @@ export async function materialize(fixture: HostileFixture): Promise<void> {
     fixture.source,
     fixture.worktree,
   ]);
+  if (fixture.caseId === "repository-hook") {
+    // Plant the probe at git's *default* hooks path inside the fresh clone, not
+    // at the `.githooks` path the source tree carries. `core.hooksPath=/dev/null`
+    // is what makes this file unreachable, so this is the only placement under
+    // which dropping that pin lets the hook run. A hook at `.githooks` proves
+    // nothing: git would not have run it with or without the pin. Reaching
+    // `.git/hooks` is realistic — `init.templateDir` seeds it at clone time.
+    write(
+      fixture.worktree,
+      ".git/hooks/post-checkout",
+      "#!/bin/sh\nprintf 'post-checkout\\n' >> \"$STUDIO_PROBE_LOG\"\n",
+      true,
+    );
+  }
   const args = [
-    "-c",
-    `core.hooksPath=${fixture.pinHooksPath ? "/dev/null" : ".githooks"}`,
-    "-c",
-    "core.symlinks=false",
-    "-c",
-    "core.protectHFS=true",
-    "-c",
-    "core.protectNTFS=true",
+    ...materializationPins(fixture),
     "checkout",
     "--detach",
     "HEAD",
@@ -405,7 +433,7 @@ export async function runPositiveControl(
 ): Promise<boolean> {
   const fixture = await buildHostileFixture({
     caseId,
-    pinHooksPath: caseId !== "repository-hook",
+    omitPinPrefix: caseId === "repository-hook" ? "core.hooksPath" : undefined,
   });
   if (caseId === "repository-hook") {
     const seen = await observeProcessTree(() => materialize(fixture));

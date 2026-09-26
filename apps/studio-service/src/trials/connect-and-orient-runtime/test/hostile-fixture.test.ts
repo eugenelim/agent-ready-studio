@@ -27,7 +27,7 @@ afterEach(() => {
 
 // biome-ignore format: approved plan stub must remain byte-identical
 it("AC-0147 a hook probe fires when the guard is removed", async () => {
- const fx = await buildHostileFixture({ pinHooksPath: false });
+ const fx = await buildHostileFixture({ omitPinPrefix: "core.hooksPath" });
  const seen = await observeProcessTree(() => materialize(fx));
  expect(seen.map((p) => p.argv0)).toContain("post-checkout");
 });
