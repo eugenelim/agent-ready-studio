@@ -15,20 +15,19 @@ The spec is [`../spec.md`](../spec.md).
 | | |
 | --- | --- |
 | Worktree | a git worktree of this repository; run every command from its root |
-| Branch | work continues from `main`, which carries everything through PR #17. The `eugenelim/provisional-runtime-build` worktree this file was written in no longer exists; engine state was carried across on 2026-09-25 |
+| Branch | work continues from `main`, which carries everything through PR #17. The `eugenelim/provisional-runtime-build` worktree this file was written in no longer exists; engine state was carried across on 2026-09-25. The `eugenelim/step-e-etc` worktree was then removed **without** carrying it, which is how the run came to be rebuilt on 2026-09-26. Both state files are gitignored, so removing a worktree destroys them |
 | PR | **#14, #15, #16 and #17** merged. #17 carried review rounds 12 to 15 — the `declaredVersionState` honesty repairs, AC-0043's two widenings, the storage and migration work, and the record corrections |
 | Spec status | `Implementing`. The counts live in [`acceptance-audit.md`](acceptance-audit.md) and are generated from its rows — read them there rather than from a copy here |
-| Engine | `CODE-IMPLEMENTATION`. PR #17's human gate was answered by the merge on 2026-09-26 and `blocker-applied` fired, so **the next unit starts here** — do not wait for a decision already given. 64 criteria remain open and the spec stays `Implementing` |
-| Cohort | waves `[['T13']]` at index 0; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 15, `review_retry_count` **12 against a cap of 5**. Rounds 12, 13 and 14 each spent their own owner waiver; round 15 recorded clean and consumed none. **The next round that sustains a finding needs a waiver of its own** |
-| Run id | `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` |
+| Engine | `CODE-IMPLEMENTATION`, transition sequence 5, `last_event` `plan-locked` — the rebuilt run reaches this state through the approval ceremony rather than through `blocker-applied`, which was the dead run's last event. PR #17's human gate was answered by its merge on 2026-09-26, so **the next unit starts here** — do not wait for a decision already given. 64 criteria remain open and the spec stays `Implementing` |
+| Cohort | waves are now the plan's full thirteen, pointer at index 12, whose wave is `['T13']`; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 15, `review_retry_count` **12 against a cap of 5**. Rounds 12, 13 and 14 each spent their own owner waiver; round 15 recorded clean and consumed none. **The next round that sustains a finding needs a waiver of its own** |
+| Run id | `ead54d32-33b1-44b4-8eea-bf76150a5f77`. The earlier `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` is dead — its state files went with the removed `step-e-etc` worktree and the run was rebuilt on 2026-09-26. Ledger entries above that name the old id are historical, not live: [`verification-ledger.md#engine-state-rebuilt-2026-09-26`](verification-ledger.md) |
 | Gate | Read the gate reading from the ledger entry for the round that took it — the latest is [`verification-ledger.md#review-rounds-14-and-15-2026-09-26`](verification-ledger.md). A count copied here is a second source that drifts, which is how this row came to disagree with the ledger written beside it. What does not change: uncapped runs fail a varying set of trial-runtime cases under host load, every failing case passes in isolation, and `pnpm test:capped` is the documented second reading |
 
 **Cohort, beyond the table above.** `plan_review_status: approved`, `implementation_retry_count`
 0. A clean round does not consume a retry, which is why the recorded round count runs ahead of the
 retry count. T14, T12 and T13 were closed by verifying their Done-when rather than re-running
-them. One amendment is in
-`amendment_history` — the 2026-09-23 checkbox refresh — because
-`#cohort-state-loss-and-repair-2026-09-23` records the reset that destroyed the earlier entries.
+them. `amendment_history` is now empty: the 2026-09-26 rebuild started a fresh run and no contract change
+was made during it. The amendment history that matters is in this file and the ledger, not in state.
 
 **A second reset ran on 2026-09-24, and `amendment_history` does not record the amendment it
 served.** The four owner-authorized contract changes at

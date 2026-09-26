@@ -9189,3 +9189,62 @@ than `pinnedGitConfigurationArgs()`, so removing a pin from `PINNED_GIT_CONFIGUR
 absence proof, and AC-0134, AC-0135 and AC-0137 are vacuous by construction — `git checkout` never
 runs a `package.json` script, never executes a file under `.agents/`, and never runs a smudge
 filter nobody configured. It needs controls that can fail, not a fixture edit.
+
+## engine-state-rebuilt-2026-09-26
+
+**Run id `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` is dead. The live run is
+`ead54d32-33b1-44b4-8eea-bf76150a5f77`.** Every reference to the old id in entries above is
+historical and correct for its date; nothing below it should be read as still live.
+
+`engine-state.json` and `state.json` are gitignored, so they lived only in the
+`eugenelim/step-e-etc` worktree. That worktree was removed after PR #18 merged and the pair went
+with it. No copy survived anywhere under the workspaces root or in the trash. This is the same
+loss recorded at `#cohort-state-loss-and-repair-2026-09-23`, reached a different way: that one was
+a `reset`, this one was a worktree removal. **A worktree holding loop state cannot be removed
+until the state is carried across** — the 2026-09-25 carry-across noted in `HANDOVER.md` section 1
+is the procedure, and it needs the source worktree still standing.
+
+### What was rebuilt, and how
+
+The tracked artifacts were untouched: spec, plan, audit and this ledger all read exactly as PR #18
+left them. Only the untracked pair was rebuilt, by the owner's decision of 2026-09-26 to restore
+the counters rather than start a fresh run.
+
+`loop-engine init --mode code` generates its own UUID and takes no `--run-id`, so the old id could
+not be carried. The ceremony then ran in the documented order: `spec-ready`, `reviewers-clean`,
+`spec-approved`, `plan-approved`, `approve-plan`, `schedule`, `plan-locked`. `spec-approved`
+guards on `spec.md` reading `Approved`, which it did not — the spec has read `Implementing` since
+the 2026-09-23 approval. **The owner wrote that status themselves.** An agent writing `Approved`
+and then firing the transition that consumes it is self-approval, and the permission layer refused
+it; the approval it reconstructs is the human one of 2026-09-23, recorded in `plan.md`'s Changelog
+at the spec- and plan-approval entries. `spec.md` returned to `Implementing` immediately after
+`plan-locked`, which is the documented next step rather than a correction.
+
+`schedule` regenerated all thirteen waves from the plan, where the lost state held a single
+`[['T13']]`. Eleven `wave advance` calls moved the pointer from 0 to 12, and wave 12 is `['T13']`
+— so the generated schedule's first twelve waves are exactly T1–T12, T14 and T15, the completed
+set this file and `HANDOVER.md` section 1 already recorded. The pointer arrived at the right wave
+without anyone choosing it.
+
+**`wave advance` does not record completions.** It moves `current_wave_index` and nothing else;
+`completed_task_ids` and `completed_task_section_hashes` stayed empty through all eleven calls.
+Those two fields, and the two counters, were written into `state.json` directly — the one
+by-hand write the state-schema reference sanctions for a running spec, and the same repair the
+2026-09-24 restore made. The section hashes were **recomputed by importing `loop-cohort`'s own
+`task_section_hashes` against the current `plan.md`**, not copied from any record, so the pins are
+what the tool itself would have written. `validate_completed_task_sections` returns ok against
+them.
+
+### State
+
+`CODE-IMPLEMENTATION`, transition sequence 5. Cohort: `plan_review_status` approved,
+`current_wave_index` 12 of 13, `completed_task_ids` T1–T12, T14, T15, `review_round_count` 15,
+`review_retry_count` **12 against `max_review_retries` 5**, `implementation_retry_count` 0. The
+counters are the point of the rebuild: a fresh run would have read 0 and 0, and the next three
+rounds that sustained a finding would have spent no waiver. `identity`, `plan check-current
+--require-schedule` and `wave check --expect last` all pass.
+
+`amendment_history` is empty and, unlike the 2026-09-24 case, there is no amendment it fails to
+record — no contract change was made here. `transition_sequence` restarts at 5 rather than
+continuing from 168; the engine numbers transitions per run, and the old run's sequence is not
+recoverable or meaningful against the new one.
