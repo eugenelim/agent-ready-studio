@@ -9176,3 +9176,16 @@ reads **157 rows, 93 met, 60 not met, 4 not verifiable here**, every citation re
 `pnpm test:capped` green at **811 passed, 3 skipped** of 814. The uncapped run failed 13 of 814 at
 host load 47 with a varying set, `disposal.test.ts` passing 8 of 8 in isolation — the registered
 `pre-existing-trial-runtime-load-flake` on both documented signs.
+
+## pr-17-merged-2026-09-26
+
+PR #17 merged at 06:59:53Z, carrying review rounds 12 to 15. The human gate was answered by that
+merge and `blocker-applied` fired, so the engine sits at `CODE-IMPLEMENTATION` with no work in
+flight: the next unit starts there rather than waiting for a decision already given.
+
+Next cluster, by the owner's decision of 2026-09-25: **security proofs**, twelve criteria. The
+hostile-repository proofs test a fixture's own `git checkout` with a hand-written `-c` list rather
+than `pinnedGitConfigurationArgs()`, so removing a pin from `PINNED_GIT_CONFIGURATION` reddens no
+absence proof, and AC-0134, AC-0135 and AC-0137 are vacuous by construction — `git checkout` never
+runs a `package.json` script, never executes a file under `.agents/`, and never runs a smudge
+filter nobody configured. It needs controls that can fail, not a fixture edit.
