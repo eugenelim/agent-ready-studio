@@ -1,6 +1,6 @@
 # Handover — connect-and-orient
 
-Written 2026-09-22, updated 2026-09-25 after review round 12. Current as of the commit that
+Written 2026-09-22, updated 2026-09-26 after review round 15. Current as of the commit that
 carries it. This is the whole picture, not only the cluster in flight; the cluster section names
 where to start.
 
@@ -16,12 +16,12 @@ The spec is [`../spec.md`](../spec.md).
 | --- | --- |
 | Worktree | a git worktree of this repository; run every command from its root |
 | Branch | `eugenelim/step-e-etc`, tracking `origin`. The `eugenelim/provisional-runtime-build` worktree this file was written in no longer exists; engine state was carried across on 2026-09-25 |
-| PR | **#14, #15 and #16** merged. The review-round-12 repairs on this branch are unmerged |
+| PR | **#14, #15 and #16** merged. Four commits on this branch — the round-12 and round-13 repairs and the round-14 comment fix — are unmerged and need a PR |
 | Spec status | `Implementing`. The counts live in [`acceptance-audit.md`](acceptance-audit.md) and are generated from its rows — read them there rather than from a copy here |
-| Engine | `CODE-IMPLEMENTATION` after `findings-remain`; see `loop-engine status` for the sequence. Round 12's seventeen sustained findings are recorded |
-| Cohort | waves `[['T13']]` at index 0; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 12, `review_retry_count` **10 against a cap of 5**, one owner waiver spent on round 12 |
+| Engine | `CODE-HUMAN-GATE`, awaiting the merge decision on this branch's four commits. **This gate is not a finish** — 64 criteria remain open, so the spec stays `Implementing` and the next unit re-enters through `blocker-applied` |
+| Cohort | waves `[['T13']]` at index 0; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 15, `review_retry_count` **12 against a cap of 5**. Rounds 12, 13 and 14 each spent their own owner waiver; round 15 recorded clean and consumed none |
 | Run id | `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` |
-| Gate | Read the gate reading from the ledger entry for the round that took it — the latest is [`verification-ledger.md#review-round-12-2026-09-25`](verification-ledger.md). A count copied here is a second source that drifts, which is how this row came to disagree with the ledger written beside it. What does not change: uncapped runs fail a varying set of trial-runtime cases under host load, every failing case passes in isolation, and `pnpm test:capped` is the documented second reading |
+| Gate | Read the gate reading from the ledger entry for the round that took it — the latest is [`verification-ledger.md#review-rounds-14-and-15-2026-09-26`](verification-ledger.md). A count copied here is a second source that drifts, which is how this row came to disagree with the ledger written beside it. What does not change: uncapped runs fail a varying set of trial-runtime cases under host load, every failing case passes in isolation, and `pnpm test:capped` is the documented second reading |
 
 **Cohort, beyond the table above.** `plan_review_status: approved`, `implementation_retry_count`
 0. A clean round does not consume a retry, which is why the recorded round count runs ahead of the

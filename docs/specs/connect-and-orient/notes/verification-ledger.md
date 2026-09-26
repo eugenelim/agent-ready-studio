@@ -9139,3 +9139,40 @@ identity" was never checked against the order the child actually emits its lines
 right, and it was written into four records before anything tested it. The cheap check — read the
 producer's emission order — takes a minute and was not done. **Record a reason only after testing
 the reason, not only the behaviour it explains.**
+
+## review-rounds-14-and-15-2026-09-26
+
+Two short rounds that closed the unit.
+
+**Round 14 sustained one defect, found by both reviewers, and it was a defect the repairs
+themselves introduced.** Inserting `SourceInspectionWrite` and `withInspector`, each with its own
+doc comment, put a new comment block between an existing one and the declaration it described. So
+`SourceInspectionStore` and `settledRuntimeOutcome` lost their documentation and the orphaned
+blocks were misattributed to the inserted declarations by any tool that reads them. The quality
+reviewer found one site; the adversarial reviewer found that and a second. Recorded as two
+fingerprints under a third per-round waiver of the retry cap.
+
+The repair moves each inserted declaration above the existing block rather than moving the block,
+which keeps every comment adjacent to what it describes. Its check is the property itself: each of
+the four blocks is read from the file and the declaration immediately after its closing `*/` is
+asserted to be the one it names.
+
+**Round 15 was clean from both reviewers.** The adversarial pass established something worth
+keeping: no acceptance-audit citation falls inside either moved region, and the net line offset
+after each region is zero, so no citation moved and no remap was owed. That is the first change
+this session where the answer to "did this shift the citations" was *no*, established rather than
+assumed.
+
+**Both clean verdicts had to be re-emitted.** Each reviewer returned its clean finding with a
+recap of what it had checked, and the strict classifier refuses a clean report carrying anything
+but the sentinel — `content-before-sentinel`. Both reviewer contracts already say a clean result
+is that one line alone. Asking each to re-emit cost one message and no re-review; the verbose
+returns are retained beside the sentinels for audit.
+
+### Gate
+
+`pnpm verify` exit 0 with `pnpm lint`, `pnpm typecheck` and `pnpm governance` clean; the audit
+reads **157 rows, 93 met, 60 not met, 4 not verifiable here**, every citation resolving.
+`pnpm test:capped` green at **811 passed, 3 skipped** of 814. The uncapped run failed 13 of 814 at
+host load 47 with a varying set, `disposal.test.ts` passing 8 of 8 in isolation — the registered
+`pre-existing-trial-runtime-load-flake` on both documented signs.
