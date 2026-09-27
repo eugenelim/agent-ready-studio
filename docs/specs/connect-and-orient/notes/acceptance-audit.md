@@ -290,12 +290,19 @@ the name is unique across the repository, as in the previous pass.
 
 > **The spec's Testing Strategy line for this group is known false, and is deliberately left unamended.**
 > `spec.md:437` says "Each guardrail property is falsifiable and each carries a positive control at its own
-> observation level." The rows below contradict that: **7 carry falsifiability `N`** (AC-0134, AC-0135, AC-0136, AC-0137, AC-0141, AC-0146, AC-0147) and
-> **3 carry `W`** (AC-0138, AC-0144, AC-0145). A contract amendment was opened on 2026-09-27 and abandoned; see
-> [`verification-ledger.md#owner-decision-2026-09-27-amend-the-falsifiability-claim`](verification-ledger.md).
-> The sentence becomes true when the criteria are rebound, which is
-> `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit`'s work; correcting the sentence before then
-> would only restate what these rows already say. **These rows are governing; that sentence is not.**
+> observation level." **Read the `F` column of the AC-0133 to AC-0147 rows below: every row marked `N` or `W`
+> contradicts it.** No count is written here on purpose — a hand-written total in prose is not covered by
+> `tools/acceptance-audit-counts.py`, which reads the table, and this slice has already lost three review rounds
+> to counts that drifted from the rows they summarised.
+>
+> **No single unit closes this.** `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` owns the `N`
+> rows it lists as members; AC-0147 is owned by `connect-orient-positive-controls-that-remove-no-guard`; and
+> **the `W` rows have no registered owner** — a weak-but-falsifiable binding is a different defect from a proof
+> that cannot redden, and no open entry covers it. Rebinding alone would leave the sentence false.
+>
+> A contract amendment was opened on 2026-09-27 and abandoned after three review rounds; see
+> [`verification-ledger.md#owner-decision-2026-09-27-amend-the-falsifiability-claim`](verification-ledger.md#owner-decision-2026-09-27-amend-the-falsifiability-claim),
+> whose contents are marked unreliable. **These rows are governing; that sentence is not.**
 
 | Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
 | --- | --- | --- | --- | --- |
