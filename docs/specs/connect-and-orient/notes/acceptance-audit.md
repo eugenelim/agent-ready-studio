@@ -95,10 +95,12 @@ carries the line citation, so it is stated once.
   hardcodes it and the marker beside it, and no pipeline branch overwrites either.
 - **`already-in-flight` maps to a state the criterion forbids** (AC-0154). `inspectInRuntime`
   returns `inspection-stopped`, which the *User-visible states* table lists.
-- **Six hostile-repository absence proofs no production mutation can redden** (AC-0134, AC-0135, AC-0136, AC-0137, AC-0141, AC-0146) — distinct from AC-0147's separate defect, that not every positive control removes the guard it certifies. The auditor
-  reproduced guardless checkouts and the probe logs stayed empty: `git checkout` runs no
-  `package.json` script, executes nothing under `.agents/`, and applies no filter when no
-  `filter.probe.smudge` is configured.
+- **Six hostile-repository absence proofs no production mutation can redden** (AC-0134, AC-0135, AC-0136, AC-0137, AC-0141, AC-0146) — distinct from AC-0147's separate defect, that not every positive control removes the guard it certifies. **Three grounds, not one — read each row for its own.**
+  For AC-0134, AC-0135 and AC-0137 the auditor reproduced guardless checkouts and the probe logs
+  stayed empty: `git checkout` runs no `package.json` script, executes nothing under `.agents/`,
+  and applies no filter when no `filter.probe.smudge` is configured. AC-0136 rests on git's own
+  invalid-path check rather than on a pin, AC-0141 on a `.gitmodules` entry carrying no gitlink,
+  and AC-0146 on a path the credential never reaches; none of those three has a probe-log reading.
 
 ## Per-criterion reconciliation
 
@@ -320,9 +322,9 @@ the name is unique across the repository, as in the previous pass.
 | AC-0144 | met | W | absence-proofs.test.ts:467-533#buildHostileFixture; runtime-child.ts:23,37,38 | leg 1 is near-tautological but leg 2 statically audits the real import list of the one process rooted at the state root |
 | AC-0145 | **not met** | W | absence-proofs.test.ts:535-587#credential.helper; runtime-child.ts:855#spawn | the fetch stub wraps a fixture-only git spawn, so no Studio code runs and the real requests go through a subprocess the stub cannot see |
 | AC-0146 | **not met** | N | connected-source.test.ts:334-373 | the planted token is read from the fixture but the persisted record never carries it; the negative runs over a path the credential never reaches |
-| AC-0147 | **not met** | N | hostile-fixture.ts:441-566#runPositiveControl; hostile-fixture.test.ts:111-129#runPositiveControl | the controls do not all remove a guard at the observation level; deleting every pinned configuration entry leaves all 14 controls green |
+| AC-0147 | **not met** | N | hostile-fixture.ts:441-566#runPositiveControl; hostile-fixture.test.ts:114-133#runPositiveControl | the controls do not all remove a guard at the observation level; deleting every pinned configuration entry leaves all 14 controls green |
 | AC-0148 | **not met** | N | e2e/connect-and-orient.test.ts:85-101,:138-160,:83; source-inspection.ts:398#connect | only :163 and :205 are gated; the ungated cases at :91 and :143 submit the accepted URL and connect fires the pipeline, so pnpm test reaches github.com |
-| AC-0149 | met | S | hostile-fixture.test.ts:36-100#HOSTILE_CASES; hostile-fixture.ts:19-68,136-155#HOSTILE_CASES | exact-equality assertions pin all 19 cases and the 18 criterion-to-case entries, with the checkout-observable entry built into the source ODB before checkout |
+| AC-0149 | met | S | hostile-fixture.test.ts:38-112#HOSTILE_CASES; hostile-fixture.ts:19-68,136-155#HOSTILE_CASES | exact-equality assertions pin all 19 cases and the 18 criterion-to-case entries, with the checkout-observable entry built into the source ODB before checkout |
 | AC-0150 | met | N | docs/product/research/connect-and-orient-trial-runtime-evidence.md:17-142 | all twelve required subjects have their own section; no test or governance check reads the note |
 | AC-0151 | met | N | docs/product/research/connect-and-orient-trial-runtime-evidence.md:51-72 | a six-row table classifies each held item Needed or Inherited with its ground |
 | AC-0152 | met | N | docs/product/research/connect-and-orient-trial-runtime-evidence.md:186-190 | states in bold which properties were mandated by the specification rather than discovered, and how to discount it |

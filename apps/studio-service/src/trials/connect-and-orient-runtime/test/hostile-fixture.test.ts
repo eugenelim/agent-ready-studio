@@ -7,7 +7,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // (6.9s, 9.5s and 12.9s observed under concurrent load), so the suite is given a
 // generous file-level budget. This is a scheduling allowance, not a slow assertion:
 // each test still fails on its own assertion, and the budget is set here rather
-// than per test so the approved AC-0147 stub block stays byte-identical to plan.md.
+// than per test. The stub block below has **diverged** from plan.md's pinned T1 text:
+// `pinHooksPath: false` became `omitPinPrefix: "core.hooksPath"` when the fixture was bound to
+// PINNED_GIT_CONFIGURATION, and T1 is a completed pinned section that cannot be edited. The
+// exemption is kept so the block stays diffable against that pinned text, not because it matches.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 import {
@@ -25,7 +28,7 @@ afterEach(() => {
   disposeHostileFixtures();
 });
 
-// biome-ignore format: approved plan stub must remain byte-identical
+// biome-ignore format: kept diffable against plan.md's pinned T1 stub, which has diverged
 it("AC-0147 a hook probe fires when the guard is removed", async () => {
  const fx = await buildHostileFixture({ omitPinPrefix: "core.hooksPath" });
  const seen = await observeProcessTree(() => materialize(fx));

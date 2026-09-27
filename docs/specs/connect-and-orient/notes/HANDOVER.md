@@ -1,6 +1,6 @@
 # Handover — connect-and-orient
 
-Written 2026-09-22, updated 2026-09-26 after PR #17 merged. Current as of the commit that
+Written 2026-09-22, updated 2026-09-27 after the abandoned contract amendment. Current as of the commit that
 carries it. This is the whole picture, not only the cluster in flight; the cluster section names
 where to start.
 
@@ -19,7 +19,7 @@ The spec is [`../spec.md`](../spec.md).
 | PR | **#14, #15, #16 and #17** merged. #17 carried review rounds 12 to 15 — the `declaredVersionState` honesty repairs, AC-0043's two widenings, the storage and migration work, and the record corrections |
 | Spec status | `Implementing`. The counts live in [`acceptance-audit.md`](acceptance-audit.md) and are generated from its rows — read them there rather than from a copy here |
 | Engine | the rebuilt run reaches `CODE-IMPLEMENTATION` through the approval ceremony rather than through `blocker-applied`, which was the dead run's last event. Read the current state, sequence and `last_event` from `engine-state.json` rather than from a copy here. PR #17's human gate was answered by its merge on 2026-09-26, so **the next unit starts here** — do not wait for a decision already given. The open-criterion count lives in [`acceptance-audit.md`](acceptance-audit.md) and is generated from its rows; the spec stays `Implementing` while any accepted criterion is open |
-| Cohort | waves are now the plan's full thirteen, pointer at index 12, whose wave is `['T13']`; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 17, `review_retry_count` **14 against a cap of 5** — read the live values from `state.json`, which owns them. Rounds 12, 13 and 14 each spent their own owner waiver; round 15 recorded clean and consumed none; rounds 16 and 17 each spent one. **The next round that sustains a finding needs a waiver of its own** |
+| Cohort | `completed_task_ids` T1–T12, T14, T15. **Read the counters and the wave shape from `state.json`, which owns them, or from [`verification-ledger.md#approvals-2026-09-27`](verification-ledger.md#approvals-2026-09-27), which records the post-ceremony state.** A count copied into this row has drifted twice. What does not change: rounds that sustain findings each spend an owner-granted waiver against a cap of 5, and the cap is deliberately not raised |
 | Run id | `ead54d32-33b1-44b4-8eea-bf76150a5f77`. The earlier `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` is dead — its state files went with the removed `step-e-etc` worktree and the run was rebuilt on 2026-09-26. Ledger entries above that name the old id are historical, not live: [`verification-ledger.md#engine-state-rebuilt-2026-09-26`](verification-ledger.md) |
 | Gate | Read the gate reading from the ledger entry for the round that took it — the latest is [`verification-ledger.md#review-rounds-16-and-17-2026-09-26`](verification-ledger.md). A count copied here is a second source that drifts, which is how this row came to disagree with the ledger written beside it. What does not change: uncapped runs fail a varying set of trial-runtime cases under host load, every failing case passes in isolation, and `pnpm test:capped` is the documented second reading |
 
@@ -44,8 +44,14 @@ rounds and 9 retries.
 its heading to EOF, so T15's pin spans `## Rollout`, `## Risks` and the whole `## Changelog`. Every
 amendment in this plan appends a Changelog entry, so **the next one will refuse as though a
 completed task had been edited.** The workaround is at
-`#cohort-state-loss-and-repair-2026-09-23`: set the entry aside, run the ceremony against the
-pinned text, re-add it afterwards. Meet it as a known step rather than at the point of refusal.
+`#cohort-state-loss-and-repair-2026-09-23` — set the entry aside, run the ceremony against the
+pinned text, re-add it afterwards — **does not work, and the 2026-09-23 entry already calls it "a
+defect with a delay on it, not a resolution".** Both routes were tried and measured on 2026-09-27:
+appending during the ceremony makes `approve-plan` refuse with "completed task section changed:
+T15", and appending after `plan-locked` breaks the plan baseline, whose only offered recovery is a
+cohort reset that clears the retry counters. **Do not re-add the entry.** Put the approval record
+in the ledger, as [`#approvals-2026-09-27`](verification-ledger.md#approvals-2026-09-27) does, and
+see the registered `loop-cohort-last-task-pin-swallows-the-changelog` for the fix.
 
 **The review cap is already exceeded and will block.** `findings-remain` and
 `review record --fingerprint` both refuse at or above `max_review_retries`. A round that sustains
@@ -71,7 +77,7 @@ never been assembled — `resolveRevision`, `materializeRevision`, `startTrialIn
 retraction at `#retraction-2026-09-19-t12-t13-delivery-claims`.
 
 This session ran the first reconciliation of all 157 criteria against the tree, then started
-closing the largest cluster. Fifteen review rounds. The verdicts moved 82 → 75 as `met` rows
+closing the largest cluster. The round count lives in `state.json` and the ledger; do not copy it here. The verdicts moved 82 → 75 as `met` rows
 were **tested rather than read**, then 75 → 77 as work landed.
 
 **Two reading habits caused every false `met` found:** trusting a row's note instead of the
