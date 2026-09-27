@@ -455,6 +455,20 @@ open = [
   # the escaping-reader-path, option-shaped-ref and authorization-header cases;
   # notes/acceptance-audit.md, the AC-0147 row.
   { slug = "connect-orient-positive-controls-that-remove-no-guard", source = "connect-and-orient/2026-09-27" },
+  # plan.md's Changelog cannot carry an approval entry. _task_sections gives the
+  # last task everything from its heading to end of file, so T15's pinned
+  # section spans ## Rollout, ## Risks and the whole ## Changelog. Appending
+  # during the ceremony makes approve-plan refuse ("completed task section
+  # changed: T15"); appending after plan-locked breaks the plan baseline, and
+  # the only offered recovery is a cohort reset that clears the retry counters.
+  # Measured both ways on 2026-09-27. The Changelog header says "Approval
+  # decisions only", so the record it exists to hold is the one it cannot take;
+  # the 2026-09-27 approvals live in the ledger instead. Fixing this means
+  # bounding the last task's section at the next top-level heading rather than
+  # at EOF, which is a change to loop-cohort's _task_sections.
+  # Evidence: .claude/skills/work-loop/scripts/loop-cohort.py, _task_sections at :585;
+  # notes/verification-ledger.md#cohort-state-loss-and-repair-2026-09-23.
+  { slug = "loop-cohort-last-task-pin-swallows-the-changelog", source = "connect-and-orient/2026-09-27" },
 ]
 closed = [
   # Closed 2026-09-25. `pnpm test` keeps its default worker count and a

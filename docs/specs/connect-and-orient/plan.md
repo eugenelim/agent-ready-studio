@@ -1,7 +1,7 @@
 # Plan: Connect and Orient — connect and see the verdict
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `docs/architecture/reference.md`;
  `apps/desktop/src/main/index.ts` (argv-array child spawn, NDJSON transport,
  SIGTERM shutdown — the supervision precedent this plan reuses);

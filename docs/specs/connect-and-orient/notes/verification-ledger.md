@@ -9501,3 +9501,31 @@ the historical text, not the claim inside it.
 **One finding was refuted:** the amendment's missing Changelog entry is the recorded sequence, not
 an omission. T15's pin spans the whole Changelog, so the entry is deliberately set aside until the
 approval gate, where it becomes due.
+
+
+## approvals-2026-09-27
+
+**Both gates were given by the owner and are recorded here, not in `plan.md`'s Changelog.**
+The spec gate and the plan gate were both answered on 2026-09-27; `spec.md` and `plan.md` were set
+to `Approved` by the owner, `approve-plan` re-pinned `0171ca6f` and `7bf646e9` — the same hashes as
+before the abandoned amendment, which is independent proof the revert was complete — `schedule`
+emitted the single unfinished task `[['T13']]`, and `plan-locked` returned the engine to
+`CODE-IMPLEMENTATION` at sequence 27. `spec.md` is back to `Implementing`.
+
+**Why the Changelog does not carry them.** It cannot. `_task_sections` gives the last task
+everything from its heading to end of file, so T15's pinned section spans the whole Changelog.
+Appending during the ceremony makes `approve-plan` refuse with "completed task section changed:
+T15"; appending after `plan-locked` breaks the plan baseline, and the only recovery the tool offers
+is a cohort reset that clears the retry counters — the loss this run already suffered once. Both
+routes were tried on 2026-09-27 and both were measured, not assumed. Registered as
+`loop-cohort-last-task-pin-swallows-the-changelog`.
+
+So a plan whose Changelog header reads "Approval decisions only" cannot record the approval
+decision that seals it, and the gap is structural rather than an oversight. **This entry is that
+record.** The retraction of T1's and T11's non-vacuity claims, which the Changelog entry would also
+have carried, is at `#owner-decision-2026-09-27-amend-the-falsifiability-claim`.
+
+**Cohort after the ceremony:** `plan_review_status` approved, `completed_task_ids` T1–T12, T14,
+T15, waves `[['T13']]` at index 0 which is the last wave, `review_round_count` 19,
+`review_retry_count` 16 against a cap of 5. `plan check-current --require-schedule` and
+`wave check --expect last` both pass.
