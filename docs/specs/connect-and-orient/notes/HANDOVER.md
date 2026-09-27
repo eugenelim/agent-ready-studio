@@ -115,7 +115,7 @@ after. Only their transport-helper clauses need the smoke, and those are carried
 **A. Modules written, tested, called by nothing — closed as a cluster.** The wiring landed and
 every module named in it has a disposition; three reporting clauses remain. See §4.
 
-**B. Hostile-repository proofs — 11 open of 13.** The re-implementation is gone:
+**B. Hostile-repository proofs — 7 open of the 13 rows AC-0133 to AC-0145**, counted from the audit rather than copied: AC-0134, AC-0135, AC-0136, AC-0137, AC-0138, AC-0141 and AC-0145. Regenerate it from the rows; do not trust this sentence over them. The re-implementation is gone:
 `test/hostile-fixture.ts:339-345#materializationPins` builds the checkout vector by filtering the
 product's `PINNED_GIT_CONFIGURATION`, and `:347-401#materialize` spreads it into the checkout, so
 removing a pin now reddens the proofs that depend on it. **AC-0133 and AC-0139 are closed on that

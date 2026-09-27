@@ -9338,3 +9338,45 @@ tree mid-mutation, found `core.hooksPath=/dev/null` missing, and **declined to e
 — so all eight of its findings are source-reading only, which it declared in its `## Not checked`
 footer rather than reporting results it had not measured. The review was degraded, not wrong, and
 the cause was the dispatch. Round 17's reviewer was given its own worktree.
+
+### Correction to this entry, 2026-09-26, from round 18
+
+**Two claims above are wrong and are corrected here rather than rewritten in place.**
+
+**The `git-driver.ts` sweep was not exhaustive.** The entry says the round-17 adjudicator "swept
+every `git-driver.ts:<n>` citation in the audit and confirmed AC-0141 was the only remaining
+disagreement". Round 18 found a second: AC-0009 cited `git-driver.ts:16-34,89`, and `:89` is
+`function parseResolutionOutput(`, the stdout parser, while the row's prose is about the vector
+every child emits — built at `:86`. The citation is repointed to `,86`. The tree cannot show
+whether the sweep missed it or the sentence went stale afterwards; either way the sentence
+misleads a reader who trusts it instead of re-sweeping, so **treat no sweep recorded here as
+exhaustive**.
+
+**The anchor conversion was reported as a proven class repair. It is not.** The entry's proof was
+a single mutation: 60 lines inserted inside AC-0145's span failed the gate with "no longer
+contains `credential.helper`". That works because `credential.helper` occurs once. Round 18
+measured the class and the controller reproduced it: a 10-line insertion after
+`absence-proofs.test.ts:88` leaves **six of eleven anchored citations green while stale** —
+AC-0047, AC-0136, AC-0137, AC-0139, AC-0143 and AC-0144 — because `buildHostileFixture` occurs on
+21 lines of that file and a shifted wide span still contains one. The same holds for AC-0134,
+AC-0135 and AC-0137 in `test/hostile-fixture.ts`, three adjacent spans anchored on the same
+`STUDIO_PROBE_LOG`.
+
+**One passing mutation proved the mechanism exists, not that it covers the population.** Prove a
+class repair on its weakest member — the most common token over the widest span — not its
+luckiest. This is the third instance in this slice of a reason recorded beside a correct repair
+and never tested; the first two were found in inherited work, and this one was written here.
+
+**Why hand-anchoring cannot finish the job.** The anchor grammar `[A-Za-z_][\w.]*`
+(`tools/acceptance-audit-counts.py:70`) rejects hyphens and `=`, so `AC-0136`,
+`package-script.mjs`, `filter=probe`, `escaping-symlink` and `.gitmodules` are not valid anchors.
+And `_anchor_in_span` returns on the first matching part of a multi-part citation, so every later
+part goes anchor-unchecked — which is exactly how AC-0009's `,89` passed. Closing the class needs
+a change to that tool, not better token picking.
+
+**By the owner's decision of 2026-09-26, citation integrity is a separate unit** whose first task
+is that tool change: widen or replace the anchor grammar, and check the anchor per part. Carried
+into it: the six weak anchors, `_anchor_in_span`'s multi-part gap, AC-0008 and AC-0142 anchoring
+on `buildFetchUrl` where their subject is `canonicalizeSource`, HANDOVER's unchecked prose
+citations, and the ~350 bare citations in rows this slice never touched. Round 18 spent the
+session's third owner-granted waiver, taking `review_retry_count` to 15 against a cap of 5.
