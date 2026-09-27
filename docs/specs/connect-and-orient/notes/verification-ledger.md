@@ -9551,3 +9551,52 @@ the `82 → 75 → 77` trajectory to 2026-09-22 (`#review-round-53-2026-09-22` a
 another day's total. **Freezing a reading fixes the number; it does not fix the date, and a wrong
 date on a frozen figure is worse than no stamp** because it invites exactly the cross-reading the
 freeze exists to prevent. Both are corrected, and the paragraph now says which quantity it counts.
+
+## review-record-gap-2026-09-27
+
+**`review_round_count` reads 19 and the cohort's record is correct for what it counts. It does not
+count everything that ran.** This entry is the true history, by owner decision of 2026-09-27 not to
+spend a fifth retry-cap waiver reconstructing fingerprints for findings already fixed and verified.
+
+**Counted, adjudicated and recorded — four rounds, four owner-granted waivers**, taking
+`review_retry_count` from 12 to 16 against a cap of 5. Each has both artifacts under
+`.context/reviews/ead54d32-33b1-44b4-8eea-bf76150a5f77/`, which is gitignored:
+
+- Round 16 — adversarial, quality-engineer and security-reviewer. Three reports, three
+  adjudications. The security pass was degraded: a concurrent reviewer was mutating the shared
+  tree, so it executed nothing and said so in its `## Not checked` footer.
+- Round 17 — adversarial.
+- Round 18 — adversarial.
+- Round 19 — adversarial, plus the security re-run in its own worktree that measured all thirteen
+  pin deletions. That table is the strongest evidence in this unit and exists only because the
+  round-16 dispatch error was repaired rather than banked.
+
+**Not counted by `review_round_count`, correctly — the pre-EXECUTE spec-amendment rounds.** These
+belong to the contract ceremony, not to implementation review:
+
+- Amendment review 1 — persisted and adjudicated as `20-pre-execute-*`.
+- Amendment review 2, on the first rewrite — six sustained blockers. **No artifact.** Applied after
+  deriving the criteria table; not persisted, not adjudicated.
+- Amendment review 3, the derived-table convergence check — raw persisted as `22-pre-execute-*`,
+  **no adjudication**; the owner stopped the amendment at this point and it was abandoned.
+
+**Ran, fixed, and has no artifact at all** — four adversarial rounds after the abandonment, each
+verified directly against the tree rather than adjudicated, and each fix gated:
+
+- The reverted-state review: four concerns, two nits.
+- The final whole-unit review: two blockers, three concerns. Both blockers were in `HANDOVER.md`;
+  one would have routed the next session into the step that breaks the plan baseline.
+- The confirming round: one concern, a copied `met` count.
+- The final confirmation: one blocker, one concern — the misdated frozen reading and a control
+  count no derivation supported.
+
+**Why they were verified rather than adjudicated.** Every finding in those four was a mechanical
+check — a line number, a count, a text mismatch — confirmed by reading the cited location. One was
+a live trap, and dispatching an adjudicator would have left it sitting while the agent ran. That
+was a deliberate trade and it is recorded here rather than hidden behind a counter that looks
+tidy.
+
+**What this costs a reader.** The four unartifacted rounds exist only in the session transcript.
+Their findings are visible in the commits that fixed them — `77409c9`, `fb666eb` and `408f864`
+each name what they repair — but there is no reviewer text to re-read. **Do not infer from
+`review_round_count` how much review this unit received; read this entry.**
