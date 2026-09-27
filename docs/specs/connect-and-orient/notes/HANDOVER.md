@@ -136,7 +136,8 @@ never runs a smudge filter nobody configured; **AC-0136** because git refuses `i
 '.GIT'` with `core.protectHFS=false` and `core.protectNTFS=false` both set explicitly, so the
 guard is git's own path check and not a pin; and **AC-0141** because the fixture writes
 `.gitmodules` as plain text with no gitlink, so nothing can recurse into it. All five are routed
-to the spawn-audit surface by the owner's decision of 2026-09-26 — `spawnAudited`
+to the spawn-audit surface by the owner's decision of 2026-09-26, registered as
+`connect-orient-rebind-the-five-vacuous-criteria-to-the-spawn-audit` in `workspace.toml` — `spawnAudited`
 (`executable-identity.ts:28`) is the Service's only process-start primitive for this trial and
 every entry records an absolute `executable`, so "Studio never executes anything out of the
 materialized worktree" is a property that can fail. **Highest risk reduction per criterion, no new

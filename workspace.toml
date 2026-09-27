@@ -410,6 +410,33 @@ open = [
   # Evidence: packages/storage-sqlite/src/storage.ts, migration 4;
   # notes/verification-ledger.md#review-round-13-2026-09-25.
   { slug = "connect-orient-migration-4-backfills-a-value-it-calls-wrong", source = "connect-and-orient/2026-09-25" },
+  # Audit citations are checked for resolution, not for pointing at their
+  # subject, so a citation that drifts onto the wrong code stays green. Three
+  # consecutive review rounds found drift the gate could not see. Converting 28
+  # citations to the `file:line#symbol` form narrowed it but did not close it:
+  # six of eleven anchors still survive a shift, because any token the span
+  # still contains satisfies `_anchor_in_span`. First task is the tool, not the
+  # citations — the anchor grammar `[A-Za-z_][\w.]*` rejects the unique tokens
+  # that would work (`AC-0136`, `package-script.mjs`, `filter=probe`), and
+  # `_anchor_in_span` clears a whole multi-part citation from its first
+  # matching part. ~350 rows still carry bare line references.
+  # Evidence: tools/acceptance-audit-counts.py, CITATION at :68 and
+  # _anchor_in_span at :442; notes/verification-ledger.md#review-rounds-16-and-17-2026-09-26.
+  { slug = "connect-orient-audit-citations-need-a-checkable-anchor-form", source = "connect-and-orient/2026-09-27" },
+  # Five criteria assert controls that cannot fail. AC-0134, AC-0135 and
+  # AC-0137 because `git checkout` never runs a package.json script, never
+  # executes a file under .agents/ and never runs a smudge filter nobody
+  # configured; AC-0136 because git refuses `invalid path '.GIT'` with
+  # core.protectHFS=false and core.protectNTFS=false both set explicitly, so
+  # the guard is git's own path check; AC-0141 because the fixture writes
+  # .gitmodules as plain text with no gitlink. Owner decision 2026-09-26:
+  # rebind all five onto the spawn audit, where `spawnAudited` is the Service's
+  # only process-start primitive for this trial and every entry records an
+  # absolute executable — so "Studio never executes anything out of the
+  # materialized worktree" is a property that can fail.
+  # Evidence: apps/studio-service/src/trials/connect-and-orient-runtime/executable-identity.ts:28;
+  # notes/acceptance-audit.md, the AC-0136 row.
+  { slug = "connect-orient-rebind-the-five-vacuous-criteria-to-the-spawn-audit", source = "connect-and-orient/2026-09-27" },
 ]
 closed = [
   # Closed 2026-09-25. `pnpm test` keeps its default worker count and a

@@ -9293,9 +9293,12 @@ block while still resolving, so `pnpm governance` stayed green throughout. It al
 citing `protocol.version=2` where its prose names `submodule.recurse` — the identical off-by-one
 that round 16 had fixed for AC-0133, applied to the instance rather than the class. The
 adjudicator swept every `git-driver.ts:<n>` citation in the audit and confirmed AC-0141 was the
-only remaining disagreement.
+only remaining disagreement. ~~[STRUCK]~~ **Wrong — round 18 found AC-0009 as a second
+disagreement. See [the correction below](#correction-to-this-entry-2026-09-26-from-round-18).**
 
-**The generator is the citation format.** The audit carries 404 citations across 157 rows and only
+**The generator is the citation format.** ~~[STRUCK in part]~~ **The conversion narrows the gap
+but does not close it; see [the correction below](#correction-to-this-entry-2026-09-26-from-round-18).**
+The audit carries 404 citations across 157 rows and only
 16 use the self-checking `file:line#symbol` form; `_anchor_in_span`
 (`tools/acceptance-audit-counts.py:442`) fails the gate when an anchored citation's symbol leaves
 its span, while a bare line reference only has to resolve. Three consecutive rounds of drift came
@@ -9312,7 +9315,9 @@ the document the next unit is chosen from.
 
 AC-0133 and AC-0139 move to **met** at strength **S**, each reddening when its own pin is removed.
 AC-0136 and AC-0141 are newly recorded **vacuous by construction**, joining AC-0134, AC-0135 and
-AC-0137; all five route to the spawn-audit surface. The audit reads **157 rows, 95 met, 58 not
+AC-0137; all five route to the spawn-audit surface, registered as
+`connect-orient-rebind-the-five-vacuous-criteria-to-the-spawn-audit` in `workspace.toml`, which is
+where that obligation lives. The audit reads **157 rows, 95 met, 58 not
 met, 4 not verifiable here**, every citation resolving, and the met set agrees with `spec.md`'s
 `[x]` set at 95 in both directions.
 
@@ -9352,18 +9357,30 @@ whether the sweep missed it or the sentence went stale afterwards; either way th
 misleads a reader who trusts it instead of re-sweeping, so **treat no sweep recorded here as
 exhaustive**.
 
-**The anchor conversion was reported as a proven class repair. It is not.** The entry's proof was
-a single mutation: 60 lines inserted inside AC-0145's span failed the gate with "no longer
-contains `credential.helper`". That works because `credential.helper` occurs once. Round 18
-measured the class and the controller reproduced it: a 10-line insertion after
+**The anchor conversion does not close the class.** The sentence retracted here is "**The
+generator is the citation format**" and the passage following it, which presents the conversion as
+a generator-level repair. The proof offered for that repair was a single mutation — 60 lines
+inserted inside AC-0145's span, failing the gate with "no longer contains `credential.helper`" —
+and that proof was stated in the round-17 commit message, not in this entry; the entry asserts the
+repair without it.
+
+Round 18 measured the class and the controller reproduced it: a 10-line insertion after
 `absence-proofs.test.ts:88` leaves **six of eleven anchored citations green while stale** —
-AC-0047, AC-0136, AC-0137, AC-0139, AC-0143 and AC-0144 — because `buildHostileFixture` occurs on
-21 lines of that file and a shifted wide span still contains one. The same holds for AC-0134,
-AC-0135 and AC-0137 in `test/hostile-fixture.ts`, three adjacent spans anchored on the same
-`STUDIO_PROBE_LOG`.
+AC-0047, AC-0136, AC-0137, AC-0139, AC-0143 and AC-0144. The same holds for AC-0134, AC-0135 and
+AC-0137 in `test/hostile-fixture.ts`.
+
+**The mechanism is a common token anywhere in a wide span, not one particular token.** Of the six,
+only AC-0139, AC-0143 and AC-0144 anchor on `buildHostileFixture` (21 occurrences); AC-0047 and
+AC-0137 anchor on `PROBE_LOG_MARKER` and AC-0136 on `protectNTFS`, and the three
+`test/hostile-fixture.ts` spans share `STUDIO_PROBE_LOG`. Any token the span still contains after
+a shift satisfies the check. **And the AC-0145 mutation reddened because both `credential.helper`
+occurrences sit at lines 572-573, at the tail of span 530-574, where a shift pushes them out — not
+because the token is unique.** It occurs twice. So the rule for the next unit is *position and
+distribution within the span*, not raw token frequency.
 
 **One passing mutation proved the mechanism exists, not that it covers the population.** Prove a
-class repair on its weakest member — the most common token over the widest span — not its
+class repair on its weakest member — the token most likely to survive a shift, which means one
+that recurs through a wide span rather than clustering at its edge — not its
 luckiest. This is the third instance in this slice of a reason recorded beside a correct repair
 and never tested; the first two were found in inherited work, and this one was written here.
 
@@ -9374,8 +9391,10 @@ And `_anchor_in_span` returns on the first matching part of a multi-part citatio
 part goes anchor-unchecked — which is exactly how AC-0009's `,89` passed. Closing the class needs
 a change to that tool, not better token picking.
 
-**By the owner's decision of 2026-09-26, citation integrity is a separate unit** whose first task
-is that tool change: widen or replace the anchor grammar, and check the anchor per part. Carried
+**By the owner's decision of 2026-09-26, citation integrity is a separate unit**, registered as
+`connect-orient-audit-citations-need-a-checkable-anchor-form` in `workspace.toml [backlog].open` —
+that entry is the obligation, and this paragraph is only a note about it. Its first task is the
+tool change: widen or replace the anchor grammar, and check the anchor per part. Carried
 into it: the six weak anchors, `_anchor_in_span`'s multi-part gap, AC-0008 and AC-0142 anchoring
 on `buildFetchUrl` where their subject is `canonicalizeSource`, HANDOVER's unchecked prose
 citations, and the ~350 bare citations in rows this slice never touched. Round 18 spent the
