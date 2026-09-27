@@ -9600,3 +9600,29 @@ tidy.
 Their findings are visible in the commits that fixed them — `77409c9`, `fb666eb` and `408f864`
 each name what they repair — but there is no reviewer text to re-read. **Do not infer from
 `review_round_count` how much review this unit received; read this entry.**
+
+
+## pr-19-merged-2026-09-27
+
+Merged at `462e2fa`, 2026-09-27 10:52Z. The human gate was answered by that merge and
+`blocker-applied` fired, so the engine sits at `CODE-IMPLEMENTATION` with no work in flight: the
+next unit starts there rather than waiting for a decision already given. The spec stays
+`Implementing`; this was an intermediate unit of an incomplete intent, declared with
+`reviewers-clean --intent-incomplete`.
+
+**What closed.** The hostile-repository proofs now exercise the product's pinned configuration
+rather than a hand-written copy of it. AC-0133 and AC-0139 are met at strength `S`, each reddening
+when its own pin is removed. Six criteria are recorded vacuous by construction where the audit had
+established three.
+
+**What did not, and is registered.** Eleven of thirteen pins still have no behavioural proof,
+because the fixture models a `clone` the product never runs. The spec's Testing Strategy line for
+this group remains knowingly false, its contradiction recorded in the audit rather than corrected.
+The `W` rows AC-0138, AC-0144 and AC-0145 have no registered owner. AC-0136's Unicode-ignorable arm
+is neither built nor measured. Four `[backlog].open` entries carry the routed work, one of them a
+tooling defect affecting every spec in this repository.
+
+**Read before choosing the next unit:** `#review-record-gap-2026-09-27` for what the review counter
+does not count, and `#a-digit-sweep-cannot-see-a-word-2026-09-27` for why a clean sweep is a claim
+about its pattern. The counts and the wave shape live in `acceptance-audit.md` and `state.json`;
+this file holds neither.
