@@ -130,14 +130,16 @@ the redirect, object-integrity, credential, submodule and transport pins have no
 local-path clone could not exercise some of them even if pinned. Three of the fourteen positive
 controls still remove no guard.
 
-**Five criteria are vacuous by construction**, not three: AC-0134, AC-0135 and AC-0137 because
+**Six criteria are vacuous by construction**, not three: AC-0134, AC-0135 and AC-0137 because
 `git checkout` never runs a `package.json` script, never executes a file under `.agents/` and
-never runs a smudge filter nobody configured; **AC-0136** because git refuses `invalid path
+never runs a smudge filter nobody configured; **AC-0136** for its case-insensitive arm only — git refuses `invalid path
 '.GIT'` with `core.protectHFS=false` and `core.protectNTFS=false` both set explicitly, so the
-guard is git's own path check and not a pin; and **AC-0141** because the fixture writes
-`.gitmodules` as plain text with no gitlink, so nothing can recurse into it. All five are routed
+guard is git's own path check and not a pin. **Its Unicode-ignorable arm is neither built nor
+measured**, and `core.protectHFS` is the pin that would guard it, so that arm is open, not vacuous; **AC-0141** because the fixture writes
+`.gitmodules` as plain text with no gitlink, so nothing can recurse into it; and **AC-0146**
+because the credential negative runs over a path the credential never reaches. All five are routed
 to the spawn-audit surface by the owner's decision of 2026-09-26, registered as
-`connect-orient-rebind-the-five-vacuous-criteria-to-the-spawn-audit` in `workspace.toml` — `spawnAudited`
+`connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` in `workspace.toml` — `spawnAudited`
 (`executable-identity.ts:28`) is the Service's only process-start primitive for this trial and
 every entry records an absolute `executable`, so "Studio never executes anything out of the
 materialized worktree" is a property that can fail. **Highest risk reduction per criterion, no new

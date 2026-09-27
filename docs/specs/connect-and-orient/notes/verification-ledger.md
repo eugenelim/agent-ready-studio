@@ -9315,8 +9315,8 @@ the document the next unit is chosen from.
 
 AC-0133 and AC-0139 move to **met** at strength **S**, each reddening when its own pin is removed.
 AC-0136 and AC-0141 are newly recorded **vacuous by construction**, joining AC-0134, AC-0135 and
-AC-0137; all five route to the spawn-audit surface, registered as
-`connect-orient-rebind-the-five-vacuous-criteria-to-the-spawn-audit` in `workspace.toml`, which is
+AC-0137; all route to the spawn-audit surface, registered as
+~~`connect-orient-rebind-the-five-vacuous-criteria-to-the-spawn-audit`~~ **renamed — the set is six, not five; see [the 2026-09-27 decision](#owner-decision-2026-09-27-amend-the-falsifiability-claim)** — now `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` in `workspace.toml`, which is
 where that obligation lives. The audit reads **157 rows, 95 met, 58 not
 met, 4 not verifiable here**, every citation resolving, and the met set agrees with `spec.md`'s
 `[x]` set at 95 in both directions.
@@ -9436,3 +9436,56 @@ entry aside, run the ceremony against the pinned text, re-add it afterwards.
 **Both approvals are the owner's.** An agent writing `Status: Approved` and then firing the
 transition that consumes it is self-approval, and the permission layer refused exactly that earlier
 in this session. The spec gate and the plan gate are both written by the owner.
+
+
+### What round 20's pre-EXECUTE review changed, 2026-09-27
+
+The first amended sentence was wrong in four ways and is replaced. Recording them because each is
+a distinct class, and three of the four are this slice's recurring shapes.
+
+**A count taken from the wrong population.** The sentence said "all thirteen" of AC-0147's positive
+controls. Thirteen is the pin count at `git-driver.ts:16-30`. AC-0147 ranges over AC-0133 through
+AC-0146 and there are **fourteen** controls, which the audit row and `HANDOVER.md` both already
+said. Two adjacent counts, and the contract took the wrong one.
+
+**The exception list undercounted, again by class rather than by instance.** The sentence excepted
+five criteria; the audit contradicts its general clause for three more. Adjudication separated
+them on their grounds rather than lumping them: **AC-0146 carries falsifiability `N` and fails the
+same vacuity ground as the five**, so the routed set is six; **AC-0138 and AC-0145 carry `W`** — a
+falsifiable but weak binding — and belong in their own exception, not in the routed set. The
+register slug was renamed to drop its count, because a number in a title is the copied-count defect
+this slice has already paid for twice.
+
+**AC-0136's vacuity was asserted for a criterion when it was established for an arm.** AC-0136
+covers "a case-insensitive **or Unicode-ignorable** variant of `.git`". Every fixture, proof and
+measurement here reaches only `.GIT` — the case arm. `core.protectHFS=true` is precisely the pin
+that guards ignorable code points, so for the arm nobody built, the pin may well be the guard.
+Adjudication graded the conclusion **unestablished for one arm, not wrong**: nothing shows an
+ignorable variant would survive, only that nothing tests it. The overbroad claim had reached six
+surfaces — the audit row, `HANDOVER.md`, two places in this ledger, the proof's own doc comment,
+and the register slug's count — and is scoped at each. **A conclusion drawn from one arm of a
+two-arm criterion propagates exactly like an untested reason, and is the same defect wearing
+different clothes.**
+
+**The evidence cited did not discriminate the claim.** "Emptying `PINNED_GIT_CONFIGURATION` leaves
+every control green" is equally true of a control that *does* remove its own guard, since the guard
+is then absent on both arms. The discriminating measurement is per-pin deletion: of thirteen pins,
+only `core.hooksPath=/dev/null` and `core.symlinks=false` redden an absence proof, 1 and 2 of 84.
+The sentence now cites that.
+
+**AC-0147's control defect is registered** as `connect-orient-positive-controls-that-remove-no-guard`
+by owner decision, naming AC-0140, AC-0142 and AC-0145 as the three whose controls remove nothing —
+AC-0140's creates the sibling it then reads, AC-0142's builds a literal array and asserts
+membership, AC-0145's builds an object and asserts its key exists. It is distinct from the vacuous
+set: there the proof cannot redden, here the control removes nothing.
+
+**Plan task T1's claim is retracted.** T1 is headed "every probe is proven non-vacuous" and its
+Tests bullet contracts "A positive control per proof … each removing the guard of the proof it
+certifies". Both are false against the tree and against the amended spec sentence. **T1 is a pinned
+completed section and is not edited**; the retraction is recorded here, and the amendment's
+Changelog entry will reference this section so a reader of the plan reaches it. The pin protects
+the historical text, not the claim inside it.
+
+**One finding was refuted:** the amendment's missing Changelog entry is the recorded sequence, not
+an omission. T15's pin spans the whole Changelog, so the entry is deliberately set aside until the
+approval gate, where it becomes due.
