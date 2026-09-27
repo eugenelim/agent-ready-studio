@@ -9248,3 +9248,93 @@ rounds that sustained a finding would have spent no waiver. `identity`, `plan ch
 record — no contract change was made here. `transition_sequence` restarts at 5 rather than
 continuing from 168; the engine numbers transitions per run, and the old run's sequence is not
 recoverable or meaningful against the new one.
+
+## review-rounds-16-and-17-2026-09-26
+
+Both rounds sustained findings and each spent its own owner-granted retry-cap waiver, taking
+`review_retry_count` from 12 to 14 against a cap of 5. Three reviewers ran in round 16 —
+adversarial, quality and security — and the adversarial reviewer alone in round 17. **No
+adjudication returned an indeterminate in either round**, which is what made them recordable;
+the two rounds that stalled earlier in this slice both died on one.
+
+### What round 16 established
+
+The generator repair is real. `test/hostile-fixture.ts` had hand-written four `-c` entries while
+the product pins thirteen, so the absence proofs tested a re-implementation of the checkout.
+Measured before the repair: emptying `PINNED_GIT_CONFIGURATION` entirely left all 41
+hostile-fixture cases green and reddened only 2 of 43 absence proofs, and both of those assert the
+constant's contents rather than any behaviour. Deleting `transfer.fsckObjects=true` alone left 97
+of 97 green. After the repair, deleting `core.hooksPath=/dev/null` reddens 1 of 84 and
+`core.symlinks=false` reddens 2 of 84 — re-derived independently by the adversarial reviewer in
+its own worktree, and again by the controller after the round-16 fixes landed.
+
+**Two findings were the same defect this slice keeps producing: a reason recorded beside a correct
+repair and never tested.** The AC-0136 proof credited `core.protectHFS` for the `.GIT` refusal;
+git refuses `invalid path '.GIT'` with `core.protectHFS=false` and `core.protectNTFS=false` both
+set explicitly, so the guard is git's own path check. And the new hook-placement comment justified
+`.git/hooks` with "`init.templateDir` seeds it at clone time" — a key the product makes unsettable
+by pinning `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` to `/dev/null` with `GIT_CONFIG_NOSYSTEM=1`
+and keeping `GIT_TEMPLATE_DIR` off the allowlist. The second reason was written **in this session**,
+three commits after the first was caught. Both are corrected at their sites.
+
+**Three findings were refuted, and one of them had been surfaced as a likely blocker.** The
+`.git/hooks` probe does **not** breach AC-0149: it is written inside `materialize` before the
+checkout, and `.githooks/post-checkout` remains in the source object database. `omitPinPrefix` is
+not a current defect — both live prefixes match exactly one pin each and an unmatched prefix fails
+loudly. The `escaping-reader-path` control's prefix check restates an attacker precondition, not a
+guard.
+
+### What round 17 established, and the reason it happened
+
+Round 16's repairs shifted `absence-proofs.test.ts` by +5 and `test/hostile-fixture.ts` by +10, and
+only the rows the adjudication had named were recomputed. Round 17 found **seven more citations
+carrying their pre-shift spans**, four of which begin inside the previous criterion's `describe`
+block while still resolving, so `pnpm governance` stayed green throughout. It also found AC-0141
+citing `protocol.version=2` where its prose names `submodule.recurse` — the identical off-by-one
+that round 16 had fixed for AC-0133, applied to the instance rather than the class. The
+adjudicator swept every `git-driver.ts:<n>` citation in the audit and confirmed AC-0141 was the
+only remaining disagreement.
+
+**The generator is the citation format.** The audit carries 404 citations across 157 rows and only
+16 use the self-checking `file:line#symbol` form; `_anchor_in_span`
+(`tools/acceptance-audit-counts.py:442`) fails the gate when an anchored citation's symbol leaves
+its span, while a bare line reference only has to resolve. Three consecutive rounds of drift came
+out of that gap. By the owner's decision of 2026-09-26, the citations into the three files this
+slice edits — `absence-proofs.test.ts`, `test/hostile-fixture.ts`, `git-driver.ts` — are converted
+to the anchored form; the remaining rows keep bare references until something touches their files.
+
+Round 17 also recorded two gaps in the records themselves: round 16 had no ledger entry despite
+spending a waiver and taking a full gate reading, and `HANDOVER.md` cluster B still told the next
+reader that the fixture hand-writes its `-c` list — the premise the whole round had disproved, in
+the document the next unit is chosen from.
+
+### Criteria
+
+AC-0133 and AC-0139 move to **met** at strength **S**, each reddening when its own pin is removed.
+AC-0136 and AC-0141 are newly recorded **vacuous by construction**, joining AC-0134, AC-0135 and
+AC-0137; all five route to the spawn-audit surface. The audit reads **157 rows, 95 met, 58 not
+met, 4 not verifiable here**, every citation resolving, and the met set agrees with `spec.md`'s
+`[x]` set at 95 in both directions.
+
+### Gate
+
+`pnpm lint`, `pnpm typecheck`, `pnpm governance`, `pnpm build` and
+`scripts/lint-spec-status.py --root .` all exit 0. The two changed suites read 84 passed of 84.
+
+**`pnpm test:capped` is not immune to the load flake, which this slice had assumed it was.** One
+capped run returned 1 failed of 814 — `runtime-supervisor.test.ts > AC-0025 admits every
+executable observed in the descendant tree` — and the next was green at 811 passed, 3 skipped,
+exit 0, with that case passing 26 of 26 in isolation twice. An earlier uncapped run in the same
+session failed 10 of 814 across five files, none in the diff, each green in isolation. Both
+documented signs held every time. So capped-green remains good evidence and **capped-red is not
+evidence of a defect**; judge a capped failure by the varying set and the isolation run, as with
+an uncapped one.
+
+### A dispatch error worth not repeating
+
+Round 16's three reviewers shared one working tree, and the adversarial reviewer was briefed to
+delete a pin, run the suite and restore. It did that correctly. The `security-reviewer` read the
+tree mid-mutation, found `core.hooksPath=/dev/null` missing, and **declined to execute anything**
+— so all eight of its findings are source-reading only, which it declared in its `## Not checked`
+footer rather than reporting results it had not measured. The review was degraded, not wrong, and
+the cause was the dispatch. Round 17's reviewer was given its own worktree.

@@ -19,9 +19,9 @@ The spec is [`../spec.md`](../spec.md).
 | PR | **#14, #15, #16 and #17** merged. #17 carried review rounds 12 to 15 — the `declaredVersionState` honesty repairs, AC-0043's two widenings, the storage and migration work, and the record corrections |
 | Spec status | `Implementing`. The counts live in [`acceptance-audit.md`](acceptance-audit.md) and are generated from its rows — read them there rather than from a copy here |
 | Engine | the rebuilt run reaches `CODE-IMPLEMENTATION` through the approval ceremony rather than through `blocker-applied`, which was the dead run's last event. Read the current state, sequence and `last_event` from `engine-state.json` rather than from a copy here. PR #17's human gate was answered by its merge on 2026-09-26, so **the next unit starts here** — do not wait for a decision already given. The open-criterion count lives in [`acceptance-audit.md`](acceptance-audit.md) and is generated from its rows; the spec stays `Implementing` while any accepted criterion is open |
-| Cohort | waves are now the plan's full thirteen, pointer at index 12, whose wave is `['T13']`; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 15, `review_retry_count` **12 against a cap of 5**. Rounds 12, 13 and 14 each spent their own owner waiver; round 15 recorded clean and consumed none. **The next round that sustains a finding needs a waiver of its own** |
+| Cohort | waves are now the plan's full thirteen, pointer at index 12, whose wave is `['T13']`; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 17, `review_retry_count` **14 against a cap of 5** — read the live values from `state.json`, which owns them. Rounds 12, 13 and 14 each spent their own owner waiver; round 15 recorded clean and consumed none; rounds 16 and 17 each spent one. **The next round that sustains a finding needs a waiver of its own** |
 | Run id | `ead54d32-33b1-44b4-8eea-bf76150a5f77`. The earlier `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` is dead — its state files went with the removed `step-e-etc` worktree and the run was rebuilt on 2026-09-26. Ledger entries above that name the old id are historical, not live: [`verification-ledger.md#engine-state-rebuilt-2026-09-26`](verification-ledger.md) |
-| Gate | Read the gate reading from the ledger entry for the round that took it — the latest is [`verification-ledger.md#review-rounds-14-and-15-2026-09-26`](verification-ledger.md). A count copied here is a second source that drifts, which is how this row came to disagree with the ledger written beside it. What does not change: uncapped runs fail a varying set of trial-runtime cases under host load, every failing case passes in isolation, and `pnpm test:capped` is the documented second reading |
+| Gate | Read the gate reading from the ledger entry for the round that took it — the latest is [`verification-ledger.md#review-rounds-16-and-17-2026-09-26`](verification-ledger.md). A count copied here is a second source that drifts, which is how this row came to disagree with the ledger written beside it. What does not change: uncapped runs fail a varying set of trial-runtime cases under host load, every failing case passes in isolation, and `pnpm test:capped` is the documented second reading |
 
 **Cohort, beyond the table above.** `plan_review_status: approved`, `implementation_retry_count`
 0. A clean round does not consume a retry, which is why the recorded round count runs ahead of the
@@ -115,14 +115,31 @@ after. Only their transport-helper clauses need the smoke, and those are carried
 **A. Modules written, tested, called by nothing — closed as a cluster.** The wiring landed and
 every module named in it has a disposition; three reporting clauses remain. See §4.
 
-**B. Hostile-repository proofs test a re-implementation — 13.** `test/hostile-fixture.ts:326-363`
-runs its own `git checkout` with a hand-written `-c` list instead of calling
-`pinnedGitConfigurationArgs()`, so removing a pin from `PINNED_GIT_CONFIGURATION` reddens no
-absence proof. Three of the fourteen positive controls remove no guard and three observe at a
-different level than their criterion. AC-0134, AC-0135 and AC-0137 are **vacuous by
-construction**: `git checkout` never runs a `package.json` script, never executes a file under
-`.agents/`, and never runs a smudge filter nobody configured. Fixing these needs controls that
-can actually fail, not just a fixture change. **Highest risk reduction per criterion, no new
+**B. Hostile-repository proofs — 11 open of 13.** The re-implementation is gone:
+`test/hostile-fixture.ts:339-345#materializationPins` builds the checkout vector by filtering the
+product's `PINNED_GIT_CONFIGURATION`, and `:347-401#materialize` spreads it into the checkout, so
+removing a pin now reddens the proofs that depend on it. **AC-0133 and AC-0139 are closed on that
+binding** — deleting `core.hooksPath=/dev/null` reddens 1 of 84 and `core.symlinks=false` reddens
+2 of 84. Before the repair, emptying the whole list reddened nothing behavioural.
+
+**What the binding does not yet cover, and this is the next unit's work.** Only the checkout
+carries pins: the fixture's `clone` is unpinned, and the product does not clone at all — it runs
+`init`, `fetch`, `checkout`, `rev-parse` and `cat-file`, each carrying all thirteen pins through
+`gitVector` (`runtime-child.ts:917-919`). So **two of thirteen pins have behavioural evidence**;
+the redirect, object-integrity, credential, submodule and transport pins have none, and a
+local-path clone could not exercise some of them even if pinned. Three of the fourteen positive
+controls still remove no guard.
+
+**Five criteria are vacuous by construction**, not three: AC-0134, AC-0135 and AC-0137 because
+`git checkout` never runs a `package.json` script, never executes a file under `.agents/` and
+never runs a smudge filter nobody configured; **AC-0136** because git refuses `invalid path
+'.GIT'` with `core.protectHFS=false` and `core.protectNTFS=false` both set explicitly, so the
+guard is git's own path check and not a pin; and **AC-0141** because the fixture writes
+`.gitmodules` as plain text with no gitlink, so nothing can recurse into it. All five are routed
+to the spawn-audit surface by the owner's decision of 2026-09-26 — `spawnAudited`
+(`executable-identity.ts:28`) is the Service's only process-start primitive for this trial and
+every entry records an absolute `executable`, so "Studio never executes anything out of the
+materialized worktree" is a property that can fail. **Highest risk reduction per criterion, no new
 product capability.**
 
 **C. The renderer half — roughly 18.** AC-0105 and AC-0106 open because every test renders
