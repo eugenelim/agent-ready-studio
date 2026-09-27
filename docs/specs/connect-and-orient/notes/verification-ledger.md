@@ -9529,3 +9529,25 @@ have carried, is at `#owner-decision-2026-09-27-amend-the-falsifiability-claim`.
 T15, waves `[['T13']]` at index 0 which is the last wave, `review_round_count` 19,
 `review_retry_count` 16 against a cap of 5. `plan check-current --require-schedule` and
 `wave check --expect last` both pass.
+
+## a-digit-sweep-cannot-see-a-word-2026-09-27
+
+Sweeping `HANDOVER.md` for copied counts with a digit pattern reported it clean. It was not. The
+pattern cannot match **thirteen**, **fourteen** or **twenty-three**, and one of the figures it
+could not see was wrong: the row said "Three of the fourteen positive controls still remove no
+guard", a number never derived from the control branches. Reading all fourteen shows **two**
+demonstrably remove a product guard — `repository-hook` and `escaping-symlink`, the two passing
+`omitPinPrefix` — and the status of the other twelve is the routed work. The spec's own amendment
+had already declined to assert that three, for exactly this reason; the handover kept asserting it.
+
+**A sweep must cover both number forms, and the report "clean" is only as wide as the pattern.**
+Saying a sweep found nothing is a claim about the pattern, not about the file — which is the
+instance-over-class shape this slice keeps producing, wearing one more set of clothes.
+
+The same round caught a frozen-reading stamp dated 2026-09-23 when the ledger dates both legs of
+the `82 → 75 → 77` trajectory to 2026-09-22 (`#review-round-53-2026-09-22` and
+`#slice-f1-step-a-2026-09-22`). The misdate collided with the audit's separate 2026-09-23 re-run of
+`82 / 72 / 3`, so a reader matching 82 to 82 would have read the start of one day's trajectory as
+another day's total. **Freezing a reading fixes the number; it does not fix the date, and a wrong
+date on a frozen figure is worse than no stamp** because it invites exactly the cross-reading the
+freeze exists to prevent. Both are corrected, and the paragraph now says which quantity it counts.

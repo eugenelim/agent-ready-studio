@@ -77,12 +77,16 @@ never been assembled — `resolveRevision`, `materializeRevision`, `startTrialIn
 retraction at `#retraction-2026-09-19-t12-t13-delivery-claims`.
 
 This session ran the first reconciliation of all 157 criteria against the tree, then started
-closing the largest cluster. **Frozen reading, 2026-09-23:** the verdicts moved 82 → 75 as `met`
-rows were **tested rather than read**, then 75 → 77 as work landed. Those three numbers are kept
-because the *movement* is the point — testing a `met` row lost more than the work gained. They are
-not current and must not be read as a count: the live figures are generated in
-[`acceptance-audit.md`](acceptance-audit.md), and the round count lives in `state.json` and the
-ledger. Do not copy either here.
+closing the largest cluster. **Frozen reading of the spec's checked boxes, 2026-09-22**, from
+`verification-ledger.md#review-round-53-2026-09-22` and `#slice-f1-step-a-2026-09-22`: the checked
+count moved 82 → 75 as `met` rows were **tested rather than read**, then 75 → 77 as work landed.
+The movement is why these are kept — testing a `met` row lost more than the work gained.
+
+**Do not align these against the audit.** They are spec-checkbox counts on 2026-09-22; the audit's
+own 2026-09-23 re-run read 82 / 72 / 3, and that 82 is a different quantity on a different day
+than the 82 this trajectory starts from. The live figures are generated in
+[`acceptance-audit.md`](acceptance-audit.md) and the round count lives in `state.json`. Copy
+neither here.
 
 **Two reading habits caused every false `met` found:** trusting a row's note instead of the
 tree, and correcting a note without re-testing the verdict it supported. The route that works
@@ -137,8 +141,12 @@ carries pins: the fixture's `clone` is unpinned, and the product does not clone 
 `init`, `fetch`, `checkout`, `rev-parse` and `cat-file`, each carrying all thirteen pins through
 `gitVector` (`runtime-child.ts:917-919`). So **two of thirteen pins have behavioural evidence**;
 the redirect, object-integrity, credential, submodule and transport pins have none, and a
-local-path clone could not exercise some of them even if pinned. Three of the fourteen positive
-controls still remove no guard.
+local-path clone could not exercise some of them even if pinned. **Only two of the fourteen positive controls
+demonstrably remove a product guard** — `repository-hook` and `escaping-symlink`, the two passing
+`omitPinPrefix`. An earlier reading of this row said three remove no guard; that number was never
+derived, and reading all fourteen branches does not support it. What is established is the two;
+the status of the other twelve is the routed work under
+`connect-orient-positive-controls-that-remove-no-guard`.
 
 **Six criteria are vacuous by construction**, not three: AC-0134, AC-0135 and AC-0137 because
 `git checkout` never runs a `package.json` script, never executes a file under `.agents/` and
