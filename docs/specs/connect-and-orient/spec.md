@@ -632,13 +632,13 @@ assisted authoring and has known false negatives.
 
 ### Security proofs
 
-- [ ] **AC-0133.** An automated test proves a repository hook does not run during inspection, observed from the parent over the process tree.
+- [x] **AC-0133.** An automated test proves a repository hook does not run during inspection, observed from the parent over the process tree.
 - [ ] **AC-0134.** An automated test proves a package script does not run during inspection, observed the same way.
 - [ ] **AC-0135.** An automated test proves a projected skill executable does not run during inspection, observed the same way.
 - [ ] **AC-0136.** An automated test proves a tree entry whose name is a case-insensitive or Unicode-ignorable variant of `.git` does not overwrite the real `.git` at checkout.
 - [ ] **AC-0137.** An automated test proves a `.gitattributes` filter declaration triggers no filter command.
 - [ ] **AC-0138.** An automated test proves instruction-shaped text changes no Studio verdict, routing decision, or state.
-- [ ] **AC-0139.** An automated test proves an escaping symlink is materialized as a regular file holding its target string.
+- [x] **AC-0139.** An automated test proves an escaping symlink is materialized as a regular file holding its target string.
 - [x] **AC-0140.** An automated test proves the reader refuses an escaping path presented directly to it, independently of materialization, including a sibling path whose name extends the root.
 - [ ] **AC-0141.** An automated test proves a `.gitmodules` entry causes no submodule fetch or traversal.
 - [x] **AC-0142.** An automated test proves a remote default branch shaped like a `git` option is refused before reaching an argument vector.

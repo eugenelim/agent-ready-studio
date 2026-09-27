@@ -1,6 +1,6 @@
 # Handover — connect-and-orient
 
-Written 2026-09-22, updated 2026-09-26 after PR #17 merged. Current as of the commit that
+Written 2026-09-22, updated 2026-09-27 after the abandoned contract amendment. Current as of the commit that
 carries it. This is the whole picture, not only the cluster in flight; the cluster section names
 where to start.
 
@@ -15,20 +15,19 @@ The spec is [`../spec.md`](../spec.md).
 | | |
 | --- | --- |
 | Worktree | a git worktree of this repository; run every command from its root |
-| Branch | work continues from `main`, which carries everything through PR #17. The `eugenelim/provisional-runtime-build` worktree this file was written in no longer exists; engine state was carried across on 2026-09-25 |
+| Branch | work continues from `main`, which carries everything through PR #17. The `eugenelim/provisional-runtime-build` worktree this file was written in no longer exists; engine state was carried across on 2026-09-25. The `eugenelim/step-e-etc` worktree was then removed **without** carrying it, which is how the run came to be rebuilt on 2026-09-26. Both state files are gitignored, so removing a worktree destroys them |
 | PR | **#14, #15, #16 and #17** merged. #17 carried review rounds 12 to 15 — the `declaredVersionState` honesty repairs, AC-0043's two widenings, the storage and migration work, and the record corrections |
 | Spec status | `Implementing`. The counts live in [`acceptance-audit.md`](acceptance-audit.md) and are generated from its rows — read them there rather than from a copy here |
-| Engine | `CODE-IMPLEMENTATION`. PR #17's human gate was answered by the merge on 2026-09-26 and `blocker-applied` fired, so **the next unit starts here** — do not wait for a decision already given. 64 criteria remain open and the spec stays `Implementing` |
-| Cohort | waves `[['T13']]` at index 0; `completed_task_ids` T1–T12, T14, T15; `review_round_count` 15, `review_retry_count` **12 against a cap of 5**. Rounds 12, 13 and 14 each spent their own owner waiver; round 15 recorded clean and consumed none. **The next round that sustains a finding needs a waiver of its own** |
-| Run id | `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` |
-| Gate | Read the gate reading from the ledger entry for the round that took it — the latest is [`verification-ledger.md#review-rounds-14-and-15-2026-09-26`](verification-ledger.md). A count copied here is a second source that drifts, which is how this row came to disagree with the ledger written beside it. What does not change: uncapped runs fail a varying set of trial-runtime cases under host load, every failing case passes in isolation, and `pnpm test:capped` is the documented second reading |
+| Engine | the rebuilt run reaches `CODE-IMPLEMENTATION` through the approval ceremony rather than through `blocker-applied`, which was the dead run's last event. Read the current state, sequence and `last_event` from `engine-state.json` rather than from a copy here. PR #17's human gate was answered by its merge on 2026-09-26, so **the next unit starts here** — do not wait for a decision already given. The open-criterion count lives in [`acceptance-audit.md`](acceptance-audit.md) and is generated from its rows; the spec stays `Implementing` while any accepted criterion is open |
+| Cohort | `completed_task_ids` T1–T12, T14, T15. **Read the counters and the wave shape from `state.json`, which owns them, or from [`verification-ledger.md#approvals-2026-09-27`](verification-ledger.md#approvals-2026-09-27), which records the post-ceremony state.** A count copied into this row has drifted twice. What does not change: rounds that sustain findings each spend an owner-granted waiver against a cap of 5, and the cap is deliberately not raised |
+| Run id | `ead54d32-33b1-44b4-8eea-bf76150a5f77`. The earlier `f87c797b-8bed-46c2-96fd-e8d22fb8eb3d` is dead — its state files went with the removed `step-e-etc` worktree and the run was rebuilt on 2026-09-26. Ledger entries above that name the old id are historical, not live: [`verification-ledger.md#engine-state-rebuilt-2026-09-26`](verification-ledger.md) |
+| Gate | Read the gate reading from the ledger entry for the round that took it — the latest is [`verification-ledger.md#review-rounds-16-and-17-2026-09-26`](verification-ledger.md). A count copied here is a second source that drifts, which is how this row came to disagree with the ledger written beside it. What does not change: uncapped runs fail a varying set of trial-runtime cases under host load, every failing case passes in isolation, and `pnpm test:capped` is the documented second reading |
 
 **Cohort, beyond the table above.** `plan_review_status: approved`, `implementation_retry_count`
 0. A clean round does not consume a retry, which is why the recorded round count runs ahead of the
 retry count. T14, T12 and T13 were closed by verifying their Done-when rather than re-running
-them. One amendment is in
-`amendment_history` — the 2026-09-23 checkbox refresh — because
-`#cohort-state-loss-and-repair-2026-09-23` records the reset that destroyed the earlier entries.
+them. `amendment_history` is now empty: the 2026-09-26 rebuild started a fresh run and no contract change
+was made during it. The amendment history that matters is in this file and the ledger, not in state.
 
 **A second reset ran on 2026-09-24, and `amendment_history` does not record the amendment it
 served.** The four owner-authorized contract changes at
@@ -45,8 +44,14 @@ rounds and 9 retries.
 its heading to EOF, so T15's pin spans `## Rollout`, `## Risks` and the whole `## Changelog`. Every
 amendment in this plan appends a Changelog entry, so **the next one will refuse as though a
 completed task had been edited.** The workaround is at
-`#cohort-state-loss-and-repair-2026-09-23`: set the entry aside, run the ceremony against the
-pinned text, re-add it afterwards. Meet it as a known step rather than at the point of refusal.
+`#cohort-state-loss-and-repair-2026-09-23` — set the entry aside, run the ceremony against the
+pinned text, re-add it afterwards — **does not work, and the 2026-09-23 entry already calls it "a
+defect with a delay on it, not a resolution".** Both routes were tried and measured on 2026-09-27:
+appending during the ceremony makes `approve-plan` refuse with "completed task section changed:
+T15", and appending after `plan-locked` breaks the plan baseline, whose only offered recovery is a
+cohort reset that clears the retry counters. **Do not re-add the entry.** Put the approval record
+in the ledger, as [`#approvals-2026-09-27`](verification-ledger.md#approvals-2026-09-27) does, and
+see the registered `loop-cohort-last-task-pin-swallows-the-changelog` for the fix.
 
 **The review cap is already exceeded and will block.** `findings-remain` and
 `review record --fingerprint` both refuse at or above `max_review_retries`. A round that sustains
@@ -72,8 +77,16 @@ never been assembled — `resolveRevision`, `materializeRevision`, `startTrialIn
 retraction at `#retraction-2026-09-19-t12-t13-delivery-claims`.
 
 This session ran the first reconciliation of all 157 criteria against the tree, then started
-closing the largest cluster. Fifteen review rounds. The verdicts moved 82 → 75 as `met` rows
-were **tested rather than read**, then 75 → 77 as work landed.
+closing the largest cluster. **Frozen reading of the spec's checked boxes, 2026-09-22**, from
+`verification-ledger.md#review-round-53-2026-09-22` and `#slice-f1-step-a-2026-09-22`: the checked
+count moved 82 → 75 as `met` rows were **tested rather than read**, then 75 → 77 as work landed.
+The movement is why these are kept — testing a `met` row lost more than the work gained.
+
+**Do not align these against the audit.** They are spec-checkbox counts on 2026-09-22; the audit's
+own 2026-09-23 re-run read 82 / 72 / 3, and that 82 is a different quantity on a different day
+than the 82 this trajectory starts from. The live figures are generated in
+[`acceptance-audit.md`](acceptance-audit.md) and the round count lives in `state.json`. Copy
+neither here.
 
 **Two reading habits caused every false `met` found:** trusting a row's note instead of the
 tree, and correcting a note without re-testing the verdict it supported. The route that works
@@ -116,14 +129,38 @@ after. Only their transport-helper clauses need the smoke, and those are carried
 **A. Modules written, tested, called by nothing — closed as a cluster.** The wiring landed and
 every module named in it has a disposition; three reporting clauses remain. See §4.
 
-**B. Hostile-repository proofs test a re-implementation — 13.** `test/hostile-fixture.ts:326-363`
-runs its own `git checkout` with a hand-written `-c` list instead of calling
-`pinnedGitConfigurationArgs()`, so removing a pin from `PINNED_GIT_CONFIGURATION` reddens no
-absence proof. Three of the fourteen positive controls remove no guard and three observe at a
-different level than their criterion. AC-0134, AC-0135 and AC-0137 are **vacuous by
-construction**: `git checkout` never runs a `package.json` script, never executes a file under
-`.agents/`, and never runs a smudge filter nobody configured. Fixing these needs controls that
-can actually fail, not just a fixture change. **Highest risk reduction per criterion, no new
+**B. Hostile-repository proofs — 7 open of the 13 rows AC-0133 to AC-0145**, counted from the audit rather than copied: AC-0134, AC-0135, AC-0136, AC-0137, AC-0138, AC-0141 and AC-0145. Regenerate it from the rows; do not trust this sentence over them. The re-implementation is gone:
+`test/hostile-fixture.ts:339-345#materializationPins` builds the checkout vector by filtering the
+product's `PINNED_GIT_CONFIGURATION`, and `:347-401#materialize` spreads it into the checkout, so
+removing a pin now reddens the proofs that depend on it. **AC-0133 and AC-0139 are closed on that
+binding** — deleting `core.hooksPath=/dev/null` reddens 1 of 84 and `core.symlinks=false` reddens
+2 of 84. Before the repair, emptying the whole list reddened nothing behavioural.
+
+**What the binding does not yet cover, and this is the next unit's work.** Only the checkout
+carries pins: the fixture's `clone` is unpinned, and the product does not clone at all — it runs
+`init`, `fetch`, `checkout`, `rev-parse` and `cat-file`, each carrying all thirteen pins through
+`gitVector` (`runtime-child.ts:917-919`). So **two of thirteen pins have behavioural evidence**;
+the redirect, object-integrity, credential, submodule and transport pins have none, and a
+local-path clone could not exercise some of them even if pinned. **Only two of the fourteen positive controls
+demonstrably remove a product guard** — `repository-hook` and `escaping-symlink`, the two passing
+`omitPinPrefix`. An earlier reading of this row said three remove no guard; that number was never
+derived, and reading all fourteen branches does not support it. What is established is the two;
+the status of the other twelve is the routed work under
+`connect-orient-positive-controls-that-remove-no-guard`.
+
+**Six criteria are vacuous by construction**, not three: AC-0134, AC-0135 and AC-0137 because
+`git checkout` never runs a `package.json` script, never executes a file under `.agents/` and
+never runs a smudge filter nobody configured; **AC-0136** for its case-insensitive arm only — git refuses `invalid path
+'.GIT'` with `core.protectHFS=false` and `core.protectNTFS=false` both set explicitly, so the
+guard is git's own path check and not a pin. **Its Unicode-ignorable arm is neither built nor
+measured**, and `core.protectHFS` is the pin that would guard it, so that arm is open, not vacuous; **AC-0141** because the fixture writes
+`.gitmodules` as plain text with no gitlink, so nothing can recurse into it; and **AC-0146**
+because the credential negative runs over a path the credential never reaches. All six are routed
+to the spawn-audit surface by the owner's decision of 2026-09-26, registered as
+`connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` in `workspace.toml` — `spawnAudited`
+(`executable-identity.ts:28`) is the Service's only process-start primitive for this trial and
+every entry records an absolute `executable`, so "Studio never executes anything out of the
+materialized worktree" is a property that can fail. **Highest risk reduction per criterion, no new
 product capability.**
 
 **C. The renderer half — roughly 18.** AC-0105 and AC-0106 open because every test renders

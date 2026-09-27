@@ -410,6 +410,66 @@ open = [
   # Evidence: packages/storage-sqlite/src/storage.ts, migration 4;
   # notes/verification-ledger.md#review-round-13-2026-09-25.
   { slug = "connect-orient-migration-4-backfills-a-value-it-calls-wrong", source = "connect-and-orient/2026-09-25" },
+  # Audit citations are checked for resolution, not for pointing at their
+  # subject, so a citation that drifts onto the wrong code stays green. Three
+  # consecutive review rounds found drift the gate could not see. Converting 28
+  # citations to the `file:line#symbol` form narrowed it but did not close it:
+  # six of eleven anchors still survive a shift, because any token the span
+  # still contains satisfies `_anchor_in_span`. First task is the tool, not the
+  # citations — the anchor grammar `[A-Za-z_][\w.]*` rejects the unique tokens
+  # that would work (`AC-0136`, `package-script.mjs`, `filter=probe`), and
+  # `_anchor_in_span` clears a whole multi-part citation from its first
+  # matching part. ~350 rows still carry bare line references.
+  # Evidence: tools/acceptance-audit-counts.py, CITATION at :68 and
+  # _anchor_in_span at :442; notes/verification-ledger.md#review-rounds-16-and-17-2026-09-26.
+  { slug = "connect-orient-audit-citations-need-a-checkable-anchor-form", source = "connect-and-orient/2026-09-27" },
+  # Six criteria carry an absence proof that no production mutation can
+  # redden — the audit's `N` column. The controls fire; it is the proofs that
+  # cannot fail. AC-0134, AC-0135 and
+  # AC-0137 because `git checkout` never runs a package.json script, never
+  # executes a file under .agents/ and never runs a smudge filter nobody
+  # configured; AC-0136 because git refuses `invalid path '.GIT'` with
+  # core.protectHFS=false and core.protectNTFS=false both set explicitly, so
+  # the guard is git's own path check; AC-0141 because the fixture writes
+  # .gitmodules as plain text with no gitlink; and AC-0146 because the
+  # credential negative runs over a path the credential never reaches.
+  # Members: AC-0134, AC-0135, AC-0136, AC-0137, AC-0141, AC-0146. AC-0136 is
+  # here for its case-insensitive arm only — its Unicode-ignorable arm is
+  # neither built nor measured, and core.protectHFS is the pin that would guard
+  # it, so that arm is open rather than vacuous. Owner decision 2026-09-26:
+  # rebind onto the spawn audit, where `spawnAudited` is the Service's
+  # only process-start primitive for this trial and every entry records an
+  # absolute executable — so "Studio never executes anything out of the
+  # materialized worktree" is a property that can fail.
+  # Evidence: apps/studio-service/src/trials/connect-and-orient-runtime/executable-identity.ts:28;
+  # notes/acceptance-audit.md, the AC-0136 row.
+  { slug = "connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit", source = "connect-and-orient/2026-09-27" },
+  # AC-0147 requires each of AC-0133 through AC-0146 to have a positive control
+  # that removes the guard of the proof it certifies. Three do not: AC-0140's
+  # creates the sibling it then reads, AC-0142's builds a literal array and
+  # asserts membership, and AC-0145's builds an object and asserts its key
+  # exists. None touches production, so each passes whatever the product does.
+  # Distinct from the vacuous set: there the proof cannot redden, here the
+  # control removes nothing.
+  # Evidence: apps/studio-service/src/trials/connect-and-orient-runtime/test/hostile-fixture.ts,
+  # the escaping-reader-path, option-shaped-ref and authorization-header cases;
+  # notes/acceptance-audit.md, the AC-0147 row.
+  { slug = "connect-orient-positive-controls-that-remove-no-guard", source = "connect-and-orient/2026-09-27" },
+  # plan.md's Changelog cannot carry an approval entry. _task_sections gives the
+  # last task everything from its heading to end of file, so T15's pinned
+  # section spans ## Rollout, ## Risks and the whole ## Changelog. Appending
+  # during the ceremony makes approve-plan refuse ("completed task section
+  # changed: T15"); appending after plan-locked breaks the plan baseline, and
+  # the only offered recovery is a cohort reset that clears the retry counters.
+  # Measured both ways on 2026-09-27. The Changelog header says "Approval
+  # decisions only", so the record it exists to hold is the one it cannot take;
+  # the 2026-09-27 approvals live in the ledger instead. Fixing this means
+  # bounding the last task's section at the next top-level heading rather than
+  # at EOF, which is a change to loop-cohort's _task_sections.
+  # Evidence: .claude/skills/work-loop/scripts/loop-cohort.py, _task_sections at :585;
+  # notes/verification-ledger.md#approvals-2026-09-27, which holds the 2026-09-27
+  # measurement of both routes.
+  { slug = "loop-cohort-last-task-pin-swallows-the-changelog", source = "connect-and-orient/2026-09-27" },
 ]
 closed = [
   # Closed 2026-09-25. `pnpm test` keeps its default worker count and a

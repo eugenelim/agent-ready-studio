@@ -151,12 +151,23 @@ describe("AC-0135 no projected skill executable runs during inspection", () => {
 
 describe("AC-0136 a .git variant does not overwrite the real .git", () => {
   /**
-   * The guard refuses the whole checkout rather than writing a neutralized
-   * entry: `core.protectHFS` makes `.GIT` an invalid path on a filesystem
-   * where it would collide with `.git`. Nothing is overwritten because nothing
-   * is written, which is the strongest form the criterion can hold. The
-   * refusal is asserted rather than tolerated, so a future configuration that
-   * silently admitted the entry would fail here rather than pass quietly.
+   * The refusal comes from git's own invalid-path check, **not** from a pinned
+   * setting. `git -c core.protectHFS=false -c core.protectNTFS=false checkout`
+   * still exits non-zero with `invalid path '.GIT'`, so no pin removal can
+   * redden this proof and it demonstrates no product control. An earlier
+   * version of this comment credited `core.protectHFS`; that was wrong.
+   *
+   * Nothing is overwritten because nothing is written, which is the strongest
+   * form this assertion can hold against a refusal it does not own.
+   *
+   * **This covers the case-insensitive arm only.** AC-0136 also names a
+   * Unicode-ignorable variant of `.git`, which this fixture never builds and
+   * no measurement here reaches; `core.protectHFS` is the pin that would guard
+   * that arm, so nothing is claimed about it either way. For the arm above,
+   * AC-0136 is recorded **not met** and vacuous by construction, and is routed
+   * to the spawn-audit surface by the owner decision of 2026-09-26 under
+   * `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` — see the
+   * AC-0136 row in `notes/acceptance-audit.md`.
    */
   it("refuses the checkout that carries the variant entry", async () => {
     const fixture = await buildHostileFixture({ caseId: "dot-git-variant" });
