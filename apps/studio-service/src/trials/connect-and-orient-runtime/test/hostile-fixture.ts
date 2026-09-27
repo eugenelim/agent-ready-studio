@@ -356,8 +356,18 @@ export async function materialize(fixture: HostileFixture): Promise<void> {
     // at the `.githooks` path the source tree carries. `core.hooksPath=/dev/null`
     // is what makes this file unreachable, so this is the only placement under
     // which dropping that pin lets the hook run. A hook at `.githooks` proves
-    // nothing: git would not have run it with or without the pin. Reaching
-    // `.git/hooks` is realistic — `init.templateDir` seeds it at clone time.
+    // nothing: git would not have run it with or without the pin.
+    //
+    // This placement binds the pin; it does not model an attacker-reachable
+    // path. Writing here needs local write access inside the clone, which a
+    // hostile *remote* never gets: fetch and checkout write only tree paths and
+    // git refuses `.git`-prefixed tree entries. An earlier version of this
+    // comment claimed `init.templateDir` made the path reachable — it does not,
+    // because the product pins `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` to
+    // /dev/null with `GIT_CONFIG_NOSYSTEM=1` and keeps `GIT_TEMPLATE_DIR` off
+    // the environment allowlist (`runtime-environment.ts`), as does this
+    // fixture. So `core.hooksPath=/dev/null` is defence in depth, and this
+    // control demonstrates its mechanism rather than defeating a live attack.
     write(
       fixture.worktree,
       ".git/hooks/post-checkout",
