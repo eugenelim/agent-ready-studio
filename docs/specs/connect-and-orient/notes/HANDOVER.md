@@ -77,8 +77,12 @@ never been assembled — `resolveRevision`, `materializeRevision`, `startTrialIn
 retraction at `#retraction-2026-09-19-t12-t13-delivery-claims`.
 
 This session ran the first reconciliation of all 157 criteria against the tree, then started
-closing the largest cluster. The round count lives in `state.json` and the ledger; do not copy it here. The verdicts moved 82 → 75 as `met` rows
-were **tested rather than read**, then 75 → 77 as work landed.
+closing the largest cluster. **Frozen reading, 2026-09-23:** the verdicts moved 82 → 75 as `met`
+rows were **tested rather than read**, then 75 → 77 as work landed. Those three numbers are kept
+because the *movement* is the point — testing a `met` row lost more than the work gained. They are
+not current and must not be read as a count: the live figures are generated in
+[`acceptance-audit.md`](acceptance-audit.md), and the round count lives in `state.json` and the
+ledger. Do not copy either here.
 
 **Two reading habits caused every false `met` found:** trusting a row's note instead of the
 tree, and correcting a note without re-testing the verdict it supported. The route that works
