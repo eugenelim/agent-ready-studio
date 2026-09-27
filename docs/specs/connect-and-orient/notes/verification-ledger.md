@@ -9399,3 +9399,40 @@ into it: the six weak anchors, `_anchor_in_span`'s multi-part gap, AC-0008 and A
 on `buildFetchUrl` where their subject is `canonicalizeSource`, HANDOVER's unchecked prose
 citations, and the ~350 bare citations in rows this slice never touched. Round 18 spent the
 session's third owner-granted waiver, taking `review_retry_count` to 15 against a cap of 5.
+
+## owner-decision-2026-09-27-amend-the-falsifiability-claim
+
+**The decision.** `spec.md`'s Testing Strategy line for AC-0133 to AC-0147 asserts "Each guardrail
+property is falsifiable and each carries a positive control at its own observation level." Round
+19 established that this is false for six of those criteria: AC-0134, AC-0135, AC-0136, AC-0137
+and AC-0141 are vacuous by construction, and AC-0147's own row records that "deleting every pinned
+configuration entry leaves all 14 controls green" — confirmed by direct measurement, all thirteen
+positive controls staying green when the whole pinned list is emptied.
+
+The owner decided on 2026-09-27 to correct the sentence through the controlled contract-amendment
+ceremony rather than leave the contradiction recorded only in notes. Approved spec bodies are
+immutable during implementation, so the ceremony is the only route; a note asserting the contract
+is wrong is not a correction to the contract.
+
+**Why this was not left as a note.** The audit is governing for the met set and a reader scoping
+the next unit reads `spec.md` for the contract. A Testing Strategy sentence the same slice
+disproved would have passed a human gate unmarked, and the five vacuous criteria are precisely the
+work being routed onward — the sentence would have described the routed unit as already satisfied.
+
+**Completed-task evidence.** T1 to T12, T14 and T15 are complete and their sections are pinned by
+the cohort. Their evidence is this ledger and the merged pull requests that carried them: PRs #14,
+#15, #16 and #17, recorded at `#pr-17-merged-2026-09-26`. The completion record itself was restored
+on 2026-09-24 after a reset destroyed it, with fourteen task IDs and section hashes recomputed
+rather than copied, and again on 2026-09-26 after the worktree removal that destroyed run
+`f87c797b` — see `#engine-state-rebuilt-2026-09-26`. T13 remains the only unfinished task and is
+not pinned.
+
+**Known step, not a surprise.** `_task_sections` gives the last task everything from its heading to
+end of file, so T15's pin spans `## Rollout`, `## Risks` and the whole `## Changelog`. Every
+amendment appends a Changelog entry, so the append reads as editing a completed task section and
+will refuse. The workaround is recorded at `#cohort-state-loss-and-repair-2026-09-23`: set the
+entry aside, run the ceremony against the pinned text, re-add it afterwards.
+
+**Both approvals are the owner's.** An agent writing `Status: Approved` and then firing the
+transition that consumes it is self-approval, and the permission layer refused exactly that earlier
+in this session. The spec gate and the plan gate are both written by the owner.
