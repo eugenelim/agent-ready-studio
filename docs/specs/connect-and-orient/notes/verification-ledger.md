@@ -9403,6 +9403,17 @@ session's third owner-granted waiver, taking `review_retry_count` to 15 against 
 
 ## owner-decision-2026-09-27-amend-the-falsifiability-claim
 
+> **ABANDONED 2026-09-27.** The amendment below was opened, revised twice and withdrawn without
+> reaching either approval gate. Three pre-EXECUTE review rounds found that each rewrite of the
+> sentence left the claim inconsistent across the surfaces that restate it, and the counts and
+> member lists in this section are among those the reviews found wrong — **read this section as the
+> record of an abandoned attempt, not as a source of fact about the criteria.** The governing
+> statement is the note under *Security proofs, and suite-level evidence* in
+> [`acceptance-audit.md`](acceptance-audit.md), which is generated from the rows. `spec.md` keeps its
+> original sentence; the contradiction is recorded rather than corrected, by owner decision, and the
+> rebinding unit owns making the sentence true. Findings are retained at
+> `.context/reviews/ead54d32-33b1-44b4-8eea-bf76150a5f77/22-pre-execute-adversarial-reviewer-raw.md`.
+
 **The decision.** `spec.md`'s Testing Strategy line for AC-0133 to AC-0147 asserts "Each guardrail
 property is falsifiable and each carries a positive control at its own observation level." Round
 19 established that this is false for six of those criteria: AC-0134, AC-0135, AC-0136, AC-0137

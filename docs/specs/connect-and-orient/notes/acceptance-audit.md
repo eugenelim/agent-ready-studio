@@ -288,6 +288,15 @@ the name is unique across the repository, as in the previous pass.
 
 ### Security proofs, and suite-level evidence — 11 met, 10 not met
 
+> **The spec's Testing Strategy line for this group is known false, and is deliberately left unamended.**
+> `spec.md:437` says "Each guardrail property is falsifiable and each carries a positive control at its own
+> observation level." The rows below contradict that: **7 carry falsifiability `N`** (AC-0134, AC-0135, AC-0136, AC-0137, AC-0141, AC-0146, AC-0147) and
+> **3 carry `W`** (AC-0138, AC-0144, AC-0145). A contract amendment was opened on 2026-09-27 and abandoned; see
+> [`verification-ledger.md#owner-decision-2026-09-27-amend-the-falsifiability-claim`](verification-ledger.md).
+> The sentence becomes true when the criteria are rebound, which is
+> `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit`'s work; correcting the sentence before then
+> would only restate what these rows already say. **These rows are governing; that sentence is not.**
+
 | Criterion | Verdict | F | Bindings | Evidence and the mutation that reddens it |
 | --- | --- | --- | --- | --- |
 | AC-0133 | met | S | hostile-fixture.ts:339#materializationPins; hostile-fixture.ts:373; absence-proofs.test.ts:82-93#PROBE_LOG_MARKER; git-driver.ts:18#core.hooksPath | the checkout vector is built from PINNED_GIT_CONFIGURATION and the probe sits at the clone's default .git/hooks path, so removing core.hooksPath=/dev/null reddens the proof (measured: 1 of 84). **Reachability limit:** the probe is planted by test code holding local write access inside the clone. A hostile remote cannot reach .git/hooks — fetch and checkout write only tree paths and git refuses .git-prefixed entries — so this demonstrates the pin's mechanism as defence in depth, not a defeated remote attack. The criterion asks only that a hook not run during inspection observed over the process tree, which is what is proven |
