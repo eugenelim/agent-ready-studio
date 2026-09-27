@@ -95,7 +95,7 @@ carries the line citation, so it is stated once.
   hardcodes it and the marker beside it, and no pipeline branch overwrites either.
 - **`already-in-flight` maps to a state the criterion forbids** (AC-0154). `inspectInRuntime`
   returns `inspection-stopped`, which the *User-visible states* table lists.
-- **Three hostile-repository probes remove no guard** (AC-0134, AC-0135, AC-0137). The auditor
+- **Six hostile-repository absence proofs no production mutation can redden** (AC-0134, AC-0135, AC-0136, AC-0137, AC-0141, AC-0146) — distinct from AC-0147's separate defect, that not every positive control removes the guard it certifies. The auditor
   reproduced guardless checkouts and the probe logs stayed empty: `git checkout` runs no
   `package.json` script, executes nothing under `.agents/`, and applies no filter when no
   `filter.probe.smudge` is configured.

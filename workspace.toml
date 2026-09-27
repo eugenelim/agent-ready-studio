@@ -423,7 +423,9 @@ open = [
   # Evidence: tools/acceptance-audit-counts.py, CITATION at :68 and
   # _anchor_in_span at :442; notes/verification-ledger.md#review-rounds-16-and-17-2026-09-26.
   { slug = "connect-orient-audit-citations-need-a-checkable-anchor-form", source = "connect-and-orient/2026-09-27" },
-  # Five criteria assert controls that cannot fail. AC-0134, AC-0135 and
+  # Six criteria carry an absence proof that no production mutation can
+  # redden — the audit's `N` column. The controls fire; it is the proofs that
+  # cannot fail. AC-0134, AC-0135 and
   # AC-0137 because `git checkout` never runs a package.json script, never
   # executes a file under .agents/ and never runs a smudge filter nobody
   # configured; AC-0136 because git refuses `invalid path '.GIT'` with

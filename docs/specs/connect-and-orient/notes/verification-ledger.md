@@ -9315,7 +9315,8 @@ the document the next unit is chosen from.
 
 AC-0133 and AC-0139 move to **met** at strength **S**, each reddening when its own pin is removed.
 AC-0136 and AC-0141 are newly recorded **vacuous by construction**, joining AC-0134, AC-0135 and
-AC-0137; all route to the spawn-audit surface, registered as
+AC-0137 — AC-0136 **for its case-insensitive arm only**, and AC-0146 was added to the set on
+2026-09-27, making six; all route to the spawn-audit surface, registered as
 ~~`connect-orient-rebind-the-five-vacuous-criteria-to-the-spawn-audit`~~ **renamed — the set is six, not five; see [the 2026-09-27 decision](#owner-decision-2026-09-27-amend-the-falsifiability-claim)** — now `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` in `workspace.toml`, which is
 where that obligation lives. The audit reads **157 rows, 95 met, 58 not
 met, 4 not verifiable here**, every citation resolving, and the met set agrees with `spec.md`'s
@@ -9405,7 +9406,7 @@ session's third owner-granted waiver, taking `review_retry_count` to 15 against 
 **The decision.** `spec.md`'s Testing Strategy line for AC-0133 to AC-0147 asserts "Each guardrail
 property is falsifiable and each carries a positive control at its own observation level." Round
 19 established that this is false for six of those criteria: AC-0134, AC-0135, AC-0136, AC-0137
-and AC-0141 are vacuous by construction, and AC-0147's own row records that "deleting every pinned
+AC-0141 and AC-0146 are vacuous by construction — six, taken from the audit's `N` column — and AC-0147's own row records that "deleting every pinned
 configuration entry leaves all 14 controls green" — confirmed by direct measurement, all thirteen
 positive controls staying green when the whole pinned list is emptied.
 
@@ -9416,7 +9417,7 @@ is wrong is not a correction to the contract.
 
 **Why this was not left as a note.** The audit is governing for the met set and a reader scoping
 the next unit reads `spec.md` for the contract. A Testing Strategy sentence the same slice
-disproved would have passed a human gate unmarked, and the five vacuous criteria are precisely the
+disproved would have passed a human gate unmarked, and the vacuous criteria are precisely the
 work being routed onward — the sentence would have described the routed unit as already satisfied.
 
 **Completed-task evidence.** T1 to T12, T14 and T15 are complete and their sections are pinned by
