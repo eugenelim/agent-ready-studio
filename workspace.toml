@@ -410,19 +410,6 @@ open = [
   # Evidence: packages/storage-sqlite/src/storage.ts, migration 4;
   # notes/verification-ledger.md#review-round-13-2026-09-25.
   { slug = "connect-orient-migration-4-backfills-a-value-it-calls-wrong", source = "connect-and-orient/2026-09-25" },
-  # Audit citations are checked for resolution, not for pointing at their
-  # subject, so a citation that drifts onto the wrong code stays green. Three
-  # consecutive review rounds found drift the gate could not see. Converting 28
-  # citations to the `file:line#symbol` form narrowed it but did not close it:
-  # six of eleven anchors still survive a shift, because any token the span
-  # still contains satisfies `_anchor_in_span`. First task is the tool, not the
-  # citations — the anchor grammar `[A-Za-z_][\w.]*` rejects the unique tokens
-  # that would work (`AC-0136`, `package-script.mjs`, `filter=probe`), and
-  # `_anchor_in_span` clears a whole multi-part citation from its first
-  # matching part. ~350 rows still carry bare line references.
-  # Evidence: tools/acceptance-audit-counts.py, CITATION at :68 and
-  # _anchor_in_span at :442; notes/verification-ledger.md#review-rounds-16-and-17-2026-09-26.
-  { slug = "connect-orient-audit-citations-need-a-checkable-anchor-form", source = "connect-and-orient/2026-09-27" },
   # Six criteria carry an absence proof that no production mutation can
   # redden — the audit's `N` column. The controls fire; it is the proofs that
   # cannot fail. AC-0134, AC-0135 and
@@ -598,8 +585,9 @@ ready = [
 ]
 
 ["ini-004".work]
-queue = [
+active = [
   { path = "docs/specs/connect-and-orient/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/connect-and-orient.md" }, summary = "Connect one public GitHub repository and see the Agent-Ready verdict at an exact commit, over a provisional trial Runtime", needs = [] },
+  { path = "docs/specs/acceptance-audit-citation-anchors/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Make load-bearing acceptance-audit citations fail when their anchors drift away from the cited subject", needs = [] },
 ]
 
 ["ini-004".shaping_queue]
