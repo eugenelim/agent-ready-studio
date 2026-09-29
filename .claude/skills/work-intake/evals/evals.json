@@ -316,6 +316,138 @@
         "Writes no narrative comments or copied source text",
         "Does not use workspace.toml as the rationale or finding store"
       ]
+    },
+    {
+      "id": "typed-ordinal-allocated-at-a-mapped-altitude",
+      "prompt": "Admit this as a repository intent: teams cannot tell which capability an intent belongs to. Level: capability.",
+      "expected_output": "Resolve the altitude against the closed table, allocate the ordinal by running the allocator with the token as a discrete argument, and pass docs/product/intents/CAP-NNNN-<slug>.md as the confirmed destination to intake-intent.",
+      "assertions": [
+        "Resolves Level to the CAP token before invoking anything",
+        "Passes the token, not the Level string, on the command line",
+        "Validates the returned value before composing a destination from it",
+        "Hands the prefixed destination to intake-intent rather than writing the artifact itself"
+      ]
+    },
+    {
+      "id": "unmapped-altitude-admits-unprefixed-without-a-marker",
+      "prompt": "Admit this as a repository intent: we should track experiments per squad. Level: initiative.",
+      "expected_output": "Recognize that the table maps no token for this altitude, skip the allocator entirely, and pass docs/product/intents/<slug>.md as the confirmed destination with nothing recorded about an ordinal.",
+      "assertions": [
+        "Does not invoke the allocator for an unmapped altitude",
+        "Uses the unprefixed destination",
+        "Records no ordinal marker, because none is owed at this altitude",
+        "Admits and registers the intent as usual"
+      ]
+    },
+    {
+      "id": "allocator-refusal-still-admits-and-records-its-cause",
+      "prompt": "Admit this as a repository intent: contributors need a shorter first task. Level: feature. The intents directory currently contains FEAT-12-partial.md.",
+      "expected_output": "Read the allocator's exit 1 and its cause token, use docs/product/intents/<slug>.md, and pass the cause to intake-intent so the intent records it. Admission proceeds and no failure is reported to the operator.",
+      "assertions": [
+        "Treats exit 1 as a destination change, never as a reason to stop",
+        "Passes the cause token through rather than the allocator's stderr text",
+        "Registers the intent as usual",
+        "Reports no failure, because the intent was admitted"
+      ]
+    },
+    {
+      "id": "superseded-status-carries-its-pointer-in-a-field",
+      "prompt": "This intent was replaced by another bet. Record that on it: Status Superseded, the replacement's slug is a-successor.",
+      "expected_output": "The preamble carries `- **Status:** Superseded` as a bare token and `- **Superseded by:** a-successor` as a field of its own. No pointer is written inside the Status value.",
+      "assertions": [
+        "Writes Superseded as a bare Status token, never `Superseded by <slug>`",
+        "Writes the replacement's slug in a separate `Superseded by:` preamble field",
+        "Writes both fields together, because either alone is refused",
+        "Uses the slug rather than a filename or an ordinal alias"
+      ]
+    },
+    {
+      "id": "a-stranded-supersession-pointer-is-a-corpus-refusal",
+      "prompt": "The corpus check refuses an intent for `Superseded by:` even though its Status is Draft. Explain what to fix.",
+      "expected_output": "The pointer and `Status: Superseded` are required together and refused apart. Either the bet was replaced, and Status becomes Superseded, or it was not, and the pointer is deleted. The check that reports this walks the whole directory; a cold shaping review does not decide it.",
+      "assertions": [
+        "Names both halves and offers the two repairs rather than one",
+        "Attributes the refusal to the corpus check rather than to a shaping review",
+        "Does not claim a `MALFORMED(shape)` token stands for this refusal",
+        "Leaves the artifact unchanged until the author chooses which half was wrong"
+      ]
+    },
+    {
+      "id": "a-ratification-record-carries-its-evidence",
+      "prompt": "Mark this intent Accepted as of 2026-09-20.",
+      "expected_output": "`- **Accepted:** 2026-09-20` followed by a space and text saying who decided and on what evidence. A bare date is refused, and so is the literal `no`.",
+      "assertions": [
+        "Writes the calendar date as YYYY-MM-DD, never the basic form",
+        "Writes no punctuation immediately after the date, which would land inside the date token",
+        "Follows the date with non-empty text rather than leaving the date alone",
+        "Does not offer `no` as an available value for this field"
+      ]
+    },
+    {
+      "id": "corpus-lint-refuses-fulfilled-without-ratification",
+      "prompt": "The corpus lint refused this intent with Status: Fulfilled and a Fulfilled: record but no Accepted: record. Explain what is wrong and how to fix it.",
+      "expected_output": "A Fulfilled intent must carry both an Accepted: record and a Fulfilled: record. The Accepted: record is what proves the bet was ratified before delivery. Without it the corpus lint reports the Accepted field with a message like 'status `Fulfilled` requires an `Accepted:` record'. Add `- **Accepted:** YYYY-MM-DD <who ratified it and on what evidence>` to the preamble.",
+      "assertions": [
+        "Names both required records, not only the missing one",
+        "Attributes the refusal to the corpus lint rather than to a shaping review",
+        "States that Accepted: must carry a date and evidence text, not a bare date",
+        "Does not claim the intent can be closed without ratification evidence"
+      ]
+    },
+    {
+      "id": "corpus-lint-refuses-draft-with-lifecycle-records",
+      "prompt": "The corpus lint refused a Draft intent because it carries an Accepted: record. Explain why and what the author should do.",
+      "expected_output": "Draft means the bet is still open, so no ratification or delivery records belong beside it. The corpus lint reports the Accepted field with a message like 'status `Draft` carries an `Accepted:` record; `Draft` means open'. Either remove the record to keep the intent open, or advance the status to the state that earned the record.",
+      "assertions": [
+        "Explains that Draft means open and forbids both records",
+        "Attributes the refusal to the corpus lint and names the Accepted field",
+        "Offers the two repairs: remove the record or advance the status",
+        "Does not suggest editing the record's value as a repair"
+      ]
+    },
+    {
+      "id": "corpus-lint-refuses-cancelled-without-accepted-record",
+      "prompt": "This intent has Status: Cancelled but no Accepted: record. The corpus lint refused it. What does the author owe and why?",
+      "expected_output": "A Cancelled intent requires an Accepted: record, because it was ratified before the decision to cancel was taken. Without the record the corpus lint reports the Accepted field with a message like 'status `Cancelled` requires an `Accepted:` record'. The author must add `- **Accepted:** YYYY-MM-DD <who ratified it>` to show the bet reached Accepted before it was cancelled. A Fulfilled: record must not be added — Cancelled did not deliver.",
+      "assertions": [
+        "Requires Accepted: but explicitly forbids Fulfilled:",
+        "Names the Accepted field as the one the corpus lint reports",
+        "States that Cancelled means the bet was ratified, then cancelled, not that it delivered",
+        "Does not accept a bare date as a valid Accepted: value"
+      ]
+    },
+    {
+      "id": "commented-outcome-co-owner-is-absent",
+      "prompt": "The intent preamble contains `Outcome co-owner: intent:missing-peer` inside an HTML comment. Explain how the checks treat it.",
+      "expected_output": "The commented line is absent preamble data. The preamble reader ignores closed and unclosed HTML comment regions before it recognizes fields or the first visible body heading, so the hidden co-owner neither satisfies the field nor produces an unresolved-target finding. If the peer was intended, move the line out of the comment and keep the typed pointer form.",
+      "assertions": [
+        "Treats the commented declaration as absent rather than malformed",
+        "Emits no unresolved co-owner finding for the hidden value",
+        "Explains that visible placement in the preamble is required",
+        "Does not read body prose or comments to supply the declaration"
+      ]
+    },
+    {
+      "id": "malformed-outcome-co-owner-is-refused",
+      "prompt": "The corpus lint reports `Outcome co-owner` on an intent whose value is `peer-intent`. Explain the repair.",
+      "expected_output": "`Outcome co-owner` is optional, but when present its value is constrained to a typed pointer: `outcome:<target>`, `opportunity:<target>`, `capability:<target>`, or `intent:<target>`. A bare slug such as `peer-intent` is refused. Repair it by writing the live peer's canonical typed identity, such as `intent:peer-intent`, or delete the optional field if no peer exists.",
+      "assertions": [
+        "Names the `Outcome co-owner` field as constrained when present",
+        "Refuses a bare slug value",
+        "Offers only the allowed typed pointer forms",
+        "Does not make the field required"
+      ]
+    },
+    {
+      "id": "closed-empty-is-a-decomposed-terminus",
+      "prompt": "An intent carries `Decomposed: 2026-09-24 closed-empty` and no checkbox items under `## Decomposition`. Explain whether this is valid.",
+      "expected_output": "`2026-09-24 closed-empty` is a valid `Decomposed:` value: an ISO 8601 date followed by exactly one terminus. It records a completed decomposition that deliberately has no child work, so it needs no checkbox item under `## Decomposition`. It is distinct from the literal `no`, which records a decision not to decompose.",
+      "assertions": [
+        "Accepts `closed-empty` only as a dated Decomposed terminus",
+        "Keeps the literal `no` distinct from closed-empty",
+        "Does not require direct-light checkbox items for closed-empty",
+        "Does not create a separate closed-empty field"
+      ]
     }
   ]
 }

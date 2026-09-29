@@ -15,8 +15,9 @@ docs/specs/<feature>/
                     verification-ledger.md when execution produces an observation
 ```
 
-**`spec.md` is the contract.** Its four sections — Objective, Boundaries,
-Testing Strategy, Acceptance Criteria — together define what "done" means.
+**`spec.md` is the contract.** Three sections define what "done" means —
+Agent Rules, Testing Strategy, Acceptance Criteria — read in the frame that
+Outcome and What Changes set above them.
 The Acceptance Criteria list the observable outcomes that close the spec
 (the gate, not an afterthought); the Testing Strategy names the verification
 mode for each, and the artifact that verifies it lives where that mode
@@ -130,15 +131,16 @@ mechanical rule.
   register or external artifact is the stable pointer. Run `workspace-status`
   to see open backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
-  `- **Brief:**` header naming that brief by its repository-relative path
-  (`docs/product/briefs/<slug>.md` — the brief file's real path, which
-  `workspace-status` reconciliation matches against the queue entry's
-  `source.parent`; a bare slug fails that check and blocks dispatch). It
-  records *product provenance* and is distinct from `Constrained by:` (which
-  cites the ADRs/RFCs that govern the spec). The field is additive and optional
-  — a spec authored directly omits it and stays valid. The brief's coverage map
-  rolls up from these back-links automatically; never hand-write a spec's status
-  into the brief.
+  `- **Brief:**` header naming that brief. `brief:<slug>` is the canonical form
+  ; the repository-relative path (`docs/product/briefs/<slug>.md`
+  — the brief file's real path) is an accepted fallback that `workspace-status`
+  reconciliation matches against the queue entry's `source.parent`. Both forms
+  pass reconciliation; a bare slug fails that check and blocks dispatch, as it
+  always has. It records *product provenance* and is distinct from
+  `Constrained by:` (which cites the ADRs/RFCs that govern the spec). The field
+  is additive and optional — a spec authored directly omits it and stays valid.
+  The brief's coverage map rolls up from these back-links automatically; never
+  hand-write a spec's status into the brief.
 - **Discovery up-edge (optional).** A spec descended from an upstream
   product-discovery artifact (a decision brief or intent produced by an upstream
   discovery process) carries a `- **Discovery:**` header naming that artifact by
@@ -202,7 +204,7 @@ the artifacts that verify it have different shapes and different lifecycles:
 
 - **The contract** lives in `spec.md` — Acceptance Criteria name the
   observable outcomes; Testing Strategy names the verification mode for
-  each (TDD / goal-based check / visual / manual QA); Boundaries names the
+  each (TDD / goal-based check / visual / manual QA); Agent Rules names the
   rails. Any valid implementation must satisfy every criterion. The
   contract is stable against *implementation* change (that's the whole
   point); it evolves with *spec* (behavioural) change during the spec's
@@ -213,10 +215,10 @@ the artifacts that verify it have different shapes and different lifecycles:
   Criteria in concrete form. They are *revisable* if one turns out to
   over-specify an internal detail the plan changed.
 
-Within a plan task, the **Tests** subsection comes *before* Approach. Tests
-drive implementation, not the other way around. Red-green-refactor: write
-the failing test, make it pass, refactor — separate commits for each when
-the change is non-trivial.
+Within a plan task, **Tests** leads: tests drive implementation, not the other
+way around. `Approach:` is conditional and `assets/plan.md` owns when it is
+written. Red-green-refactor: write the failing test, make it pass, refactor —
+separate commits for each when the change is non-trivial.
 
 **Stub → EXECUTE handoff.** For TDD-mode tasks, PLAN carries the exact test code
 as the task's compilable, validated red **stub** — as much of the real failing
