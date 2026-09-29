@@ -130,38 +130,40 @@ after. Only their transport-helper clauses need the smoke, and those are carried
 every module named in it has a disposition; three reporting clauses remain. See §4.
 
 **B. Hostile-repository proofs — 7 open of the 13 rows AC-0133 to AC-0145**, counted from the audit rather than copied: AC-0134, AC-0135, AC-0136, AC-0137, AC-0138, AC-0141 and AC-0145. Regenerate it from the rows; do not trust this sentence over them. The re-implementation is gone:
-`test/hostile-fixture.ts:339-345#materializationPins` builds the checkout vector by filtering the
-product's `PINNED_GIT_CONFIGURATION`, and `:347-401#materialize` spreads it into the checkout, so
-removing a pin now reddens the proofs that depend on it. **AC-0133 and AC-0139 are closed on that
-binding** — deleting `core.hooksPath=/dev/null` reddens 1 of 84 and `core.symlinks=false` reddens
-2 of 84. Before the repair, emptying the whole list reddened nothing behavioural.
+`test/hostile-fixture.ts:344-349#materializationPins` builds the vector by filtering the product's
+`PINNED_GIT_CONFIGURATION`, and `:379-449#materialize` applies it to pinned `init`, `fetch`, forced
+checkout and `rev-parse --verify HEAD`, matching the product's materialization shape. The completed
+pinned-Git proof unit is recorded in `docs/specs/pinned-git-configuration-proof/` and in the audit's
+*Pinned Git configuration proof boundary*. **Five of thirteen pins now have behavioral one-pin-
+omission evidence**: `http.followRedirects=false`, `core.hooksPath=/dev/null`,
+`core.symlinks=false`, `protocol.version=2` and `transfer.fsckObjects=true`. The other eight are
+explicitly constant-only; the audit, not this handover, owns the pin-by-pin reasons.
 
-**What the binding does not yet cover, and this is the next unit's work.** Only the checkout
-carries pins: the fixture's `clone` is unpinned, and the product does not clone at all — it runs
-`init`, `fetch`, `checkout`, `rev-parse` and `cat-file`, each carrying all thirteen pins through
-`gitVector` (`runtime-child.ts:917-919`). So **two of thirteen pins have behavioural evidence**;
-the redirect, object-integrity, credential, submodule and transport pins have none, and a
-local-path clone could not exercise some of them even if pinned. **Only two of the fourteen positive controls
-demonstrably remove a product guard** — `repository-hook` and `escaping-symlink`, the two passing
+**The separate positive-control repair remains open.** Only two of the fourteen positive controls
+demonstrably remove a product guard — `repository-hook` and `escaping-symlink`, the two passing
 `omitPinPrefix`. An earlier reading of this row said three remove no guard; that number was never
 derived, and reading all fourteen branches does not support it. What is established is the two;
 the status of the other twelve is the routed work under
 `connect-orient-positive-controls-that-remove-no-guard`.
 
-**Six criteria are vacuous by construction**, not three: AC-0134, AC-0135 and AC-0137 because
+**Five criteria remain vacuous by construction**: AC-0134, AC-0135 and AC-0137 because
 `git checkout` never runs a `package.json` script, never executes a file under `.agents/` and
-never runs a smudge filter nobody configured; **AC-0136** for its case-insensitive arm only — git refuses `invalid path
-'.GIT'` with `core.protectHFS=false` and `core.protectNTFS=false` both set explicitly, so the
-guard is git's own path check and not a pin. **Its Unicode-ignorable arm is neither built nor
-measured**, and `core.protectHFS` is the pin that would guard it, so that arm is open, not vacuous; **AC-0141** because the fixture writes
+never runs a smudge filter nobody configured; **AC-0141** because the fixture writes
 `.gitmodules` as plain text with no gitlink, so nothing can recurse into it; and **AC-0146**
-because the credential negative runs over a path the credential never reaches. All six are routed
+because the credential negative runs over a path the credential never reaches. All five are routed
 to the spawn-audit surface by the owner's decision of 2026-09-26, registered as
 `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` in `workspace.toml` — `spawnAudited`
 (`executable-identity.ts:28`) is the Service's only process-start primitive for this trial and
 every entry records an absolute `executable`, so "Studio never executes anything out of the
 materialized worktree" is a property that can fail. **Highest risk reduction per criterion, no new
 product capability.**
+
+**AC-0136 remains open, but its case-insensitive arm is now weak rather than vacuous.** The full
+pin vector rejects `.GIT` during fetch through `transfer.fsckObjects=true`; omitting that pin alone
+advances to checkout's built-in `invalid path '.GIT'` refusal. The protected outcome therefore
+does not fail, and the criterion's Unicode-ignorable arm is still neither built nor measured.
+`core.protectHFS` remains constant-only in this unit. AC-0136 stays routed with the spawn-audit
+work above; the audit carries the exact measured boundary.
 
 **C. The renderer half — roughly 18.** AC-0105 and AC-0106 open because every test renders
 `InspectionSurface` directly and deleting it from `App.tsx:242` reddens nothing. Most Honest

@@ -84,6 +84,8 @@ export interface HostileFixture {
   root: string;
   source: string;
   worktree: string;
+  resolvedSha: string;
+  gitInvocations: { args: string[] }[];
   caseId: HostileCase;
   /** One product pin to drop, by prefix, so a control can remove a real guard. */
   omitPinPrefix?: string;
@@ -295,10 +297,13 @@ export async function buildHostileFixture(
   if (caseId === "dot-git-variant") {
     addDotGitVariantToObjectDatabase(source);
   }
+  const resolvedSha = runGit(source, ["rev-parse", "HEAD"]);
   return {
     root,
     source,
     worktree,
+    resolvedSha,
+    gitInvocations: [],
     caseId,
     omitPinPrefix: options.omitPinPrefix,
   };
@@ -344,11 +349,41 @@ function materializationPins(fixture: HostileFixture): string[] {
   ).flatMap((setting) => ["-c", setting]);
 }
 
+function runMaterializationGit(
+  fixture: HostileFixture,
+  args: string[],
+): string {
+  fixture.gitInvocations.push({ args });
+  const result = spawnSync("/usr/bin/git", args, {
+    cwd: fixture.worktree,
+    encoding: "utf8",
+    env: {
+      PATH: "/usr/bin:/bin",
+      HOME: join(fixture.root, "materialize-home"),
+      LANG: "C",
+      LC_ALL: "C",
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_SYSTEM: "/dev/null",
+      GIT_CONFIG_NOSYSTEM: "1",
+      STUDIO_PROBE_LOG: activeProbeLog ?? join(fixture.root, "unobserved.log"),
+    },
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `fixture git ${args.at(-1) ?? ""} failed: ${result.stderr}`,
+    );
+  }
+  return result.stdout.trim();
+}
+
 export async function materialize(fixture: HostileFixture): Promise<void> {
-  runGit(fixture.root, [
-    "clone",
-    "--no-checkout",
-    fixture.source,
+  fixture.gitInvocations.length = 0;
+  mkdirSync(fixture.worktree, { recursive: true });
+  runMaterializationGit(fixture, [
+    ...materializationPins(fixture),
+    "init",
+    "--quiet",
+    "--",
     fixture.worktree,
   ]);
   if (fixture.caseId === "repository-hook") {
@@ -375,28 +410,32 @@ export async function materialize(fixture: HostileFixture): Promise<void> {
       true,
     );
   }
-  const args = [
+  runMaterializationGit(fixture, [
+    ...materializationPins(fixture),
+    "fetch",
+    "--depth=1",
+    "--no-tags",
+    "--",
+    fixture.source,
+    fixture.resolvedSha,
+  ]);
+  runMaterializationGit(fixture, [
     ...materializationPins(fixture),
     "checkout",
     "--detach",
+    "--force",
+    "FETCH_HEAD",
+  ]);
+  const inspectedSha = runMaterializationGit(fixture, [
+    ...materializationPins(fixture),
+    "rev-parse",
+    "--verify",
     "HEAD",
-  ];
-  const result = spawnSync("/usr/bin/git", args, {
-    cwd: fixture.worktree,
-    encoding: "utf8",
-    env: {
-      PATH: "/usr/bin:/bin",
-      HOME: join(fixture.root, "materialize-home"),
-      LANG: "C",
-      LC_ALL: "C",
-      GIT_CONFIG_GLOBAL: "/dev/null",
-      GIT_CONFIG_SYSTEM: "/dev/null",
-      GIT_CONFIG_NOSYSTEM: "1",
-      STUDIO_PROBE_LOG: activeProbeLog ?? join(fixture.root, "unobserved.log"),
-    },
-  });
-  if (result.status !== 0) {
-    throw new Error(`fixture checkout failed: ${result.stderr}`);
+  ]);
+  if (inspectedSha !== fixture.resolvedSha) {
+    throw new Error(
+      `fixture HEAD mismatch: expected ${fixture.resolvedSha}, got ${inspectedSha}`,
+    );
   }
 }
 
