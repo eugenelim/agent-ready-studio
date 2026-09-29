@@ -9809,3 +9809,74 @@ documents**: six in `acceptance-audit.md` (`:174`, `:175`, `:176`, two on `:177`
 in `spec.md` (`:672`), and three in this ledger (`:6689`, `:7339`, `:7582`). The earlier draft
 said eight across two, over-counting the audit by one and omitting this file entirely. The rule
 now lives at the pin, where the editor who would break it is standing, rather than only here.
+
+## pinned-git-configuration-proof-forward-correction-2026-09-29
+
+The fresh pinned-git-configuration-proof unit corrects the 2026-09-27 residual forward, without
+rewriting the contemporaneous entries above. The earlier statement that eleven of thirteen pins
+had no behavioral proof is no longer current after the T2 matrix: five of thirteen now have
+behavioral one-pin-omission evidence, and eight remain constant-only.
+
+**Behavioral pins.** The measured behavioral set is `http.followRedirects=false`,
+`core.hooksPath=/dev/null`, `core.symlinks=false`, `protocol.version=2`, and
+`transfer.fsckObjects=true`. The protocol and redirect cases use shared ambient controls
+(`protocol.version=1` and `http.followRedirects=true`) to make omission observable, but the
+accepted comparison is still present pin versus that pin alone omitted.
+
+**Constant-only pins.** The remaining eight settings are explicitly narrowed to
+constant-only evidence in this unit: `core.protectHFS=true`, `core.protectNTFS=true`,
+`core.fsmonitor=false`, `submodule.recurse=false`, `credential.helper=`,
+`maintenance.auto=false`, `gc.auto=0`, and `advice.detachedHead=false`. They remain asserted by
+the product vector and exhaustive inventory, not by a same-level behavior proof.
+
+**Verification residue.** The run evidence available to this correction is inventory-only plus
+`pnpm lint` and `pnpm typecheck` green. The current host denied the loopback bind needed by the
+redirect proof and denied recursive cleanup during test teardown, so this entry does not claim a
+full focused proof suite, uncapped `pnpm test`, capped test, build, or `pnpm verify` green run.
+
+The final gate reading confirmed the restriction across the repository rather than only in the
+new proof: `pnpm test:capped` completed with 32 test files passed, 25 failed, and 1 skipped; 535
+tests passed, 289 failed, and 3 skipped. The failures span unrelated SQLite, state-root,
+process-tree, Electron, and hostile-fixture suites and are dominated by denied cleanup or spawn.
+`pnpm governance` and `pnpm verify` stop at the checker self-test's denied temporary-directory
+cleanup. The uncapped test and standalone build both stopped producing output after compilation
+and were ended after bounded waits, so neither is claimed green.
+
+**Record checks.** The controller completed the approved T3 documentation checks after the
+implementer-side Python executions were policy-rejected. The final audit check is green: 157 rows,
+95 met, 58 not met, 4 not verifiable here, and every citation resolves. Spec-status lint is green:
+metadata clean, with 2 of 4 specs changed against `origin/main`. The weakest changed met-row
+mutation was AC-0009's new redirect anchor, `namesClosedTarget`: changing it to
+`namesClosedTarget__MUTATED` made the audit checker fail with exactly one unresolved citation,
+then restoring the anchor returned the checker to green. The checker self-test did not complete
+because `TemporaryDirectory` cleanup was denied with `EPERM` in both system temp and workspace
+`.audit-tmp`, so it is not recorded as green.
+
+**Citation repair.** The audit check exposed five citation-drift failures after T1/T2 moved the
+fixture spans. The controller repaired them by subject and also refreshed AC-0141's submodule span;
+the final green audit check above is the resolving evidence. A later redirect-listener cleanup test
+shifted the proof file and moved five proof citations; those were recomputed by subject, the final
+AC-0009 anchor mutation again failed with exactly one unresolved citation, and the restored audit
+returned to the same green 157-row reading.
+
+## pinned-git-configuration-proof-final-reading-2026-09-29
+
+This forward entry supersedes only the host-restriction paragraphs in the correction above; it does
+not rewrite their contemporaneous reading. A separate execution host completed the blocked cleanup,
+loopback, focused, and repository-wide checks against the same working tree.
+
+The product-shaped materialization sequence changed AC-0136's first refusal point. With the full
+pin vector, `transfer.fsckObjects=true` rejects the case-insensitive `.GIT` object during fetch with
+`hasDotgit`. Omitting that pin alone advances to checkout, where git's built-in `invalid path
+'.GIT'` check still refuses the object. Both arms passed. The audit therefore keeps AC-0136 **not
+met** because its Unicode-ignorable arm remains unbuilt, but moves its falsifiability classification
+from N to W for the measured case-insensitive arm. This does not repair or narrow away AC-0147's
+separate positive-control defect.
+
+The focused fixture suite passed 42 of 42 and the dedicated pin suite passed 13 of 13. Lint,
+typecheck, governance, build, the capped test run, both audit checks, spec-status lint, and the Git
+diff check passed. The capped run passed 826 tests with 3 skipped and no failures. The uncapped test
+run and the test leg inside `pnpm verify` each failed one different trial-runtime timing case; each
+case passed twice in isolation. This satisfies both documented signs of the registered host-load
+flake. The audit remained 157 rows — 95 met, 58 not met, 4 not verifiable here — and every citation
+resolved; the audit checker self-test passed.

@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { pinnedGitConfigurationArgs } from "../git-driver.js";
 
 // Every case here builds a real git repository and, for the positive controls,
 // spawns git. That work exceeds vitest's 5s default whenever the machine is busy
@@ -36,6 +37,43 @@ it("AC-0147 a hook probe fires when the guard is removed", async () => {
 });
 
 describe("AC-0149 hostile fixture corpus", () => {
+  it("materializes through the product-shaped pinned Git sequence", async () => {
+    const fixture = await buildHostileFixture({
+      caseId: "instruction-shaped-text",
+    });
+    await materialize(fixture);
+
+    expect(
+      readFileSync(join(fixture.worktree, ".git/config"), "utf8"),
+    ).not.toContain('[remote "origin"]');
+    expect(fixture.gitInvocations.map(({ args }) => args)).toEqual([
+      [
+        ...pinnedGitConfigurationArgs(),
+        "init",
+        "--quiet",
+        "--",
+        fixture.worktree,
+      ],
+      [
+        ...pinnedGitConfigurationArgs(),
+        "fetch",
+        "--depth=1",
+        "--no-tags",
+        "--",
+        fixture.source,
+        fixture.resolvedSha,
+      ],
+      [
+        ...pinnedGitConfigurationArgs(),
+        "checkout",
+        "--detach",
+        "--force",
+        "FETCH_HEAD",
+      ],
+      [...pinnedGitConfigurationArgs(), "rev-parse", "--verify", "HEAD"],
+    ]);
+  });
+
   it("names every security-proof and bound case", () => {
     expect(HOSTILE_CASES).toEqual([
       "repository-hook",

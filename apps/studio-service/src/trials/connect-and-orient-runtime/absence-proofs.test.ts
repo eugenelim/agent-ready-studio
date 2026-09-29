@@ -151,26 +151,37 @@ describe("AC-0135 no projected skill executable runs during inspection", () => {
 
 describe("AC-0136 a .git variant does not overwrite the real .git", () => {
   /**
-   * The refusal comes from git's own invalid-path check, **not** from a pinned
-   * setting. `git -c core.protectHFS=false -c core.protectNTFS=false checkout`
-   * still exits non-zero with `invalid path '.GIT'`, so no pin removal can
-   * redden this proof and it demonstrates no product control. An earlier
-   * version of this comment credited `core.protectHFS`; that was wrong.
+   * The product-shaped sequence has two refusal layers for this fixture.
+   * `transfer.fsckObjects=true` rejects the object during fetch with
+   * `hasDotgit`; when that pin alone is omitted, checkout still exits non-zero
+   * with `invalid path '.GIT'`. The paired assertions prove the transfer pin is
+   * reachable without pretending its omission defeats the checkout fallback.
    *
    * Nothing is overwritten because nothing is written, which is the strongest
-   * form this assertion can hold against a refusal it does not own.
+   * form this assertion can hold while both refusal layers remain effective.
    *
    * **This covers the case-insensitive arm only.** AC-0136 also names a
    * Unicode-ignorable variant of `.git`, which this fixture never builds and
    * no measurement here reaches; `core.protectHFS` is the pin that would guard
    * that arm, so nothing is claimed about it either way. For the arm above,
-   * AC-0136 is recorded **not met** and vacuous by construction, and is routed
-   * to the spawn-audit surface by the owner decision of 2026-09-26 under
+   * AC-0136 remains **not met** because that Unicode arm has no proof, and is
+   * routed to the spawn-audit surface by the owner decision of 2026-09-26 under
    * `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` — see the
    * AC-0136 row in `notes/acceptance-audit.md`.
    */
-  it("refuses the checkout that carries the variant entry", async () => {
+  it("refuses the variant during the pinned fetch", async () => {
     const fixture = await buildHostileFixture({ caseId: "dot-git-variant" });
+
+    await expect(materialize(fixture)).rejects.toThrow(
+      /hasDotgit: contains '\.git'/,
+    );
+  });
+
+  it("falls through to checkout refusal when the fsck pin is omitted", async () => {
+    const fixture = await buildHostileFixture({
+      caseId: "dot-git-variant",
+      omitPinPrefix: "transfer.fsckObjects",
+    });
 
     await expect(materialize(fixture)).rejects.toThrow(/invalid path '\.GIT'/);
   });
@@ -179,8 +190,8 @@ describe("AC-0136 a .git variant does not overwrite the real .git", () => {
     const fixture = await buildHostileFixture({ caseId: "dot-git-variant" });
     await expect(materialize(fixture)).rejects.toThrow();
 
-    // The clone that precedes the checkout created the real `.git`; the
-    // refused checkout left it as git wrote it, not as the blob would have.
+    // `init` created the real `.git`; the refused fetch left it as git wrote
+    // it, not as the hostile blob would have.
     const dotGit = join(fixture.worktree, ".git");
     expect(lstatSync(dotGit).isDirectory()).toBe(true);
     expect(readFileSync(join(dotGit, "HEAD"), "utf8")).not.toContain(
