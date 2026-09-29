@@ -59,22 +59,48 @@ ROW = re.compile(r"^\| (AC-\d{4}) \| (\*\*not met\*\*|met|not verifiable here) \
 # Bindings column uses to cite several places in one file.
 # `file.ts:12`, `:12-34`, and the two continuation forms the Bindings column
 # actually uses: `:12,34` and `:12,:34`, the latter repeating the colon.
-# An optional `#symbol` anchor follows the lines: `inspector-locator.ts:192#locateTrustedInspector`.
+# An optional anchor follows the lines: `inspector-locator.ts:192#locateTrustedInspector`.
+# The anchor group captures `#` and the complete token up to the first of
+# AC-0001's fourteen delimiters: whitespace, the `|` cell delimiter, the `;`
+# citation separator, a code-span backtick, the `*` emphasis marker, a comma,
+# and the brackets `(`, `)`, `[`, `]`, `{`, `}`, `<`, `>`. So
+# `#filter=probe and prose` stops at the space, `` `#parseGuardedJson` `` stops
+# at the backtick, and `#AC-0136; apps/other.ts` stops at the semicolon.
+# Underscore is *not* a delimiter: it is part of the anchor, so
+# `#STUDIO_PROBE_LOG` is captured whole.
+# A captured value of `"#"` (empty token) and a captured value whose token fails
+# the ANCHOR validator are both malformed and reported rather than silently
+# treated as valid bare citations.
 # Line numbers alone go stale silently -- they keep resolving and keep landing
 # inside the file while pointing at unrelated code, which is how this table
 # drifted twice. An anchor makes the citation self-checking: the symbol has to
-# still be inside the cited span. It is optional so the table can gain anchors
-# a row at a time rather than in one 390-citation rewrite.
+# still be inside the cited span.  Anchors are mandatory for `met` rows;
+# non-`met` rows retain the bare form.
 CITATION = re.compile(
     r"\b([\w./-]+\.(?:ts|tsx|mjs|py|md|json|toml)):(\d[\d,:-]*)"
-    r"(?:#([A-Za-z_][\w.]*))?"
+    r"(#[^\s|;`*,(){}\[\]<>]*)?"
 )
+# Validates the token following `#`.  Admits letters, digits, underscore (via
+# \w), dot, hyphen, and equals — enough for identifiers, filenames, and
+# key=value tokens.  A token that does not match is reported as unreadable.
+# A token ending in a dot, hyphen, or equals is a trailing sentence separator
+# rather than part of the name, and is refused.
+ANCHOR = re.compile(r"^[\w.\-=]+(?<![.\-=])$")
 # What a range start looks like once the code above it has moved: a line
 # holding only brackets, or holding nothing at all. Both are stale by
 # construction -- nobody cites an empty line or a closing brace as the start
 # of their evidence. See the module docstring for the rules that were measured
 # and rejected as too noisy.
 STALE_START = re.compile(r"^\s*(?:[)\]}]+[,;)]*|\*?)\s*$")
+# A line spec cut short by its anchor. `file.ts:12#anchor,34` parses as spec
+# `12`, because AC-0001 ends the anchor at a comma, so `,34` would reach no
+# check at all -- the silently dropped spec part this module exists to end. The
+# same intent spelled `file.ts:12,34#anchor` is already refused for anchoring
+# more than one span, so both spellings must be reported, not just one.
+# No whitespace: `CITATION`'s spec group is `(\d[\d,:-]*)`, so a space can
+# never begin a continuation. Admitting one turned `#a, 3 sites redden` into a
+# finding and was the only path that could report an empty dropped token.
+TRUNCATED_SPEC = re.compile(r"^,:?\d")
 # The count suffix, not "anything after the first em dash". A non-greedy
 # `(.+?)(?: — .*)?$` truncated a group title that contained the separator
 # itself -- `### Version honesty — and path confinement` rendered back as
@@ -218,36 +244,97 @@ EXPECTED = """# Audit
 # extension, drop either comma split, check only a range's first line --
 # each stop examining between 55 and 233 of the real audit's 390 citations
 # with the self-test still green. Every row below exists to kill one of those.
+#
+# Rows AC-0001 through AC-0019 (except AC-0009) use verdict `not verifiable
+# here` so they test resolution, bounds, and stale-start checks without
+# colliding with the rule that requires an anchor in every `met` row.
+# AC-0009 is `**not met**` to prove non-`met` rows are still checked.
+# AC-0020 and AC-0021 are `met` with anchors; AC-0021 proves that stale
+# anchors in `met` rows are caught.  AC-0022 onward exercise the new rules.
 CITATION_FIXTURE = """## Per-criterion reconciliation
 
 ### Group
 
-| AC-0001 | met | S | apps/real.ts:1-3 | a citation that resolves |
-| AC-0002 | met | S | apps/gone.ts:2 | a file that is not there |
-| AC-0003 | met | S | apps/real.ts:99 | a line past the end |
-| AC-0004 | met | S | apps/real.ts:3-4 | a start on a closing bracket |
-| AC-0005 | met | S | apps/real.ts:4-5 | a start on a blank line |
-| AC-0006 | met | S | real.ts:1 | the suffix shorthand resolves |
-| AC-0007 | met | S | real.ts:98 | the shorthand is checked, not skipped |
-| AC-0008 | met | S | apps/real.ts:1; apps/real.ts:97 | a second citation on one row |
+| AC-0001 | not verifiable here | S | apps/real.ts:1-3 | a citation that resolves |
+| AC-0002 | not verifiable here | S | apps/gone.ts:2 | a file that is not there |
+| AC-0003 | not verifiable here | S | apps/real.ts:99 | a line past the end |
+| AC-0004 | not verifiable here | S | apps/real.ts:3-4 | a start on a closing bracket |
+| AC-0005 | not verifiable here | S | apps/real.ts:4-5 | a start on a blank line |
+| AC-0006 | not verifiable here | S | real.ts:1 | the suffix shorthand resolves |
+| AC-0007 | not verifiable here | S | real.ts:98 | the shorthand is checked, not skipped |
+| AC-0008 | not verifiable here | S | apps/real.ts:1; apps/real.ts:97 | a second citation on one row |
 | AC-0009 | **not met** | W | apps/real.ts:96 | a not-met row is checked too |
-| AC-0010 | met | S | apps/widget.tsx:95 | a .tsx citation |
-| AC-0011 | met | S | apps/build.mjs:94 | a .mjs citation |
-| AC-0012 | met | S | apps/notes.md:93 | a .md citation |
-| AC-0013 | met | S | apps/real.ts:1,92 | a comma continuation |
-| AC-0014 | met | S | apps/real.ts:1-91 | a range whose end is past the end |
-| AC-0015 | met | S | apps/real.ts:12- | a spec the parser cannot read |
-| AC-0016 | met | S | apps/real.ts:0 | a zero line number |
-| AC-0017 | met | S | apps/real.ts:1,3 | a continuation whose own start is stale |
-| AC-0018 | met | S | apps/real.ts:1,:90 | a colon-repeating continuation |
-| AC-0019 | met | S | apps/real.ts:89, and prose after it | a trailing separator is not a defect |
+| AC-0010 | not verifiable here | S | apps/widget.tsx:95 | a .tsx citation |
+| AC-0011 | not verifiable here | S | apps/build.mjs:94 | a .mjs citation |
+| AC-0012 | not verifiable here | S | apps/notes.md:93 | a .md citation |
+| AC-0013 | not verifiable here | S | apps/real.ts:1,92 | a comma continuation |
+| AC-0014 | not verifiable here | S | apps/real.ts:1-91 | a range whose end is past the end |
+| AC-0015 | not verifiable here | S | apps/real.ts:12- | a spec the parser cannot read |
+| AC-0016 | not verifiable here | S | apps/real.ts:0 | a zero line number |
+| AC-0017 | not verifiable here | S | apps/real.ts:1,3 | a continuation whose own start is stale |
+| AC-0018 | not verifiable here | S | apps/real.ts:1,:90 | a colon-repeating continuation |
+| AC-0019 | not verifiable here | S | apps/real.ts:89, and prose after it | a trailing separator is not a defect |
 | AC-0020 | met | S | apps/real.ts:1-3#b | an anchor still inside its span |
 | AC-0021 | met | S | apps/real.ts:5#b | an anchor the code moved away from |
+| AC-0022 | met | S | apps/tokens.ts:1#AC-0136 | punctuation anchor: hyphenated ID |
+| AC-0023 | met | S | apps/tokens.ts:1#package-script.mjs | punctuation anchor: dot and hyphen |
+| AC-0024 | met | S | apps/tokens.ts:2#filter=probe | punctuation anchor: equals |
+| AC-0025 | met | S | apps/tokens.ts:3#escaping-symlink | punctuation anchor: hyphen |
+| AC-0026 | met | S | apps/tokens.ts:3#.gitmodules | punctuation anchor: leading dot |
+| AC-0027 | met | S | apps/tokens.ts:2#filter=probe and then prose follows | anchor stops at prose |
+| AC-0028 | met | S | apps/real.ts:1# | empty anchor token is malformed |
+| AC-0029 | met | S | apps/real.ts:1#$bad | invalid anchor token is malformed |
+| AC-0030 | met | S | apps/real.ts:1,5#b | anchored multi-part citation |
+| AC-0031 | met | S | apps/tokens.ts:1#AC-0136; apps/tokens.ts:4#tail | two separate anchored citations each checked |
+| AC-0032 | met | S | apps/tokens.ts:1#AC-0136; apps/tokens.ts:4#filter=probe | second citation is stale |
+| AC-0033 | met | S | dup.ts:1#alpha | anchored ambiguous shorthand |
+| AC-0034 | met | S | apps/dup.ts:1#alpha | path-qualified resolves, anchor is correct |
+| AC-0035 | met | S | apps/dup.ts:1#beta | wrong anchor in resolved file |
+| AC-0036 | not verifiable here | S | dup.ts:1 | bare ambiguous shorthand keeps tolerance |
+| AC-0037 | met | S | apps/real.ts:1 | bare citation in met row |
+| AC-0038 | **not met** | W | apps/real.ts:1 | bare citation in not-met row is valid |
+| AC-0039 | not verifiable here | S | apps/real.ts:1 | bare citation in nvh row is valid |
+| AC-0040 | met | S | `apps/real.ts:2#b` | anchor inside a code span |
+| AC-0041 | met | S | *apps/real.ts:1#a* | anchor inside emphasis |
+| AC-0042 | met | S | apps/tokens.ts:4#tail,5 | anchor stops at comma, dropped span reported |
+| AC-0043 | met | S | apps/real.ts:5#c(note) | anchor stops at open paren |
+| AC-0044 | met | S | (apps/real.ts:5#c) | anchor stops at close paren |
+| AC-0045 | met | S | apps/real.ts:5#c[note] | anchor stops at open bracket |
+| AC-0046 | met | S | [apps/real.ts:5#c] | anchor stops at close bracket |
+| AC-0047 | met | S | apps/real.ts:5#c{note} | anchor stops at open brace |
+| AC-0048 | met | S | {apps/real.ts:5#c} | anchor stops at close brace |
+| AC-0049 | met | S | apps/real.ts:5#c<tag> | anchor stops at less-than |
+| AC-0050 | met | S | <apps/real.ts:5#c> | anchor stops at greater-than |
+| AC-0051 | met | S | apps/real.ts:1#foo. | trailing-separator dot is refused |
+| AC-0057 | met | S | apps/real.ts:88#bad. | a refused anchor still gets its bounds checked |
+| AC-0058 | met | S | apps/real.ts:1#a, 3 sites redden | comma then prose is not a dropped span |
+| AC-0055 | met | S | apps/real.ts:1#foo- | trailing-separator hyphen is refused |
+| AC-0056 | met | S | apps/real.ts:1#foo= | trailing-separator equals is refused |
+| AC-0052 | met | S | apps/pipe.ts:1#pipeAnchor| anchor abutting the cell delimiter |
+| AC-0053 | met | S | apps/under.ts:1#STUDIO_PROBE_LOG | underscore is part of the anchor |
+| AC-0054 | met | S | apps/under.ts:1#opts._internal | truncating at underscore leaves a refused trailing dot |
 """
 
 CITATION_SOURCE = "const a = {\n  b: 1,\n};\n\nconst c = 2;\n"
+TOKENS_SOURCE = (
+    "// AC-0136 covers package-script.mjs\n"
+    'const probe = "filter=probe";\n'
+    "// escaping-symlink and .gitmodules\n"
+    "const tail = 1;\n"
+)
+PIPE_SOURCE = "const pipeAnchor = 1;\n"
+# `opts._internal` is the discriminating token: truncated at `_` it becomes
+# `opts.`, which `ANCHOR` refuses for its trailing separator. A plain
+# containment guard cannot catch a truncation, because a prefix of a contained
+# anchor is still contained.
+UNDER_SOURCE = "const flag = opts._internal ?? STUDIO_PROBE_LOG;\n"
 # One line each, so every out-of-bounds number above is out of bounds.
-OTHER_SOURCES = {"widget.tsx": "x\n", "build.mjs": "x\n", "notes.md": "x\n"}
+OTHER_SOURCES = {
+    "widget.tsx": "x\n",
+    "build.mjs": "x\n",
+    "notes.md": "x\n",
+    "tokens.ts": TOKENS_SOURCE,
+}
 
 
 def _self_test_citations() -> list[str]:
@@ -263,9 +350,14 @@ def _self_test_citations() -> list[str]:
     with tempfile.TemporaryDirectory() as raw:
         root = pathlib.Path(raw)
         (root / "apps").mkdir()
+        (root / "packages").mkdir()
         (root / "apps" / "real.ts").write_text(CITATION_SOURCE)
         for name, body in OTHER_SOURCES.items():
             (root / "apps" / name).write_text(body)
+        (root / "apps" / "pipe.ts").write_text(PIPE_SOURCE)
+        (root / "apps" / "under.ts").write_text(UNDER_SOURCE)
+        (root / "apps" / "dup.ts").write_text("const alpha = 1;\n")
+        (root / "packages" / "dup.ts").write_text("const beta = 2;\n")
         audit = root / "audit.md"
         audit.write_text(CITATION_FIXTURE)
         found = check_citations(audit, root)
@@ -297,6 +389,32 @@ def _self_test_citations() -> list[str]:
             # suffix: a citation that still resolves and is still in bounds,
             # and no longer points at its subject.
             ("a citation that moved off its anchor", "apps/real.ts:5 no longer contains b"),
+            # New rules: malformed anchor tokens are reported, not silently
+            # dropped or treated as valid bare citations.
+            ("malformed empty anchor", "real.ts:1# is not a readable anchor"),
+            ("malformed bad token anchor", "real.ts:1#$bad is not a readable anchor"),
+            # Anchored multi-part citations are refused before containment.
+            ("anchored multi-part refused", "anchors more than one span"),
+            # Each citation in a row is checked against its own span.
+            ("per-citation span check on second citation", "tokens.ts:4 no longer contains filter=probe"),
+            # Anchored ambiguous shorthand is refused; bare keeps its tolerance.
+            ("ambiguous anchored resolution refused", "does not resolve to exactly one file"),
+            # Anchor containment check reads the resolved file.
+            ("wrong anchor in resolved file", "no longer contains beta"),
+            # Bare citation in a met row is refused.
+            ("bare citation in met row refused", "is not anchored"),
+            # AC-0051, AC-0055, AC-0056: each character the trailing-separator
+            # rule refuses needs its own needle. The count cannot discriminate:
+            # an anchor wrongly admitted is then containment-checked and fails
+            # anyway, so the number of findings is the same either way and only
+            # the message differs.
+            ("trailing hyphen refused", "real.ts:1#foo- is not a readable anchor"),
+            ("trailing equals refused", "real.ts:1#foo= is not a readable anchor"),
+            # AC-0057: a refused anchor must not suppress the bounds check.
+            ("bounds still checked on a refused anchor",
+             "apps/real.ts:88 is past end of file"),
+            # AC-0051: anchor ending in a trailing separator is refused.
+            ("trailing-separator anchor refused", "real.ts:1#foo. is not a readable anchor"),
         ):
             if needle not in blob:
                 failures.append(f"citation check missed {label}: {found}")
@@ -316,9 +434,61 @@ def _self_test_citations() -> list[str]:
         # AC-0019's trailing comma must contribute no problem of its own.
         if any("is not a line number" in f and "real.ts:89" in f for f in found):
             failures.append(f"a trailing separator was reported as a defect: {found}")
-        if len(found) != 18:
+        # Punctuation anchors (AC-0022–AC-0026) must not be reported stale.
+        if any("tokens.ts:1 no longer" in f or "tokens.ts:3 no longer" in f for f in found):
+            failures.append(f"punctuation anchor falsely flagged stale: {found}")
+        # Anchor stops before following prose (AC-0027): no finding for tokens.ts:2.
+        if any("tokens.ts:2" in f for f in found):
+            failures.append(f"anchor stop-at-prose: tokens.ts:2 was reported: {found}")
+        # apps/dup.ts:1#alpha is sound (AC-0034): not reported stale.
+        if any("no longer contains alpha" in f for f in found):
+            failures.append(f"sound apps/dup.ts:1#alpha anchor reported stale: {found}")
+        # Fixture row AC-0040 cites `apps/real.ts:2#b` inside backticks; no
+        # other guard cites real.ts:2, so this red is attributable to that row.
+        if any("real.ts:2" in problem for problem in found):
+            failures.append(f"code-span anchor: real.ts:2 was reported: {found}")
+        # Delimiter rows AC-0041 and AC-0043–AC-0050 are sound: they must draw
+        # no finding at all. Narrowing the stop class widens the captured token
+        # past the delimiter, `ANCHOR` refuses it, and these fire -- which the
+        # earlier containment-only form could not do, because a delimiter
+        # regression never reaches the containment check.
+        for row, label in (("real.ts:1#a", "star"), ("real.ts:5#c", "bracket/angle"),
+                           ("pipe.ts:1#pipeAnchor", "cell-delimiter"),
+                           ("under.ts:1#STUDIO_PROBE_LOG", "underscore-in-anchor"),
+                           ("under.ts:1#opts._internal", "underscore-truncation")):
+            if any(row in f for f in found):
+                failures.append(f"{label} delimiter row was reported: {found}")
+        # AC-0042: the comma ends the anchor, and the span it cuts off is
+        # reported rather than dropped. Asserting the finding, not its absence.
+        if not any("leaves ',5' outside the citation" in f for f in found):
+            failures.append(f"comma-truncated span was not reported: {found}")
+        # AC-0058 is the paired positive: a comma followed by prose is the
+        # table's formatting, not a dropped span, which AC-0019 already
+        # establishes for the bare form. It also pins the diagnostic against
+        # ever naming an empty token.
+        if any("real.ts:1#a leaves" in f for f in found):
+            failures.append(f"comma-then-prose reported as a dropped span: {found}")
+        if any("leaves '' outside the citation" in f for f in found):
+            failures.append(f"a dropped-span finding named an empty token: {found}")
+        # The bare citation rule fires exactly once — for the met row (AC-0037).
+        # AC-0038 (**not met**) and AC-0039 (not verifiable here) must not fire it.
+        not_anchored_count = sum(1 for f in found if "is not anchored" in f)
+        if not_anchored_count != 1:
             failures.append(
-                f"citation check reported {len(found)} problems, expected 18: {found}"
+                f"expected 1 'is not anchored' finding, got {not_anchored_count}: {found}"
+            )
+        # The count is load-bearing: see the comment above about AC-0017/AC-0019.
+        # Composition, read off the rows: 25 findings come from the rows that
+        # predate the anchor grammar, and 6 from the nineteen rows added for it
+        # (AC-0040 through AC-0058) -- 25 + 6 = 31. Five of those nineteen draw
+        # a finding: AC-0042 for the comma-truncated span, AC-0051, AC-0055 and
+        # AC-0056 for each character the trailing-separator rule refuses, and
+        # AC-0057, which draws two because a refused anchor still gets its
+        # bounds checked. The other fourteen are accepted forms whose whole job
+        # is to draw none.
+        if len(found) != 31:
+            failures.append(
+                f"citation check reported {len(found)} problems, expected 31: {found}"
             )
     return failures
 
@@ -390,45 +560,129 @@ def _index_repository(repo_root: pathlib.Path) -> dict[str, list[pathlib.Path]]:
 def check_citations(path: pathlib.Path, repo_root: pathlib.Path) -> list[str]:
     """Every cited file must resolve, and every cited line must be inside it.
 
-    Three classes are reported: an unresolvable file, a line past the end of
-    one, and a range whose first line is blank, a bare `*`, or brackets only.
+    Six classes are reported:
+
+    1. An unresolvable file (missing, or an ambiguous shorthand when the
+       citation carries an anchor — bare ambiguous shorthands are tolerated).
+    2. A line past the end of the resolved file.
+    3. A range whose first line is blank, a bare `*`, or brackets only.
+    4. An anchored citation whose anchor no longer appears in the cited span.
+    5. A malformed anchor token (`#` with an empty or non-`ANCHOR` token).
+    6. A line spec cut short by its anchor (`file.ts:12#anchor,34`), whose
+       dropped continuation would otherwise reach no check. This is the second
+       spelling of the refusal in the policy rules below; the parsed spec here
+       has one part, with the remainder sitting outside the match.
+
+    Additionally, two policy rules are enforced per row verdict:
+
+    - Every citation in a `met` row must carry an anchor (`#token`).
+    - An anchored citation whose line spec has more than one part is refused;
+      each span must be cited separately.
+
     The module docstring holds the reasoning, including the two broader rules
     that were measured and rejected, and the residue that stays open.
     """
     problems: list[str] = []
     by_name = _index_repository(repo_root)
     lengths: dict[str, int | None] = {}
+
+    def _bounds_and_stale(name: str, spec: str, index: int, length: int) -> None:
+        numbers, unreadable = _cited_lines(spec)
+        for part in unreadable:
+            problems.append(
+                f"{path}:{index}: {name}:{part} is not a line number"
+            )
+        for number in numbers:
+            if number > length:
+                problems.append(
+                    f"{path}:{index}: {name}:{number} is past end of file"
+                    f" ({length} lines)"
+                )
+        for number in _citation_starts(spec):
+            text = _line_text(name, number, repo_root, by_name)
+            if text is not None and STALE_START.match(text):
+                problems.append(
+                    f"{path}:{index}: {name}:{number} starts on a blank or"
+                    f" bracket-only line ({text.strip()!r}) — the code"
+                    f" above it moved"
+                )
+
     for index, line in enumerate(path.read_text().splitlines(), start=1):
         if not line.startswith("| AC-"):
             continue
-        for name, spec, anchor in CITATION.findall(line):
+        row = ROW.match(line)
+        verdict = row.group(2) if row else None
+        for m in CITATION.finditer(line):
+            name, spec, anchor_raw = m.group(1), m.group(2), m.group(3)
+
+            # Rule: validate anchor token when the delimiter is present.
+            if anchor_raw is not None:
+                anchor_token = anchor_raw[1:]  # strip the leading '#'
+                if not anchor_token or not ANCHOR.match(anchor_token):
+                    problems.append(
+                        f"{path}:{index}: {name}:{spec}#{anchor_token}"
+                        f" is not a readable anchor"
+                    )
+                    # Bounds and stale-start need no anchor, so a refused
+                    # anchor must not suppress them -- otherwise a citation
+                    # that is both unreadable and drifted takes two CI rounds
+                    # to repair. Matches the multi-part branch below.
+                    if name not in lengths:
+                        lengths[name] = _resolve_length(name, repo_root, by_name)
+                    refused_length = lengths[name]
+                    if refused_length is not None and refused_length >= 0:
+                        _bounds_and_stale(name, spec, index, refused_length)
+                    continue  # do not treat a malformed anchor as bare
+                anchor: str | None = anchor_token
+                trailing = line[m.end():]
+                if TRUNCATED_SPEC.match(trailing):
+                    dropped = trailing.split(" ")[0].rstrip(";,")
+                    problems.append(
+                        f"{path}:{index}: {name}:{spec}#{anchor_token} leaves"
+                        f" '{dropped}' outside the citation — an anchored"
+                        f" citation names exactly one span"
+                    )
+            else:
+                anchor = None
+
+            # Rule: every citation in a `met` row must be anchored.
+            if verdict == "met" and anchor is None:
+                problems.append(
+                    f"{path}:{index}: {name}:{spec} is not anchored"
+                )
+                # fall through — bounds and stale checks still apply
+
+            # Resolve the cited file.
             if name not in lengths:
                 lengths[name] = _resolve_length(name, repo_root, by_name)
             length = lengths[name]
+
             if length is None:
+                # Ambiguous shorthand: if anchored, the citation cannot be
+                # checked independently and is refused.  A bare shorthand
+                # retains the established tolerance and is silently skipped.
+                if anchor is not None:
+                    problems.append(
+                        f"{path}:{index}: {name} does not resolve to exactly one file"
+                    )
                 continue
+
             if length < 0:
                 problems.append(f"{path}:{index}: {name} resolves to no file")
                 continue
-            numbers, unreadable = _cited_lines(spec)
-            for part in unreadable:
+
+            # Rule: an anchored citation must name exactly one span.  One
+            # anchor cannot identify several disjoint spans, and separate
+            # citations reuse the existing checker without a new grammar.
+            if anchor is not None and len(_spec_parts(spec)) > 1:
                 problems.append(
-                    f"{path}:{index}: {name}:{part} is not a line number"
+                    f"{path}:{index}: {name}:{spec}#{anchor}"
+                    f" anchors more than one span"
                 )
-            for number in numbers:
-                if number > length:
-                    problems.append(
-                        f"{path}:{index}: {name}:{number} is past end of file"
-                        f" ({length} lines)"
-                    )
-            for number in _citation_starts(spec):
-                text = _line_text(name, number, repo_root, by_name)
-                if text is not None and STALE_START.match(text):
-                    problems.append(
-                        f"{path}:{index}: {name}:{number} starts on a blank or"
-                        f" bracket-only line ({text.strip()!r}) — the code"
-                        f" above it moved"
-                    )
+                _bounds_and_stale(name, spec, index, length)
+                continue  # skip containment check for multi-part anchored form
+
+            _bounds_and_stale(name, spec, index, length)
             if anchor and not _anchor_in_span(
                 name, spec, anchor, repo_root, by_name
             ):
@@ -532,8 +786,10 @@ def _resolve_length(
     if len(matches) == 1:
         return len(matches[0].read_text().splitlines())
     # Ambiguous shorthand: several files share the suffix, so the row names a
-    # file this checker cannot pick. Not a finding -- the row is readable and
-    # the ambiguity is the table's convention, not a broken reference.
+    # file this checker cannot pick.  A bare citation is tolerated — the row
+    # is readable and the ambiguity is the table's convention, not a broken
+    # reference.  An anchored citation is refused because the anchor cannot be
+    # checked without knowing which file is meant (handled in check_citations).
     return None if matches else -1
 
 
@@ -559,22 +815,24 @@ def _resolve_length(
 # was *for*. A line number is a claim about current content, and neither check
 # knew what content was meant.
 #
-# **That is what the optional `#symbol` anchor now supplies**, and
-# `connect-orient-audit-citations-record-no-verifiable-anchor` closed with it. A
-# citation written `inspector-locator.ts:192#locateTrustedInspector` fails the
-# gate when the symbol is no longer inside the cited span, so the row states its
-# own subject and the check can read it. `_anchor_in_span` above is that check.
+# **That is what the `#anchor` suffix now supplies**, and
+# `connect-orient-audit-citations-record-no-verifiable-anchor` closed with it.
+# A citation written `inspector-locator.ts:192#locateTrustedInspector` fails
+# the gate when the symbol is no longer inside the cited span, so the row
+# states its own subject and the check can read it. `_anchor_in_span` above is
+# that check.
 #
 # **Its limit is worth knowing before trusting it.** The anchor is matched as a
 # substring of the span's text, so it catches a citation that drifted off its
-# subject and not one that landed on a different mention of the same name. And
-# the anchor is optional by design, so the table gains them a row at a time: an
-# unanchored citation is still checked only for the three properties below.
+# subject and not one that landed on a different mention of the same name.
 #
-# What is checked without an anchor is what can be checked without knowing
-# intent: that a citation resolves, that it lands inside the file, and that it
-# does not start on a blank or bracket-only line. A bare `return;` passes all
-# three, which is why an anchor is the stronger form.
+# Anchors are mandatory for every citation in a `met` row.  Non-`met` rows
+# (`**not met**` and `not verifiable here`) retain the bare form — a bare
+# citation is still checked for the three properties that need no knowledge of
+# intent: that it resolves, that it lands inside the file, and that it does not
+# start on a blank or bracket-only line.  A bare `return;` passes all three,
+# which is why the anchor is the stronger form and is required where the
+# criterion is claimed satisfied.
 
 
 def main() -> int:
