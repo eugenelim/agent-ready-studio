@@ -4,16 +4,14 @@
  * *Canonical values* pins the trusted inspector to AgentBundle pack `core` at
  * the version recorded here, with the SHA-256 of `workspace_status.py` and
  * `workspace_status_engine.py`. Every A3-derived property in the brief is a
- * property of one pack version, so the pin is the evidence's scope and a pack
- * that has moved is refused rather than used.
+ * property of one pack version, so a pack that has moved is refused, not used.
  *
  * The locator never searches the inspected repository. AC-0047 requires that no
- * repository-projected skill is used as a fallback, and the strongest form of
- * that is a locator with no fallback at all: it looks in exactly one place,
- * under a search root the caller supplies, and refuses when nothing is there.
- * AC-0045 then re-proves the same boundary from the other side, refusing an
- * inspector whose resolved real path lies inside the materialization root even
- * if some future caller were to point the search root at one.
+ * repository-projected skill is used as a fallback, and the strongest form of that is a
+ * locator with no fallback at all: it looks in exactly one place, under a search root the
+ * caller supplies, and refuses when nothing is there. AC-0045 then re-proves the same
+ * boundary from the other side, refusing an inspector whose resolved real path lies inside
+ * the materialization root even if some future caller were to point the search root at one.
  *
  * Reading the inspector's own files touches nothing in the inspected
  * repository: they live under this repository's `.claude/` skills directory,
@@ -52,18 +50,20 @@ export interface InspectorPin {
 }
 
 /**
- * The pin recorded at T6, confirmed against this worktree. The catalogue offers
- * a later version; staying here is deliberate, because moving the pin would
- * move the scope of the evidence the brief's A3 properties rest on.
+ * The brief's A3 evidence scope: re-establish it by re-asking T6's questions of
+ * the new source, never by editing it to pass a test. See
+ * `docs/specs/connect-and-orient/notes/verification-ledger.md#t6-inspector-repin-2026-09-28`.
+ * That file, its sibling `acceptance-audit.md` and `../spec.md` hold ten
+ * line-citations here: move nothing at or after :134 without remapping them.
  */
 export const PINNED_INSPECTOR: InspectorPin = {
   packName: "core",
-  packVersion: "2.26.14",
+  packVersion: "2.27.2",
   fileDigests: {
     "workspace_status.py":
-      "b07efea9132f1ddfeab8ce81554c65633d8fac3f5065fdeba31e40a0ef6d7484",
+      "1422ac7e2b5527baadcd898a0f6a9d1ad5ae56e53b16433e8e2b0e2bfa13751b",
     "workspace_status_engine.py":
-      "b99ad663713333d2a221d655af73ff08898a0553e3e238356fd88d274ca4eea0",
+      "68c16e98439c24a7e50f10ef4eb9d9c60f3e0594367a2492f479755c93ca91f3",
   },
 };
 

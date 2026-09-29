@@ -113,8 +113,14 @@ For each source finding, test all six predicates independently:
 
 1. **Observation** — Does the cited condition exist in the current supplied
    target at the claimed location?
-2. **Authority** — Does the supplied governing rule actually apply to this
-   target, mode, and review stage?
+2. **Authority** — Does the source finding identify the ground it rests on — a
+   violated acceptance criterion, repository rule, security property, or
+   concrete defect — and does that ground actually apply to this target, mode,
+   and review stage? A finding naming none of the four is refuted on this
+   predicate. It states a preference, and a preference gives a repair nothing
+   to discharge, so the next round raises another in its place. Naming a ground
+   does not establish it: test whether the named criterion, rule, property, or
+   defect says what the finding claims it says.
 3. **Reachability** — Can the claimed behavior or state be reached through the
    current implementation or artifact?
 4. **Existing handling** — Is the condition already prevented, handled,
@@ -124,11 +130,14 @@ For each source finding, test all six predicates independently:
    source finding's vocabulary carries no severity, test the consequence alone;
    a mode that cannot state a severity is not thereby exempt from this
    predicate. Two tests,
-   in order. First, is the fix fully determined — one correct resolution, fixed
-   by the code, a test, a lint, a schema, a resolvable reference or a stated
-   constraint, with nothing left to choose? If resolving it means picking among
-   defensible options, including a wording or framing preference, the
-   consequence is advisory however the finding is worded: it may be true, and it
+   in order. First, does something outside the finding establish the defect —
+   the code, a test, a lint, a schema, a resolvable reference or a stated
+   constraint disagreeing with what the target says? A defect several
+   defensible repairs could fix is still established; determinacy of the remedy
+   is not the test. If nothing external establishes it — it rests on a
+   tradeoff, a risk acceptance or a wording or framing preference, or on
+   nothing at all — the consequence is advisory however the finding is
+   worded: it may be true, and it
    cannot sustain at blocking severity, because nothing external decides it and
    the next round will raise another. Second, and only for a consequence that
    survives the first test, measure it against what reads the cited surface:
@@ -160,9 +169,10 @@ Each source finding receives exactly one of:
   `wrong`, `over-broad`, or `absent` proposed mechanism does not refute that
   established defect. Retain the reviewer's severity unless changing it is
   necessary to avoid a false disposition, or unless the fifth predicate found
-  the consequence advisory — a finding whose fix is not fully determined, or
-  whose every cited surface is working material, sustains at advisory severity
-  at most, however the reviewer graded it; a disposition-changing severity
+  the consequence advisory — a finding whose defect nothing external
+  establishes, or whose every cited surface is working material, sustains at
+  advisory severity at most, however the reviewer graded it; a
+  disposition-changing severity
   conflict is `indeterminate` for owner direction. State the proposed-mechanism
   outcome and the smallest adequate fix only when a current seam establishes
   it; otherwise state the required repair outcome and constraints.
@@ -204,7 +214,7 @@ source identifier and severity. Never wrap a sustained entry:
 ```
 
 The consuming parser is strict, and a malformed entry stops the whole loop
-rather than degrading. Three rules make the difference:
+rather than degrading. Four rules make the difference:
 
 - **Exactly one** `` `<path>:<line>` `` anchor, immediately after the closing
   `**`, and immediately followed by a period. The fingerprint that identifies
@@ -216,6 +226,12 @@ rather than degrading. Three rules make the difference:
   period. Never write `` `a.py:1` and `b.py:2`. `` or place a parenthetical
   between the anchor and its period.
 - Never wrap a sustained entry across lines, and end it with `Fix: ` plus text.
+- **No `*` inside the bold title.** The parser's title segment rejects any
+  asterisk between the opening and closing `**`, so a title that italicises a
+  quoted phrase parses as zero findings and the artifact classifies
+  `invalid (sustained-line-shape)` — a reason code that reads as an unsound
+  verdict rather than as markup. Quote a phrase in a title with backticks.
+  Emphasis after the closing `**` is unconstrained.
 
 Do not use numbered lists anywhere else in the report. Do not place refuted or
 indeterminate reasoning in the main-loop result.

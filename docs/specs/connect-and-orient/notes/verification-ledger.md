@@ -9626,3 +9626,186 @@ tooling defect affecting every spec in this repository.
 does not count, and `#a-digit-sweep-cannot-see-a-word-2026-09-27` for why a clean sweep is a claim
 about its pattern. The counts and the wave shape live in `acceptance-audit.md` and `state.json`;
 this file holds neither.
+
+## t6-inspector-repin-2026-09-28
+
+**T6's validation re-run against pack `core` 2.27.2, and the pin re-established from it.**
+
+**Why this was not a version bump.** An `agentbundle` upgrade moved `core` from 2.26.14 to
+2.27.2 and both inspector files changed with it, reddening four cases in
+`inspector-locator.test.ts` and a further set in `inspector-locate.test.ts`. The *Pinned trusted
+inspector* row still states the pin is the evidence's scope, so T6's two questions were asked
+again of the new source rather than the version and digests being edited to make the tests pass.
+This is the same refusal recorded at `#t6-inspector-repin-2026-09-19`, applied a second time.
+
+| File | 2.26.14 (retired) | 2.27.2 |
+| --- | --- | --- |
+| `workspace_status.py` | `b07efea9…7484` | `1422ac7e…751b` |
+| `workspace_status_engine.py` | `b99ad663…4eea` | `68c16e98…91f3` |
+
+The whole delta is small and was read in full: 68 inserted lines in `workspace_status.py`, and
+139 inserted against 11 deleted in `workspace_status_engine.py`.
+
+**What 2.27.2 resolves to, because a digest is only as good as the artifact behind it.** The
+upgrade was run from a local editable clone, which left
+`.agentbundle-state.toml` recording an absolute path on the maintainer's machine as each
+adapter's `source` — four lines, in a *tracked* file. That is two separate defects in one edit.
+It publishes a username and local filesystem layout, which `AGENTS.md` § Privacy prohibits in any
+git artifact; and it anchors a supply-chain trust control to an artifact no reviewer, second
+machine or CI run could re-fetch, since a working directory carries no commit, tag or signature.
+Both were caught in review before any push and the four values are restored to
+`git+https://github.com/eugenelim/agent-ready-repo`.
+
+The pin is therefore anchored to a reference that resolves: that repository at commit
+`7f8c71f0a5b8ed8d32b244296e1dc749d0ed923c`, whose `packs/core/pack.toml` declares `version =
+"2.27.2"`. Re-deriving the digests from
+`packs/core/.apm/skills/workspace-status/scripts/` at that commit reproduces both values below
+exactly. This is the corroboration the install state cannot give: `.agentbundle-state.toml`
+records the same two SHAs, but the same local install wrote them, so on its own it confirms only
+that the installer agreed with itself.
+
+**No scanner would have caught the path disclosure.** This repository has no `.github/workflows`
+and no check rejecting absolute home paths in tracked files, so the only thing standing between
+that edit and a public push was a reviewer reading a generated file. The class is mechanically
+detectable and recurs on every pack upgrade run from an editable clone. Surfaced to the owner as
+a decision rather than fixed here, because adding a gate is a change this upgrade did not force.
+
+**Question 1 — does it open a repository-declared path operand? YES, in the same three shapes,
+all three byte-identical, and 2.27.2 adds a fourth that is stricter than any of them.**
+
+1. `_confined_artifact_path` (`:1806` → `:1830`): byte-identical to 2.26.14, confirmed by
+   extracting both function bodies and comparing them. The `_is_repository_relative_path` gate,
+   `resolve()`, `relative_to(root_resolved)` and the `None` on `OSError`, `RuntimeError` or
+   `ValueError` are all unchanged.
+2. Spec slugs (`_safe_spec_path`): byte-identical, compared the same way. The pre-join rejection
+   of absolute paths and `..` parts, and 2.26.14's confinement check on `docs/specs` itself, both
+   survive unchanged.
+3. Lifecycle-record locators (`_cooled_locators`, `:2073` → `:2137`): byte-identical. The
+   prior entry cited this shape by line alone, as `:2125`; that number sits inside
+   `_cooled_locators` but names nothing, and attaching the wrong function name to it —
+   `cooled_work_entry_paths`, which is at `:3510` → `:3633` and is a different function — is a
+   mistake this entry made and corrects here. The join the shape is about, `member = (root /
+   locator).resolve()` with **no** `relative_to`, is in `_cooled_locators`. Both functions are
+   byte-identical across the upgrade, so T6's fail-safe reasoning is untouched either way — the
+   result is the `cooled` set, a do-not-open list, so an escaping locator can only add an
+   out-of-root path that no in-root artifact path matches.
+4. **New in 2.27.2: `_confined_briefs_path` (`:1842`), a boundary stricter than repository-root
+   confinement.** It exists because provenance parents now admit a `brief:<slug>` pointer that
+   normalizes to `docs/product/briefs/<slug>.md`. It resolves the briefs directory, rejects the
+   case where that directory resolves to the repository root, confines it under the resolved root,
+   *then* resolves the candidate, rejects the case where the candidate equals the briefs root, and
+   confines it under the briefs root. The ordering is load-bearing and correct: the boundary is
+   confined before the candidate is resolved, so an escaped briefs root never sends resolution
+   walking through an untrusted tree. Both equal-cases are rejected explicitly, because
+   `relative_to` succeeds on equal paths.
+
+**The new admitted input form is fail-closed at three layers.** `brief:<slug>` is the one widening
+of what a provenance value may say, so it was traced end to end. `_BRIEF_POINTER_RE` is
+`^brief:(?P<slug>.*)\Z` under `re.S`, so the slug captures any trailing byte rather than letting
+one escape the capture; the slug must then satisfy `_SINGLE_SEGMENT_RE.fullmatch`, which is
+`[A-Za-z0-9][A-Za-z0-9_-]{0,199}` and admits no `/`, no `.` and no `..`. `fullmatch` closes that
+pattern's own `$` anchor, so `brief:abc\n` fails and is returned unchanged, falling through to the
+existing refusals. A normalized value is then re-checked lexically by
+`_is_canonical_local_brief_path` — itself byte-identical to 2.26.14, which is what the source
+comment claims and what the comparison confirms — and only then resolved by `_confined_briefs_path`.
+A traversal cannot be expressed in the admitted grammar, and a symlink that expresses one is
+refused at resolution.
+
+**Question 2 — does its traversal follow symlinks? NO, and every 2.26.14 guard survives
+unchanged.** The walk (`:4280` → `:4408`, the `os.walk` call itself in each version; the prior
+entry's `:4266` was its own retired version's comment line, carried forward here by mistake) is
+untouched by this upgrade: `os.walk(...,
+followlinks=False)`, the root-confinement check before the walk that catches `docs/specs` or
+`docs/` being a symlink, the resolved-path visited set that stops an in-root junction producing
+duplicate findings, the per-subdirectory `is_relative_to` prune, the `OSError`/`RuntimeError`
+guards around every `resolve()`, and the six `is_symlink()` refusals are all present and
+identical. No hunk in the diff touches this region.
+
+**Two anchor fixes, both fail-closed and both in the same direction.** 2.27.2 replaces `$` with
+`\Z` in `_CROSS_INI_RE` (`:4013` → `:4141`) and uses `\Z` in the new `_BRIEF_POINTER_RE`. In Python `$` also
+matches just before a trailing newline, so `ini-002:work:spec/foo\n` previously matched and
+yielded the clean `spec/foo`, letting a malformed dependency token compare equal to a shipped
+entry's path and report satisfied. A trailing tab or space was already refused; only the newline
+leaked, and only because of the anchor. These narrow what is admitted.
+
+**One limit this re-pin does not close, and it widened by four files.** The pin names two
+files, but `workspace_status.py` loads siblings the pin does not cover, and the set must be
+derived from the whole binding chain rather than from the directly-named module. At 2.26.14 it
+was one file: `_bind_engine` loaded `workspace_status_prune.py`. At 2.27.2 it is five.
+`_bind_retirement_command` (`workspace_status.py:171`) loads
+`workspace_status_retirement_command.py` for the new `retirement-candidates` subcommand, and that
+module in turn loads three more at import time — `workspace_status_retirement.py`,
+`workspace_status_retirement_candidates.py` and `workspace_status_retirement_contract.py`
+(`workspace_status_retirement_command.py:33-42`). An earlier draft of this entry said the gap grew
+"by one more file"; that counted the module named in the binding call and not the modules it
+pulls in, and was wrong by a factor of four.
+
+Extending the pin would cost no new evidence-gathering: `.agentbundle-state.toml` already
+carries publisher-recorded SHAs for every script in that directory, per adapter. Seven is the
+size of the pinned-plus-uncovered load set, not of the directory, which holds eight `.py` files
+— the eighth, `workspace_mcp_server.py`, is not reached by any binding chain from
+`workspace_status.py`. Registered rather than fixed, because widening a trust control is a design change and
+not what this upgrade forced.
+
+**None of it is reachable from Studio today.** `source-inspection.ts:1083` locates the inspector
+and records its identity, and the diagnostic states it "was not run: running an inspector is
+outside this Runtime's authorization". Nothing under `.claude/skills/` is executed on any path, so
+no sibling is loaded by Studio at all.
+
+**Question 3, asked because T6's two do not reach it — does the pinned load set gain a new
+capability class? YES: process execution.** T6 asks about path operands and symlink traversal.
+Neither question can see this, and it was found only by walking the binding chain above. At
+2.26.14 no file in the pinned load set imported `subprocess` — zero occurrences across
+`workspace_status.py`, `workspace_status_engine.py` and `workspace_status_prune.py`. At 2.27.2
+the dispatcher added *inside a pinned file* reaches
+`workspace_status_retirement_command.py`, which runs `subprocess.run(["git", "-C",
+str(root.resolve(strict=True)), *arguments])` under a 30-second timeout with `check=False` and
+captured output (`_run_git`, `:50-57`). The call is bounded and read-only as written, and the retirement
+modules' own logic has had no review pass here. Nothing executes it today, for the reason in the
+reachability paragraph above, so this is a residual and not a regression.
+
+**Conclusion, scoped to the questions actually asked.** T6's two questions both still answer the
+way they did at 2.26.14, and every change *they reach* is an improvement or neutral: nothing
+T6's residual turned on has regressed, so AC-0069's ground is unchanged. That is narrower than
+"every change found is neutral", which an earlier draft of this entry asserted and which the two
+questions cannot support — Question 3 above is the counterexample. The pin is re-established at
+2.27.2 with the digests above, carrying one new registered residual.
+
+**Only the pin moves; two look-alike sites deliberately do not.** A sweep for `2.26.14` also hits
+`source-inspection-storage.test.ts:261` and `storage.integration.test.ts:424`. Neither is a pin
+reader. Both are storage round-trip fixtures built from values that are opaque on purpose --
+`/studio/packs/core/scripts`, a digest of `"a".repeat(64)`, a file named `inspect.py` that the pin
+has never named -- and they assert that the `inspector` column persists and reads back equal. They
+would pass against any version string, and editing them to `2.27.2` would suggest they track the
+pin when they do not. They are left as they are, and both suites were green throughout this
+upgrade. The only production site holding the retired version was the pin itself;
+`apps/studio-service/dist/` also carries it and is build output, ignored by git.
+
+**What the pin's comment cost, and the invariant it now states.** The comment grew from three
+content lines to five, to carry the re-pin rule, a resolvable pointer to this entry, and the
+line rule below. Two lines were paid for out of the file's header docblock, and both edits to
+that prose are enumerated here because a partial enumeration reads as a complete one.
+
+In the *Canonical values* paragraph, `the pin is the evidence's scope and` was deleted while
+the `so` before it survived — that idea now lives in the pin comment itself, which is the
+better site for it — and in the same sentence `a pack that has moved is refused rather than
+used` was reworded to `a pack that has moved is refused, not used`. The reword carries no
+change of meaning; it is recorded because it is production prose edited to buy comment space,
+which is the whole reason this paragraph exists. The AC-0047 paragraph was then reflowed from
+seven lines to six with its wording unchanged, verified as identical token streams.
+
+**An earlier draft of this entry stated the wrong rule, and this change disproves it.** It said
+to hold the file's total line count. That is neither necessary nor sufficient: this very change
+holds the total at 369 while moving every line between 9 and 50, and a future edit obeying it
+exactly — drop a line at `:20`, add one at `:300` — would break seven citations. The invariant
+that holds is positional: **no line at or after `:134`, the lowest cited line, may move unless
+the citations are remapped in the same change.** `:134` is the binding constraint because
+`spec.md:672` cites it and that body is immutable during implementation; everything at `:192`
+and above is cited only from files that can be edited alongside.
+
+The set was derived by sweep, not by hand, because this file's own header warns about
+hand-built aggregates. **Ten line-citations into `inspector-locator.ts` across three
+documents**: six in `acceptance-audit.md` (`:174`, `:175`, `:176`, two on `:177`, `:179`), one
+in `spec.md` (`:672`), and three in this ledger (`:6689`, `:7339`, `:7582`). The earlier draft
+said eight across two, over-counting the audit by one and omitting this file entirely. The rule
+now lives at the pin, where the editor who would break it is standing, rather than only here.

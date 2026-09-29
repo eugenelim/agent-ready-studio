@@ -13,15 +13,19 @@ Verb surface
 ------------
     loop-cohort init <spec-dir> --run-id <uuid>
     loop-cohort identity <spec-dir> [--expect-run-id <uuid>] [--json]
-    loop-cohort check <spec-dir> --phase {implement,review,gates-failed}
+    loop-cohort check <spec-dir> --phase {implement,review,gates-failed,wave-exit,
+                                           wave-reopen}
     loop-cohort approve-plan <spec-dir> --expect-run-id <uuid>
     loop-cohort plan check-current <spec-dir> [--require-schedule]
     loop-cohort schedule <spec-dir> --expect-run-id <uuid>
     loop-cohort schedule check-current <spec-dir>
     loop-cohort record-attempt <spec-dir> --phase implement
                                --cycle-id <run_id>:<seq> --expect-run-id <uuid>
+    loop-cohort dispatch-receipt <spec-dir> --task <task-id> --wave-index <n>
+                               (--receipt | --decline <reason>) --expect-run-id <uuid>
     loop-cohort wave check <spec-dir> --expect {more,last} [--wave-index <n>]
     loop-cohort wave advance <spec-dir> --from-index <n> --expect-run-id <uuid>
+    loop-cohort wave reopen <spec-dir> --expect-run-id <uuid>
     loop-cohort review classify --report <path> [--json]
     loop-cohort review raw-classify --report <path> [--json]
     loop-cohort review inspect <spec-dir> --report <path> [--adjudication] [--json]
@@ -59,6 +63,7 @@ import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
+from typing import NamedTuple
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -66,10 +71,14 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
-PHASES = ("implement", "review", "gates-failed")
+# `wave-exit` is the phase the `wave-complete` transition consults. Nothing pins
+# this tuple, and the usage block above is a second, hand-maintained enumeration
+# of the same list — keep the two together.
+PHASES = ("implement", "review", "gates-failed", "wave-exit", "wave-reopen")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
+
 CLEAN_SUBSTRING = "Clean — ready to commit."
 INDETERMINATE_SENTINEL = "ADJUDICATION-INDETERMINATE"
 # Specialist reviewers (experience-reviewer, frontend-reviewer) emit "SHIP IT"
@@ -137,11 +146,35 @@ _GIT_OVERRIDE_VARS = frozenset({
     "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
 })
 
+# Resolved repository roots, keyed on the process working directory.
+#
+# `git rev-parse --show-toplevel` below takes no `cwd=`, so the working directory
+# is what decides its answer for any caller here. Keying on it, rather than
+# caching unconditionally, is what makes this safe in the pack's own harnesses:
+# they load this module by path, in-process, and chdir between throwaway
+# repositories. An unkeyed cache would hand the second repository the first one's
+# root, and that reaches `_resolve_spec_dir`'s confinement check as a silent wrong
+# answer rather than a crash.
+#
+# Successes only. A remembered failure would turn one transient timeout into a
+# permanent refusal for the life of the process, and would buy nothing — the
+# failure path already ends the run.
+_REPO_ROOT_CACHE: dict[str, Path] = {}
+
 
 def _get_repo_root() -> Path:
     """Return the repository root without caller-controlled Git overrides."""
-    safe_env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
     try:
+        # Inside the `try` deliberately: `Path.cwd()` raises FileNotFoundError
+        # when the working directory has been unlinked, and the contract below is
+        # that this function leaves only by ValueError.
+        cwd = str(Path.cwd())
+        cached = _REPO_ROOT_CACHE.get(cwd)
+        if cached is not None:
+            return cached
+        # Built after the cache check, so a hit does not pay for a filtered copy
+        # of the whole environment it never uses.
+        safe_env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
         result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True, text=True, encoding="utf-8", check=False,
@@ -156,7 +189,9 @@ def _get_repo_root() -> Path:
         raise ValueError(f"could not determine repo root: {exc}") from exc
     if result.returncode != 0 or not result.stdout.strip():
         raise ValueError("could not determine repo root (git rev-parse --show-toplevel failed)")
-    return Path(result.stdout.strip()).resolve()
+    root = Path(result.stdout.strip()).resolve()
+    _REPO_ROOT_CACHE[cwd] = root
+    return root
 
 
 def _resolve_spec_dir(raw: str) -> Path:
@@ -200,8 +235,7 @@ def write_state_atomic(spec_dir: Path, state: dict) -> None:
 # `write_state_atomic` makes each *write* atomic, but the read-modify-write
 # around it is not: two concurrent verbs each load a snapshot, both decide from
 # it, and the second replace drops the first's update — silently, with both
-# callers exiting 0. Reproduced at 20/20 trials; see
-# docs/specs/loop-cohort-state-lock/notes/reproduction.md.
+# callers exiting 0. Reproduced at 20/20 trials.
 #
 # `_statelock.py` is a work-loop script owned by this skill (ADR-0074):
 # stdlib-only, so it works where `agentbundle` is not installed. `agentbundle`
@@ -436,6 +470,21 @@ except GuardsUnavailable as exc:
     read_md_status = assert_status_legal = validate_run_id = _guards_unavailable
     _template_max_implementation_retries = _template_max_review_retries = _guards_unavailable
     non_negative_int = _guards_unavailable
+    _scalar = _guards_unavailable
+    # Unreachable placeholders, deliberately unusable. `main()` refuses at its
+    # single dispatch chokepoint before any verb body runs, so nothing reads
+    # these; a real value here would be a SECOND declaration of a constant the
+    # guard layer single-sources, which is the drift the relocation removed.
+    RECEIPTS_KEY = ""
+    RECEIPT_KEY_PATH = ()
+    RECEIPT_KIND = DECLINE_KIND = ""
+    SUPERSEDED_KEY = ""
+    DECLINE_REASONS = ()
+    partition_digest = is_dispatch_record = _guards_unavailable
+    malformed_receipts_position = receipts_for_partition = _guards_unavailable
+    wave_is_well_formed = unaccounted_wave_tasks = _guards_unavailable
+    accounts_for_task = unaccounted_breakdown = _guards_unavailable
+    bounded_id_list = _guards_unavailable
     _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
     _BOTH_CAUSES = ""
@@ -445,6 +494,29 @@ else:
     GuardResult = _g.GuardResult
     DEFAULTS = _g.DEFAULTS
     non_negative_int = _g.non_negative_int
+    # The guard layer's per-value length bound, reused rather than re-declared.
+    # This tool's own `_diag` neutralises control characters but applies NO length
+    # bound, so a state-derived value routed through it has no bound at all.
+    _scalar = _g._scalar
+    # The dispatch-receipt data model, re-bound rather than re-declared. Its one
+    # home is the guard layer: this CLI loads that module, and the module cannot
+    # load this CLI, so a declaration shared with `check --phase wave-exit` can
+    # only live on that side of the dependency.
+    RECEIPTS_KEY = _g.RECEIPTS_KEY
+    RECEIPT_KEY_PATH = _g.RECEIPT_KEY_PATH
+    RECEIPT_KIND = _g.RECEIPT_KIND
+    DECLINE_KIND = _g.DECLINE_KIND
+    DECLINE_REASONS = _g.DECLINE_REASONS
+    SUPERSEDED_KEY = _g.SUPERSEDED_KEY
+    partition_digest = _g.partition_digest
+    is_dispatch_record = _g.is_dispatch_record
+    malformed_receipts_position = _g.malformed_receipts_position
+    receipts_for_partition = _g.receipts_for_partition
+    wave_is_well_formed = _g.wave_is_well_formed
+    unaccounted_wave_tasks = _g.unaccounted_wave_tasks
+    accounts_for_task = _g.accounts_for_task
+    unaccounted_breakdown = _g.unaccounted_breakdown
+    bounded_id_list = _g.bounded_id_list
     read_managed_json = _read_managed_json = _g.read_managed_json
     read_managed_text = _g.read_managed_text
     read_state = _g.read_state
@@ -479,10 +551,9 @@ def _assert_status_legal(verb: str, *paths: Path) -> int | None:
     return None if reason is None else stop(reason)
 
 # Lazy handle on the sibling lint-spec-status.py. Status and acceptance-criterion
-# recognition has exactly one implementation in this repo — a shipped spec
-# (docs/specs/loop-approved-spec-state, Constrained by ADR-0061) requires every
-# status read to go through its `parse_status`, and a second copy of the AC
-# regexes is how the two silently disagree about what an AC line is.
+# recognition has exactly one implementation in this repo — ADR-0061 requires
+# every status read to go through its `parse_status`, and a second copy of the
+# AC regexes is how the two silently disagree about what an AC line is.
 # The approved baseline pins the *scope a human approved*. It deliberately does
 # not pin the two field families this skill mandates writing after approval —
 # the preamble status token (SKILL.md: `Implementing` before code, `Shipped` at
@@ -509,10 +580,12 @@ _TASK_ID_RE = re.compile(r"T\d+[a-z]?")
 _CROSS_MARKER_RE = re.compile(r"spec:([A-Za-z0-9._-]+)/(T\d+[a-z]?)")
 _CROSS_LEGACY_RE = re.compile(r"`(?!T\d+[a-z]?`)([A-Za-z0-9._-]+)`\s*(T\d+[a-z]?)")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-MAX_AMENDMENT_HISTORY = 20
 MAX_AMENDMENT_REF_LENGTH = 1000
 MAX_AMENDMENT_EVIDENCE_REFS = 64
-MAX_AMENDMENT_STATE_BYTES = 1024 * 1024
+MAX_TRANSITION_STATE_BYTES = 1024 * 1024
+RESET_PAIR_ORDER = "run `loop-cohort reset` then `loop-engine reset`"
+MAX_LEGACY_AMENDMENT_SEQUENCE_DERIVATION = 1_000_000
+_LEGACY_AMENDMENT_ID_RE = re.compile(r"\Aamendment-[0-9a-f]{64}\Z")
 
 
 def _local_dep_ids(field: str) -> set[str]:
@@ -544,56 +617,97 @@ def parse_depends_on(field: str, local_task_ids):
     return {t for t in _local_dep_ids(field) if t in local_task_ids}, cross
 
 
+class _TaskSection(NamedTuple):
+    """One plan task's boundaries, as offsets into the plan text.
+
+    `start` opens the heading; `body_start` is just past it; `end` is where the
+    next task heading begins, or the end of the text for the final task.
+    """
+
+    task_id: str
+    start: int
+    body_start: int
+    end: int
+
+
+def walk_task_sections(text: str) -> list[_TaskSection]:
+    """Sole owner of the plan's task-section boundaries.
+
+    Every caller that needs to know which task owns a line resolves it here.
+    That is the point of the function rather than a convenience: the
+    unknown-dependency refusal in `detect_unknown_deps` must attribute a
+    `Depends on:` line to exactly the task `parse_plan` attributes it to. Were
+    the two to walk the boundaries separately and ever disagree, `schedule`
+    would refuse a plan it would otherwise have scheduled, or accept one whose
+    edges it then reads differently. Sharing the walk makes that agreement
+    structural instead of a coincidence maintained by hand.
+    """
+    matches = list(TASK_HEADING_RE.finditer(text))
+    return [
+        _TaskSection(
+            task_id=m.group(1),
+            start=m.start(),
+            body_start=m.end(),
+            end=matches[i + 1].start() if i + 1 < len(matches) else len(text),
+        )
+        for i, m in enumerate(matches)
+    ]
+
+
+def section_depends_field(text: str, section: _TaskSection) -> str | None:
+    """The raw `Depends on:` field value a task declares, or None.
+
+    Single-homed for the same reason as the walk above: the refusal and the
+    graph must read the same field text for the same task.
+    """
+    dm = DEPENDS_LINE_RE.search(text[section.body_start:section.end])
+    return dm.group(1) if dm else None
+
+
 def detect_unknown_deps(text: str, scan_task_ids: set[str] | None = None) -> list[tuple[str, str]]:
     """Return (task, dep) pairs naming an ID the plan does not contain.
 
     Dependencies always resolve against every task in `text`. `scan_task_ids`
     restricts which tasks' declarations are read; None reads all of them.
     """
-    matches = list(TASK_HEADING_RE.finditer(text))
+    sections = walk_task_sections(text)
     # Resolution set: ALL task IDs in the plan — never narrowed by the caller.
-    resolution_set = {m.group(1) for m in matches}
+    resolution_set = {s.task_id for s in sections}
     result: list[tuple[str, str]] = []
-    for i, m in enumerate(matches):
-        task_id = m.group(1)
-        if scan_task_ids is not None and task_id not in scan_task_ids:
+    for section in sections:
+        if scan_task_ids is not None and section.task_id not in scan_task_ids:
             continue
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        dm = DEPENDS_LINE_RE.search(text[m.end():end])
-        if not dm:
+        field = section_depends_field(text, section)
+        if field is None:
             continue
-        unknown = _local_dep_ids(dm.group(1)) - resolution_set
+        unknown = _local_dep_ids(field) - resolution_set
         for dep in sorted(unknown):
-            result.append((task_id, dep))
+            result.append((section.task_id, dep))
     return sorted(result)
 
 
 def parse_plan(text: str):
     """Extract ordered task IDs and dependency map from plan.md text."""
-    matches = list(TASK_HEADING_RE.finditer(text))
-    ordered = [m.group(1) for m in matches]
+    sections = walk_task_sections(text)
+    ordered = [s.task_id for s in sections]
     taskset = set(ordered)
     deps: dict[str, set] = {}
-    for i, m in enumerate(matches):
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        dm = DEPENDS_LINE_RE.search(text[m.end():end])
-        local, _ = parse_depends_on(dm.group(1), taskset) if dm else (set(), [])
-        deps[m.group(1)] = local
+    for section in sections:
+        field = section_depends_field(text, section)
+        local, _ = parse_depends_on(field, taskset) if field is not None else (set(), [])
+        deps[section.task_id] = local
     return ordered, deps
 
 
 def _task_sections(text: str) -> dict[str, str]:
     """Return exact authored task sections keyed by unique task ID."""
-    matches = list(TASK_HEADING_RE.finditer(text))
     sections: dict[str, str] = {}
-    for index, match in enumerate(matches):
-        task_id = match.group(1)
-        if task_id in sections:
-            raise ValueError(f"duplicate task section {task_id}")
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        raw = text[match.start():end].replace("\r\n", "\n").replace("\r", "\n")
+    for section in walk_task_sections(text):
+        if section.task_id in sections:
+            raise ValueError(f"duplicate task section {section.task_id}")
+        raw = text[section.start:section.end].replace("\r\n", "\n").replace("\r", "\n")
         canonical = "\n".join(line.rstrip() for line in raw.split("\n")).rstrip() + "\n"
-        sections[task_id] = canonical
+        sections[section.task_id] = canonical
     return sections
 
 
@@ -724,6 +838,189 @@ def _normalize_completed_task_evidence_map(
     return parse_completed_task_evidence_entries(tuple(entries), allowed_task_ids)
 
 
+def _canonical_transition_args(args: dict) -> dict:
+    """Return JSON-canonical transition args for replay comparisons."""
+    return json.loads(
+        json.dumps(args, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    )
+
+
+def _contract_amendment_args(
+    owner_authority_ref: str,
+    reason_ref: str,
+    completed_task_evidence: dict[str, list[str]],
+) -> dict:
+    return _canonical_transition_args(
+        {
+            "owner_authority_ref": owner_authority_ref,
+            "reason_ref": reason_ref,
+            "completed_task_evidence": completed_task_evidence,
+        }
+    )
+
+
+def _legacy_contract_amendment_id(
+    run_id: str,
+    sequence: int,
+    owner_authority_ref: str,
+    reason_ref: str,
+    completed_task_evidence: dict[str, list[str]],
+) -> str:
+    evidence = json.dumps(
+        completed_task_evidence,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    material = (
+        f"{run_id}\0{sequence}\0{owner_authority_ref}\0{reason_ref}\0{evidence}"
+    )
+    return "amendment-" + hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def _derive_legacy_amendment_sequence(
+    *,
+    run_id: str,
+    amendment_id: str,
+    owner_authority_ref: str,
+    reason_ref: str,
+    completed_task_evidence: dict[str, list[str]],
+) -> int:
+    """Recover the pre-T3 engine sequence from the shipped amendment id."""
+    if not _LEGACY_AMENDMENT_ID_RE.fullmatch(amendment_id):
+        raise ValueError("legacy amendment_id is malformed")
+    for sequence in range(MAX_LEGACY_AMENDMENT_SEQUENCE_DERIVATION + 1):
+        if (
+            _legacy_contract_amendment_id(
+                run_id,
+                sequence,
+                owner_authority_ref,
+                reason_ref,
+                completed_task_evidence,
+            )
+            == amendment_id
+        ):
+            return sequence
+    raise ValueError("legacy amendment_id sequence could not be derived")
+
+
+def _transition_identity(
+    *,
+    transition_id: str,
+    pre_transition_sequence: int,
+    event: str,
+    args: dict,
+) -> dict:
+    if (
+        isinstance(pre_transition_sequence, bool)
+        or not isinstance(pre_transition_sequence, int)
+        or pre_transition_sequence < 0
+    ):
+        raise ValueError("pre_transition_sequence must be a non-negative integer")
+    return {
+        "transition_id": transition_id,
+        "pre_transition_sequence": pre_transition_sequence,
+        "event": event,
+        "args": _canonical_transition_args(args),
+    }
+
+
+def _same_transition_identity(left: dict | None, right: dict) -> bool:
+    """Compare durable transition identity, ignoring marker-only metadata."""
+    if left is None:
+        return False
+    return all(left.get(key) == right.get(key) for key in right)
+
+
+def _retained_transition_state(state: dict, newest_entry: dict) -> dict:
+    """Append newest history and trim oldest entries to the state byte ceiling."""
+    history = state.get("transition_history", [])
+    if not isinstance(history, list):
+        raise ValueError("transition_history must be a list")
+    retained = copy.deepcopy(state)
+    retained["transition_history"] = [*copy.deepcopy(history), newest_entry]
+    while True:
+        serialized_size = len(
+            json.dumps(
+                retained, ensure_ascii=False, separators=(",", ":")
+            ).encode("utf-8")
+        )
+        if serialized_size <= MAX_TRANSITION_STATE_BYTES:
+            return retained
+        if len(retained["transition_history"]) <= 1:
+            raise ValueError(
+                "transition history newest entry exceeds "
+                f"{MAX_TRANSITION_STATE_BYTES}-byte aggregate limit"
+            )
+        retained["transition_history"] = retained["transition_history"][1:]
+
+
+def _retained_existing_transition_state(state: dict) -> dict:
+    """Trim an already-appended history list against the exact candidate state."""
+    history = state.get("transition_history", [])
+    if not isinstance(history, list):
+        raise ValueError("transition_history must be a list")
+    if not history:
+        return copy.deepcopy(state)
+    retained = copy.deepcopy(state)
+    newest = retained["transition_history"][-1]
+    retained["transition_history"] = retained["transition_history"][:-1]
+    return _retained_transition_state(retained, newest)
+
+
+def _last_transition_status(
+    state: dict,
+    *,
+    transition_id: str,
+    pre_transition_sequence: int,
+    event: str,
+    args: dict,
+    spec_dir: Path | None = None,
+) -> str:
+    """Classify replay from the last durable history entry, not the marker."""
+    history = state.get("transition_history", [])
+    if not isinstance(history, list):
+        raise ValueError("transition_history must be a list")
+    if not history:
+        return "absent"
+    last = history[-1]
+    if last.get("pre_transition_sequence") != pre_transition_sequence:
+        return "absent"
+    expected = _transition_identity(
+        transition_id=transition_id,
+        pre_transition_sequence=pre_transition_sequence,
+        event=event,
+        args=args,
+    )
+    actual_args = _canonical_transition_args(last.get("args", {}))
+    identity_matches = (
+        last.get("transition_id") == expected["transition_id"]
+        and last.get("event") == expected["event"]
+        and actual_args == expected["args"]
+    )
+    if not identity_matches:
+        return "conflict"
+    if event == "contract-amendment":
+        snapshot_matches = (
+            last.get("owner_authority_ref") == args.get("owner_authority_ref")
+            and last.get("reason_ref") == args.get("reason_ref")
+            and state.get("completed_task_ids") == last.get("completed_task_ids")
+            and state.get("completed_task_section_hashes")
+            == last.get("completed_task_section_hashes")
+            and state.get("completed_task_evidence")
+            == last.get("completed_task_evidence")
+        )
+        if not snapshot_matches or spec_dir is None:
+            return "conflict"
+        try:
+            plan_text = read_managed_text(spec_dir / "plan.md", "plan.md")
+        except (OSError, UnicodeDecodeError, ValueError, ImportError):
+            return "conflict"
+        if validate_completed_task_sections(plan_text, state) is not None:
+            return "conflict"
+    return "applied"
+
+
 def begin_contract_amendment(
     state: dict,
     *,
@@ -733,10 +1030,15 @@ def begin_contract_amendment(
     completed_task_section_hashes: dict[str, str],
     completed_task_evidence: dict[str, list[str]],
     amendment_id: str,
+    pre_transition_sequence: int,
+    retain_transition_history: bool = True,
 ) -> dict:
     """Return the cohort snapshot for one authorized, replay-safe amendment."""
     if state.get("schema_version") != SCHEMA_VERSION:
-        raise ValueError(f"contract-amendment requires schema_version={SCHEMA_VERSION}")
+        raise ValueError(
+            f"contract-amendment requires schema_version={SCHEMA_VERSION}; "
+            f"{RESET_PAIR_ORDER}"
+        )
     if state.get("run_id") != expected_run_id:
         raise ValueError("contract-amendment run_id mismatch")
     owner_authority_ref = _bounded_amendment_ref(
@@ -744,10 +1046,10 @@ def begin_contract_amendment(
     )
     reason_ref = _bounded_amendment_ref("reason_ref", reason_ref)
     amendment_id = _bounded_amendment_ref("amendment_id", amendment_id)
-    history = state.get("amendment_history", [])
+    history = state.get("transition_history", [])
     if not isinstance(history, list):
-        raise ValueError("amendment_history must be a list")
-    if history and history[-1].get("amendment_id") == amendment_id:
+        raise ValueError("transition_history must be a list")
+    if history and history[-1].get("transition_id") == amendment_id:
         snapshot = history[-1]
         stored_completed = state.get("completed_task_ids", [])
         if not isinstance(stored_completed, list):
@@ -766,21 +1068,24 @@ def begin_contract_amendment(
             == snapshot.get("completed_task_evidence")
         )
         expected_pending = {
-            "amendment_id": amendment_id,
-            "owner_authority_ref": owner_authority_ref,
-            "reason_ref": reason_ref,
-            "completed_task_evidence": incoming_evidence,
+            **_transition_identity(
+                transition_id=amendment_id,
+                pre_transition_sequence=snapshot.get("pre_transition_sequence"),
+                event="contract-amendment",
+                args=_contract_amendment_args(
+                    owner_authority_ref, reason_ref, incoming_evidence
+                ),
+            ),
+            "opened_at": snapshot.get("opened_at"),
         }
         if (
             snapshot_matches
             and state.get("plan_review_status") == "pending"
             and state.get("schedule_waves") == []
-            and state.get("amendment_pending") == expected_pending
+            and state.get("pending_transition") == expected_pending
         ):
             return copy.deepcopy(state)
         raise ValueError("contract-amendment replay facts do not match stored state")
-    if len(history) >= MAX_AMENDMENT_HISTORY:
-        raise ValueError("contract-amendment history limit reached; retain and restart")
     if state.get("plan_review_status") != "approved":
         raise ValueError("contract-amendment requires an approved plan baseline")
     for field in ("approved_spec_hash", "approved_plan_hash", "plan_hash"):
@@ -835,7 +1140,17 @@ def begin_contract_amendment(
         raise ValueError(
             f"aggregate completed evidence exceeds {MAX_AMENDMENT_EVIDENCE_REFS} refs"
         )
+    pending_args = _contract_amendment_args(
+        owner_authority_ref, reason_ref, incoming_evidence
+    )
     snapshot = {
+        **_transition_identity(
+            transition_id=amendment_id,
+            pre_transition_sequence=pre_transition_sequence,
+            event="contract-amendment",
+            args=pending_args,
+        ),
+        "opened_at": None,
         "amendment_id": amendment_id,
         "owner_authority_ref": owner_authority_ref,
         "reason_ref": reason_ref,
@@ -857,27 +1172,33 @@ def begin_contract_amendment(
             "plan_hash": None,
             "schedule_waves": [],
             "current_wave_index": 0,
+            # Emptied explicitly, not left to the digest. An amendment raised at
+            # wave index zero re-schedules to the same partition, so its digest is
+            # unchanged and a digest-keyed drop alone would leave every pre-
+            # amendment record still accounting for a task the amendment reopened.
+            RECEIPTS_KEY: {},
             "completed_task_ids": completed,
             "completed_task_section_hashes": dict(completed_task_section_hashes),
             "completed_task_evidence": all_evidence,
-            "amendment_history": [*history, snapshot],
-            "amendment_pending": {
-                "amendment_id": amendment_id,
-                "owner_authority_ref": owner_authority_ref,
-                "reason_ref": reason_ref,
-                "completed_task_evidence": incoming_evidence,
+            "pending_transition": {
+                **_transition_identity(
+                    transition_id=amendment_id,
+                    pre_transition_sequence=pre_transition_sequence,
+                    event="contract-amendment",
+                    args=pending_args,
+                ),
+                "opened_at": None,
             },
         }
     )
-    serialized_size = len(
-        json.dumps(amended, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-    )
-    if serialized_size > MAX_AMENDMENT_STATE_BYTES:
-        raise ValueError(
-            "contract-amendment state exceeds "
-            f"{MAX_AMENDMENT_STATE_BYTES}-byte aggregate limit"
-        )
-    return amended
+    if retain_transition_history:
+        return _retained_transition_state(amended, snapshot)
+    updated = copy.deepcopy(amended)
+    history = updated.get("transition_history", [])
+    if not isinstance(history, list):
+        raise ValueError("transition_history must be a list")
+    updated["transition_history"] = [*history, snapshot]
+    return updated
 
 
 def complete_contract_amendment_reapproval(state: dict) -> dict:
@@ -888,7 +1209,7 @@ def complete_contract_amendment_reapproval(state: dict) -> dict:
         if not _SHA256_RE.fullmatch(str(state.get(field, ""))):
             raise ValueError(f"amendment replay marker requires pinned {field}")
     approved = copy.deepcopy(state)
-    approved["amendment_pending"] = None
+    approved["pending_transition"] = None
     return approved
 
 
@@ -900,11 +1221,20 @@ def apply_contract_amendment(
     reason_ref: str,
     completed_task_evidence: dict[str, list[str]],
     amendment_id: str,
+    pre_transition_sequence: int | None = None,
 ) -> dict:
     """Lock, derive completed-section pins, and persist one amendment snapshot."""
     sl = _statelock()
     with sl.exclusive(state_path_for(spec_dir)):
         state = read_state(spec_dir)
+        if pre_transition_sequence is None:
+            pre_transition_sequence = _derive_legacy_amendment_sequence(
+                run_id=expected_run_id,
+                amendment_id=amendment_id,
+                owner_authority_ref=owner_authority_ref,
+                reason_ref=reason_ref,
+                completed_task_evidence=completed_task_evidence,
+            )
         waves = state.get("schedule_waves", [])
         current_index = state.get("current_wave_index", 0)
         prior = state.get("completed_task_ids", [])
@@ -912,8 +1242,8 @@ def apply_contract_amendment(
             raise ValueError("contract-amendment requires a current scheduled wave")
         newly_completed = [task for wave in waves[:current_index] for task in wave]
         completed = list(dict.fromkeys([*prior, *newly_completed]))
-        history = state.get("amendment_history", [])
-        if history and history[-1].get("amendment_id") == amendment_id:
+        history = state.get("transition_history", [])
+        if history and history[-1].get("transition_id") == amendment_id:
             try:
                 plan_text = read_managed_text(spec_dir / "plan.md", "plan.md")
             except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
@@ -940,6 +1270,7 @@ def apply_contract_amendment(
             completed_task_section_hashes=hashes,
             completed_task_evidence=completed_task_evidence,
             amendment_id=amendment_id,
+            pre_transition_sequence=pre_transition_sequence,
         )
         if amended != state:
             write_state_atomic(spec_dir, amended)
@@ -953,40 +1284,480 @@ def contract_amendment_replay_status(
     owner_authority_ref: str,
     reason_ref: str,
     completed_task_evidence: dict[str, list[str]],
+    pre_transition_sequence: int | None = None,
 ) -> str:
     """Classify the cohort-first crash window without mutating state."""
-    state = read_state(spec_dir)
-    pending = state.get("amendment_pending")
-    if pending is None:
-        return "absent"
-    expected = {
-        "amendment_id": amendment_id,
-        "owner_authority_ref": owner_authority_ref,
-        "reason_ref": reason_ref,
-        "completed_task_evidence": completed_task_evidence,
-    }
-    history = state.get("amendment_history", [])
-    if not history or history[-1].get("amendment_id") != amendment_id:
-        return "conflict"
-    snapshot = history[-1]
-    snapshot_matches = (
-        snapshot.get("amendment_id") == amendment_id
-        and snapshot.get("owner_authority_ref") == owner_authority_ref
-        and snapshot.get("reason_ref") == reason_ref
-        and state.get("completed_task_ids") == snapshot.get("completed_task_ids")
-        and state.get("completed_task_section_hashes")
-        == snapshot.get("completed_task_section_hashes")
-        and state.get("completed_task_evidence")
-        == snapshot.get("completed_task_evidence")
+    args = _contract_amendment_args(
+        owner_authority_ref, reason_ref, completed_task_evidence
     )
-    if not snapshot_matches or pending != expected:
-        return "conflict"
+    if pre_transition_sequence is None:
+        state = read_state(spec_dir)
+        pre_transition_sequence = _derive_legacy_amendment_sequence(
+            run_id=str(state.get("run_id")),
+            amendment_id=amendment_id,
+            owner_authority_ref=owner_authority_ref,
+            reason_ref=reason_ref,
+            completed_task_evidence=completed_task_evidence,
+        )
+    return transition_replay_status(
+        spec_dir,
+        transition_id=amendment_id,
+        pre_transition_sequence=pre_transition_sequence,
+        event="contract-amendment",
+        args=args,
+    )
+
+
+def prepare_transition(
+    spec_dir: Path,
+    *,
+    transition_id: str,
+    pre_transition_sequence: int,
+    event: str,
+    args: dict,
+    opened_at: str,
+) -> str:
+    """Persist or validate a transition marker under the cohort lock."""
+    if event not in _TRANSITION_EFFECTS:
+        return "skipped"
+    identity = _transition_identity(
+        transition_id=transition_id,
+        pre_transition_sequence=pre_transition_sequence,
+        event=event,
+        args=args,
+    )
+    marker = {
+        **identity,
+        "opened_at": opened_at,
+    }
+    sl = _statelock()
+    with sl.exclusive(state_path_for(spec_dir)):
+        state = read_state(spec_dir)
+        if state.get("schema_version") != SCHEMA_VERSION:
+            raise ValueError(
+                f"prepare-transition requires schema_version={SCHEMA_VERSION}; "
+                f"{RESET_PAIR_ORDER}"
+            )
+        existing = state.get("pending_transition")
+        if _same_transition_identity(existing, identity):
+            return "prepared"
+        if existing is not None:
+            if existing.get("pre_transition_sequence") == pre_transition_sequence:
+                raise ValueError("pending transition conflicts with this sequence")
+            raise ValueError("pending transition already exists")
+        updated = copy.deepcopy(state)
+        updated["pending_transition"] = marker
+        write_state_atomic(spec_dir, updated)
+    return "prepared"
+
+
+def transition_replay_status(
+    spec_dir: Path,
+    *,
+    transition_id: str,
+    pre_transition_sequence: int,
+    event: str,
+    args: dict,
+) -> str:
+    """Classify a prepared or replayed transition without mutating cohort state."""
+    state = read_state(spec_dir)
+    if state.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError(
+            f"transition replay requires schema_version={SCHEMA_VERSION}; "
+            f"{RESET_PAIR_ORDER}"
+        )
+    return _last_transition_status(
+        state,
+        transition_id=transition_id,
+        pre_transition_sequence=pre_transition_sequence,
+        event=event,
+        args=args,
+        spec_dir=spec_dir,
+    )
+
+
+def _advance_wave_state(state: dict, *, from_index: int) -> tuple[dict, str]:
+    """Return state after a wave advance, or an unchanged idempotent replay."""
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list):
+        raise ValueError(
+            f"wave advance: schedule_waves is unusable ({_scalar(waves)}); run "
+            "schedule to persist a partition, or reset to rebuild cohort state"
+        )
+    n = len(waves)
+    if n == 0:
+        raise ValueError("wave advance: schedule_waves is empty")
+    if from_index < 0:
+        raise ValueError(f"wave advance: --from-index must be >= 0 (got {from_index})")
+    if from_index >= n:
+        raise ValueError(
+            f"wave advance: --from-index {from_index} >= len(schedule_waves) {n}"
+        )
+    if from_index == n - 1:
+        raise ValueError(
+            f"wave advance: cannot advance from the final wave (index={from_index}); "
+            "use gates-clean to exit the final wave"
+        )
+    idx = non_negative_int(state, "current_wave_index", 0)
+    if isinstance(idx, str):
+        raise ValueError(f"wave advance: {idx}; run reset to rebuild cohort state")
+    if idx == from_index + 1:
+        return copy.deepcopy(state), "already"
+    if idx != from_index:
+        raise ValueError(
+            f"wave advance: current_wave_index={idx} does not match "
+            f"--from-index {from_index} or {from_index + 1}"
+        )
+    malformed = malformed_receipts_position(state.get(RECEIPTS_KEY, {}))
+    if malformed is not None:
+        raise ValueError(
+            f"wave advance: {RECEIPTS_KEY} is malformed — expected {malformed} "
+            f"at the {'/'.join(RECEIPT_KEY_PATH)} key path; run reset to "
+            "rebuild cohort state"
+        )
+    if not wave_is_well_formed(waves[from_index]):
+        raise ValueError(
+            f"wave advance: schedule_waves[{from_index}] is malformed "
+            f"({_scalar(waves[from_index])}); expected a non-empty list of task "
+            "identifiers; run reset to rebuild cohort state"
+        )
+    unaccounted = unaccounted_wave_tasks(state, from_index)
+    if unaccounted:
+        raise ValueError(
+            f"wave advance: wave {from_index} has tasks with no live record — "
+            f"{unaccounted_breakdown(state, from_index)}; "
+            "run `loop-cohort dispatch-receipt` to record each"
+        )
+    updated = copy.deepcopy(state)
+    updated["current_wave_index"] = from_index + 1
+    return updated, "advanced"
+
+
+def _record_attempt_state(
+    state: dict, *, expected_run_id: str, cycle_id: str
+) -> tuple[dict, str]:
+    """Return state after recording one implementation attempt."""
+    parts = cycle_id.split(":", 1)
+    if len(parts) != 2 or not parts[1].isdigit():
+        raise ValueError(
+            f"record-attempt: --cycle-id must be '<run_id>:<decimal-sequence>' "
+            f"(got {cycle_id!r})"
+        )
+    run_id_prefix = parts[0]
+    if run_id_prefix != expected_run_id:
+        raise ValueError(
+            f"record-attempt: run_id prefix in --cycle-id ({run_id_prefix!r}) "
+            f"does not match --expect-run-id ({expected_run_id!r})"
+        )
+    if state.get("last_record_attempt_cycle_id") == cycle_id:
+        return copy.deepcopy(state), "already"
+    updated = copy.deepcopy(state)
+    updated["implementation_retry_count"] = (
+        int(updated.get("implementation_retry_count", 0)) + 1
+    )
+    updated["last_record_attempt_cycle_id"] = cycle_id
+    return updated, "recorded"
+
+
+def _record_review_state(
+    state: dict,
+    *,
+    expected_run_id: str,
+    spec_name: str,
+    form: str,
+    operation_id: str | None,
+    payload_digest: str | None,
+    fingerprints: list[str] | None = None,
+    clean_source: str | None = None,
+    clean_digest: str | None = None,
+    allow_retry_cap_override: bool = False,
+    allow_durable_operation_id: bool = False,
+) -> tuple[dict, str]:
+    """Return state after recording a review round through a shared mutator."""
+    outcome, reason = _review_operation_decision(
+        state,
+        operation_id,
+        payload_digest,
+        expect_run_id=expected_run_id,
+        spec_name=spec_name,
+        allow_durable_operation_id=allow_durable_operation_id,
+    )
+    if outcome == "refuse":
+        raise ValueError(str(reason))
+    if outcome == "already":
+        return copy.deepcopy(state), "already"
+    updated = copy.deepcopy(state)
+    if outcome == "record":
+        updated["last_review_record_operation_id"] = operation_id
+        updated["last_review_record_payload_digest"] = payload_digest
+    updated["previous_finding_fingerprints"] = list(
+        updated.get("finding_fingerprints", [])
+    )
+    rounds = non_negative_int(updated, "review_round_count", 0)
+    if isinstance(rounds, str):
+        raise ValueError(f"review record: {rounds} for {spec_name}")
+    if form == "findings":
+        stored_fingerprints = sorted(set(fingerprints or []))
+        retries = non_negative_int(updated, "review_retry_count", 0)
+        cap = non_negative_int(
+            updated, "max_review_retries", DEFAULTS["max_review_retries"]
+        )
+        if isinstance(retries, str):
+            raise ValueError(f"review record: {retries} for {spec_name}")
+        if isinstance(cap, str):
+            raise ValueError(f"review record: {cap} for {spec_name}")
+        if retries >= cap and not allow_retry_cap_override:
+            raise ValueError(
+                f"review record: review retry cap reached ({retries}/{cap}) for "
+                f"{spec_name}; a findings round past the cap is the runaway "
+                f"the cap exists to stop — stop and surface it. Only a human "
+                f"directing this run may continue: reset and start a new run, or "
+                f"pass --allow-retry-cap-override to this command AND to the "
+                f"`loop-engine transition findings-remain` that opens the round "
+                f"(either half alone leaves the cohort and the engine a round apart)"
+            )
+        updated["finding_fingerprints"] = stored_fingerprints
+        updated["review_retry_count"] = retries + 1
+        updated["review_round_count"] = rounds + 1
+        return updated, "recorded"
+    if form == "all-skipped":
+        updated["finding_fingerprints"] = []
+        updated["review_round_count"] = rounds + 1
+        return updated, "recorded"
+    if form == "clean":
+        updated["finding_fingerprints"] = []
+        updated["review_round_count"] = rounds + 1
+        updated["last_review_clean_source"] = clean_source
+        updated["last_review_clean_digest"] = clean_digest
+        return updated, "recorded"
+    raise ValueError(f"review record: unknown form {form!r}")
+
+
+def _append_transition_history(state: dict, identity: dict, audit: dict) -> dict:
+    entry = {**identity, **audit}
+    updated = copy.deepcopy(state)
+    history = updated.get("transition_history", [])
+    if not isinstance(history, list):
+        raise ValueError("transition_history must be a list")
+    updated["transition_history"] = [*history, entry]
+    return updated
+
+
+def _transition_effect_contract_amendment(
+    state: dict, *, spec_dir: Path, identity: dict
+) -> dict:
+    args = identity["args"]
+    completed_task_evidence = args.get("completed_task_evidence", {})
+    waves = state.get("schedule_waves", [])
+    current_index = state.get("current_wave_index", 0)
+    prior = state.get("completed_task_ids", [])
+    if not isinstance(waves, list) or not isinstance(current_index, int):
+        raise ValueError("contract-amendment requires a current scheduled wave")
+    newly_completed = [task for wave in waves[:current_index] for task in wave]
+    completed = list(dict.fromkeys([*prior, *newly_completed]))
     try:
         plan_text = read_managed_text(spec_dir / "plan.md", "plan.md")
-    except (OSError, UnicodeDecodeError, ValueError, ImportError):
-        return "conflict"
-    if validate_completed_task_sections(plan_text, state) is not None:
-        return "conflict"
+    except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
+        raise ValueError(f"contract-amendment cannot read plan.md: {exc}") from exc
+    hashes = task_section_hashes(plan_text, set(completed))
+    return begin_contract_amendment(
+        state,
+        expected_run_id=str(state.get("run_id")),
+        owner_authority_ref=str(args.get("owner_authority_ref", "")),
+        reason_ref=str(args.get("reason_ref", "")),
+        completed_task_section_hashes=hashes,
+        completed_task_evidence=completed_task_evidence,
+        amendment_id=identity["transition_id"],
+        pre_transition_sequence=identity["pre_transition_sequence"],
+        retain_transition_history=False,
+    )
+
+
+def _transition_effect_wave_passed(
+    state: dict, *, spec_dir: Path, identity: dict
+) -> dict:
+    del spec_dir
+    raw_index = identity["args"].get("wave_index")
+    if raw_index is None:
+        raw_index = identity["args"].get("completed_wave_index")
+    if isinstance(raw_index, bool) or not isinstance(raw_index, int):
+        raise ValueError("wave-passed requires integer wave_index")
+    updated, _status = _advance_wave_state(state, from_index=raw_index)
+    return _append_transition_history(
+        updated,
+        identity,
+        {
+            "completed_wave_index": raw_index,
+            "current_wave_index": updated.get("current_wave_index"),
+        },
+    )
+
+
+def _transition_effect_gates_failed(
+    state: dict, *, spec_dir: Path, identity: dict
+) -> dict:
+    del spec_dir
+    cycle_id = f"{state.get('run_id')}:{identity['pre_transition_sequence']}"
+    updated, _status = _record_attempt_state(
+        state, expected_run_id=str(state.get("run_id")), cycle_id=cycle_id
+    )
+    return _append_transition_history(
+        updated,
+        identity,
+        {
+            "implementation_retry_count": updated.get("implementation_retry_count"),
+            "last_record_attempt_cycle_id": cycle_id,
+        },
+    )
+
+
+def _transition_effect_findings_remain(
+    state: dict, *, spec_dir: Path, identity: dict
+) -> dict:
+    args = identity["args"]
+    fingerprints = sorted(set(args.get("fingerprints", [])))
+    bad = [fp for fp in fingerprints if not _RE_FINGERPRINT.match(fp)]
+    if bad:
+        raise ValueError(
+            "review record: --fingerprint must be lowercase 64-char SHA-256 hex "
+            "(40-char SHA-1 still accepted for a run that predates core 2.3.0); "
+            f"invalid: {bad!r}"
+        )
+    digest = _review_payload_digest("fingerprint", "\n".join(fingerprints))
+    updated, status = _record_review_state(
+        state,
+        expected_run_id=str(state.get("run_id")),
+        spec_name=str(args.get("spec_name") or spec_dir.name),
+        form="findings",
+        operation_id=identity["transition_id"],
+        payload_digest=digest,
+        fingerprints=fingerprints,
+        allow_retry_cap_override=bool(args.get("allow_retry_cap_override", False)),
+        allow_durable_operation_id=True,
+    )
+    if status == "already":
+        fingerprints = sorted(set(updated.get("finding_fingerprints", [])))
+    return _append_transition_history(
+        updated,
+        identity,
+        {
+            "operation_id": identity["transition_id"],
+            "review_round_count": updated.get("review_round_count"),
+            "review_retry_count": updated.get("review_retry_count"),
+            "finding_fingerprints": fingerprints,
+        },
+    )
+
+
+def _transition_effect_reviewers_clean(
+    state: dict, *, spec_dir: Path, identity: dict
+) -> dict:
+    args = identity["args"]
+    if args.get("all_skipped", False):
+        form = "all-skipped"
+        digest = _review_payload_digest("all-skipped", "")
+        clean_source = None
+        clean_digest = None
+    else:
+        form = "clean"
+        clean_source = args.get("clean_source", "transition-clean")
+        clean_digest = args.get("clean_digest")
+        digest = (
+            None
+            if clean_digest is None
+            else _review_payload_digest(str(clean_source), str(clean_digest))
+        )
+    updated, status = _record_review_state(
+        state,
+        expected_run_id=str(state.get("run_id")),
+        spec_name=str(args.get("spec_name") or spec_dir.name),
+        form=form,
+        operation_id=identity["transition_id"],
+        payload_digest=digest,
+        clean_source=None if clean_source is None else str(clean_source),
+        clean_digest=None if clean_digest is None else str(clean_digest),
+        allow_durable_operation_id=True,
+    )
+    return _append_transition_history(
+        updated,
+        identity,
+        {
+            "operation_id": identity["transition_id"],
+            "review_round_count": updated.get("review_round_count"),
+            "last_review_clean_source": updated.get("last_review_clean_source"),
+            "last_review_clean_digest": updated.get("last_review_clean_digest"),
+        },
+    )
+
+
+_TRANSITION_EFFECTS = {
+    "contract-amendment": _transition_effect_contract_amendment,
+    "wave-passed": _transition_effect_wave_passed,
+    "gates-failed": _transition_effect_gates_failed,
+    "findings-remain": _transition_effect_findings_remain,
+    "reviewers-clean": _transition_effect_reviewers_clean,
+}
+
+
+def apply_transition_effect(
+    spec_dir: Path,
+    *,
+    transition_id: str,
+    pre_transition_sequence: int,
+    event: str,
+    args: dict,
+) -> str:
+    """Apply one registered cohort effect exactly once under the cohort lock."""
+    if event not in _TRANSITION_EFFECTS:
+        return "skipped"
+    identity = _transition_identity(
+        transition_id=transition_id,
+        pre_transition_sequence=pre_transition_sequence,
+        event=event,
+        args=args,
+    )
+    sl = _statelock()
+    with sl.exclusive(state_path_for(spec_dir)):
+        state = read_state(spec_dir)
+        if state.get("schema_version") != SCHEMA_VERSION:
+            raise ValueError(
+                f"apply-transition-effect requires schema_version={SCHEMA_VERSION}; "
+                f"{RESET_PAIR_ORDER}"
+            )
+        status = _last_transition_status(
+            state,
+            transition_id=transition_id,
+            pre_transition_sequence=pre_transition_sequence,
+            event=event,
+            args=args,
+            spec_dir=spec_dir,
+        )
+        if status == "conflict":
+            raise ValueError("transition effect conflicts with cohort history")
+        pending = state.get("pending_transition")
+        if pending is not None:
+            pending_identity = {
+                key: pending.get(key)
+                for key in ("transition_id", "pre_transition_sequence", "event", "args")
+            }
+            if pending_identity != identity:
+                raise ValueError("pending transition conflicts with this effect")
+        elif status == "absent":
+            raise ValueError("pending transition is required for absent effect")
+        if status == "applied":
+            if pending is not None:
+                updated = copy.deepcopy(state)
+                updated["pending_transition"] = None
+                write_state_atomic(spec_dir, updated)
+            return "applied"
+        updated = _TRANSITION_EFFECTS[event](
+            state,
+            spec_dir=spec_dir,
+            identity=identity,
+        )
+        updated["pending_transition"] = None
+        updated = _retained_existing_transition_state(updated)
+        write_state_atomic(spec_dir, updated)
     return "applied"
 
 
@@ -996,15 +1767,13 @@ def parse_touches(field: str):
 
 
 def parse_touches_by_task(text: str):
-    matches = list(TASK_HEADING_RE.finditer(text))
     out: dict[str, set] = {}
-    for i, m in enumerate(matches):
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        tm = TOUCHES_LINE_RE.search(text[m.end():end])
+    for section in walk_task_sections(text):
+        tm = TOUCHES_LINE_RE.search(text[section.body_start:section.end])
         if tm:
             globs = parse_touches(tm.group(1))
             if globs:
-                out[m.group(1)] = globs
+                out[section.task_id] = globs
     return out
 
 
@@ -1190,7 +1959,10 @@ def cmd_status(args: argparse.Namespace) -> int:
         return stop(str(exc))
     if state.get("schema_version") != SCHEMA_VERSION:
         sv = state.get("schema_version")
-        return stop(f"status: unsupported schema_version={sv!r} (expected {SCHEMA_VERSION})")
+        return stop(
+            f"status: unsupported schema_version={sv!r} "
+            f"(expected {SCHEMA_VERSION}); {RESET_PAIR_ORDER}"
+        )
     result = {
         "schema_version": state.get("schema_version"),
         "run_id": state.get("run_id"),
@@ -1205,8 +1977,8 @@ def cmd_status(args: argparse.Namespace) -> int:
             "completed_task_section_hashes", {}
         ),
         "completed_task_evidence": state.get("completed_task_evidence", {}),
-        "amendment_history": state.get("amendment_history", []),
-        "amendment_pending": state.get("amendment_pending"),
+        "transition_history": state.get("transition_history", []),
+        "pending_transition": state.get("pending_transition"),
         "implementation_retry_count": state.get("implementation_retry_count", 0),
         "review_round_count": state.get("review_round_count", 0),
         "last_review_record_operation_id": state.get("last_review_record_operation_id"),
@@ -1214,6 +1986,10 @@ def cmd_status(args: argparse.Namespace) -> int:
         "review_retry_count": state.get("review_retry_count", 0),
         "finding_fingerprints": state.get("finding_fingerprints", []),
         "previous_finding_fingerprints": state.get("previous_finding_fingerprints", []),
+        # Whether `check --phase wave-exit` enforces per-task accounting for this
+        # run. An absent container is the exemption, so absence is the one value
+        # that means "not enforced"; an empty container still enforces.
+        "dispatch_receipts_enforced": RECEIPTS_KEY in state,
     }
     if args.json:
         print(json.dumps(result))
@@ -1296,7 +2072,7 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
             err = _assert_status_legal("approve-plan", spec_path, plan_path)
             if err is not None:
                 return err
-            if state.get("amendment_pending") is not None:
+            if state.get("pending_transition") is not None:
                 try:
                     state = complete_contract_amendment_reapproval(state)
                 except ValueError as exc:
@@ -1349,7 +2125,7 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         # artifact would either traceback out of the lock or, with a returning
         # fallback stub, store a non-digest as the approved baseline.
         return stop(f"approve-plan: cannot pin the approved artifacts: {exc}")
-    if state.get("amendment_pending") is not None:
+    if state.get("pending_transition") is not None:
         try:
             state = complete_contract_amendment_reapproval(state)
         except ValueError as exc:
@@ -1467,6 +2243,13 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
     state["plan_hash"] = plan_hash
     state["schedule_waves"] = waves
     state["current_wave_index"] = 0
+    # Creates the container when absent (cohort state written before receipts
+    # existed) and keeps only the live partition's records. `plan_hash` moves on
+    # any plan edit; the digest moves only when the partition does, so an edit
+    # that leaves the waves alone leaves every existing record accounting.
+    state[RECEIPTS_KEY] = receipts_for_partition(
+        state.get(RECEIPTS_KEY), partition_digest(waves)
+    )
     write_state_atomic(spec_dir, state)
     print(
         f"loop-cohort: schedule persisted for {spec_dir.name} "
@@ -1515,7 +2298,13 @@ def cmd_check(args: argparse.Namespace) -> int:
 
     Note the guard reads state for EVERY phase including `implement` — this verb has
     always refused on a missing or malformed `state.json` before reaching the
-    `implement` stub, and the engine's `wave-complete` guard depends on that.
+    `implement` stub, and the always-run pre-PR hook, which runs that phase for
+    every spec directory, depends on that.
+
+    `--phase wave-exit` is the phase the engine's `wave-complete` guard consults.
+    Run it directly before firing that transition: on a state with no receipts
+    container it PASSES with a notice on stdout, and the engine cannot surface
+    that notice, because a passing guard carries no `reason`.
     """
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -1528,7 +2317,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     return 0
 
 
-# ── wave check / advance ──────────────────────────────────────────────────
+# ── wave check / advance / reopen ─────────────────────────────────────────
 
 
 def cmd_wave_check(args: argparse.Namespace) -> int:
@@ -1559,41 +2348,272 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
         return err
 
     n_arg = args.from_index
-    waves = state.get("schedule_waves", [])
-    n = len(waves)
-
-    if n == 0:
-        return stop("wave advance: schedule_waves is empty")
-    if n_arg < 0:
-        return stop(f"wave advance: --from-index must be >= 0 (got {n_arg})")
-    if n_arg >= n:
-        return stop(
-            f"wave advance: --from-index {n_arg} >= len(schedule_waves) {n}"
-        )
-    if n_arg == n - 1:
-        return stop(
-            f"wave advance: cannot advance from the final wave (index={n_arg}); "
-            "use gates-clean to exit the final wave"
-        )
-
-    idx = int(state.get("current_wave_index", 0))
-    if idx == n_arg:
-        state["current_wave_index"] = n_arg + 1
-        write_state_atomic(spec_dir, state)
+    try:
+        updated, status = _advance_wave_state(state, from_index=n_arg)
+    except ValueError as exc:
+        return stop(str(exc))
+    if status == "advanced":
+        write_state_atomic(spec_dir, updated)
         print(
             f"loop-cohort: wave advance {n_arg} → {n_arg + 1} for {spec_dir.name}"
         )
         return 0
-    if idx == n_arg + 1:
+    if status == "already":
+        idx = updated.get("current_wave_index")
         print(
             f"loop-cohort: wave advance already applied "
             f"(current_wave_index={idx}) for {spec_dir.name}"
         )
         return 0
-    return stop(
-        f"wave advance: current_wave_index={idx} does not match "
-        f"--from-index {n_arg} or {n_arg + 1}"
+    return stop(f"wave advance: unexpected state mutator status {status!r}")
+
+
+# ── dispatch receipts ─────────────────────────────────────────────────────
+
+
+# The data model — `RECEIPTS_KEY`, `RECEIPT_KEY_PATH`, the closed kind and reason
+# sets, `SUPERSEDED_KEY`, `partition_digest`, `is_dispatch_record`,
+# `accounts_for_task`, `unaccounted_breakdown`, `malformed_receipts_position`,
+# `receipts_for_partition`,
+# `wave_is_well_formed`, `unaccounted_wave_tasks` and `bounded_id_list` — is
+# declared once in `_loop_guards.py` and re-bound at the top of this file.
+# `check --phase wave-exit` and this verb have to agree about the container key,
+# the record shape and what "accounted for" means, and the guard layer is the
+# only side of the dependency both can reach.
+
+
+def plan_dispatch_receipt(
+    state: dict,
+    *,
+    task_id: str,
+    wave_index: object,
+    receipt: bool,
+    decline: object,
+) -> tuple[dict | None, str | None]:
+    """Validate one dispatch receipt and return the state to persist.
+
+    Returns `(new_state, None)` on acceptance or `(None, reason)` on refusal, in
+    refuse-cheapest-first order: mutual exclusivity, reason code, index type and
+    range, usable partition, task membership. Pure — the caller owns the lock and
+    the write — so every refusal leaves `state.json` byte-identical.
+
+    The run identifier and the schema are validated by the caller through the
+    shared `validate_run_id`, which is cheaper still and shared with every other
+    run-scoped mutation.
+    """
+    if receipt and decline is not None:
+        return None, (
+            "dispatch-receipt: --receipt and --decline are mutually exclusive; "
+            "record one assertion per task"
+        )
+    if not receipt and decline is None:
+        return None, (
+            "dispatch-receipt: one of --receipt or --decline "
+            f"{list(DECLINE_REASONS)} is required"
+        )
+    if decline is not None and decline not in DECLINE_REASONS:
+        return None, (
+            f"dispatch-receipt: --decline {_scalar(decline)} is not an accepted "
+            f"reason; accepted: {', '.join(DECLINE_REASONS)}"
+        )
+
+    # Reuses the guard layer's non-negative-integer validation rather than adding a
+    # second integer predicate: that one rejects `bool` (which `isinstance(v, int)`
+    # accepts) and owns its message shape. The dict is the shape that helper reads.
+    index = non_negative_int({"--wave-index": wave_index}, "--wave-index", 0)
+    if isinstance(index, str):
+        return None, f"dispatch-receipt: {index}"
+
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list) or not waves:
+        return None, (
+            f"dispatch-receipt: schedule_waves is unusable ({_scalar(waves)}); "
+            "run schedule to persist a partition, or reset the pair"
+        )
+    # An absent container reads as the empty one: `init` and `schedule` both
+    # create it, so absence is cohort state written before receipts existed.
+    malformed = malformed_receipts_position(state.get(RECEIPTS_KEY, {}))
+    if malformed is not None:
+        return None, (
+            f"dispatch-receipt: {RECEIPTS_KEY} is malformed — expected {malformed} "
+            f"at the {'/'.join(RECEIPT_KEY_PATH)} key path; run reset to rebuild "
+            "cohort state"
+        )
+
+    current = non_negative_int(state, "current_wave_index", 0)
+    if isinstance(current, str):
+        return None, f"dispatch-receipt: {current}"
+    if current >= len(waves):
+        return None, (
+            f"dispatch-receipt: current_wave_index={current} is not an index into "
+            f"schedule_waves (len={len(waves)}); run reset to rebuild cohort state"
+        )
+    if index > current:
+        return None, (
+            f"dispatch-receipt: --wave-index {index} is above current_wave_index="
+            f"{current}; the run has not reached that wave"
+        )
+
+    wave = waves[index]
+    # The declared predicate, not a restatement of it. A review found this
+    # spelled out inline while `wave_is_well_formed` sat re-bound above and
+    # `cmd_wave_advance` already called it — two copies of one predicate, in the
+    # change whose whole subject is that duplicated predicates drift apart.
+    if not wave_is_well_formed(wave):
+        return None, (
+            f"dispatch-receipt: schedule_waves[{index}] is malformed "
+            f"({_scalar(wave)}); expected a non-empty list of task identifiers"
+        )
+    if task_id not in wave:
+        return None, (
+            f"dispatch-receipt: {_scalar(task_id)} is not in wave {index}, which "
+            f"holds {bounded_id_list(wave)}"
+        )
+
+    record = (
+        {"kind": RECEIPT_KIND}
+        if receipt
+        else {"kind": DECLINE_KIND, "reason": decline}
     )
+    updated = copy.deepcopy(state)
+    container = updated.get(RECEIPTS_KEY, {})
+    digest = partition_digest(waves)
+    # Keyed by the declared path. Writing the same triple twice replaces one
+    # record with an equal one, which is why the verb needs no idempotency key.
+    container.setdefault(digest, {}).setdefault(str(index), {})[task_id] = record
+    updated[RECEIPTS_KEY] = container
+    return updated, None
+
+
+@_locked("dispatch-receipt")
+def cmd_dispatch_receipt(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    err = _validate_run_id(state, args.expect_run_id, verb="dispatch-receipt")
+    if err is not None:
+        return err
+
+    # argv decoding, not validation: every acceptance decision stays with
+    # `non_negative_int` inside `plan_dispatch_receipt`, which is what rejects a
+    # negative, a float, a bool and a non-numeric spelling alike. Decoding here
+    # rather than through argparse `type=int` is what lets a non-integer reach
+    # that one validation instead of dying in the parser with a usage message.
+    raw_index: object = args.wave_index
+    with contextlib.suppress(TypeError, ValueError):
+        raw_index = int(raw_index)
+
+    updated, reason = plan_dispatch_receipt(
+        state,
+        task_id=args.task,
+        wave_index=raw_index,
+        receipt=args.receipt,
+        decline=args.decline,
+    )
+    if reason is not None:
+        return stop(reason)
+    write_state_atomic(spec_dir, updated)
+    kind = RECEIPT_KIND if args.receipt else f"{DECLINE_KIND} ({args.decline})"
+    print(
+        f"loop-cohort: dispatch-receipt recorded {kind} for {args.task} "
+        f"in wave {raw_index} of {spec_dir.name}"
+    )
+    return 0
+
+
+# ── wave reopen ───────────────────────────────────────────────────────────
+#
+# The repair-round mutation: supersedes every record held under the LIVE
+# partition digest at `current_wave_index`, and removes none.
+# `wave-complete-dispatch-receipts` § Never do names the only three paths that
+# may remove a record, and this is not one of them, so a record here only ever
+# gains `SUPERSEDED_KEY: True` — it is never dropped, and neither is a
+# now-empty container or subtree: `unaccounted_wave_tasks` returns no tasks for
+# an absent container, so pruning one would disable the very accounting this
+# verb exists to re-arm.
+
+
+def plan_wave_reopen(state: dict) -> tuple[dict | None, str | None, int, int]:
+    """Validate a wave reopen and return the state to persist.
+
+    Returns ``(new_state, None, wave_index, marked_count)`` on acceptance or
+    ``(None, reason, 0, 0)`` on refusal, in refuse-cheapest-first order
+    matching `plan_dispatch_receipt`: usable partition, well-formed container,
+    valid pointer. Pure — the caller owns the lock and the write — so every
+    refusal leaves `state.json` byte-identical.
+
+    An absent or empty container reads as nothing to reopen, exactly as
+    `plan_dispatch_receipt` reads an absent container as the empty one: no key
+    is added, and the returned state is unchanged.
+    """
+    waves = state.get("schedule_waves", [])
+    if not isinstance(waves, list) or not waves:
+        return None, (
+            f"wave reopen: schedule_waves is unusable ({_scalar(waves)}); run "
+            "schedule to persist a partition, or reset to rebuild cohort state"
+        ), 0, 0
+    malformed = malformed_receipts_position(state.get(RECEIPTS_KEY, {}))
+    if malformed is not None:
+        return None, (
+            f"wave reopen: {RECEIPTS_KEY} is malformed — expected {malformed} "
+            f"at the {'/'.join(RECEIPT_KEY_PATH)} key path; run reset to "
+            "rebuild cohort state"
+        ), 0, 0
+    index = non_negative_int(state, "current_wave_index", 0)
+    if isinstance(index, str):
+        return None, f"wave reopen: {index}", 0, 0
+    if index >= len(waves):
+        return None, (
+            f"wave reopen: current_wave_index={index} is not an index into "
+            f"schedule_waves (len={len(waves)}); run reset to rebuild cohort "
+            "state"
+        ), 0, 0
+
+    # Every position in `container` already satisfies `is_dispatch_record`,
+    # established by the malformed check above over the WHOLE container —
+    # not only the live digest's current wave — so no further validation is
+    # needed before marking.
+    updated = copy.deepcopy(state)
+    container = updated.get(RECEIPTS_KEY, {})
+    digest = partition_digest(waves)
+    wave_records = container.get(digest, {}).get(str(index))
+    marked = 0
+    if isinstance(wave_records, dict):
+        for record in wave_records.values():
+            if record.get(SUPERSEDED_KEY) is not True:
+                record[SUPERSEDED_KEY] = True
+                marked += 1
+    return updated, None, index, marked
+
+
+@_locked("wave reopen")
+def cmd_wave_reopen(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    err = _validate_run_id(state, args.expect_run_id, verb="wave reopen")
+    if err is not None:
+        return err
+
+    updated, reason, wave_index, marked = plan_wave_reopen(state)
+    if reason is not None:
+        return stop(reason)
+    write_state_atomic(spec_dir, updated)
+    print(
+        f"loop-cohort: wave reopen wave {wave_index}: "
+        f"{marked} record(s) superseded for {spec_dir.name}"
+    )
+    return 0
 
 
 # ── record-attempt ────────────────────────────────────────────────────────
@@ -1615,35 +2635,24 @@ def cmd_record_attempt(args: argparse.Namespace) -> int:
     if err is not None:
         return err
 
-    # The cycle-id must be <run_id>:<decimal-sequence>; the run_id prefix must match.
     cycle_id = args.cycle_id
-    _parts = cycle_id.split(":", 1)
-    if len(_parts) != 2 or not _parts[1].isdigit():
-        return stop(
-            f"record-attempt: --cycle-id must be '<run_id>:<decimal-sequence>' "
-            f"(got {cycle_id!r})"
+    try:
+        updated, status = _record_attempt_state(
+            state, expected_run_id=args.expect_run_id, cycle_id=cycle_id
         )
-    run_id_prefix = _parts[0]
-    if run_id_prefix != args.expect_run_id:
-        return stop(
-            f"record-attempt: run_id prefix in --cycle-id ({run_id_prefix!r}) "
-            f"does not match --expect-run-id ({args.expect_run_id!r})"
-        )
-
-    last_id = state.get("last_record_attempt_cycle_id")
-    if last_id == cycle_id:
+    except ValueError as exc:
+        return stop(str(exc))
+    if status == "already":
         print(
             f"loop-cohort: record-attempt already applied for cycle {cycle_id!r} "
             f"(idempotent no-op)"
         )
         return 0
 
-    state["implementation_retry_count"] = int(state.get("implementation_retry_count", 0)) + 1
-    state["last_record_attempt_cycle_id"] = cycle_id
-    write_state_atomic(spec_dir, state)
+    write_state_atomic(spec_dir, updated)
     print(
         f"loop-cohort: record-attempt implementation_retry_count="
-        f"{state['implementation_retry_count']} cycle={cycle_id!r} "
+        f"{updated['implementation_retry_count']} cycle={cycle_id!r} "
         f"for {spec_dir.name}"
     )
     return 0
@@ -2140,24 +3149,25 @@ def _review_payload_digest(form: str, payload: str) -> str:
     return hashlib.sha256(f"{form}\n{payload}".encode()).hexdigest()
 
 
-def _review_operation_gate(
+def _review_operation_decision(
     state: dict,
     operation_id: str | None,
     payload_digest: str | None,
     *,
     expect_run_id: str,
     spec_name: str,
-) -> tuple[str, int | None]:
+    allow_durable_operation_id: bool = False,
+) -> tuple[str, str | None]:
     """Decide the recorded round's fate before any mutation.
 
-    Returns `(outcome, exit_code)`. `outcome` is one of:
+    Returns `(outcome, reason)`. `outcome` is one of:
 
     - `"unflagged"` — no id supplied; behave exactly as before and leave the two
       recorded fields alone. They name the last round recorded *under an id*,
       which a flagless round does not become.
     - `"already"`   — this id and this payload are already recorded; no mutation.
     - `"record"`    — proceed with the mutation and set both fields.
-    - `"refuse"`    — caller must return the accompanying exit code.
+    - `"refuse"`    — caller must surface the accompanying reason.
     """
     if operation_id is None:
         return "unflagged", None
@@ -2166,33 +3176,43 @@ def _review_operation_gate(
         # Its own message. Folding this into the format refusal below would tell
         # an operator the format was wrong when the format may be perfectly
         # correct and only the length is not.
-        return "refuse", stop(
+        return "refuse", (
             f"review record: --operation-id is {len(operation_id)} characters, "
             f"over the {_REVIEW_OP_ID_MAX}-character limit, for {spec_name}"
         )
 
-    matched = _REVIEW_OP_ID_RE.match(operation_id)
+    if allow_durable_operation_id:
+        if not _SHA256_RE.fullmatch(operation_id):
+            return "refuse", (
+                "review record: internal transition operation id must be a "
+                f"SHA-256 transition id (got {operation_id!r}) for {spec_name}"
+            )
+        matched = None
+    else:
+        matched = _REVIEW_OP_ID_RE.match(operation_id)
+
     # A leading zero is a second spelling of the same sequence, and the recorded
     # id is compared by exact string equality, so `:01` and `:1` would each
     # record the round once.
-    canonical = matched is not None and (
-        matched.group("seq") == "0" or not matched.group("seq").startswith("0")
-    )
-    if not canonical:
-        return "refuse", stop(
-            f"review record: --operation-id must be "
-            f"'<expect-run-id>:<decimal-sequence>' with no leading zero "
-            f"(got {operation_id!r}) for {spec_name}"
+    if not allow_durable_operation_id:
+        canonical = matched is not None and (
+            matched.group("seq") == "0" or not matched.group("seq").startswith("0")
         )
-    if matched.group("run") != expect_run_id:
-        return "refuse", stop(
-            f"review record: --operation-id names run {matched.group('run')!r} "
-            f"but --expect-run-id is {expect_run_id!r} for {spec_name}"
-        )
+        if not canonical:
+            return "refuse", (
+                f"review record: --operation-id must be "
+                f"'<expect-run-id>:<decimal-sequence>' with no leading zero "
+                f"(got {operation_id!r}) for {spec_name}"
+            )
+        if matched.group("run") != expect_run_id:
+            return "refuse", (
+                f"review record: --operation-id names run {matched.group('run')!r} "
+                f"but --expect-run-id is {expect_run_id!r} for {spec_name}"
+            )
     if payload_digest is None:
         # Refusing here is what keeps a later repeat decidable: an id recorded
         # without a comparison value could never be judged a replay.
-        return "refuse", stop(
+        return "refuse", (
             "review record: this round's payload digest could not be computed, "
             "so recording it under an operation id would leave a later repeat "
             f"undecidable; re-run once the payload is readable, for {spec_name}"
@@ -2201,18 +3221,40 @@ def _review_operation_gate(
     recorded_id = state.get("last_review_record_operation_id")
     if recorded_id == operation_id:
         if state.get("last_review_record_payload_digest") == payload_digest:
-            _emit(
+            return "already", (
                 f"review record already recorded for operation "
                 f"{operation_id!r} (idempotent no-op) for {spec_name}"
             )
-            return "already", 0
-        return "refuse", stop(
+        return "refuse", (
             f"review record: operation {operation_id!r} is already recorded with "
             f"a different payload; a replay must carry the payload it recorded. "
             f"Compare against last_review_record_payload_digest in "
             f"`loop-cohort status --json` for {spec_name}"
         )
     return "record", None
+
+
+def _review_operation_gate(
+    state: dict,
+    operation_id: str | None,
+    payload_digest: str | None,
+    *,
+    expect_run_id: str,
+    spec_name: str,
+) -> tuple[str, int | None]:
+    outcome, reason = _review_operation_decision(
+        state,
+        operation_id,
+        payload_digest,
+        expect_run_id=expect_run_id,
+        spec_name=spec_name,
+    )
+    if outcome == "refuse":
+        return outcome, stop(str(reason))
+    if outcome == "already":
+        _emit(reason)
+        return outcome, 0
+    return outcome, None
 
 
 @_locked("review record")
@@ -2234,25 +3276,27 @@ def cmd_review_record(args: argparse.Namespace) -> int:
     if getattr(args, "all_skipped", False):
         # All-skipped branch: every warranted reviewer was a named skip
         digest = _review_payload_digest("all-skipped", "")
-        outcome, code = _review_operation_gate(
-            state, operation_id, digest,
-            expect_run_id=args.expect_run_id, spec_name=spec_dir.name,
-        )
-        if outcome in ("refuse", "already"):
-            return code
-        if outcome == "record":
-            state["last_review_record_operation_id"] = operation_id
-            state["last_review_record_payload_digest"] = digest
-        state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
-        state["finding_fingerprints"] = []
-        rounds = non_negative_int(state, "review_round_count", 0)
-        if isinstance(rounds, str):
-            return stop(f"review record: {rounds} for {spec_dir.name}")
-        state["review_round_count"] = rounds + 1
-        write_state_atomic(spec_dir, state)
+        try:
+            updated, status = _record_review_state(
+                state,
+                expected_run_id=args.expect_run_id,
+                spec_name=spec_dir.name,
+                form="all-skipped",
+                operation_id=operation_id,
+                payload_digest=digest,
+            )
+        except ValueError as exc:
+            return stop(str(exc))
+        if status == "already":
+            _emit(
+                f"review record already recorded for operation "
+                f"{operation_id!r} (idempotent no-op) for {spec_dir.name}"
+            )
+            return 0
+        write_state_atomic(spec_dir, updated)
         print(
             f"loop-cohort: review record (all-skipped) "
-            f"round={state['review_round_count']} for {spec_dir.name}"
+            f"round={updated['review_round_count']} for {spec_dir.name}"
         )
         return 0
 
@@ -2267,51 +3311,31 @@ def cmd_review_record(args: argparse.Namespace) -> int:
                 f"invalid: {bad!r}"
             )
         digest = _review_payload_digest("fingerprint", "\n".join(fingerprints))
-        outcome, code = _review_operation_gate(
-            state, operation_id, digest,
-            expect_run_id=args.expect_run_id, spec_name=spec_dir.name,
-        )
-        if outcome in ("refuse", "already"):
-            return code
-        # The cap belongs here, not before the gate: a replay of an
-        # already-recorded round writes nothing, so refusing it would break the
-        # decidability this flag exists for at exactly the crash window that
-        # matters. Only a round that would actually be recorded is capped.
-        #
-        # It previously held only because the shipped instructions chained this
-        # command to a capped transition with `&&`. Splitting those statements
-        # showed the cap was carried by shell punctuation rather than by code.
-        retries = non_negative_int(state, "review_retry_count", 0)
-        cap = non_negative_int(state, "max_review_retries",
-                               DEFAULTS["max_review_retries"])
-        if isinstance(retries, str):
-            return stop(f"review record: {retries} for {spec_dir.name}")
-        if isinstance(cap, str):
-            return stop(f"review record: {cap} for {spec_dir.name}")
-        if retries >= cap and not getattr(args, "allow_retry_cap_override", False):
-            return stop(
-                f"review record: review retry cap reached ({retries}/{cap}) for "
-                f"{spec_dir.name}; a findings round past the cap is the runaway "
-                f"the cap exists to stop — stop and surface it. Only a human "
-                f"directing this run may continue: reset and start a new run, or "
-                f"pass --allow-retry-cap-override to this command AND to the "
-                f"`loop-engine transition findings-remain` that opens the round "
-                f"(either half alone leaves the cohort and the engine a round apart)"
+        try:
+            updated, status = _record_review_state(
+                state,
+                expected_run_id=args.expect_run_id,
+                spec_name=spec_dir.name,
+                form="findings",
+                operation_id=operation_id,
+                payload_digest=digest,
+                fingerprints=fingerprints,
+                allow_retry_cap_override=getattr(
+                    args, "allow_retry_cap_override", False
+                ),
             )
-        if outcome == "record":
-            state["last_review_record_operation_id"] = operation_id
-            state["last_review_record_payload_digest"] = digest
-        state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
-        state["finding_fingerprints"] = fingerprints
-        state["review_retry_count"] = retries + 1  # the value the cap above validated
-        rounds = non_negative_int(state, "review_round_count", 0)
-        if isinstance(rounds, str):
-            return stop(f"review record: {rounds} for {spec_dir.name}")
-        state["review_round_count"] = rounds + 1
-        write_state_atomic(spec_dir, state)
+        except ValueError as exc:
+            return stop(str(exc))
+        if status == "already":
+            _emit(
+                f"review record already recorded for operation "
+                f"{operation_id!r} (idempotent no-op) for {spec_dir.name}"
+            )
+            return 0
+        write_state_atomic(spec_dir, updated)
         print(
             f"loop-cohort: review record (findings) "
-            f"round={state['review_round_count']} retry={state['review_retry_count']} "
+            f"round={updated['review_round_count']} retry={updated['review_retry_count']} "
             f"fingerprints={len(fingerprints)} for {spec_dir.name}"
         )
         return 0
@@ -2411,32 +3435,30 @@ def cmd_review_record(args: argparse.Namespace) -> int:
 
     digest = (None if clean_digest is None
               else _review_payload_digest(clean_source, clean_digest))
-    outcome, code = _review_operation_gate(
-        state, operation_id, digest,
-        expect_run_id=args.expect_run_id, spec_name=spec_dir.name,
-    )
-    if outcome in ("refuse", "already"):
-        return code
-    if outcome == "record":
-        state["last_review_record_operation_id"] = operation_id
-        state["last_review_record_payload_digest"] = digest
-    state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
-    state["finding_fingerprints"] = []
-    rounds = non_negative_int(state, "review_round_count", 0)
-    if isinstance(rounds, str):
-        return stop(f"review record: {rounds} for {spec_dir.name}")
-    state["review_round_count"] = rounds + 1
-    # Provenance: which recording form closed this round, and the digest of the
-    # artifact it rested on. Session resumption reads these to replay the form
-    # instead of inferring it from an artifact whose absence is ambiguous.
-    state["last_review_clean_source"] = clean_source
-    state["last_review_clean_digest"] = clean_digest
-    # review_retry_count unchanged on clean review
-    write_state_atomic(spec_dir, state)
+    try:
+        updated, status = _record_review_state(
+            state,
+            expected_run_id=args.expect_run_id,
+            spec_name=spec_dir.name,
+            form="clean",
+            operation_id=operation_id,
+            payload_digest=digest,
+            clean_source=clean_source,
+            clean_digest=clean_digest,
+        )
+    except ValueError as exc:
+        return stop(str(exc))
+    if status == "already":
+        _emit(
+            f"review record already recorded for operation "
+            f"{operation_id!r} (idempotent no-op) for {spec_dir.name}"
+        )
+        return 0
+    write_state_atomic(spec_dir, updated)
     print(
         f"loop-cohort: review record (clean:{clean_source}) "
-        f"round={state['review_round_count']} "
-        f"retry={state['review_retry_count']} for {spec_dir.name}"
+        f"round={updated['review_round_count']} "
+        f"retry={updated['review_retry_count']} for {spec_dir.name}"
     )
     return 0
 
@@ -2577,6 +3599,31 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
     sp.set_defaults(func=cmd_record_attempt)
 
+    # dispatch-receipt
+    sp = sub.add_parser(
+        "dispatch-receipt",
+        help="record who the controller says implemented one plan task",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--task", required=True, help="plan task identifier, e.g. T3")
+    # A string, not `type=int`: the index is validated once, by the guard layer's
+    # non-negative-integer helper, so a non-integer must reach that validation
+    # instead of dying in the parser under a different message shape.
+    sp.add_argument(
+        "--wave-index", required=True, dest="wave_index",
+        help="wave index the task belongs to; at or below current_wave_index",
+    )
+    sp.add_argument(
+        "--receipt", action="store_true",
+        help="an implementer subagent implemented this task",
+    )
+    sp.add_argument(
+        "--decline", default=None, metavar="<reason>",
+        help=f"no subagent implemented it; reason from {list(DECLINE_REASONS)}",
+    )
+    sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
+    sp.set_defaults(func=cmd_dispatch_receipt)
+
     # wave (namespace with sub-verbs)
     sp_wave = sub.add_parser("wave", help="wave-advance and guard verbs")
     wave_sub = sp_wave.add_subparsers(dest="wave_verb", required=True)
@@ -2598,6 +3645,14 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--from-index", required=True, type=int, dest="from_index")
     sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
     sp.set_defaults(func=cmd_wave_advance)
+
+    sp = wave_sub.add_parser(
+        "reopen",
+        help="supersede the current wave's dispatch records for a repair round",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
+    sp.set_defaults(func=cmd_wave_reopen)
 
     # review (namespace with sub-verbs)
     sp_review = sub.add_parser("review", help="review-phase state mutations")

@@ -22,8 +22,9 @@ You handle three code-facing modes — sometimes one, often more than one in the
     not a spec edit.
 
   The work-loop skill's PLAN step enumerates the four trigger conditions
-  and the standard to measure against (the spec's Boundaries section if
-  present; otherwise a documented fallback chain); that section is the
+  and the standard to measure against — the spec's Agent Rules section,
+  headed `Boundaries` in specs authored before this rename, if present;
+  otherwise a documented fallback chain. That section is the
   canonical source — don't restate it here. Same mode, same spec-stage
   checklist below — the routing rule widens *when* you're invoked, not
   *what* you check.
@@ -140,8 +141,11 @@ Always read, in this order. Skipping this step makes you guess. Don't guess.
    convention, workflow, and command sources they map for the target. These are
    first-class checks; no specific convention filename or pack layout is
    required.
-2. The targeted spec at `docs/specs/<feature>/spec.md`. The spec is the
-   standard.
+2. The targeted spec at `docs/specs/<feature>/spec.md`. That spec is the
+   standard; a spec that has shipped or been archived is delivery history, not
+   current-state authority. A change contradicting one is a finding only if it
+   also breaks the targeted spec, a live unshipped spec, a cited ADR, or
+   working code.
 3. The targeted plan at `docs/specs/<feature>/plan.md`.
 4. Any ADRs cited in the spec's "Constrained by" field.
 5. The implementation files the orchestrator lists, or
@@ -158,7 +162,7 @@ checklists; verification-mode awareness applies to every review that carries a v
 ### Spec-stage checks (when a spec or plan changed in this PR)
 
 1. **Plan / spec mismatch.** Each plan task should map to an Acceptance
-   Criterion in the spec (and must not violate any Boundary — Boundaries
+   Criterion in the spec (and must not violate any Agent Rule — those rules
    are rails, not work items). Flag tasks that map to no criterion, and
    criteria with no implementing task.
    **Duplicate values across spec and plan.** Any value or command that
@@ -241,24 +245,41 @@ checklists; verification-mode awareness applies to every review that carries a v
    content constraints to all user-visible channels — an AC that forbids
    internal paths on stdout is violated if the caller sees a full traceback
    with those paths on stderr.
-<!-- Bundled-fixes carve-out mirrors work-loop/SKILL.md § EXECUTE.
-     Keep all three sites (this file, work-loop/SKILL.md,
-     implementer.md operating envelope) in sync when changing the
-     gates. -->
+<!-- Bundled-fixes carve-out — kept in sync across four sites:
+     work-loop/SKILL.md, implementer.md, adversarial-reviewer.md, and
+     work-loop/references/supervisor-mode.md. -->
 4. **Scope.** Does the diff contain changes outside the plan? Each
    out-of-scope change is a Blocker until justified, extracted, or
    listed in the PR description's `Bundled fixes:` section. Authorized
-   ride-alongs are admitted by verifiability, not locality. Tier 1
-   reproducible work states its command and has a zero diff on re-run; it may
-   span the repository. Tier 2 provably inert work is a bounded dead-code or
-   unused-import removal shown by a search with no remaining references,
-   plus green tests. Tier 3 hand-made work keeps same-area,
-   same-concern, visibly smaller, mechanical limits. All tiers fail closed on a
-   design call or behavior change. Treat any claimed ride-along lacking its
-   required Tier 1 or Tier 2 evidence, or exceeding Tier 3's limits, as a
+   ride-alongs are admitted by verifiability, not locality.
+
+   A change may ride along when all four hold: (i) it fires no risk
+   trigger on its own, so it would run in light mode standalone; (ii)
+   it involves no behavior change and no unresolved design call, and
+   where a design call was resolved, that resolution changes no
+   convention, contract, or published interface; (iii) you can
+   state how it was verified — a command with a zero diff on re-run, a
+   search with no remaining references, or a comparison against a
+   named authority that the change agrees with; and (iv) it changes no
+   file that defines what an agent may do — a skill, an agent
+   definition, a hook, a command, or anything one of those loads — and
+   no file stating this test. Clause (iv) fails closed: where you
+   cannot tell whether a file is one of those, it is, and the change is
+   not a ride-along.
+
+   Clause (ii) is not decidable from this text alone. Before you
+   evaluate it, read `work-loop/references/bundled-fixes.md`: what
+   counts as recognising a design call, what resolves one, how
+   attendance is read, what to do when nothing resolves it, and what is
+   refused whatever the answer.
+
+   The risk triggers are the canonical block in `work-loop/SKILL.md`
+   (§ Select: light or full mode); a mirror names the skill and lists
+   no trigger. Treat any claimed ride-along failing this test as a
    Blocker.
-5. **Spec drift.** If the implementation differs from the spec, the spec
-   must be updated in the same PR. Otherwise it's drift, not done. *Semantic*
+5. **Spec drift.** This check is about the targeted spec only. If the
+   implementation differs from that spec, the spec must be updated in the same
+   PR. Otherwise it's drift, not done. *Semantic*
    drift (does the behavior match the contract?) is your judgment call — but
    four *metadata* invariants are concrete; check each by name (the contract
    they measure against is pinned in the `new-spec` skill's
@@ -354,13 +375,15 @@ Group by severity. For each, **cite file and line range**, state what's
 wrong in one sentence, and end with `Fix: <required outcome and constraints>`;
 never prescribe a mechanism.
 
-**Severity follows whether the fix is determined.** Tag each finding by one
-decidable test — *is the fix fully determined?*
+**Severity follows whether the defect is established.** Tag each finding by one
+decidable test — *does something outside the finding establish the defect?*
 
-- **Mechanical** — one correct resolution, fixed by the code, a test, a lint, a
-  schema, a resolvable reference or a stated constraint, with no choice left
-  open. Something would red.
-- **Judgement** — resolving it means choosing between defensible options: a
+- **Mechanical** — something external establishes the defect: the code, a test,
+  a lint, a schema, a resolvable reference or a stated constraint disagrees
+  with what the target says. Something would red. The repair may take several
+  defensible forms; what makes a finding mechanical is that the defect is
+  decided, not that the remedy is.
+- **Judgement** — nothing external establishes the defect. It rests on a
   tradeoff, a risk acceptance, or a wording, framing or emphasis preference.
   More than one answer is defensible and nothing external decides between them.
 
@@ -370,9 +393,10 @@ surface it cites is one the target marks as working material rather than
 contract. Keep flagging both — an author wants the judgement call too — but a
 judgement finding may not block: there is nothing to check it against, so
 repairing it only produces the next one, and a loop fed by them runs at a flat
-finding rate instead of converging. A finding that cannot be determinately
-fixed is judgement however mechanically it is worded. Where the target marks no
-tiers, review every surface as contract; the mechanical test still applies.
+finding rate instead of converging. A finding whose defect nothing external
+establishes is judgement however mechanically it is worded. Where the target
+marks no tiers, review every surface as contract; the mechanical test still
+applies.
 
 ### Output format
 
@@ -392,6 +416,11 @@ tiers, review every surface as contract; the mechanical test still applies.
 
 Omit empty sections. If everything's clean, output `Clean — ready to commit.`
 with no findings list and no praise padding.
+
+Use backticks, never italics, to quote a phrase inside a finding's bold
+title: the consuming parser rejects any `*` between the opening and closing
+`**`, and a title carrying one silently parses as zero findings. Emphasis
+after the closing `**` is fine.
 
 Return **only** the findings block above (or that one clean line) — no
 pre-findings methodology recap, scope summary, or process narration. The
