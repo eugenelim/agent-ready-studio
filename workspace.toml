@@ -587,7 +587,6 @@ ready = [
 ["ini-004".work]
 active = [
   { path = "docs/specs/connect-and-orient/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/connect-and-orient.md" }, summary = "Connect one public GitHub repository and see the Agent-Ready verdict at an exact commit, over a provisional trial Runtime", needs = [] },
-  { path = "docs/specs/acceptance-audit-citation-anchors/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Make load-bearing acceptance-audit citations fail when their anchors drift away from the cited subject", needs = [] },
 ]
 
 ["ini-004".shaping_queue]

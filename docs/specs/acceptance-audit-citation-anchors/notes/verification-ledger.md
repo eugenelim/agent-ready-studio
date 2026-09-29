@@ -591,3 +591,43 @@ after two earlier dispatches failed without writing anything: one exceeded a
 32,000 output-token ceiling, one stalled for 600 seconds. The audit migration
 and the proofs were run by the controller with a deterministic generator, as the
 cohort's dispatch note permits when an implementer is unavailable.
+
+## Closeout {#closeout}
+
+2026-09-29. Merged as pull request #21, merge commit
+`525a788313cf0332a9f879ff19455e15d5f6401e`, on top of
+`d7d8e9b` and `f78522b`. The governance gate was re-run against merged
+`origin/main`, not only the branch: all 6 checks pass, and the audit reports 157
+rows, 95 met / 58 not met / 4 not verifiable here with every citation resolving.
+
+| Closeout stage | Result |
+| --- | --- |
+| Lifecycle projection | `Closeout-pending`, no blocker |
+| Artifact family | `disposition-classification-ready` — no live dependency, no contextual anchor |
+| Delivery record disposition | `cool-30-days`, review on **2026-10-29** |
+| Review session state disposition | `discard-local`, recommended only |
+| Dangling references | clean across all three specs |
+
+The delivery record — this spec, its plan and this ledger — is repository-origin
+and merged, so nothing is deleted. The `.context/reviews/` artefacts are
+gitignored tool-owned session state; they are recommended for discard and were
+not deleted by this closeout. Every finding and measurement they hold is restated
+in the round entries above, so the durable record does not depend on them
+surviving.
+
+Workspace coordination was compacted separately from the artefacts. The shipped
+spec was removed from `["ini-004".work].active`, leaving Connect and Orient as
+the only live entry. No `shipped` collection was created: `close-work` forbids a
+permanent shipped-spec list, and `workspace.toml` is a live coordination index
+rather than a history. The removal was previewed and applied against a matching
+file fingerprint, and the file still parses.
+
+No completion receipt was written. A receipt is kept only while a live dependency
+cites it, and none does.
+
+### Obligation closed
+
+The registered backlog obligation
+`connect-orient-audit-citations-need-a-checkable-anchor-form` is closed by this
+work. Its entry left `[backlog].open` before this session began, as the handover
+records, and the routing that replaced it is part of the merged change.
