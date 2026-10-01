@@ -9880,3 +9880,103 @@ run and the test leg inside `pnpm verify` each failed one different trial-runtim
 case passed twice in isolation. This satisfies both documented signs of the registered host-load
 flake. The audit remained 157 rows — 95 met, 58 not met, 4 not verifiable here — and every citation
 resolved; the audit checker self-test passed.
+
+## falsifiable-criteria-proofs-forward-correction-2026-09-30
+
+This is a forward entry. It rewrites nothing above it: each earlier reading stays as it was taken,
+and the corrections below say which claims it supersedes and on what measurement.
+
+**What the audit now records.** `notes/acceptance-audit.md` moved from 95 / 58 / 4 to
+**100 met, 53 not met, 4 not verifiable here**, generated from the rows by
+`tools/acceptance-audit-counts.py`. AC-0134, AC-0135, AC-0137, AC-0141 and AC-0146 are met and
+strongly bound. AC-0136 is **not** upgraded: it stays not met with the `W` marker. The measurements
+behind every one of these are in
+[`../connect-orient-falsifiable-criteria-proofs/notes/verification-ledger.md`](../connect-orient-falsifiable-criteria-proofs/notes/verification-ledger.md).
+
+**AC-0134, AC-0135 and AC-0137 now observe a product trial, and the earlier ground for calling them
+vacuous is superseded.** The 2026-09-23 audit recorded that a guardless `git checkout` runs no
+`package.json` script, executes nothing under `.agents/`, and applies no filter nobody configured,
+so no production mutation could redden them. That reading was correct about the surface it observed
+— a test-owned checkout — and it is no longer the surface. Each proof now runs the hostile fixture
+through `startTrialInspection`, asserts the trial actually materialized a tree before reading any
+absence, and reads the settled parent-visible process record for an executable identity, an
+interpreter operand, or a command payload resolving inside the worktree. A controlled mutation
+inside the product Runtime starts each planted program and reddens the same assertion at the exact
+expected origin. AC-0137's control additionally asserts the probe log, so the filter is proven to
+have **run** rather than only to have been configured.
+
+**AC-0136's Unicode-ignorable arm is built and measured, and the arm is still not falsified.** The
+2026-09-29 final reading recorded that arm as unbuilt. It is now measured at three layers through
+the same product-shaped sequence: `transfer.fsckObjects=true` refuses the object at fetch; with
+that pin alone out of force the checkout refuses `invalid path '.gi<U+200C>t'`; with both guards out
+of force the entry materializes. **Layer 3 writes a sibling, not an overwrite.** `.gi<U+200C>t` and
+`.git` are distinct names on this filesystem, every layer asserts the real `.git` is still git's own
+directory, and no overwrite of the real `.git` is demonstrated on either the case-insensitive or the
+Unicode arm. The criterion asks for that overwrite, so the row keeps its weak marker and its not-met
+verdict.
+
+**Correction: `core.protectHFS=true` is not what refuses the Unicode spelling on this host.** The
+AC-0136 row and the rebind backlog entry both recorded `core.protectHFS` as the pin that would guard
+that arm. Measured on git 2.50.1 (Apple Git-155): with the pin merely omitted the checkout still
+refuses, because the Apple build defaults HFS protection on, and layer 3 had to set
+`core.protectHFS=false` to remove the guard at all. For this arm the product pin is defence in depth
+rather than the refusal that acts. Its `constant-only` classification in the pinned-Git boundary is
+therefore left unchanged.
+
+**AC-0141 now rests on a real gitlink, and both halves have their own result.** The earlier record
+called it vacuous by construction because the fixture wrote `.gitmodules` as plain text with no
+gitlink. The corpus now carries a mode-160000 gitlink naming a commit that exists in a local child
+repository, written through `mktree` because git will not stage a gitlink for a repository it has
+not cloned. The fetch half is measured on the trial's parent-visible process record and the
+traversal half on the filesystem after the trial settles; neither stands in for the other, and each
+carries a vacuity guard — a non-empty process record for the first, `gitlinkPresent: true` for the
+second. One prohibited `submodule update --init` reddens both, and is proven to have run by the
+child repository's committed bytes under the gitlink path and by `outside` under `.git/modules`.
+
+**Correction: `submodule.recurse=false` is not what prevents the traversal for this corpus.** Git's
+own default does not recurse into a submodule it has not initialized, so the prohibited operation
+has to be issued explicitly. That pin is defence in depth here; AC-0049 continues to hold it where
+the vector is built.
+
+**AC-0146's credential now reaches the production refusal.** The earlier record called its negative
+a path the credential never reaches. A unique value is now submitted as the password of a real
+source URL through `createSourceInspections` composed with `createStorageStore(openStorage())` over
+a temporary file database. The refusal answers `url-rejected`, the connected-source table holds zero
+rows live and again after the database is closed and reopened through a fresh composition, and the
+value is absent from the returned diagnostics, the captured `process.stderr` writes, and the
+persisted rows on both reads. Two controlled mutations — one diagnostic, one persisted — redden the
+one shared sink assertion, and each is asserted to throw that assertion's own message.
+
+**AC-0147 is untouched.** Its separate defect, that not every positive control removes the guard it
+certifies, is not repaired, absorbed, or narrowed by any of the above, and
+`connect-orient-positive-controls-that-remove-no-guard` remains its owner. The known-false Testing
+Strategy sentence at `spec.md:437` is likewise unchanged.
+
+**Citation repair.** This delivery's edits to `runtime-supervisor.ts`, `runtime-child.ts`,
+`runtime-environment.ts`, `hostile-fixture.ts` and four `*.test.ts` files moved 83 citations across
+49 audit rows off their spans. Every one was refound by its subject: each cited span's content at
+`HEAD` was located in the current file through a content diff of that file, and each anchored
+citation was accepted only once its anchor was inside the new span. No uniform offset was applied
+and no range was batch-shifted. 73 spans were recomputed mechanically, the 10 in the six rewritten
+rows were written by hand from the final tree, and 69 of the 73 matched their `HEAD` content at a
+similarity of 0.85 or better; the four below that threshold were read individually and are the same
+subject rewritten by this delivery. Only line spans changed in the 43 rows outside the six: no
+verdict, marker, or reasoning prose was touched there.
+
+**Anchor mutation, AC-0009.** The widest changed met-row span is AC-0104's
+`source-inspection-storage.test.ts:287-446#.provenance.declaredVersionMarker`, 160 lines. Renaming
+its subject to `provenance.declaredVersionMarkr` made the checker fail with two unresolved
+citations — AC-0104's own span and AC-0040's `427-445`, which cites the same line — and restoring
+the byte-identical file returned the checker to the green 157-row reading. Two readings are worth
+keeping. First, the anchor test is **substring containment**, so appending to the token
+(`declaredVersionMarkerX`) leaves the citation green; a discriminating mutation has to break the
+substring, not merely change the identifier. Second, the most common token in that span is the
+English word `the`, 28 occurrences in comment prose: replacing all 28 left the checker green, which
+is the negative control showing the check reads the cited subject rather than flagging any edit.
+
+**Gates.** `pnpm lint` checked 132 files with no fixes in 0.8s. `pnpm typecheck` passed in 3.1s.
+`pnpm governance` passed all six checks in 16.4s, including the audit checker and its self-test.
+`pnpm build` passed in 12.2s. The audit check reports 157 rows, 100 met, 53 not met, 4 not
+verifiable here, and every citation resolves. Spec-status lint reports metadata clean. `pnpm test`,
+`pnpm verify` and `pnpm test:capped` are not part of this reading; the delivery ledger holds the
+test evidence and the host-load classification.

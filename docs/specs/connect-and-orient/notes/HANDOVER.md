@@ -152,11 +152,17 @@ never runs a smudge filter nobody configured; **AC-0141** because the fixture wr
 `.gitmodules` as plain text with no gitlink, so nothing can recurse into it; and **AC-0146**
 because the credential negative runs over a path the credential never reaches. All five are routed
 to the spawn-audit surface by the owner's decision of 2026-09-26, registered as
-`connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` in `workspace.toml` — `spawnAudited`
+`connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` in `workspace.toml` (that entry was replaced on 2026-09-30: the five are now proven by `connect-orient-falsifiable-criteria-proofs`, and AC-0136's residual overwrite reach is `connect-orient-ac0136-overwrite-arm`) — `spawnAudited`
 (`executable-identity.ts:28`) is the Service's only process-start primitive for this trial and
 every entry records an absolute `executable`, so "Studio never executes anything out of the
 materialized worktree" is a property that can fail. **Highest risk reduction per criterion, no new
-product capability.**
+product capability.** Corrected 2026-09-30: `spawnAudited` is not the only process-start primitive,
+and the proof does not rest on that claim. `connect-orient-falsifiable-criteria-proofs` added a
+construction inventory that classifies every `node:child_process` start in the production Runtime
+modules — six of them in `runtime-child.ts` reach the parent-visible record through `recordSpawn`
+rather than through `spawnAudited`, two of those classified repository-influenced. The
+exhaustiveness the five proofs rest on is that classified inventory over production starts, not a
+single mediating primitive.
 
 **AC-0136 remains open, but its case-insensitive arm is now weak rather than vacuous.** The full
 pin vector rejects `.GIT` during fetch through `transfer.fsckObjects=true`; omitting that pin alone

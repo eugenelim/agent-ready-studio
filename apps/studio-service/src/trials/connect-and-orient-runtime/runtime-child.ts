@@ -172,6 +172,11 @@ interface RuntimeChildPlan {
     /** Creates a directory at the name instead of a file. */
     readonly directory?: boolean;
   }[];
+  readonly executionProofMutation?:
+    | "package-script"
+    | "projected-skill-executable"
+    | "attribute-filter";
+  readonly executionProofLog?: string;
 }
 
 interface ChildSpawnAuditEntry {
@@ -582,6 +587,9 @@ for (const name of plan.environmentNames) {
   // the builder rather than inherited.
   if (value !== undefined) descendantEnvironment[name] = value;
 }
+if (typeof plan.executionProofLog === "string") {
+  descendantEnvironment.STUDIO_PROBE_LOG = plan.executionProofLog;
+}
 
 function protocol(message: Record<string, unknown>): void {
   process.stdout.write(`${JSON.stringify(message)}\n`);
@@ -916,6 +924,48 @@ function resolveInterpreter(): {
 
 function gitVector(...args: readonly string[]): string[] {
   return [...plan.gitConfigurationArgs, ...args];
+}
+
+function runExecutionProofMutation(): void {
+  switch (plan.executionProofMutation) {
+    case undefined:
+      return;
+    case "package-script":
+      run(
+        process.execPath,
+        [join(materializationRoot, ".probe/package-script.mjs")],
+        {
+          cwd: materializationRoot,
+        },
+      );
+      return;
+    case "projected-skill-executable":
+      run(join(materializationRoot, ".agents/skills/hostile/run"), [], {
+        cwd: materializationRoot,
+      });
+      return;
+    case "attribute-filter": {
+      const filterPath = join(materializationRoot, ".probe/filter");
+      // A smudge filter runs only where git actually writes the path, and
+      // `checkout --force` over a path whose worktree copy already matches the
+      // index writes nothing. Without this removal the control configures the
+      // filter, git exits 0, and the filter never runs -- a mutation that looks
+      // applied and reddens nothing.
+      unlinkSync(join(materializationRoot, "filtered.txt"));
+      const args = [
+        ...plan.gitConfigurationArgs,
+        "-c",
+        `filter.probe.smudge=${filterPath}`,
+        "checkout",
+        "--force",
+        "HEAD",
+        "--",
+        "filtered.txt",
+      ];
+      run(plan.gitExecutable, args, { cwd: materializationRoot });
+      return;
+    }
+  }
 }
 
 /**
@@ -1267,6 +1317,7 @@ async function main(): Promise<void> {
             ? {}
             : { mismatch: "head-mismatch" }),
       });
+      runExecutionProofMutation();
     }
   }
 

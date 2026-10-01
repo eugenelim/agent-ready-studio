@@ -410,27 +410,23 @@ open = [
   # Evidence: packages/storage-sqlite/src/storage.ts, migration 4;
   # notes/verification-ledger.md#review-round-13-2026-09-25.
   { slug = "connect-orient-migration-4-backfills-a-value-it-calls-wrong", source = "connect-and-orient/2026-09-25" },
-  # Six criteria carry an absence proof that no production mutation can
-  # redden — the audit's `N` column. The controls fire; it is the proofs that
-  # cannot fail. AC-0134, AC-0135 and
-  # AC-0137 because `git checkout` never runs a package.json script, never
-  # executes a file under .agents/ and never runs a smudge filter nobody
-  # configured; AC-0136 because git refuses `invalid path '.GIT'` with
-  # core.protectHFS=false and core.protectNTFS=false both set explicitly, so
-  # the guard is git's own path check; AC-0141 because the fixture writes
-  # .gitmodules as plain text with no gitlink; and AC-0146 because the
-  # credential negative runs over a path the credential never reaches.
-  # Members: AC-0134, AC-0135, AC-0136, AC-0137, AC-0141, AC-0146. AC-0136 is
-  # here for its case-insensitive arm only — its Unicode-ignorable arm is
-  # neither built nor measured, and core.protectHFS is the pin that would guard
-  # it, so that arm is open rather than vacuous. Owner decision 2026-09-26:
-  # rebind onto the spawn audit, where `spawnAudited` is the Service's
-  # only process-start primitive for this trial and every entry records an
-  # absolute executable — so "Studio never executes anything out of the
-  # materialized worktree" is a property that can fail.
-  # Evidence: apps/studio-service/src/trials/connect-and-orient-runtime/executable-identity.ts:28;
-  # notes/acceptance-audit.md, the AC-0136 row.
-  { slug = "connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit", source = "connect-and-orient/2026-09-27" },
+  # Give AC-0134, AC-0135, AC-0136, AC-0137, AC-0141, and AC-0146 a proof that
+  # can redden at the observation surface each criterion names. The execution
+  # three use a complete repository-influenced process-start record; AC-0136
+  # uses checkout filesystem state and gains its Unicode-ignorable arm;
+  # AC-0141 keeps both submodule fetch and traversal; and AC-0146 uses the
+  # production credential-refusal path over real storage and diagnostics.
+  # Measured outcome, 2026-09-30: five of the six are met and strongly bound,
+  # each with a control that reddens its own assertion. AC-0136 stayed weak and
+  # not met, as this entry required: its Unicode-ignorable arm is now built and
+  # measured at three refusal layers, layer 3 writes `.gi<U+200C>t` as a
+  # sibling, and no overwrite of the real `.git` is demonstrated on either arm.
+  # Two pins measured as defence in depth rather than the refusal that acts:
+  # core.protectHFS=true, because this host's git already defaults HFS
+  # protection on, and submodule.recurse=false, because git does not recurse
+  # into an uninitialized submodule by default. AC-0147 remains separately
+  # registered below and is untouched by this unit.
+  { path = "docs/specs/connect-orient-falsifiable-criteria-proofs/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Give six Connect and Orient security criteria falsifiable proofs at their own observation surfaces", needs = [] },
   # AC-0147 requires each of AC-0133 through AC-0146 to have a positive control
   # that removes the guard of the proof it certifies. Three do not: AC-0140's
   # creates the sibling it then reads, AC-0142's builds a literal array and
@@ -442,6 +438,20 @@ open = [
   # the escaping-reader-path, option-shaped-ref and authorization-header cases;
   # notes/acceptance-audit.md, the AC-0147 row.
   { slug = "connect-orient-positive-controls-that-remove-no-guard", source = "connect-and-orient/2026-09-27" },
+  # AC-0136 keeps its weak, not-met verdict, and this entry owns the reach that
+  # keeps it there. Both spellings are now built and measured at their refusal
+  # layers by `connect-orient-falsifiable-criteria-proofs`: the case-insensitive
+  # `.GIT` arm refuses at fetch through transfer.fsckObjects and again at
+  # checkout with that pin alone out of force, and the Unicode-ignorable
+  # `.gi<U+200C>t` arm refuses at fetch, then at checkout, then materializes as a
+  # sibling once both guards are out of force. None of that is the overwrite the
+  # criterion asks for — a variant spelling that replaces the real `.git` — so
+  # the protected outcome stays unfalsified and no mutation can redden it.
+  # Registered 2026-09-30 by owner decision, because the delivery that measured
+  # both arms closes without closing this gap.
+  # Evidence: apps/studio-service/src/trials/connect-and-orient-runtime/absence-proofs.test.ts,
+  # the AC-0136 three-layer block; notes/acceptance-audit.md, the AC-0136 row.
+  { slug = "connect-orient-ac0136-overwrite-arm", source = "connect-and-orient/2026-09-30" },
   # plan.md's Changelog cannot carry an approval entry. _task_sections gives the
   # last task everything from its heading to end of file, so T15's pinned
   # section spans ## Rollout, ## Risks and the whole ## Changelog. Appending
