@@ -59,8 +59,16 @@ export interface PerRequestDirectories {
   readonly temporaryDirectory: string;
 }
 
+/**
+ * *Permitted git transports* admits `https` only, so the trial refuses a local
+ * repository before any tree exists. That puts the whole materialized-worktree
+ * observation surface out of reach offline, which is why the execution absence
+ * proofs name extra transports here. Production passes none, and the built
+ * value is then exactly the pinned `https`.
+ */
 export function buildPinnedEnvironment(
   directories: PerRequestDirectories,
+  additionalGitTransports: readonly string[] = [],
 ): Record<string, string> {
   const environment: Record<string, string> = {};
   environment.PATH = PINNED_PATH;
@@ -77,7 +85,9 @@ export function buildPinnedEnvironment(
   environment.GIT_CONFIG_GLOBAL = "/dev/null";
   environment.GIT_CONFIG_SYSTEM = "/dev/null";
   environment.GIT_CONFIG_NOSYSTEM = "1";
-  environment.GIT_ALLOW_PROTOCOL = "https";
+  environment.GIT_ALLOW_PROTOCOL = ["https", ...additionalGitTransports].join(
+    ":",
+  );
   environment.GIT_ASKPASS = "";
   environment.SSH_ASKPASS = "";
   // Only when this process is an Electron binary. On plain node the name is

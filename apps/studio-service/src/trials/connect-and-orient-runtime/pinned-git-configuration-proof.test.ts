@@ -402,13 +402,13 @@ async function observeRedirectPin(): Promise<{
 
 const CONSTANT_ONLY_REASONS = {
   "core.protectHFS=true":
-    "the existing .GIT fixture covers only the case-insensitive invalid-path refusal, and that refusal is stable without this pin",
+    "the Unicode-ignorable .gi<U+200C>t spelling is the one arm measured with this pin omitted, and its checkout still refuses, because git's Apple build defaults HFS protection on; absence-proofs.test.ts's Unicode layer 3 has to set core.protectHFS=false to remove the guard at all, and the case-insensitive .GIT arm is not measured with this pin omitted",
   "core.protectNTFS=true":
-    "the existing .GIT fixture covers only the case-insensitive invalid-path refusal, and that refusal is stable without this pin",
+    "no run in this suite or in absence-proofs.test.ts omits core.protectNTFS, so neither .git fixture has an NTFS-specific observation and no measured refusal is attributed to this pin",
   "core.fsmonitor=false":
     "the product-shaped init/fetch/checkout/rev-parse sequence configures no fsmonitor hook, so this suite has no same-level fsmonitor observation",
   "submodule.recurse=false":
-    "the product sequence fetches and checks out the superproject only; the materialized .gitmodules file stays inert without a submodule update observation",
+    "the corpus now carries a real mode-160000 gitlink, and the product sequence still leaves it unpopulated with this pin omitted: git's own default does not recurse into a submodule it has not initialized, so the prohibited operation has to be issued explicitly, which absence-proofs.test.ts does",
   "credential.helper=":
     "the local file and loopback transports in this suite require no credential challenge, so helper omission produces no credential-helper observation",
   "maintenance.auto=false":

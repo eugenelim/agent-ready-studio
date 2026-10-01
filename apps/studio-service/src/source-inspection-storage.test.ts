@@ -16,10 +16,12 @@ import { join } from "node:path";
 import { openStorage } from "@agent-ready/storage-sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { reconcileAfterRestart } from "./connected-source.js";
+import { buildFetchUrl } from "./source-identity.js";
 import {
   createSourceInspections,
   createStorageStore,
   type InspectionOutcome,
+  type SourceInspection,
 } from "./source-inspection.js";
 
 const SHA = "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d";
@@ -59,6 +61,35 @@ const clean: InspectionOutcome = {
   invalidWorkspace: false,
   diagnostics: "inspected cleanly",
 };
+
+interface CredentialSinkSnapshot {
+  readonly returnedDiagnostics: string;
+  readonly standardError: string;
+  readonly persistedRows: readonly unknown[];
+  readonly reopenedRows: readonly unknown[];
+}
+
+function sinkContainsCredential(
+  snapshot: CredentialSinkSnapshot,
+  credentialValue: string,
+): boolean {
+  return [
+    snapshot.returnedDiagnostics,
+    snapshot.standardError,
+    JSON.stringify(snapshot.persistedRows),
+    JSON.stringify(snapshot.reopenedRows),
+  ].some((sink) => sink.includes(credentialValue));
+}
+
+function expectNoCredentialSink(
+  snapshot: CredentialSinkSnapshot,
+  credentialValue: string,
+): void {
+  expect(
+    sinkContainsCredential(snapshot, credentialValue),
+    "credential reached a diagnostic, standard error, or persisted storage",
+  ).toBe(false);
+}
 
 describe("AC-0100 to AC-0102 over a reopened database", () => {
   it("reads the result back after the database is closed and reopened", async () => {
@@ -139,6 +170,116 @@ describe("a refusal is not a connected source", () => {
     expect(credentials.diagnostics).not.toBe(wrongHost.diagnostics);
     expect(first.storage.listConnectedSources()).toHaveLength(0);
     first.storage.close?.();
+  });
+
+  it("rejects an embedded credential without copying its value to a sink", () => {
+    const credentialValue = "credential-proof-value";
+    const submitted = new URL(
+      buildFetchUrl({ owner: "acme", repository: "widgets" }),
+    );
+    submitted.username = "user";
+    submitted.password = credentialValue;
+    const path = databasePath();
+    const first = deps(clean, path);
+    const standardError = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
+    let firstClosed = false;
+    try {
+      const refused = createSourceInspections(first.dependencies).connect(
+        submitted.toString(),
+      );
+      const persistedRows = first.storage.listConnectedSources();
+      const capturedStandardError = standardError.mock.calls.flat().join(" ");
+      first.storage.close?.();
+      firstClosed = true;
+
+      const second = deps(clean, path);
+      try {
+        const reopenedRows = second.storage.listConnectedSources();
+
+        expect(refused.phase).toBe("url-rejected");
+        expect(persistedRows).toHaveLength(0);
+        expect(reopenedRows).toHaveLength(0);
+
+        const productionSinks: CredentialSinkSnapshot = {
+          returnedDiagnostics: refused.diagnostics,
+          standardError: capturedStandardError,
+          persistedRows,
+          reopenedRows,
+        };
+        expectNoCredentialSink(productionSinks, credentialValue);
+
+        expect(() =>
+          expectNoCredentialSink(
+            {
+              ...productionSinks,
+              returnedDiagnostics: `${refused.diagnostics} ${credentialValue}`,
+            },
+            credentialValue,
+          ),
+        ).toThrow(
+          "credential reached a diagnostic, standard error, or persisted storage",
+        );
+      } finally {
+        second.storage.close?.();
+      }
+    } finally {
+      standardError.mockRestore();
+      if (!firstClosed) first.storage.close?.();
+    }
+
+    const mutatedPath = databasePath();
+    const mutated = deps(clean, mutatedPath);
+    let mutatedClosed = false;
+    try {
+      const leakedInspection: SourceInspection = {
+        kind: "source-inspection",
+        sourceId: "source-credential-sink-control",
+        phase: null,
+        verdict: "agent-ready",
+        condition: "ok",
+        versionUnverified: false,
+        owner: "acme",
+        repository: "widgets",
+        requestedRef: null,
+        resolvedSha: SHA,
+        inspectedAt: "2026-09-29T00:00:00.000Z",
+        declaredVersionMarker: null,
+        declaredVersionState: "absent",
+        inspector: null,
+        inspectorContractVersion: null,
+        diagnostics: credentialValue,
+        stopReason: null,
+        waitWindow: null,
+        secondaryDiagnostic: null,
+      };
+      mutated.dependencies.store.persist(leakedInspection);
+      mutated.storage.close?.();
+      mutatedClosed = true;
+
+      const reopenedMutated = deps(clean, mutatedPath);
+      try {
+        const mutatedRows = reopenedMutated.storage.listConnectedSources();
+        expect(() =>
+          expectNoCredentialSink(
+            {
+              returnedDiagnostics: "",
+              standardError: "",
+              persistedRows: [],
+              reopenedRows: mutatedRows,
+            },
+            credentialValue,
+          ),
+        ).toThrow(
+          "credential reached a diagnostic, standard error, or persisted storage",
+        );
+      } finally {
+        reopenedMutated.storage.close?.();
+      }
+    } finally {
+      if (!mutatedClosed) mutated.storage.close?.();
+    }
   });
 });
 

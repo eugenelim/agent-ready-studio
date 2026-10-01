@@ -80,6 +80,43 @@ export const PROBE_LOG_MARKER = {
   "attribute-filter": "attribute-filter",
 } as const satisfies Partial<Record<HostileCase, string>>;
 
+/**
+ * The `attribute-filter` case's two contents, which must differ.
+ *
+ * `filtered.txt` is committed holding the first, and the planted smudge filter
+ * writes the second. An assertion on the checked-out bytes is discriminating
+ * only because of that difference: while the filter printed its own input back,
+ * `filtered.txt` held the same bytes whether or not the filter ran, and the
+ * guard-present assertion standing on it could not fail.
+ */
+export const ATTRIBUTE_FILTER_COMMITTED_CONTENT = "filter-me\n";
+export const ATTRIBUTE_FILTER_SMUDGED_CONTENT = "smudged-by-probe\n";
+
+/**
+ * The case-insensitive `.git` spelling, and the default entry the
+ * `dot-git-variant` case plants.
+ *
+ * What is measured for this spelling is two layers: the pinned fetch refuses
+ * the object through `transfer.fsckObjects`, and with that pin alone out of
+ * force the checkout still refuses `invalid path '.GIT'`. No case here omits
+ * `core.protectHFS` or `core.protectNTFS` for this arm, so nothing measures
+ * which guard performs that checkout refusal, and this comment claims nothing
+ * about either pin. An earlier version asserted the refusal held whatever both
+ * pins said, which no run in this tree establishes.
+ */
+export const DOT_GIT_CASE_ENTRY = ".GIT";
+
+/**
+ * `.gi<U+200C>t` — a zero-width non-joiner between `i` and `t`. HFS+ ignores
+ * that code point, so the name folds to `.git` on a filesystem that does, and
+ * `core.protectHFS` is the setting that refuses it. The literal below spells
+ * the code point as the `\u200C` escape rather than as the character itself,
+ * so it is visible in a diff and in an editor: as a literal character it is
+ * invisible in both, and a proof this constant is the subject of cannot rest
+ * on a code point an ordinary edit can drop or duplicate unseen.
+ */
+export const DOT_GIT_UNICODE_ENTRY = ".gi\u200Ct";
+
 export interface HostileFixture {
   root: string;
   source: string;
@@ -87,9 +124,52 @@ export interface HostileFixture {
   resolvedSha: string;
   gitInvocations: { args: string[] }[];
   caseId: HostileCase;
-  /** One product pin to drop, by prefix, so a control can remove a real guard. */
-  omitPinPrefix?: string;
+  /**
+   * Product pins to drop, by prefix, so a control can remove real guards. One
+   * prefix or several: a layered refusal needs more than one pin out of force
+   * to reach the layer beneath it.
+   */
+  omitPinPrefix?: string | readonly string[];
+  /**
+   * `-c` settings placed **before** the product pins, so a later product pin
+   * still wins. This is how a dropped pin becomes observable where git's own
+   * default would otherwise re-supply it: `core.protectHFS` defaults on in
+   * git's Apple build, so omitting the pin alone removes no guard. Same shape,
+   * same reason, as `pinArgsAfterAmbient` in
+   * `pinned-git-configuration-proof.test.ts`.
+   */
+  ambientPins?: readonly string[];
+  /**
+   * The `.git`-variant entry name the `dot-git-variant` case planted, so a
+   * consumer reads the spelling under test from the fixture rather than
+   * restating it.
+   */
+  dotGitVariantEntry?: string;
+  /** The real child repository the `submodule` case's gitlink points at. */
+  submoduleChild?: SubmoduleChildRepository;
 }
+
+/**
+ * The local repository the `submodule` case declares in `.gitmodules` and
+ * points a mode-160000 gitlink at. Nothing remote: `path` is a directory inside
+ * the fixture root.
+ */
+export interface SubmoduleChildRepository {
+  readonly path: string;
+  readonly commit: string;
+}
+
+/** Where the `submodule` case's gitlink sits in the superproject tree. */
+export const SUBMODULE_GITLINK_PATH = "outside";
+
+/**
+ * The one file the child repository commits, and its bytes. A traversal control
+ * is only proven to have run when this content appears under the gitlink path:
+ * `.git/modules` state alone is not enough, because git creates that directory
+ * even for a submodule clone that then fails.
+ */
+export const SUBMODULE_CHILD_FILE = "child.txt";
+export const SUBMODULE_CHILD_CONTENT = "submodule-child\n";
 
 export interface ObservedProcess {
   argv0: string;
@@ -135,7 +215,16 @@ function write(
   }
 }
 
-function addDotGitVariantToObjectDatabase(source: string): void {
+/**
+ * Writes a tree entry git itself would refuse to stage, by building the tree
+ * object directly. One route serves every `.git` spelling — the case-folding
+ * `.GIT` and the Unicode-ignorable `.gi<U+200C>t` differ only in `entryName`,
+ * so both arms are measured through the same materialization path.
+ */
+function addDotGitVariantToObjectDatabase(
+  source: string,
+  entryName: string,
+): void {
   const blob = runGit(
     source,
     ["hash-object", "-w", "--stdin"],
@@ -145,7 +234,7 @@ function addDotGitVariantToObjectDatabase(source: string): void {
   const tree = runGit(
     source,
     ["mktree"],
-    `${priorTree}\n100644 blob ${blob}\t.GIT\n`,
+    `${priorTree}\n100644 blob ${blob}\t${entryName}\n`,
   );
   const parent = runGit(source, ["rev-parse", "HEAD"]);
   const commit = runGit(
@@ -156,10 +245,54 @@ function addDotGitVariantToObjectDatabase(source: string): void {
   runGit(source, ["update-ref", "refs/heads/main", commit]);
 }
 
+/**
+ * The child half of the `submodule` case: a local repository with one real
+ * commit, built beside the source tree inside the fixture root. Local because
+ * every proof in this unit is offline — the declared `url` is this directory,
+ * not a remote.
+ */
+function createSubmoduleChildRepository(
+  root: string,
+): SubmoduleChildRepository {
+  const path = join(root, "submodule-child");
+  mkdirSync(path, { recursive: true });
+  mkdirSync(join(path, ".fixture-home"), { recursive: true });
+  runGit(path, ["init", "--initial-branch=main"]);
+  runGit(path, ["config", "user.name", "Fixture Builder"]);
+  runGit(path, ["config", "user.email", "fixture@example.com"]);
+  write(path, SUBMODULE_CHILD_FILE, SUBMODULE_CHILD_CONTENT);
+  runGit(path, ["add", "--all"]);
+  runGit(path, ["commit", "-m", "fixture: submodule child"]);
+  return { path, commit: runGit(path, ["rev-parse", "HEAD"]) };
+}
+
+/**
+ * Writes the mode-160000 gitlink into the superproject tree, through the same
+ * `mktree` route the `.git`-variant arm uses. It has to be this route: git will
+ * not stage a gitlink for a repository it has not cloned into the worktree, and
+ * cloning one would populate the very path the traversal proof measures.
+ */
+function addGitlinkToObjectDatabase(source: string, commit: string): void {
+  const priorTree = runGit(source, ["ls-tree", "HEAD"]);
+  const tree = runGit(
+    source,
+    ["mktree"],
+    `${priorTree}\n160000 commit ${commit}\t${SUBMODULE_GITLINK_PATH}\n`,
+  );
+  const parent = runGit(source, ["rev-parse", "HEAD"]);
+  const next = runGit(
+    source,
+    ["commit-tree", tree, "-p", parent],
+    "submodule gitlink\n",
+  );
+  runGit(source, ["update-ref", "refs/heads/main", next]);
+}
+
 function populateCase(
   source: string,
   caseId: HostileCase,
   boundLimit: number,
+  submoduleChild?: SubmoduleChildRepository,
 ): void {
   switch (caseId) {
     case "repository-hook":
@@ -200,12 +333,17 @@ function populateCase(
       break;
     case "attribute-filter":
       write(source, ".gitattributes", "filtered.txt filter=probe\n");
-      write(source, "filtered.txt", "filter-me\n");
+      write(source, "filtered.txt", ATTRIBUTE_FILTER_COMMITTED_CONTENT);
       write(
         source,
         ".probe/filter",
-        // biome-ignore lint/suspicious/noTemplateCurlyInString: POSIX shell parameter expansion, not a JavaScript template placeholder.
-        "#!/bin/sh\nprintf 'filter-me\\n'\nprintf 'attribute-filter\\n' >> \"${STUDIO_PROBE_LOG:-/dev/null}\"\n",
+        // The filter writes bytes the commit does not carry and appends its
+        // marker to the probe log, so a filter that ran is distinguishable on
+        // both channels. Both payloads are interpolated from the constants the
+        // proofs read, so the script cannot drift back into printing its input.
+        // `\${STUDIO_PROBE_LOG…}` is POSIX shell parameter expansion, escaped
+        // here so this template literal does not interpolate it.
+        `#!/bin/sh\nprintf '%s' '${ATTRIBUTE_FILTER_SMUDGED_CONTENT}'\nprintf '%s\\n' '${PROBE_LOG_MARKER["attribute-filter"]}' >> "\${STUDIO_PROBE_LOG:-/dev/null}"\n`,
         true,
       );
       break;
@@ -223,10 +361,14 @@ function populateCase(
       write(source, "inside.txt", "inside\n");
       break;
     case "submodule":
+      // The declaration names the local child repository, so the prohibited
+      // submodule operation has something it could really fetch. The gitlink
+      // that makes this a submodule goes in after the commit, through
+      // `addGitlinkToObjectDatabase`.
       write(
         source,
         ".gitmodules",
-        '[submodule "outside"]\n\tpath = outside\n\turl = https://example.invalid/outside.git\n',
+        `[submodule "${SUBMODULE_GITLINK_PATH}"]\n\tpath = ${SUBMODULE_GITLINK_PATH}\n\turl = ${submoduleChild?.path ?? ""}\n`,
       );
       break;
     case "option-shaped-ref":
@@ -275,9 +417,11 @@ function populateCase(
 
 export async function buildHostileFixture(
   options: {
-    omitPinPrefix?: string;
+    omitPinPrefix?: string | readonly string[];
+    ambientPins?: readonly string[];
     caseId?: HostileCase;
     boundLimit?: number;
+    dotGitVariantEntry?: string;
   } = {},
 ): Promise<HostileFixture> {
   const root = mkdtempSync(join(tmpdir(), "connect-orient-hostile-"));
@@ -290,12 +434,18 @@ export async function buildHostileFixture(
   runGit(source, ["init", "--initial-branch=main"]);
   runGit(source, ["config", "user.name", "Fixture Builder"]);
   runGit(source, ["config", "user.email", "fixture@example.com"]);
-  populateCase(source, caseId, options.boundLimit ?? 1);
+  const submoduleChild =
+    caseId === "submodule" ? createSubmoduleChildRepository(root) : undefined;
+  populateCase(source, caseId, options.boundLimit ?? 1, submoduleChild);
   write(source, "README.md", `${caseId}\n`);
   runGit(source, ["add", "--all"]);
   runGit(source, ["commit", "-m", `fixture: ${caseId}`]);
+  const dotGitVariantEntry = options.dotGitVariantEntry ?? DOT_GIT_CASE_ENTRY;
   if (caseId === "dot-git-variant") {
-    addDotGitVariantToObjectDatabase(source);
+    addDotGitVariantToObjectDatabase(source, dotGitVariantEntry);
+  }
+  if (submoduleChild !== undefined) {
+    addGitlinkToObjectDatabase(source, submoduleChild.commit);
   }
   const resolvedSha = runGit(source, ["rev-parse", "HEAD"]);
   return {
@@ -306,6 +456,9 @@ export async function buildHostileFixture(
     gitInvocations: [],
     caseId,
     omitPinPrefix: options.omitPinPrefix,
+    ambientPins: options.ambientPins,
+    ...(caseId === "dot-git-variant" ? { dotGitVariantEntry } : {}),
+    ...(submoduleChild === undefined ? {} : { submoduleChild }),
   };
 }
 
@@ -337,16 +490,25 @@ export async function observeProcessTree(
  * applying, so removing one reddens the control that depends on it instead of
  * leaving every proof green against a hand-written copy.
  *
- * `omitPinPrefix` is how a positive control removes a guard. It drops one
- * product pin and leaves the rest, so the control demonstrates that *that pin*
- * is what refuses the hostile behaviour.
+ * `omitPinPrefix` is how a positive control removes a guard. It drops the named
+ * product pins and leaves the rest, so the control demonstrates that *those
+ * pins* are what refuse the hostile behaviour. `ambientPins` go ahead of the
+ * product vector, so a pin that is still present overrides them and only a
+ * dropped pin exposes the ambient value.
  */
 function materializationPins(fixture: HostileFixture): string[] {
-  return PINNED_GIT_CONFIGURATION.filter(
-    (setting) =>
-      fixture.omitPinPrefix === undefined ||
-      !setting.startsWith(fixture.omitPinPrefix),
-  ).flatMap((setting) => ["-c", setting]);
+  const omitted =
+    fixture.omitPinPrefix === undefined
+      ? []
+      : typeof fixture.omitPinPrefix === "string"
+        ? [fixture.omitPinPrefix]
+        : fixture.omitPinPrefix;
+  return [
+    ...(fixture.ambientPins ?? []).flatMap((setting) => ["-c", setting]),
+    ...PINNED_GIT_CONFIGURATION.filter(
+      (setting) => !omitted.some((prefix) => setting.startsWith(prefix)),
+    ).flatMap((setting) => ["-c", setting]),
+  ];
 }
 
 function runMaterializationGit(
@@ -440,11 +602,122 @@ export async function materialize(fixture: HostileFixture): Promise<void> {
 }
 
 export function sourceObjectHasDotGitVariant(fixture: HostileFixture): boolean {
-  const result = spawnSync("/usr/bin/git", ["cat-file", "-e", "HEAD:.GIT"], {
-    cwd: fixture.source,
-    encoding: "utf8",
-  });
+  const entryName = fixture.dotGitVariantEntry ?? DOT_GIT_CASE_ENTRY;
+  const result = spawnSync(
+    "/usr/bin/git",
+    ["cat-file", "-e", `HEAD:${entryName}`],
+    {
+      cwd: fixture.source,
+      encoding: "utf8",
+    },
+  );
   return result.status === 0 && !existsSync(fixture.worktree);
+}
+
+/** What the prohibited submodule operation did, and what it left behind. */
+export interface ProhibitedSubmoduleUpdate {
+  /** The argument vector, for the record the fetch half is asserted over. */
+  readonly args: string[];
+  readonly status: number | null;
+  readonly stderr: string;
+  /** The gitlink's content after the operation: empty when it never ran. */
+  readonly populated: string[];
+}
+
+/**
+ * The prohibited behaviour half of AC-0141: a real `git submodule update` over
+ * an already-materialized worktree.
+ *
+ * Test-owned, and the only vector in this unit permitted to carry
+ * `protocol.file.allow=always`. It is command-local on purpose: the production
+ * transport policy, the Runtime child's closed environment, and the ordinary
+ * materialization vector are all untouched, so admitting the fixture's local
+ * child repository here cannot widen what the product will fetch. Without it
+ * git refuses the clone with `transport 'file' not allowed`, and the control
+ * reddens nothing while still looking applied -- which is why the outcome
+ * carries `populated` rather than only `status`.
+ *
+ * `HOME` points outside the worktree, so the control adds nothing to the
+ * surfaces the traversal half measures.
+ */
+export function runProhibitedSubmoduleUpdate(
+  materializationRoot: string,
+): ProhibitedSubmoduleUpdate {
+  const controlHome = mkdtempSync(
+    join(tmpdir(), "connect-orient-submodule-control-"),
+  );
+  fixtureRoots.add(controlHome);
+  const args = [
+    "-c",
+    "protocol.file.allow=always",
+    "submodule",
+    "update",
+    "--init",
+    "--",
+    SUBMODULE_GITLINK_PATH,
+  ];
+  const result = spawnSync("/usr/bin/git", args, {
+    cwd: materializationRoot,
+    encoding: "utf8",
+    env: {
+      PATH: "/usr/bin:/bin",
+      HOME: controlHome,
+      LANG: "C",
+      LC_ALL: "C",
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_SYSTEM: "/dev/null",
+      GIT_CONFIG_NOSYSTEM: "1",
+    },
+  });
+  const gitlink = join(materializationRoot, SUBMODULE_GITLINK_PATH);
+  return {
+    args,
+    status: result.status,
+    stderr: result.stderr,
+    populated: existsSync(gitlink) ? readdirSync(gitlink) : [],
+  };
+}
+
+/**
+ * What the `submodule` case actually built, read back from the source
+ * repository. All three clauses, because a submodule is all three: without the
+ * gitlink there is nothing to recurse into, and without a reachable child
+ * commit there is nothing to fetch, so either gap makes both halves of AC-0141
+ * hold by construction rather than by a guard.
+ */
+export interface SubmoduleConstruction {
+  /** The `ls-tree` line at the gitlink path, absent when there is no entry. */
+  readonly gitlinkEntry?: string;
+  /** Whether the gitlink's commit is a real commit in the child repository. */
+  readonly childHasCommit: boolean;
+  /** The `url` the committed `.gitmodules` declares, absent when it has none. */
+  readonly declaredUrl?: string;
+}
+
+export function inspectSubmoduleConstruction(
+  fixture: HostileFixture,
+): SubmoduleConstruction {
+  const gitlinkEntry = runGit(fixture.source, [
+    "ls-tree",
+    "HEAD",
+    "--",
+    SUBMODULE_GITLINK_PATH,
+  ]);
+  const declaredUrl = /^\s*url = (?<url>.+)$/m.exec(
+    runGit(fixture.source, ["show", "HEAD:.gitmodules"]),
+  )?.groups?.url;
+  const child = fixture.submoduleChild;
+  const childHasCommit =
+    child !== undefined &&
+    spawnSync("/usr/bin/git", ["cat-file", "-e", `${child.commit}^{commit}`], {
+      cwd: child.path,
+      encoding: "utf8",
+    }).status === 0;
+  return {
+    ...(gitlinkEntry === "" ? {} : { gitlinkEntry }),
+    childHasCommit,
+    ...(declaredUrl === undefined ? {} : { declaredUrl }),
+  };
 }
 
 export function disposeHostileFixtures(): void {
@@ -549,11 +822,20 @@ export async function runPositiveControl(
         readFileSync(candidate, "utf8") === "escaped\n"
       );
     }
-    case "submodule":
-      return readFileSync(
-        join(fixture.worktree, ".gitmodules"),
-        "utf8",
-      ).includes("https://example.invalid/outside.git");
+    case "submodule": {
+      // The prohibited operation, over the fixture's own materialization. The
+      // effect read back is the child repository's committed content under the
+      // gitlink path: a control that was issued and refused leaves that path
+      // empty, so the content is what tells the two apart.
+      const control = runProhibitedSubmoduleUpdate(fixture.worktree);
+      return (
+        control.status === 0 &&
+        readFileSync(
+          join(fixture.worktree, SUBMODULE_GITLINK_PATH, SUBMODULE_CHILD_FILE),
+          "utf8",
+        ) === SUBMODULE_CHILD_CONTENT
+      );
+    }
     case "option-shaped-ref":
       return [
         "/usr/bin/git",

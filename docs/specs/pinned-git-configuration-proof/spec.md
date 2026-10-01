@@ -125,8 +125,10 @@ is present.
 
 ## Follow-ons
 
-- Workspace backlog owner: `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit`
-  — rebind the existing security criteria to the spawn audit.
+- Workspace backlog owner: `connect-orient-ac0136-overwrite-arm`
+  — AC-0136's overwrite arm. Corrected 2026-09-30: this bullet named `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit`,
+  an entry `connect-orient-falsifiable-criteria-proofs` replaced once it proved the
+  other criteria.
 - Workspace backlog owner: `connect-orient-positive-controls-that-remove-no-guard`
   — repair positive controls outside this pin-proof unit.
 

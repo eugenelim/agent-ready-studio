@@ -16,12 +16,15 @@ vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 import {
   buildHostileFixture,
+  DOT_GIT_UNICODE_ENTRY,
   disposeHostileFixtures,
   HOSTILE_CASE_BY_CRITERION,
   HOSTILE_CASES,
+  inspectSubmoduleConstruction,
   materialize,
   observeProcessTree,
   runPositiveControl,
+  SUBMODULE_GITLINK_PATH,
   sourceObjectHasDotGitVariant,
 } from "./hostile-fixture.js";
 
@@ -121,6 +124,32 @@ describe("AC-0149 hostile fixture corpus", () => {
   it("builds the checkout-observable dot-git variant into the source object database", async () => {
     const fixture = await buildHostileFixture({ caseId: "dot-git-variant" });
     expect(sourceObjectHasDotGitVariant(fixture)).toBe(true);
+  });
+
+  it("builds the Unicode-ignorable dot-git spelling on request", async () => {
+    const fixture = await buildHostileFixture({
+      caseId: "dot-git-variant",
+      dotGitVariantEntry: DOT_GIT_UNICODE_ENTRY,
+    });
+
+    expect(fixture.dotGitVariantEntry).toBe(DOT_GIT_UNICODE_ENTRY);
+    expect(sourceObjectHasDotGitVariant(fixture)).toBe(true);
+  });
+
+  it("builds the submodule case as a real gitlink into a local child repository", async () => {
+    // Three clauses, because a submodule is all three: the declaration, the
+    // gitlink, and a commit that exists somewhere. `.gitmodules` text alone
+    // makes every recursion proof hold by construction.
+    const fixture = await buildHostileFixture({ caseId: "submodule" });
+    const child = fixture.submoduleChild;
+
+    expect(child?.path.startsWith(fixture.root)).toBe(true);
+    expect(child?.commit).toMatch(/^[0-9a-f]{40}$/);
+    expect(inspectSubmoduleConstruction(fixture)).toEqual({
+      gitlinkEntry: `160000 commit ${child?.commit}\t${SUBMODULE_GITLINK_PATH}`,
+      childHasCommit: true,
+      declaredUrl: child?.path,
+    });
   });
 
   it.each(

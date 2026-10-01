@@ -221,6 +221,31 @@ export interface TrialInspectionOptions {
     /** Creates a directory at the name, so the non-regular refusal is reachable. */
     readonly directory?: boolean;
   }[];
+  /**
+   * Extra `git` transports the child may use, so a local hostile fixture can be
+   * materialized and the execution absence proofs have a worktree to observe.
+   * Production never sets it, on the precedent `retainStateRoot` sets; the
+   * default environment carries AC-0024's `https` alone. It relaxes only which
+   * transport may deliver the tree, never how the delivered tree is treated:
+   * `transfer.fsckObjects`, `core.protectHFS`, `core.hooksPath` and every other
+   * pinned setting are unchanged, and AC-0024's own pin is proven against a
+   * default run in `runtime-supervisor.test.ts`.
+   */
+  readonly additionalGitTransports?: readonly string[];
+  /**
+   * Starts one planted executable after a real Runtime materialization, so the
+   * execution absence proofs can redden through the product child rather than
+   * through a test-owned direct spawn. Production never sets it.
+   */
+  readonly executionProofMutation?:
+    | "package-script"
+    | "projected-skill-executable"
+    | "attribute-filter";
+  /**
+   * Test-owned marker path for `executionProofMutation`. It is deliberately
+   * absent from the default environment and therefore absent from production.
+   */
+  readonly executionProofLog?: string;
 }
 
 export type TerminationReason =
@@ -457,7 +482,10 @@ export function beginTrialInspection(
   // `TMPDIR` name children of this root. The Runtime creates them, and writes
   // its own marker first.
   const stateRoot = reserveStateRoot(request.sweepDomain);
-  const environment = buildPinnedEnvironment(stateRoot);
+  const environment = buildPinnedEnvironment(
+    stateRoot,
+    options.additionalGitTransports ?? [],
+  );
   const spawnAudit: SpawnAuditEntry[] = [];
   const identity = resolveGitIdentity(environment, spawnAudit);
   if (!identity.ok) {
@@ -537,6 +565,12 @@ export function beginTrialInspection(
     ...(options.declaredFixtures === undefined
       ? {}
       : { declaredFixtures: [...options.declaredFixtures] }),
+    ...(options.executionProofMutation === undefined
+      ? {}
+      : { executionProofMutation: options.executionProofMutation }),
+    ...(options.executionProofLog === undefined
+      ? {}
+      : { executionProofLog: options.executionProofLog }),
     markerlessReclaimAgeMs:
       options.markerlessReclaimAgeMs ?? MARKERLESS_RECLAIM_AGE_MS,
     // AC-0082: the Service invokes the sweep. It does not perform it, because
