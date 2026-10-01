@@ -1052,3 +1052,27 @@ Orient ledger remains contemporaneous and receives forward corrections only.
   describe one tree rather than several.
 - `spec.md` is `Shipped` with all nine acceptance criteria checked; `plan.md` is
   `Done`.
+
+## Merged and closed — 2026-10-01
+
+- Commit `b200fe3`, 16 files, 3547 insertions and 192 deletions. Privacy sweep
+  over the staged diff found no real name, address, org domain, or user-specific
+  path; `state.json` and `engine-state.json` are gitignored and were not staged.
+- Pull request 25 opened against `main` with the byte-identical pre-gate
+  `review-verdict.v1` record in its `Review verdict` section, then merged at
+  06:08 UTC as merge commit `62be16c`. PR capability was probed first:
+  `gh api user` exit 0 and `viewerPermission` `ADMIN`, so the offer was made
+  rather than withheld; the owner directed both the raise and the merge.
+- Engine fired `done` from `CODE-HUMAN-GATE`; state `DONE` at transition
+  sequence 33.
+- Verdict state is `READY_WITH_RESIDUAL_RISK` rather than `READY`, because
+  eight residual-eligible blind spots remain. All 34 sustained findings across
+  seven review rounds are `resolved`; none was deferred.
+- Carried out of this unit, none of it blocking: the AC-0136 overwrite arm now
+  owned by `connect-orient-ac0136-overwrite-arm`; the `core.protectHFS`
+  reclassification; the `TMPDIR` temporary-tree leak; the inventory gate's
+  missing durable test; three recorded execution-origin detector boundaries;
+  acceptance-audit citations outside this repair's blast radius; AC-0069's
+  prose-carried anchor; and the proposal to make the audit checker require a
+  span to start on a declaration line, measured at 138 of 360 spans
+  non-conforming.
