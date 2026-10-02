@@ -426,6 +426,8 @@ open = [
   # protection on, and submodule.recurse=false, because git does not recurse
   # into an uninitialized submodule by default. AC-0147 remains separately
   # registered below and is untouched by this unit.
+  # Corrected forward 2026-10-01: connect-orient-ac0136-overwrite-arm closed
+  # AC-0136 and moved core.protectHFS=true to behavioral; see its entry below.
   { path = "docs/specs/connect-orient-falsifiable-criteria-proofs/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Give six Connect and Orient security criteria falsifiable proofs at their own observation surfaces", needs = [] },
   # AC-0147 requires each of AC-0133 through AC-0146 to have a positive control
   # that removes the guard of the proof it certifies. Three do not: AC-0140's
@@ -438,20 +440,16 @@ open = [
   # the escaping-reader-path, option-shaped-ref and authorization-header cases;
   # notes/acceptance-audit.md, the AC-0147 row.
   { slug = "connect-orient-positive-controls-that-remove-no-guard", source = "connect-and-orient/2026-09-27" },
-  # AC-0136 keeps its weak, not-met verdict, and this entry owns the reach that
-  # keeps it there. Both spellings are now built and measured at their refusal
-  # layers by `connect-orient-falsifiable-criteria-proofs`: the case-insensitive
-  # `.GIT` arm refuses at fetch through transfer.fsckObjects and again at
-  # checkout with that pin alone out of force, and the Unicode-ignorable
-  # `.gi<U+200C>t` arm refuses at fetch, then at checkout, then materializes as a
-  # sibling once both guards are out of force. None of that is the overwrite the
-  # criterion asks for — a variant spelling that replaces the real `.git` — so
-  # the protected outcome stays unfalsified and no mutation can redden it.
-  # Registered 2026-09-30 by owner decision, because the delivery that measured
-  # both arms closes without closing this gap.
-  # Evidence: apps/studio-service/src/trials/connect-and-orient-runtime/absence-proofs.test.ts,
-  # the AC-0136 three-layer block; notes/acceptance-audit.md, the AC-0136 row.
-  { slug = "connect-orient-ac0136-overwrite-arm", source = "connect-and-orient/2026-09-30" },
+  # Close AC-0136 by observing the overwrite it names. Measured 2026-10-01,
+  # git 2.50.1: on HFS+, which ignores U+200C, `.gi<U+200C>t/config` replaces
+  # the real `.git/config` once transfer.fsckObjects and core.protectHFS=true
+  # are omitted and core.protectHFS=false is set ambiently. The ambient false
+  # is needed because git's Apple build defaults HFS protection on. The pinned
+  # product refuses it. On APFS the same entry lands as a sibling, which is why
+  # the 2026-09-30 proof could not redden. `.GIT` is refused by git's own path check with every product guard
+  # out of force; owner decision 2026-10-01 records that arm as git-guaranteed.
+  # Replaces the `connect-orient-ac0136-overwrite-arm` backlog slug.
+  { path = "docs/specs/connect-orient-ac0136-overwrite-arm/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Prove AC-0136 on HFS+, where a Unicode-ignorable .git variant overwrites the real .git unless core.protectHFS refuses it", needs = [] },
   # plan.md's Changelog cannot carry an approval entry. _task_sections gives the
   # last task everything from its heading to end of file, so T15's pinned
   # section spans ## Rollout, ## Risks and the whole ## Changelog. Appending

@@ -27,7 +27,15 @@ import module from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 import { canonicalizeSource } from "../../source-identity.js";
 import {
@@ -48,6 +56,7 @@ import {
   type TrialInspectionOptions,
   type TrialInspectionRecord,
 } from "./runtime-supervisor.js";
+import { foldsToDotGit, mountHfsVolume } from "./test/hfs-volume.js";
 import {
   ATTRIBUTE_FILTER_COMMITTED_CONTENT,
   ATTRIBUTE_FILTER_SMUDGED_CONTENT,
@@ -975,6 +984,21 @@ describe("AC-0135 no projected skill executable runs during inspection", () => {
   });
 });
 
+/**
+ * The real `.git` as git wrote it: a directory whose `HEAD` and `config` hold
+ * git's own bytes, never the hostile fixture's bytes.
+ */
+function expectRealDotGitIntact(worktree: string): void {
+  const dotGit = join(worktree, ".git");
+  expect(lstatSync(dotGit).isDirectory()).toBe(true);
+  const head = readFileSync(join(dotGit, "HEAD"), "utf8");
+  expect(head).not.toContain("hostile-config");
+  expect(head.trim()).toMatch(/^(?:ref: refs\/\S+|[0-9a-f]{40})$/);
+  expect(readFileSync(join(dotGit, "config"), "utf8")).not.toContain(
+    "hostile-config",
+  );
+}
+
 describe("AC-0136 a .git variant does not overwrite the real .git", () => {
   /**
    * The product-shaped sequence has two refusal layers for this fixture.
@@ -987,11 +1011,12 @@ describe("AC-0136 a .git variant does not overwrite the real .git", () => {
    * form this assertion can hold while both refusal layers remain effective.
    *
    * **This covers the case-insensitive arm only.** AC-0136 also names a
-   * Unicode-ignorable variant of `.git`, measured in the three-layer block
-   * below rather than here. Neither block demonstrates an *overwrite* of the
-   * real `.git`: this one refuses before anything is written, and the Unicode
-   * layer 3 writes a sibling. AC-0136 therefore stays weak on the overwrite
-   * claim — see its row in `notes/acceptance-audit.md`.
+   * Unicode-ignorable variant, whose overwrite proof is in the HFS+ block
+   * below. The `.GIT` all-guards-out case in this block shows git's own path
+   * check refuses the arm even with `core.protectHFS`, `core.protectNTFS` and
+   * `transfer.fsckObjects` all out of force; by owner decision 2026-10-01 that
+   * arm is recorded as protected by git's own path check — see its row in
+   * `notes/acceptance-audit.md`.
    */
   it("refuses the variant during the pinned fetch", async () => {
     const fixture = await buildHostileFixture({ caseId: "dot-git-variant" });
@@ -1034,6 +1059,24 @@ describe("AC-0136 a .git variant does not overwrite the real .git", () => {
     expect(variants).toEqual([]);
   });
 
+  it("still refuses .GIT/config at checkout with every product guard out of force", async () => {
+    const fixture = await buildHostileFixture({
+      caseId: "dot-git-variant",
+      dotGitVariantChild: "config",
+      omitPinPrefix: [
+        "transfer.fsckObjects",
+        "core.protectHFS",
+        "core.protectNTFS",
+      ],
+      ambientPins: ["core.protectHFS=false", "core.protectNTFS=false"],
+    });
+
+    await expect(materialize(fixture)).rejects.toThrow(
+      "invalid path '.GIT/config'",
+    );
+    expectRealDotGitIntact(fixture.worktree);
+  });
+
   it("fires the same probe when the guard is removed", async () => {
     await expect(runPositiveControl("dot-git-variant")).resolves.toBe(true);
   });
@@ -1055,12 +1098,13 @@ describe("AC-0136 the Unicode-ignorable .git variant measured at three layers", 
    * 3. both out of force — the entry **materializes**, as a sibling of the real
    *    `.git` directory.
    *
-   * **Layer 3 is a sibling, not an overwrite.** `.gi<U+200C>t` and `.git` are
-   * distinct names on this filesystem, so git writes a new entry beside the
-   * repository directory and the real `.git` is untouched. Every layer asserts
-   * that directly. Nothing here demonstrates a Unicode *overwrite* of the real
-   * `.git`, so AC-0136 stays weak on that point; see the AC-0136 row in
-   * `notes/acceptance-audit.md`.
+   * **Layer 3 is a sibling, not an overwrite on APFS.** `.gi<U+200C>t` and
+   * `.git` are distinct names on APFS, so git writes a new entry beside the
+   * repository directory and the real `.git` is untouched. The overwrite
+   * AC-0136 names is demonstrated on HFS+ in the block below: there
+   * `.gi<U+200C>t` *is* `.git` and dropping `core.protectHFS=true` while
+   * `core.protectHFS=false` is ambient causes checkout to overwrite
+   * `.git/config`.
    *
    * Layer 3 sets `core.protectHFS=false` ahead of the product pins rather than
    * only dropping `core.protectHFS=true`. Measured on this host, git 2.50.1
@@ -1082,18 +1126,6 @@ describe("AC-0136 the Unicode-ignorable .git variant measured at three layers", 
       dotGitVariantEntry: DOT_GIT_UNICODE_ENTRY,
       ...options,
     });
-  }
-
-  /**
-   * The real `.git` as git wrote it: a directory whose `HEAD` holds a ref or a
-   * commit, never the hostile blob's bytes.
-   */
-  function expectRealDotGitIntact(worktree: string): void {
-    const dotGit = join(worktree, ".git");
-    expect(lstatSync(dotGit).isDirectory()).toBe(true);
-    const head = readFileSync(join(dotGit, "HEAD"), "utf8");
-    expect(head).not.toContain("hostile-config");
-    expect(head.trim()).toMatch(/^(?:ref: refs\/\S+|[0-9a-f]{40})$/);
   }
 
   it("plants the zero-width non-joiner spelling in the source object database", async () => {
@@ -1143,6 +1175,110 @@ describe("AC-0136 the Unicode-ignorable .git variant measured at three layers", 
     expectRealDotGitIntact(fixture.worktree);
   });
 });
+
+describe.skipIf(process.platform !== "darwin")(
+  "AC-0136 on an HFS+ volume, where the Unicode variant is the real .git",
+  () => {
+    /**
+     * HFS+ ignores U+200C, so on this volume `.gi<U+200C>t` *is* `.git` and a
+     * checkout that admits it writes into the real repository directory. This
+     * is the overwrite AC-0136 names; on APFS the same entry lands as a sibling.
+     *
+     * Every checkout-layer run sets `core.protectHFS=false` ambiently, ahead of
+     * the product pins. git's Apple build turns HFS protection on by default,
+     * so without that setting omitting the pin would remove no guard; with it,
+     * the product pin alone decides whether the entry is refused.
+     *
+     * Each fixture plants `<entry>/config`, never the default blob: on HFS+ a
+     * blob named `.gi<U+200C>t` deletes the real `.git` instead of replacing a
+     * file in it. Measured 2026-10-01; see
+     * `docs/specs/connect-orient-ac0136-overwrite-arm/notes/verification-ledger.md`.
+     */
+    let volume: ReturnType<typeof mountHfsVolume>;
+
+    beforeAll(() => {
+      volume = mountHfsVolume();
+    });
+    afterAll(() => {
+      try {
+        disposeHostileFixtures();
+      } finally {
+        volume?.dispose();
+      }
+    });
+
+    it("folds the zero-width non-joiner spelling to .git on this volume", () => {
+      expect(foldsToDotGit(volume.mountPoint)).toBe(true);
+    });
+
+    it("refuses the variant during the pinned fetch", async () => {
+      const fixture = await buildHostileFixture({
+        caseId: "dot-git-variant",
+        dotGitVariantEntry: DOT_GIT_UNICODE_ENTRY,
+        dotGitVariantChild: "config",
+        parentDirectory: volume.mountPoint,
+      });
+
+      await expect(materialize(fixture)).rejects.toThrow(
+        /hasDotgit: contains '\.git'/,
+      );
+      expectRealDotGitIntact(fixture.worktree);
+    });
+
+    it("refuses the variant at checkout through the core.protectHFS pin when the fsck pin is out of force", async () => {
+      const fixture = await buildHostileFixture({
+        caseId: "dot-git-variant",
+        dotGitVariantEntry: DOT_GIT_UNICODE_ENTRY,
+        dotGitVariantChild: "config",
+        parentDirectory: volume.mountPoint,
+        omitPinPrefix: ["transfer.fsckObjects"],
+        ambientPins: ["core.protectHFS=false"],
+      });
+
+      await expect(materialize(fixture)).rejects.toThrow(
+        `invalid path '${DOT_GIT_UNICODE_ENTRY}/config'`,
+      );
+      expectRealDotGitIntact(fixture.worktree);
+    });
+
+    it("overwrites the real .git/config once core.protectHFS is out of force too", async () => {
+      const fixture = await buildHostileFixture({
+        caseId: "dot-git-variant",
+        dotGitVariantEntry: DOT_GIT_UNICODE_ENTRY,
+        dotGitVariantChild: "config",
+        parentDirectory: volume.mountPoint,
+        omitPinPrefix: ["transfer.fsckObjects", "core.protectHFS"],
+        ambientPins: ["core.protectHFS=false"],
+      });
+
+      await materialize(fixture);
+
+      expect(
+        readFileSync(join(fixture.worktree, ".git", "config"), "utf8"),
+      ).toBe("hostile-config\n");
+      expect(() => expectRealDotGitIntact(fixture.worktree)).toThrow();
+    });
+
+    it("still refuses .GIT/config at checkout with every product guard out of force", async () => {
+      const fixture = await buildHostileFixture({
+        caseId: "dot-git-variant",
+        dotGitVariantChild: "config",
+        parentDirectory: volume.mountPoint,
+        omitPinPrefix: [
+          "transfer.fsckObjects",
+          "core.protectHFS",
+          "core.protectNTFS",
+        ],
+        ambientPins: ["core.protectHFS=false", "core.protectNTFS=false"],
+      });
+
+      await expect(materialize(fixture)).rejects.toThrow(
+        "invalid path '.GIT/config'",
+      );
+      expectRealDotGitIntact(fixture.worktree);
+    });
+  },
+);
 
 describe("AC-0137 a .gitattributes filter declaration triggers no filter", () => {
   /**

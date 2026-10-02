@@ -4,6 +4,7 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -15,8 +16,10 @@ import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PINNED_GIT_CONFIGURATION } from "./git-driver.js";
+import { mountHfsVolume } from "./test/hfs-volume.js";
 import {
   buildHostileFixture,
+  DOT_GIT_UNICODE_ENTRY,
   disposeHostileFixtures,
   materialize,
   observeProcessTree,
@@ -39,6 +42,9 @@ interface PinProof {
   setting: PinSetting;
   classification: Classification;
   observation: string;
+  platform?: NodeJS.Platform;
+  /** The observation each run must produce, where differing is not enough. */
+  expected?: { pinned: unknown; omitted: unknown };
   observe?: () => Promise<{
     pinned: unknown;
     omitted: unknown;
@@ -400,11 +406,57 @@ async function observeRedirectPin(): Promise<{
   });
 }
 
+async function observeProtectHfsPin(): Promise<{
+  pinned: unknown;
+  omitted: unknown;
+}> {
+  // On HFS+ `.gi<U+200C>t` is `.git`. Both runs omit transfer.fsckObjects and
+  // set core.protectHFS=false ambiently, so the product pin is the only HFS
+  // guard left and the two runs differ only in whether it is present.
+  const volume = mountHfsVolume();
+  async function checkout(omitPinPrefix: string[]) {
+    const fixture = await buildHostileFixture({
+      caseId: "dot-git-variant",
+      dotGitVariantEntry: DOT_GIT_UNICODE_ENTRY,
+      dotGitVariantChild: "config",
+      parentDirectory: volume.mountPoint,
+      omitPinPrefix,
+      ambientPins: ["core.protectHFS=false"],
+    });
+    // Only the checkout refusing the planted path counts; any other failure
+    // is not this pin's observation.
+    const refused = await materialize(fixture).then(
+      () => false,
+      (error: Error) =>
+        error.message.includes(
+          `invalid path '${DOT_GIT_UNICODE_ENTRY}/config'`,
+        ),
+    );
+    return {
+      refused,
+      configHostile: readFileSync(
+        join(fixture.worktree, ".git", "config"),
+        "utf8",
+      ).includes("hostile-config"),
+    };
+  }
+  try {
+    return {
+      pinned: await checkout(["transfer.fsckObjects"]),
+      omitted: await checkout(["transfer.fsckObjects", "core.protectHFS"]),
+    };
+  } finally {
+    try {
+      disposeHostileFixtures();
+    } finally {
+      volume.dispose();
+    }
+  }
+}
+
 const CONSTANT_ONLY_REASONS = {
-  "core.protectHFS=true":
-    "the Unicode-ignorable .gi<U+200C>t spelling is the one arm measured with this pin omitted, and its checkout still refuses, because git's Apple build defaults HFS protection on; absence-proofs.test.ts's Unicode layer 3 has to set core.protectHFS=false to remove the guard at all, and the case-insensitive .GIT arm is not measured with this pin omitted",
   "core.protectNTFS=true":
-    "no run in this suite or in absence-proofs.test.ts omits core.protectNTFS, so neither .git fixture has an NTFS-specific observation and no measured refusal is attributed to this pin",
+    "the .GIT all-guards-out cases omit core.protectNTFS alongside core.protectHFS, but checkout still refuses with 'invalid path' — git's own path check acts regardless of the NTFS pin, so no measured refusal is attributed to it",
   "core.fsmonitor=false":
     "the product-shaped init/fetch/checkout/rev-parse sequence configures no fsmonitor hook, so this suite has no same-level fsmonitor observation",
   "submodule.recurse=false":
@@ -461,6 +513,19 @@ const PIN_PROOFS: PinProof[] = PINNED_GIT_CONFIGURATION.map((setting) => {
           "redirect refusal names the source endpoint; follow control names the closed target",
         observe: observeRedirectPin,
       };
+    case "core.protectHFS=true":
+      return {
+        setting,
+        classification: "behavioral",
+        platform: "darwin",
+        observation:
+          "on a scratch HFS+ volume with transfer.fsckObjects omitted and core.protectHFS=false ambient in both runs, the .gi<U+200C>t/config checkout is refused and .git/config stays intact only while the pin is present",
+        expected: {
+          pinned: { refused: true, configHostile: false },
+          omitted: { refused: false, configHostile: true },
+        },
+        observe: observeProtectHfsPin,
+      };
     default:
       return {
         setting,
@@ -488,13 +553,22 @@ describe("pinned Git configuration proof inventory", () => {
     }
   });
 
-  it.each(
+  it.for(
     PIN_PROOFS.filter((proof) => proof.classification === "behavioral"),
-  )("$setting changes the named observation when only that setting is omitted", async (proof) => {
+  )("$setting changes the named observation when only that setting is omitted", async (proof, {
+    skip,
+  }) => {
+    if (proof.platform !== undefined && proof.platform !== process.platform) {
+      skip();
+      return;
+    }
     const observed = await proof.observe?.();
 
     expect(observed, proof.observation).toBeDefined();
     expect(observed?.pinned, proof.observation).not.toEqual(observed?.omitted);
+    if (proof.expected !== undefined) {
+      expect(observed, proof.observation).toEqual(proof.expected);
+    }
   });
 
   it("keeps nondiscriminating pins constant-only", () => {
@@ -503,7 +577,6 @@ describe("pinned Git configuration proof inventory", () => {
         ({ classification }) => classification === "constant-only",
       ).map(({ setting }) => setting),
     ).toEqual([
-      "core.protectHFS=true",
       "core.protectNTFS=true",
       "core.fsmonitor=false",
       "submodule.recurse=false",
