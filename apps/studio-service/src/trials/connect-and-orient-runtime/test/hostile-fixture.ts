@@ -96,13 +96,13 @@ export const ATTRIBUTE_FILTER_SMUDGED_CONTENT = "smudged-by-probe\n";
  * The case-insensitive `.git` spelling, and the default entry the
  * `dot-git-variant` case plants.
  *
- * What is measured for this spelling is two layers: the pinned fetch refuses
- * the object through `transfer.fsckObjects`, and with that pin alone out of
- * force the checkout still refuses `invalid path '.GIT'`. No case here omits
- * `core.protectHFS` or `core.protectNTFS` for this arm, so nothing measures
- * which guard performs that checkout refusal, and this comment claims nothing
- * about either pin. An earlier version asserted the refusal held whatever both
- * pins said, which no run in this tree establishes.
+ * The pinned fetch refuses the object through `transfer.fsckObjects`, and with
+ * that pin alone out of force the checkout still refuses `invalid path '.GIT'`.
+ * An all-guards-out run — `transfer.fsckObjects`, `core.protectHFS` and
+ * `core.protectNTFS` all omitted, both protect settings set false ambiently —
+ * still refuses with `invalid path '.GIT/config'`. By owner decision
+ * 2026-10-01, the `.GIT` arm is protected by git's own path check: the refusal
+ * holds regardless of the product's HFS or NTFS pins.
  */
 export const DOT_GIT_CASE_ENTRY = ".GIT";
 
@@ -220,10 +220,17 @@ function write(
  * object directly. One route serves every `.git` spelling — the case-folding
  * `.GIT` and the Unicode-ignorable `.gi<U+200C>t` differ only in `entryName`,
  * so both arms are measured through the same materialization path.
+ *
+ * When `child` is set the variant entry is a tree (`040000 tree`) whose single
+ * blob entry is named `child`, carrying the same `hostile-config\n` bytes. This
+ * places the hostile content at `<entryName>/<child>` rather than directly at
+ * `<entryName>`, which is the shape needed for HFS+ overwrite proofs where the
+ * checkout target is `.git/config`.
  */
 function addDotGitVariantToObjectDatabase(
   source: string,
   entryName: string,
+  child?: string,
 ): void {
   const blob = runGit(
     source,
@@ -231,11 +238,18 @@ function addDotGitVariantToObjectDatabase(
     "hostile-config\n",
   );
   const priorTree = runGit(source, ["ls-tree", "HEAD"]);
-  const tree = runGit(
-    source,
-    ["mktree"],
-    `${priorTree}\n100644 blob ${blob}\t${entryName}\n`,
-  );
+  let entryLine: string;
+  if (child !== undefined) {
+    const innerTree = runGit(
+      source,
+      ["mktree"],
+      `100644 blob ${blob}\t${child}\n`,
+    );
+    entryLine = `040000 tree ${innerTree}\t${entryName}`;
+  } else {
+    entryLine = `100644 blob ${blob}\t${entryName}`;
+  }
+  const tree = runGit(source, ["mktree"], `${priorTree}\n${entryLine}\n`);
   const parent = runGit(source, ["rev-parse", "HEAD"]);
   const commit = runGit(
     source,
@@ -422,9 +436,20 @@ export async function buildHostileFixture(
     caseId?: HostileCase;
     boundLimit?: number;
     dotGitVariantEntry?: string;
+    /** Where the fixture root is created; defaults to `tmpdir()`. */
+    parentDirectory?: string;
+    /**
+     * When set, the dot-git variant entry is planted as a tree whose single
+     * blob child is named by this value, carrying the same `hostile-config\n`
+     * bytes. Enables placing hostile content at `<entry>/<child>` rather than
+     * directly at `<entry>`.
+     */
+    dotGitVariantChild?: string;
   } = {},
 ): Promise<HostileFixture> {
-  const root = mkdtempSync(join(tmpdir(), "connect-orient-hostile-"));
+  const root = mkdtempSync(
+    join(options.parentDirectory ?? tmpdir(), "connect-orient-hostile-"),
+  );
   fixtureRoots.add(root);
   const source = join(root, "source");
   const worktree = join(root, "materialized");
@@ -442,7 +467,11 @@ export async function buildHostileFixture(
   runGit(source, ["commit", "-m", `fixture: ${caseId}`]);
   const dotGitVariantEntry = options.dotGitVariantEntry ?? DOT_GIT_CASE_ENTRY;
   if (caseId === "dot-git-variant") {
-    addDotGitVariantToObjectDatabase(source, dotGitVariantEntry);
+    addDotGitVariantToObjectDatabase(
+      source,
+      dotGitVariantEntry,
+      options.dotGitVariantChild,
+    );
   }
   if (submoduleChild !== undefined) {
     addGitlinkToObjectDatabase(source, submoduleChild.commit);

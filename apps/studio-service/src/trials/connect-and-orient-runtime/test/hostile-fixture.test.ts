@@ -1,7 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { pinnedGitConfigurationArgs } from "../git-driver.js";
+import { foldsToDotGit, mountHfsVolume } from "./hfs-volume.js";
 
 // Every case here builds a real git repository and, for the positive controls,
 // spawns git. That work exceeds vitest's 5s default whenever the machine is busy
@@ -16,6 +18,7 @@ vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 import {
   buildHostileFixture,
+  DOT_GIT_CASE_ENTRY,
   DOT_GIT_UNICODE_ENTRY,
   disposeHostileFixtures,
   HOSTILE_CASE_BY_CRITERION,
@@ -30,6 +33,19 @@ import {
 
 afterEach(() => {
   disposeHostileFixtures();
+});
+
+describe.skipIf(process.platform !== "darwin")("scratch HFS+ volume", () => {
+  it("folds the zero-width non-joiner spelling to .git and cleans up", () => {
+    const volume = mountHfsVolume();
+    try {
+      expect(foldsToDotGit(volume.mountPoint)).toBe(true);
+    } finally {
+      volume.dispose();
+    }
+    expect(existsSync(volume.mountPoint)).toBe(false);
+    expect(existsSync(volume.root)).toBe(false);
+  });
 });
 
 // biome-ignore format: kept diffable against plan.md's pinned T1 stub, which has diverged
@@ -134,6 +150,37 @@ describe("AC-0149 hostile fixture corpus", () => {
 
     expect(fixture.dotGitVariantEntry).toBe(DOT_GIT_UNICODE_ENTRY);
     expect(sourceObjectHasDotGitVariant(fixture)).toBe(true);
+  });
+
+  it("builds the dotGitVariantChild fixture as a tree entry with a blob child", async () => {
+    const fixture = await buildHostileFixture({
+      caseId: "dot-git-variant",
+      dotGitVariantEntry: DOT_GIT_UNICODE_ENTRY,
+      dotGitVariantChild: "config",
+    });
+    const entry = DOT_GIT_UNICODE_ENTRY;
+    const typeAtEntry = spawnSync(
+      "/usr/bin/git",
+      ["cat-file", "-t", `HEAD:${entry}`],
+      { cwd: fixture.source, encoding: "utf8" },
+    );
+    const typeAtChild = spawnSync(
+      "/usr/bin/git",
+      ["cat-file", "-t", `HEAD:${entry}/config`],
+      { cwd: fixture.source, encoding: "utf8" },
+    );
+    expect(typeAtEntry.stdout.trim()).toBe("tree");
+    expect(typeAtChild.stdout.trim()).toBe("blob");
+  });
+
+  it("builds the default dot-git-variant fixture with a blob entry", async () => {
+    const fixture = await buildHostileFixture({ caseId: "dot-git-variant" });
+    const typeAtEntry = spawnSync(
+      "/usr/bin/git",
+      ["cat-file", "-t", `HEAD:${DOT_GIT_CASE_ENTRY}`],
+      { cwd: fixture.source, encoding: "utf8" },
+    );
+    expect(typeAtEntry.stdout.trim()).toBe("blob");
   });
 
   it("builds the submodule case as a real gitlink into a local child repository", async () => {

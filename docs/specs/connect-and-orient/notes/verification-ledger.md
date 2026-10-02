@@ -9980,3 +9980,24 @@ is the negative control showing the check reads the cited subject rather than fl
 verifiable here, and every citation resolves. Spec-status lint reports metadata clean. `pnpm test`,
 `pnpm verify` and `pnpm test:capped` are not part of this reading; the delivery ledger holds the
 test evidence and the host-load classification.
+
+## ac0136-overwrite-arm-forward-correction-2026-10-01
+
+Forward correction to
+[`#falsifiable-criteria-proofs-forward-correction-2026-09-30`](#falsifiable-criteria-proofs-forward-correction-2026-09-30).
+That entry stays as written; this one states what is now true. The evidence is in
+[`../../connect-orient-ac0136-overwrite-arm/notes/verification-ledger.md`](../../connect-orient-ac0136-overwrite-arm/notes/verification-ledger.md).
+
+- **"Layer 3 writes a sibling, not an overwrite"** still holds, but only on APFS, where every
+  2026-09-30 run took place. On HFS+, which ignores U+200C, `.gi<U+200C>t` is `.git`. There a
+  `.gi<U+200C>t/config` entry replaces the real `.git/config` once `transfer.fsckObjects` and
+  `core.protectHFS=true` are omitted under an ambient `core.protectHFS=false`. The blob-shaped layer 3
+  fixture deletes `.git` there instead.
+- **"`core.protectHFS=true` is not what refuses the Unicode spelling on this host"** is narrowed.
+  Omitting the pin alone still refuses, because git's Apple build defaults HFS protection on. With
+  `core.protectHFS=false` set ambiently in both runs, the pin is what refuses. Deleting it from
+  `PINNED_GIT_CONFIGURATION` turns the HFS+ checkout-refusal case red. By owner decision on
+  2026-10-01 it is now the sixth behavioral pin.
+- **"AC-0136 is not upgraded"** is superseded. AC-0136 is met, `S`. Its `.GIT` arm is refused by
+  git's own path check with every product guard out of force, on APFS and HFS+. By owner decision on
+  2026-10-01, that arm is recorded as git-guaranteed.

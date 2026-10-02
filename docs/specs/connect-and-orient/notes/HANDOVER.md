@@ -129,14 +129,14 @@ after. Only their transport-helper clauses need the smoke, and those are carried
 **A. Modules written, tested, called by nothing — closed as a cluster.** The wiring landed and
 every module named in it has a disposition; three reporting clauses remain. See §4.
 
-**B. Hostile-repository proofs — 7 open of the 13 rows AC-0133 to AC-0145**, counted from the audit rather than copied: AC-0134, AC-0135, AC-0136, AC-0137, AC-0138, AC-0141 and AC-0145. Regenerate it from the rows; do not trust this sentence over them. The re-implementation is gone:
-`test/hostile-fixture.ts:344-349#materializationPins` builds the vector by filtering the product's
-`PINNED_GIT_CONFIGURATION`, and `:379-449#materialize` applies it to pinned `init`, `fetch`, forced
+**B. Hostile-repository proofs — 2 open of the 13 rows AC-0133 to AC-0145**, counted from the audit rather than copied: AC-0138 and AC-0145. Regenerate it from the rows; do not trust this sentence over them. The re-implementation is gone:
+`test/hostile-fixture.ts:528-541#materializationPins` builds the vector by filtering the product's
+`PINNED_GIT_CONFIGURATION`, and `:570-631#materialize` applies it to pinned `init`, `fetch`, forced
 checkout and `rev-parse --verify HEAD`, matching the product's materialization shape. The completed
 pinned-Git proof unit is recorded in `docs/specs/pinned-git-configuration-proof/` and in the audit's
-*Pinned Git configuration proof boundary*. **Five of thirteen pins now have behavioral one-pin-
+*Pinned Git configuration proof boundary*. **Six of thirteen pins now have behavioral one-pin-
 omission evidence**: `http.followRedirects=false`, `core.hooksPath=/dev/null`,
-`core.symlinks=false`, `protocol.version=2` and `transfer.fsckObjects=true`. The other eight are
+`core.symlinks=false`, `protocol.version=2`, `transfer.fsckObjects=true` and `core.protectHFS=true`. The other seven are
 explicitly constant-only; the audit, not this handover, owns the pin-by-pin reasons.
 
 **The separate positive-control repair remains open.** Only two of the fourteen positive controls
@@ -152,7 +152,7 @@ never runs a smudge filter nobody configured; **AC-0141** because the fixture wr
 `.gitmodules` as plain text with no gitlink, so nothing can recurse into it; and **AC-0146**
 because the credential negative runs over a path the credential never reaches. All five are routed
 to the spawn-audit surface by the owner's decision of 2026-09-26, registered as
-`connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` in `workspace.toml` (that entry was replaced on 2026-09-30: the five are now proven by `connect-orient-falsifiable-criteria-proofs`, and AC-0136's residual overwrite reach is `connect-orient-ac0136-overwrite-arm`) — `spawnAudited`
+`connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` in `workspace.toml` (that entry was replaced on 2026-09-30: the five are now proven by `connect-orient-falsifiable-criteria-proofs`, and AC-0136 was closed on 2026-10-01 by `connect-orient-ac0136-overwrite-arm`; see *AC-0136 is now met* below) — `spawnAudited`
 (`executable-identity.ts:28`) is the Service's only process-start primitive for this trial and
 every entry records an absolute `executable`, so "Studio never executes anything out of the
 materialized worktree" is a property that can fail. **Highest risk reduction per criterion, no new
@@ -164,12 +164,13 @@ rather than through `spawnAudited`, two of those classified repository-influence
 exhaustiveness the five proofs rest on is that classified inventory over production starts, not a
 single mediating primitive.
 
-**AC-0136 remains open, but its case-insensitive arm is now weak rather than vacuous.** The full
-pin vector rejects `.GIT` during fetch through `transfer.fsckObjects=true`; omitting that pin alone
-advances to checkout's built-in `invalid path '.GIT'` refusal. The protected outcome therefore
-does not fail, and the criterion's Unicode-ignorable arm is still neither built nor measured.
-`core.protectHFS` remains constant-only in this unit. AC-0136 stays routed with the spawn-audit
-work above; the audit carries the exact measured boundary.
+**AC-0136 is now met, falsifiability `S`.** The overwrite proof closed on 2026-10-01 under
+`connect-orient-ac0136-overwrite-arm`. On a scratch HFS+ volume, where `.gi<U+200C>t` is `.git`,
+both runs omit `transfer.fsckObjects` and set `core.protectHFS=false` ambiently. With the product's
+`core.protectHFS=true` present, checkout refuses; with it omitted, `.git/config` is overwritten. The
+`.GIT` arm is protected by git's own path check regardless of product pins; by owner decision
+2026-10-01 that arm is recorded as git's own protection. `core.protectHFS=true` is now the sixth
+behavioral pin. The audit row carries the full evidence and the decision record.
 
 **C. The renderer half — roughly 18.** AC-0105 and AC-0106 open because every test renders
 `InspectionSurface` directly and deleting it from `App.tsx:242` reddens nothing. Most Honest
