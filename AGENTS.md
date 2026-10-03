@@ -82,6 +82,21 @@ capped run means a green tree. It is a diagnostic, not a gate — the default
 stays uncapped. `CONTRIBUTING.md` has the two signs that tell load flake apart
 from a real defect.
 
+Prefer remote dispatch for the full-suite readings: `pnpm test`, `pnpm verify`,
+and `pnpm test:capped`. Once the branch is pushed, run
+`gh workflow run gates.yml --ref <branch>`. Then read the result with
+`gh run watch <run-id> --exit-status`, which exits non-zero on a red run. The
+`gates` input picks `verify-and-capped`, which is the default, or `verify`,
+`test:capped`, or `test`. The workflow runs on a clean macOS host, so local load
+does not distort its readings. Its runner has three vCPUs, so its capped step
+runs at the same concurrency as the default. A remote capped green is a second
+independent green, not the lower-load diagnostic above. If the readings
+disagree, apply the two signs in `CONTRIBUTING.md`. Keep `pnpm lint`,
+`pnpm typecheck`, `pnpm governance`, and focused `vitest run <files>` local.
+Pushing still needs the user's go-ahead. Run the full suite locally when that
+go-ahead is absent, `gh` is not signed in, or `.github/workflows/gates.yml` is
+missing from `main` or from the branch. Say which host produced each reading.
+
 Component test files opt into jsdom with a per-file
 `// @vitest-environment jsdom` docblock. Node-side test files must not carry the
 docblock because their process and `node:` URL behavior needs the Node
