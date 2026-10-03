@@ -1,0 +1,58 @@
+# Runs the repository gates on demand, off a contributor's machine.
+# Dispatch from the Actions tab or `gh workflow run gates.yml --ref <branch>`.
+name: gates
+
+on:
+  workflow_dispatch:
+    inputs:
+      gates:
+        description: Which gate reading to run
+        type: choice
+        default: verify-and-capped
+        options:
+          - verify-and-capped
+          - verify
+          - test:capped
+          - test
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    # macOS because the trial-runtime suites observe /bin/ps and /usr/bin/git
+    # process trees and include darwin-only HFS+ proofs.
+    runs-on: macos-latest
+    timeout-minutes: 120
+    env:
+      GATES: ${{ inputs.gates }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: report worker parallelism
+        # Vitest defaults to availableParallelism - 1 workers. On a 3-vCPU
+        # runner that equals test:capped's two, so the capped step here is a
+        # second independent run, not a lower-concurrency one.
+        run: node -p '"availableParallelism=" + require("node:os").availableParallelism()'
+      - name: pnpm verify
+        if: env.GATES == 'verify-and-capped' || env.GATES == 'verify'
+        run: pnpm verify
+      - name: build for the capped reading
+        # `test:capped` has no pretest hook, and verify may stop before its own
+        # build, so the capped reading always builds first.
+        if: ${{ !cancelled() && (env.GATES == 'verify-and-capped' || env.GATES == 'test:capped') }}
+        run: pnpm run pretest
+      - name: pnpm test:capped
+        # Runs after a red verify too, so a red reading always has a second
+        # independent run for CONTRIBUTING.md's two flake signs.
+        if: ${{ !cancelled() && (env.GATES == 'verify-and-capped' || env.GATES == 'test:capped') }}
+        run: pnpm test:capped
+      - name: pnpm test
+        if: env.GATES == 'test'
+        run: pnpm test
