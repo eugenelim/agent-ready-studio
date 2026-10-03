@@ -67,6 +67,362 @@ export const HOSTILE_CASE_BY_CRITERION = {
   "AC-0104": "persisted-content-bound",
 } as const satisfies Record<string, HostileCase>;
 
+type PositiveControlNumber =
+  | 133
+  | 134
+  | 135
+  | 136
+  | 137
+  | 138
+  | 139
+  | 140
+  | 141
+  | 142
+  | 143
+  | 144
+  | 145
+  | 146;
+
+export type PositiveControlCriterion = `AC-0${PositiveControlNumber}`;
+
+function isPositiveControlCriterion(
+  criterion: string,
+): criterion is PositiveControlCriterion {
+  const match = /^AC-(\d{4})$/.exec(criterion);
+  if (match === null) return false;
+  const number = Number(match[1]);
+  return number >= 133 && number <= 146;
+}
+
+export const POSITIVE_CONTROL_CRITERIA = Object.keys(HOSTILE_CASE_BY_CRITERION)
+  .filter(isPositiveControlCriterion)
+  .sort() as readonly PositiveControlCriterion[];
+
+export type FixturePositiveControlCase =
+  | "repository-hook"
+  | "escaping-symlink"
+  | "escaping-reader-path"
+  | "submodule"
+  | "prototype-key"
+  | "materialized-module";
+
+type PositiveControlMechanism =
+  | {
+      readonly kind: "pin-omission";
+      readonly removedGuard: string;
+    }
+  | {
+      readonly kind: "runtime-execution-mutation";
+      readonly removedGuard: string;
+    }
+  | {
+      readonly kind: "trusted-output-mutation";
+      readonly removedGuard: string;
+    }
+  | {
+      readonly kind: "validator-bypass";
+      readonly removedGuard: string;
+    }
+  | {
+      readonly kind: "guard-bypass";
+      readonly removedGuard: string;
+      readonly precondition?: string;
+    }
+  | {
+      readonly kind: "direct-prohibited-operation";
+      readonly removedGuard: string;
+    }
+  | {
+      readonly kind: "construction-mutation";
+      readonly removedGuard: string;
+    }
+  | {
+      readonly kind: "storage-sink-mutation";
+      readonly removedGuard: string;
+    };
+
+type PositiveControlProofs = {
+  readonly [Criterion in PositiveControlCriterion]: {
+    readonly caseId: (typeof HOSTILE_CASE_BY_CRITERION)[Criterion];
+    readonly mechanism: PositiveControlMechanism;
+    readonly observation: string;
+    readonly binding: {
+      /** Resolved from hostile-fixture.test.ts, which verifies the binding. */
+      readonly source: string;
+      readonly guardedTests: readonly string[];
+      readonly controlTests: readonly string[];
+      /** Tokens that must occur inside every named test body. */
+      readonly evidence: readonly string[];
+    };
+  };
+};
+
+export const POSITIVE_CONTROL_PROOFS = {
+  "AC-0133": {
+    caseId: "repository-hook",
+    mechanism: {
+      kind: "pin-omission",
+      removedGuard: "core.hooksPath",
+    },
+    observation: "process-tree post-checkout marker",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: [
+        "records no hook in the process tree with the pinned hooks path",
+      ],
+      controlTests: ["fires the hook probe when core.hooksPath is removed"],
+      evidence: [
+        "markers).toEqual([])",
+        'runFixturePositiveControl("repository-hook")',
+      ],
+    },
+  },
+  "AC-0134": {
+    caseId: "package-script",
+    mechanism: {
+      kind: "runtime-execution-mutation",
+      removedGuard: "Runtime no-script-execution path",
+    },
+    observation: "repositoryExecutionOrigins",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: [
+        "records no package script execution in the product trial",
+      ],
+      controlTests: [
+        "fails the same assertion when the product Runtime starts the planted script",
+      ],
+      evidence: ["expectNoRepositoryExecution"],
+    },
+  },
+  "AC-0135": {
+    caseId: "projected-skill-executable",
+    mechanism: {
+      kind: "runtime-execution-mutation",
+      removedGuard: "Runtime no-projected-executable path",
+    },
+    observation: "repositoryExecutionOrigins",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: [
+        "records no projected skill execution in the product trial",
+      ],
+      controlTests: [
+        "fails the same assertion when the product Runtime starts the projected executable",
+      ],
+      evidence: ["expectNoRepositoryExecution"],
+    },
+  },
+  "AC-0136": {
+    caseId: "dot-git-variant",
+    mechanism: {
+      kind: "pin-omission",
+      removedGuard: "transfer.fsckObjects and core.protectHFS",
+    },
+    observation: "HFS+ .git/config overwrite",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: [
+        "refuses the variant at checkout through the core.protectHFS pin when the fsck pin is out of force",
+      ],
+      controlTests: [
+        "overwrites the real .git/config once core.protectHFS is out of force too",
+      ],
+      evidence: ["expectRealDotGitIntact"],
+    },
+  },
+  "AC-0137": {
+    caseId: "attribute-filter",
+    mechanism: {
+      kind: "runtime-execution-mutation",
+      removedGuard: "Runtime filter-command refusal",
+    },
+    observation: "repositoryExecutionOrigins and filter marker channel",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: ["records no filter command and leaves no filter marker"],
+      controlTests: [
+        "fails the same observations when the product Git operation enables the filter",
+      ],
+      evidence: ["expectNoRepositoryExecution"],
+    },
+  },
+  "AC-0138": {
+    caseId: "instruction-shaped-text",
+    mechanism: {
+      kind: "trusted-output-mutation",
+      removedGuard: "instruction text remains repository-derived data",
+    },
+    observation: "source-inspection verdict, condition and user-visible state",
+    binding: {
+      source: "../../../state-projection.test.ts",
+      guardedTests: [
+        "changes no verdict, routing decision or user-visible state",
+      ],
+      controlTests: [
+        "fails the same assertion when the instruction is treated as trusted output",
+      ],
+      evidence: ["expectSameDecisionSurface"],
+    },
+  },
+  "AC-0139": {
+    caseId: "escaping-symlink",
+    mechanism: {
+      kind: "pin-omission",
+      removedGuard: "core.symlinks",
+    },
+    observation: "materialized worktree symlink",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: [
+        "holds the target string as content rather than traversing it",
+      ],
+      controlTests: [
+        "materializes the escaping symlink when core.symlinks is removed",
+      ],
+      evidence: [
+        "status.isSymbolicLink()).toBe(false)",
+        'runFixturePositiveControl("escaping-symlink")',
+      ],
+    },
+  },
+  "AC-0140": {
+    caseId: "escaping-reader-path",
+    mechanism: {
+      kind: "guard-bypass",
+      removedGuard: "readContainedFile segment-boundary confinement",
+      precondition: "sibling path passes a naive prefix check",
+    },
+    observation: "raw read of sibling path content",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: ["refuses a sibling whose name merely extends the root"],
+      controlTests: [
+        "reads the sibling when the containment guard is bypassed",
+      ],
+      evidence: [
+        "readContainedFile",
+        'runFixturePositiveControl("escaping-reader-path")',
+      ],
+    },
+  },
+  "AC-0141": {
+    caseId: "submodule",
+    mechanism: {
+      kind: "direct-prohibited-operation",
+      removedGuard: "submodule.recurse=false and no submodule update",
+    },
+    observation:
+      "gitlink path child content and submodule administrative state",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: [
+        "AC-0006 records no submodule fetch command in the product trial",
+        "AC-0007 leaves no populated gitlink and no submodule administrative state",
+      ],
+      controlTests: [
+        "AC-0006 fails the fetch observation under a prohibited submodule update",
+        "AC-0007 fails the traversal observation under a prohibited submodule update",
+      ],
+      evidence: ["expectNoSubmoduleFetch", "expectNoGitlinkTraversal"],
+    },
+  },
+  "AC-0142": {
+    caseId: "option-shaped-ref",
+    mechanism: {
+      kind: "validator-bypass",
+      removedGuard: "remote ref canonicalization",
+    },
+    observation: "resolveRevision invalid-remote-ref refusal",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: [
+        "refuses a reported default branch shaped like a git option",
+      ],
+      controlTests: [
+        "fails the same assertion when remote-ref validation is removed",
+      ],
+      evidence: ["expectRemoteRefRefused"],
+    },
+  },
+  "AC-0143": {
+    caseId: "prototype-key",
+    mechanism: {
+      kind: "guard-bypass",
+      removedGuard: "guarded parser key stripping",
+    },
+    observation: "materialized parsed object owns __proto__",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: ["yields no value under the key in JSON"],
+      controlTests: [
+        "retains the prototype key when guarded parsing is bypassed",
+      ],
+      evidence: [
+        'Object.hasOwn(parsed, "__proto__")',
+        'runFixturePositiveControl("prototype-key")',
+      ],
+    },
+  },
+  "AC-0144": {
+    caseId: "materialized-module",
+    mechanism: {
+      kind: "guard-bypass",
+      removedGuard: "reader does not import materialized code",
+    },
+    observation: "global import marker",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: [
+        "resolves no specifier under the root while the tree is read",
+      ],
+      controlTests: [
+        "sets the import marker when the no-import guard is bypassed",
+      ],
+      evidence: [
+        "__hostileImported",
+        'runFixturePositiveControl("materialized-module")',
+      ],
+    },
+  },
+  "AC-0145": {
+    caseId: "authorization-header",
+    mechanism: {
+      kind: "construction-mutation",
+      removedGuard: "authorization carriers excluded from product construction",
+    },
+    observation: "canonical URL, Git argv, pinned config and closed env",
+    binding: {
+      source: "../absence-proofs.test.ts",
+      guardedTests: [
+        "constructs no authorization carrier from the hostile fixture value",
+      ],
+      controlTests: [
+        "fails the same assertion when an authorization carrier is inserted",
+      ],
+      evidence: ["expectNoAuthorizationCarrier"],
+    },
+  },
+  "AC-0146": {
+    caseId: "credential-sink",
+    mechanism: {
+      kind: "storage-sink-mutation",
+      removedGuard: "credential-bearing values excluded from storage sinks",
+    },
+    observation: "returned diagnostics, stderr and reopened storage",
+    binding: {
+      source: "../../../source-inspection-storage.test.ts",
+      guardedTests: [
+        "rejects an embedded credential without copying its value to a sink",
+      ],
+      controlTests: [
+        "fails the same assertion when credential sinks are populated",
+      ],
+      evidence: ["expectNoCredentialSink"],
+    },
+  },
+} as const satisfies PositiveControlProofs;
+
 /**
  * What each executable-shaped case appends to the probe log when it runs. One
  * table serves both halves: a control asserts the marker appears, and an
@@ -750,37 +1106,22 @@ export function inspectSubmoduleConstruction(
 }
 
 export function disposeHostileFixtures(): void {
+  const failures: Error[] = [];
   for (const root of fixtureRoots) {
-    rmSync(root, { recursive: true, force: true });
+    try {
+      rmSync(root, { recursive: true, force: true });
+    } catch (cause) {
+      failures.push(cause instanceof Error ? cause : new Error(String(cause)));
+    }
   }
   fixtureRoots.clear();
-}
-
-/**
- * Runs a fixture executable with the probe log in its environment, so that a
- * control observes the run through the same channel an absence proof observes
- * the lack of one. Without the log in scope the marker would reach stdout only,
- * which no absence can be read from.
- */
-function spawnFixtureExecutable(
-  executable: string,
-  args: readonly string[] = [],
-): string {
-  const result = spawnSync(executable, [...args], {
-    encoding: "utf8",
-    env: {
-      ...process.env,
-      STUDIO_PROBE_LOG: activeProbeLog ?? "/dev/null",
-    },
-  });
-  if (result.status !== 0) {
-    throw new Error(`positive-control executable failed: ${result.stderr}`);
+  if (failures.length > 0) {
+    throw new AggregateError(failures, "hostile fixture cleanup failed");
   }
-  return result.stdout;
 }
 
-export async function runPositiveControl(
-  caseId: HostileCase,
+export async function runFixturePositiveControl(
+  caseId: FixturePositiveControlCase,
 ): Promise<boolean> {
   const fixture = await buildHostileFixture({
     caseId,
@@ -790,44 +1131,10 @@ export async function runPositiveControl(
     const seen = await observeProcessTree(() => materialize(fixture));
     return seen.some(({ argv0 }) => argv0 === "post-checkout");
   }
-  if (caseId === "dot-git-variant") {
-    return sourceObjectHasDotGitVariant(fixture);
-  }
 
   await materialize(fixture);
 
-  // These three are observed over the process tree, the same channel their
-  // absence proofs read, rather than over the stdout of a direct spawn.
-  if (
-    caseId === "package-script" ||
-    caseId === "projected-skill-executable" ||
-    caseId === "attribute-filter"
-  ) {
-    const executable = {
-      "package-script": process.execPath,
-      "projected-skill-executable": join(
-        fixture.worktree,
-        ".agents/skills/hostile/run",
-      ),
-      "attribute-filter": join(fixture.worktree, ".probe/filter"),
-    }[caseId];
-    const args =
-      caseId === "package-script"
-        ? [join(fixture.worktree, ".probe/package-script.mjs")]
-        : [];
-    const marker = PROBE_LOG_MARKER[caseId];
-    const seen = await observeProcessTree(() => {
-      spawnFixtureExecutable(executable, args);
-    });
-    return seen.some(({ argv0 }) => argv0 === marker);
-  }
-
   switch (caseId) {
-    case "instruction-shaped-text":
-      return readFileSync(
-        join(fixture.worktree, "workspace.toml"),
-        "utf8",
-      ).includes("report ready");
     case "escaping-symlink": {
       // The guard is `core.symlinks=false`, and it acts on the *materialized*
       // tree: with it, git writes the link target as file content; without it,
@@ -865,12 +1172,6 @@ export async function runPositiveControl(
         ) === SUBMODULE_CHILD_CONTENT
       );
     }
-    case "option-shaped-ref":
-      return [
-        "/usr/bin/git",
-        "fetch",
-        readFileSync(join(fixture.worktree, ".probe/ref"), "utf8").trim(),
-      ].includes("--upload-pack=/bin/sh");
     case "prototype-key": {
       const parsed = JSON.parse(
         readFileSync(join(fixture.worktree, "projection.json"), "utf8"),
@@ -887,30 +1188,5 @@ export async function runPositiveControl(
           .__hostileImported === true
       );
     }
-    case "authorization-header": {
-      const sentHeaders = { authorization: "Bearer repository-token" };
-      return Object.hasOwn(sentHeaders, "authorization");
-    }
-    case "credential-sink": {
-      const storedDiagnostics = [
-        readFileSync(
-          join(fixture.worktree, ".probe/credential"),
-          "utf8",
-        ).trim(),
-      ];
-      return storedDiagnostics.includes("repository-token");
-    }
-    case "file-count-bound":
-      return readdirSync(join(fixture.worktree, ".probe/files")).length > 0;
-    case "tree-bytes-bound":
-    case "single-file-bound":
-    case "result-bytes-bound":
-    case "persisted-content-bound":
-      return (
-        readFileSync(
-          join(fixture.worktree, `.probe/${caseId.replace("-bound", "")}`),
-          "utf8",
-        ).length > 0
-      );
   }
 }

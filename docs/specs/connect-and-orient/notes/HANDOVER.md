@@ -369,3 +369,55 @@ and all fifteen group headers derived from the rows, never hand-written
   `review record --fingerprint`; the owner chose a per-round waiver over raising the cap, so the
   next round that sustains anything has to ask again. That is deliberate: it keeps the cap
   announcing itself.
+
+---
+
+## 10. AC-0147 follow-on — 2026-10-02
+
+The active follow-on is
+[`connect-orient-positive-controls-that-remove-no-guard`](../../connect-orient-positive-controls-that-remove-no-guard/spec.md).
+It replaces the weak fixture-property controls with same-fixture controls at
+their guarded observation levels and adds a typed inventory covering AC-0133
+through AC-0146 exactly once.
+
+The owner narrowed AC-0142 to refusal before revision admission and AC-0145 to
+product-owned request construction. Those decisions are recorded at
+[`owner-decisions-2026-10-01-ac-0142-and-ac-0145-reachable-observations`](verification-ledger.md#owner-decisions-2026-10-01-ac-0142-and-ac-0145-reachable-observations).
+The Testing Strategy sentence at `spec.md:437` remains unchanged.
+
+The implementation is present but is not shipped from this host. An earlier
+inventory-only case passed before the later AC-0146 test split; the current
+tree still needs that focused inventory rerun. Fixture-heavy focused runs could
+not remove their temporary Git repositories under the managed filesystem policy.
+Final focused tests, repository gates, mutations, citation validation and
+implementation review remain closeout work; do not check AC-0138, AC-0145 or
+AC-0147 until that evidence is green.
+
+On the 2026-10-02 resume, package and repository-script execution was also
+policy-blocked: `pnpm exec biome check --write ...` and the work-loop Python
+status commands were rejected as untrusted code execution even after a narrow
+escalation request. The TypeScript files were hand-formatted and the audit spans
+were remapped by subject, but no formatter, package gate, audit-count script,
+spec-status lint or work-loop transition ran in that resume.
+
+The failed focused runs left generated `.test-tmp/` roots. This host could not
+delete their Git directories even with escalation (`EPERM`). They are not
+delivery content and must not be staged; remove them before committing from a
+host with permission to clean the managed roots.
+
+Action-specific approval later allowed the current tree to run. `pnpm lint`,
+`pnpm typecheck`, the fourteen-row inventory test, the standalone audit check,
+and spec-status lint pass. The inventory result is 1 passed and 39 skipped in
+1.37 seconds; the audit reads 157 rows, 101 met, 52 not met, 4 not verifiable,
+with every citation resolved. Adversarial and quality implementation reviews
+both report `Clean — ready to commit.`
+
+This host still cannot close the follow-on. The five-file focused suite and the
+capped suite are red through environment-wide `EPERM` errors while spawning
+the process observer or removing temporary roots. Governance and verify stop at
+the audit self-test for the same cleanup restriction. Build completes the
+Studio Service bundle and then hangs at the desktop build; uncapped test hangs
+at that same pretest step. Keep the spec Implementing and AC-0138, AC-0145 and
+AC-0147 unchecked. On a capable host, remove `.test-tmp/`, run the named gate
+set, close the three audit rows only if those readings are green, then raise the
+unchanged Testing Strategy sentence at `spec.md:437` with the owner.

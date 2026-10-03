@@ -10001,3 +10001,87 @@ That entry stays as written; this one states what is now true. The evidence is i
 - **"AC-0136 is not upgraded"** is superseded. AC-0136 is met, `S`. Its `.GIT` arm is refused by
   git's own path check with every product guard out of force, on APFS and HFS+. By owner decision on
   2026-10-01, that arm is recorded as git-guaranteed.
+
+## owner-decisions-2026-10-01-ac-0142-and-ac-0145-reachable-observations
+
+The owner approved two bounded criterion narrowings for
+`connect-orient-positive-controls-that-remove-no-guard` on 2026-10-01.
+
+- **AC-0142 ends at revision admission.** A remote-reported ref is consumed by
+  `resolveRevision`; materialization receives the canonical fetch URL and the
+  resolved SHA, not that ref. The automated obligation is therefore refusal of
+  an option-shaped remote ref before it becomes an admitted revision. No
+  production path is added solely to carry the value into a later Git argument
+  vector.
+- **AC-0145 ends at product-owned request construction.** Its automated proof
+  covers the canonical URL, resolution and Runtime Git argument vectors, pinned
+  Git configuration, and closed environment. It does not claim visibility
+  inside an encrypted request. AC-0148's no-network rule remains unchanged,
+  and the existing live smoke corroborates transport configuration rather than
+  literal wire headers.
+
+Both decisions preserve the security outcomes at the surfaces the product
+owns. They authorize only the matching AC-0142 and AC-0145 text changes; the
+hostile-proof Testing Strategy sentence remains unchanged.
+
+## ac0147-positive-control-implementation-2026-10-02
+
+Forward execution record for
+[`connect-orient-positive-controls-that-remove-no-guard`](../../connect-orient-positive-controls-that-remove-no-guard/spec.md).
+The earlier entries remain contemporaneous; this entry states the current
+implementation and verification boundary.
+
+- AC-0138 now carries the same instruction-shaped fixture through the real
+  source-inspection composition as inert diagnostics, then treats that text as
+  trusted output in the control. Both paths use `expectSameDecisionSurface` at
+  the verdict, condition and user-visible-state surface.
+- AC-0142 now stops at the owner-approved revision-admission boundary.
+  Production `resolveRevision` refuses the injected hostile reported ref, and
+  a test-owned result with only validation removed makes
+  `expectRemoteRefRefused` fail.
+- AC-0145 now stops at the owner-approved construction boundary. One assertion
+  covers the canonical URL, resolution and Runtime Git argument vectors,
+  pinned configuration and closed environment; inserting the fixture value as
+  `http.extraHeader` makes that assertion fail.
+- AC-0146 retains its real refusal and reopened-storage observations, but now
+  sources the credential used by both guarded and guard-removed paths from the
+  registered credential-sink hostile fixture rather than a literal.
+- `POSITIVE_CONTROL_PROOFS` inventories AC-0133 through AC-0146 exactly once,
+  maps each row to `HOSTILE_CASE_BY_CRITERION`, records the mechanism and
+  observation, and binds the guarded test, control test and shared assertion.
+  The fixture helper retains only the six controls that genuinely operate at
+  fixture level. AC-0140 records the naive-prefix check as an attacker
+  precondition and the raw sibling read as the containment-guard bypass.
+
+This host has not closed the three parent criteria. The inventory-only case
+passed, but fixture-heavy focused runs encountered `EPERM` while deleting
+temporary Git roots under the managed filesystem policy. The final focused
+suites, mutations, audit checker, repository gates and implementation reviews
+remain required. The Testing Strategy sentence at `spec.md:437` is unchanged.
+Until those readings complete, the audit remains 101 met, 52 not met and 4 not
+verifiable here; 104 / 49 / 4 is the intended closeout state.
+
+### AC-0147 approved execution follow-up
+
+On 2026-10-02, action-specific owner approval allowed repository execution.
+Lint and typecheck passed. The current fourteen-row inventory case passed with
+1 test passed and 39 skipped in 1.37 seconds. The five-file focused run ended
+with 47 passed, 5 skipped and 110 reported failed in 559.40 seconds; the shown
+failures were the managed host's `EPERM` errors while spawning the process
+observer or deleting temporary roots, not a green product reading.
+
+Governance then found 16 stale citation spans before its self-test encountered
+the same temporary-tree deletion restriction. Those spans were remapped by
+subject and the diff remained whitespace-clean. Governance and the remaining
+finite gates still require a fresh run, so the candidate rows and the 101 / 52
+/ 4 audit count remain unchanged.
+
+The approved follow-up then established the final boundary of this host. The
+standalone audit check passed with every citation resolving, and spec-status
+lint passed. Governance and `pnpm verify` stopped only when the audit self-test
+could not delete its temporary tree. The capped suite completed with 554 tests
+passed, 273 reported failed and 8 skipped; the failures were the same
+environment-wide `EPERM` cleanup and process-spawn errors, so this is not a
+green capped reading. The build produced the Studio Service bundle but hung at
+the desktop build, and the uncapped test command repeated that hang in pretest
+before Vitest started. The parent criteria and audit count therefore stay open.

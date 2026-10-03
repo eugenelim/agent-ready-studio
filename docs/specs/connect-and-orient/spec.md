@@ -641,10 +641,10 @@ assisted authoring and has known false negatives.
 - [x] **AC-0139.** An automated test proves an escaping symlink is materialized as a regular file holding its target string.
 - [x] **AC-0140.** An automated test proves the reader refuses an escaping path presented directly to it, independently of materialization, including a sibling path whose name extends the root.
 - [ ] **AC-0141.** An automated test proves a `.gitmodules` entry causes no submodule fetch or traversal.
-- [x] **AC-0142.** An automated test proves a remote default branch shaped like a `git` option is refused before reaching an argument vector.
+- [x] **AC-0142.** An automated test proves a remote default branch shaped like a `git` option is refused before it becomes an admitted revision.
 - [x] **AC-0143.** An automated test proves a prototype-mutating key in TOML or JSON yields no value under that key. The YAML arm returns with the slice that first parses YAML.
 - [x] **AC-0144.** An automated test proves no module is imported from under the materialization root.
-- [ ] **AC-0145.** An automated test proves no authorization header is sent on any request the feature makes.
+- [ ] **AC-0145.** An automated test proves the authorization-header fixture value reaches no product-owned request-construction surface. This automated criterion claims construction reach only, not visibility inside an encrypted request.
 - [ ] **AC-0146.** An automated test proves no credential-bearing value reaches storage or a diagnostic.
 - [ ] **AC-0147.** Each of AC-0133 through AC-0146 has a positive control reproducing the same fixture and the same effect with its guard removed, at the same observation level, proving the observation fires.
 
