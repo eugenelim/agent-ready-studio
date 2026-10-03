@@ -637,16 +637,16 @@ assisted authoring and has known false negatives.
 - [ ] **AC-0135.** An automated test proves a projected skill executable does not run during inspection, observed the same way.
 - [ ] **AC-0136.** An automated test proves a tree entry whose name is a case-insensitive or Unicode-ignorable variant of `.git` does not overwrite the real `.git` at checkout.
 - [ ] **AC-0137.** An automated test proves a `.gitattributes` filter declaration triggers no filter command.
-- [ ] **AC-0138.** An automated test proves instruction-shaped text changes no Studio verdict, routing decision, or state.
+- [x] **AC-0138.** An automated test proves instruction-shaped text changes no Studio verdict, routing decision, or state.
 - [x] **AC-0139.** An automated test proves an escaping symlink is materialized as a regular file holding its target string.
 - [x] **AC-0140.** An automated test proves the reader refuses an escaping path presented directly to it, independently of materialization, including a sibling path whose name extends the root.
 - [ ] **AC-0141.** An automated test proves a `.gitmodules` entry causes no submodule fetch or traversal.
 - [x] **AC-0142.** An automated test proves a remote default branch shaped like a `git` option is refused before it becomes an admitted revision.
 - [x] **AC-0143.** An automated test proves a prototype-mutating key in TOML or JSON yields no value under that key. The YAML arm returns with the slice that first parses YAML.
 - [x] **AC-0144.** An automated test proves no module is imported from under the materialization root.
-- [ ] **AC-0145.** An automated test proves the authorization-header fixture value reaches no product-owned request-construction surface. This automated criterion claims construction reach only, not visibility inside an encrypted request.
+- [x] **AC-0145.** An automated test proves the authorization-header fixture value reaches no product-owned request-construction surface. This automated criterion claims construction reach only, not visibility inside an encrypted request.
 - [ ] **AC-0146.** An automated test proves no credential-bearing value reaches storage or a diagnostic.
-- [ ] **AC-0147.** Each of AC-0133 through AC-0146 has a positive control reproducing the same fixture and the same effect with its guard removed, at the same observation level, proving the observation fires.
+- [x] **AC-0147.** Each of AC-0133 through AC-0146 has a positive control reproducing the same fixture and the same effect with its guard removed, at the same observation level, proving the observation fires.
 
 ### Suite-level and evidence
 

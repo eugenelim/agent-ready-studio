@@ -236,10 +236,14 @@ function namedTestBody(source: string, testName: string): string {
     source.indexOf(marker, start + marker.length),
     `duplicate test name: ${testName}`,
   ).toBe(-1);
-  const afterMarker = start + marker.length;
-  const nextTest = /\n\s+it\("/.exec(source.slice(afterMarker));
-  const end = nextTest === null ? source.length : afterMarker + nextTest.index;
-  return source.slice(start, end);
+  // The formatter closes a test with `});` at the indentation of its `it(`
+  // line, so the body ends there rather than at the next test.
+  const lineStart = source.lastIndexOf("\n", start) + 1;
+  const indent = source.slice(lineStart, start);
+  const closer = `\n${indent}});`;
+  const end = source.indexOf(closer, start);
+  expect(end, `unterminated test: ${testName}`).toBeGreaterThan(start);
+  return source.slice(start, end + closer.length);
 }
 
 describe("AC-0147 positive controls", () => {

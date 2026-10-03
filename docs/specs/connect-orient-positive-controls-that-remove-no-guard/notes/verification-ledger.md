@@ -228,3 +228,73 @@ received `reason: failed` instead of `SIGTERM`.
 The spec stays Implementing. AC-0138, AC-0145, AC-0147 and follow-on AC-0001
 through AC-0006 stay unchecked until the remote `gates.yml` dispatch returns
 green full-suite readings.
+
+## remote-gates-and-closeout-2026-10-03
+
+This forward entry closes the "Not yet green" boundary above.
+
+**Remote readings.** `gates.yml` run 37153204233 dispatched `verify-and-capped` on
+`eugenelim/follow-on` at `627af42`. That is the delivery commit plus a merge of `main`, which
+brought in the workflow. The runner reported `availableParallelism=3`.
+
+| Reading | Result |
+| --- | --- |
+| `pnpm verify` (lint, typecheck, governance, test, build) | lint checked 133 files; audit check 101 / 52 / 4 with every citation resolving; audit self-test passed; tests 832 passed, 3 skipped of 835 across 57 files, 86.51 seconds |
+| `pnpm test:capped` | 832 passed, 3 skipped of 835, 81.40 seconds |
+
+`disposal.test.ts`, `materialization`, `runtime-supervisor` and every file that failed
+locally passed remotely. The local reds were host load, as recorded above.
+
+**Closeout.** Parent AC-0138, AC-0145 and AC-0147 are checked and their audit rows are met.
+The checker confirms 157 rows: 104 met, 49 not met, and 4 not verifiable here. Follow-on
+AC-0001 through AC-0006 are checked.
+
+The engine recorded waves T1 to T3. Each dispatch receipt is a `human-directed` decline,
+because the owner's handover directed the controller to implement directly. The engine then
+fired `gates-clean` and entered `CODE-REVIEW`.
+
+The parent Testing Strategy sentence at `spec.md:437` is unchanged and goes to the owner in
+the pull request.
+
+## review-round-1-repairs-2026-10-03
+
+The final adversarial and quality reviews were adjudicated. Seven findings were sustained, and
+each is repaired in this round.
+
+**Test code**
+- The AC-0145 guarded test now asserts that the resolution Git argv and the Runtime spawn audit
+  are each non-empty before the absence assertion runs. It can no longer pass on an empty
+  surface.
+- The inventory's `namedTestBody` now ends each slice at the named test's own closing `});`,
+  not at the next `it("`. A token in a following helper, describe block or comment can no
+  longer satisfy a row's evidence. All 26 bound `absence-proofs.test.ts` bodies now end inside
+  their own test; the longest is 67 lines.
+
+**Acceptance record**
+- AC-0062 is restored to `met | W`. The rewritten AC-0138 test varies inspector diagnostics,
+  not a value Studio read itself, so it cannot be AC-0062's `S` basis. The row now binds the
+  `declaredVersionMarker` case over the callerless normalizer.
+- The AC-0138 row states its reach. Both legs drive the `ok: true` composition branch through a
+  stubbed `inspect`, and no production producer reaches that branch in this slice. AC-0001's
+  evidence in the first entry above has the same reach.
+- The AC-0147 row no longer cites the 1,094-line `absence-proofs.test.ts:901-1994` span.
+- The AC-0145 and inventory spans were re-derived from their current subjects.
+- The mutation count now reads thirteen in the handover and the audit: five table rows plus
+  eight control runs, matching the receipts above.
+
+**Forward correction.** The `implementation-pass-2026-10-01` entry says the parent spec leaves
+AC-0142 unchanged. That is not true: parent AC-0142 was narrowed to refusal "before it becomes
+an admitted revision", under the owner decision
+`owner-decisions-2026-10-01-ac-0142-and-ac-0145-reachable-observations`. The Testing Strategy
+sentence at `spec.md:437` is the only part left unchanged.
+
+**Refuted findings** (no change made):
+- A per-branch control for the AC-0145 detector. AC-0003 names the `http.extraHeader` control
+  exactly.
+- Building the AC-0146 diagnostic mutation from the real refusal. It would add no
+  discrimination.
+- A stale materialized-module marker. Every fixture imports a fresh module URL.
+- Relabelling AC-0142's admission. AC-0002 requires that test-owned admission.
+
+Because the test code changed after run 37153204233, the full suite is re-dispatched on the
+final tree before shipping.

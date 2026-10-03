@@ -10085,3 +10085,24 @@ environment-wide `EPERM` cleanup and process-spawn errors, so this is not a
 green capped reading. The build produced the Studio Service bundle but hung at
 the desktop build, and the uncapped test command repeated that hang in pretest
 before Vitest started. The parent criteria and audit count therefore stay open.
+
+## ac0147-closeout-2026-10-03
+
+Forward correction to `ac0147-positive-control-implementation-2026-10-02` and its follow-up.
+Those entries stay as written. This one states what is now true.
+
+AC-0138, AC-0145 and AC-0147 are met and checked. The audit reads 157 rows: 104 met, 49 not
+met, and 4 not verifiable here. The checker confirms that count, and every citation resolves.
+
+The red readings recorded above came from host restrictions and host load, not from the tree:
+
+- The focused suite passed on a capable host: 162 tests.
+- `pnpm verify` and `pnpm test:capped` were each green on the remote `gates.yml` macOS
+  runner: 832 passed and 3 skipped of 835.
+
+The mutation receipts and run details are in
+[`../../connect-orient-positive-controls-that-remove-no-guard/notes/verification-ledger.md`](../../connect-orient-positive-controls-that-remove-no-guard/notes/verification-ledger.md).
+
+The Testing Strategy sentence at `spec.md:437` is unchanged. Whether it now stands is an owner
+ruling: AC-0147 supports its positive-control clause, while AC-0144 is still `W` and seven
+pins remain constant-only.

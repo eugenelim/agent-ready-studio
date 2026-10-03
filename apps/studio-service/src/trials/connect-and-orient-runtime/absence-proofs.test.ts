@@ -1930,6 +1930,14 @@ describe("AC-0145 no authorization carrier reaches request construction", () => 
       };
     });
     await resolveRevision(identity.identity, transport);
+    expect(
+      resolutionGitArgv.length,
+      "no resolution Git argv to read an authorization absence from",
+    ).toBeGreaterThan(0);
+    expect(
+      record.spawnAudit.length,
+      "no Runtime spawn record to read an authorization absence from",
+    ).toBeGreaterThan(0);
 
     const surfaces: AuthorizationConstructionSurface[] = [
       {

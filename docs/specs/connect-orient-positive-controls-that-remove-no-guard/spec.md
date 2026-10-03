@@ -108,23 +108,23 @@ test failure instead of an unaudited claim.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The instruction-shaped-text fixture passes through the real
+- [x] **AC-0001.** The instruction-shaped-text fixture passes through the real
   source-inspection composition without changing its verdict, routing
   condition or user-visible state relative to the same inspection without that
   text; a controlled mutation that treats the same text as trusted inspection
   output makes the same three-field assertion throw its own failure message.
-- [ ] **AC-0002.** The option-shaped-ref fixture is returned by an injected
+- [x] **AC-0002.** The option-shaped-ref fixture is returned by an injected
   revision transport and production `resolveRevision` refuses it as
   `invalid-remote-ref` before it becomes an admitted resolution; a test-owned
   admission that differs only by removal of that validation makes the same
   assertion throw its own failure message.
-- [ ] **AC-0003.** The authorization-header fixture's planted value appears in
+- [x] **AC-0003.** The authorization-header fixture's planted value appears in
   none of the product-owned canonical URL, resolution Git argv, Runtime Git
   argv, pinned Git configuration or closed environment surfaces; inserting
   that same value as `http.extraHeader` makes the same assertion throw its own
   failure message. This criterion claims construction reach, not visibility
   inside an encrypted request.
-- [ ] **AC-0004.** A typed inventory enumerates AC-0133 through AC-0146 exactly
+- [x] **AC-0004.** A typed inventory enumerates AC-0133 through AC-0146 exactly
   once, maps each row to the exact case in `HOSTILE_CASE_BY_CRITERION`, and
   records a guard-removal or guard-bypass mechanism and the matching
   observation surface. Each row also resolves to named executable guarded and
@@ -132,13 +132,13 @@ test failure instead of an unaudited claim.
   may use fixture-property or literal-construction as its mechanism. Removing a
   row or mechanism, or naming a missing test or assertion, fails the inventory
   test.
-- [ ] **AC-0005.** The Connect and Orient spec narrows AC-0142 to refusal before
+- [x] **AC-0005.** The Connect and Orient spec narrows AC-0142 to refusal before
   admission and AC-0145 to product-owned request construction, leaves the
   Testing Strategy sentence unchanged, and records both owner decisions
   forward. The audit reads 157 rows, 104 met, 49 not met and 4 not
   verifiable here, with AC-0138, AC-0145 and AC-0147 met at their measured
   reach.
-- [ ] **AC-0006.** Focused proof suites, the acceptance-audit checker and
+- [x] **AC-0006.** Focused proof suites, the acceptance-audit checker and
   self-test, spec-status lint, the finite repository gate set, and the
   documented capped test reading pass. A discriminating anchor mutation makes
   the audit checker fail. No automated test added by this delivery uses a
