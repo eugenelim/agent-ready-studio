@@ -1,7 +1,7 @@
 # Plan: Connect and Orient positive controls that remove a guard
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `HOSTILE_CASE_BY_CRITERION` and the fixture-level
   control helper in `test/hostile-fixture.ts`; AC-0133 through AC-0145 in
   `absence-proofs.test.ts`; AC-0138 in `state-projection.test.ts`; AC-0146 in

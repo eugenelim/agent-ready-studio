@@ -1,6 +1,6 @@
 # Spec: Connect and Orient positive controls that remove a guard
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Agent-Ready Studio maintainers
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none

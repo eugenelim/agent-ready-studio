@@ -298,3 +298,15 @@ sentence at `spec.md:437` is the only part left unchanged.
 
 Because the test code changed after run 37153204233, the full suite is re-dispatched on the
 final tree before shipping.
+
+## final-tree-gates-2026-10-03
+
+This entry records the re-dispatch promised above. `gates.yml` run 37155146663 used
+`verify-and-capped` on `5706a31`, the commit carrying the review-round repairs. The runner
+reported `availableParallelism=3`. AC-0006 rests on this reading.
+
+| Reading | Result |
+| --- | --- |
+| `pnpm verify` | Lint checked 133 files. Audit check: 157 rows, 104 met, 49 not met, 4 not verifiable here, and every citation resolves. Audit self-test passed. Tests: 832 passed, 3 skipped of 835 across 57 files, 76.13 seconds. |
+| `pnpm test:capped` | 832 passed, 3 skipped of 835, 68.11 seconds. |
+| Focused files, inside both readings | `state-projection` 27, `absence-proofs` 66, `hostile-fixture` 40, `source-inspection-storage` 11 and `connected-source` 18, for 162 passed each time. |
