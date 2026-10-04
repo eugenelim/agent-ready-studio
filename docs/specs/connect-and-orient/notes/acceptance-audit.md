@@ -344,7 +344,8 @@ the name is unique across the repository, as in the previous pass.
 > The pin boundary below is a recorded limit of the pin inventory, not of the sentence. See
 > [`verification-ledger.md#owner-ruling-2026-10-04-testing-strategy-sentence-stands`](verification-ledger.md#owner-ruling-2026-10-04-testing-strategy-sentence-stands).
 >
-> **The units that closed the AC-0133 through AC-0147 rows the sentence relies on:**
+> **Of the fifteen rows the sentence relies on, six were already met:** AC-0133, AC-0139, AC-0140,
+> AC-0142, AC-0143 and AC-0144. **These units closed the other nine:**
 > - `connect-orient-falsifiable-criteria-proofs` closed AC-0134, AC-0135, AC-0137, AC-0141 and
 >   AC-0146 with proofs that redden at the surface each criterion names.
 > - `connect-orient-ac0136-overwrite-arm` closed AC-0136 on 2026-10-01. Its Unicode arm closed on
