@@ -394,6 +394,8 @@ of the four new controls. `pnpm verify` and `pnpm test:capped` were each green o
 red through trial-runtime timeouts. The same tree was green on the remote runner, so dispatch
 `gates.yml` instead, as `AGENTS.md` describes.
 
-**Owner follow-up.** The Testing Strategy sentence at `spec.md:437` is unchanged. AC-0147 now
-supports its positive-control clause. AC-0144 remains graded `W`, and seven Git pins remain
-constant-only. The owner rules whether the sentence stands without amendment.
+**Testing Strategy sentence.** The sentence at `spec.md:437` is unchanged. It stands by owner
+ruling on 2026-10-04: "guardrail property" means the criteria AC-0133 through AC-0147, and
+AC-0144's `W` grade is accepted. The seven constant-only Git pins remain a recorded limit of the
+pin inventory. See
+[`owner-ruling-2026-10-04-testing-strategy-sentence-stands`](verification-ledger.md#owner-ruling-2026-10-04-testing-strategy-sentence-stands).

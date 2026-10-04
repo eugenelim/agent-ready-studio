@@ -10106,3 +10106,20 @@ The mutation receipts and run details are in
 The Testing Strategy sentence at `spec.md:437` is unchanged. Whether it now stands is an owner
 ruling: AC-0147 supports its positive-control clause, while AC-0144 is still `W` and seven
 pins remain constant-only.
+
+## owner-ruling-2026-10-04-testing-strategy-sentence-stands
+
+On 2026-10-04 the owner ruled that the hostile-repository Testing Strategy sentence at
+`spec.md:437` stands without amendment.
+
+- **Reading.** "Each guardrail property" means the criteria AC-0133 through AC-0147. It does
+  not mean each individual pinned Git setting.
+- **Positive controls.** AC-0147 is met, so every AC-0133 through AC-0146 criterion has a
+  same-fixture control that removes or bypasses its guard at the guarded observation level.
+- **Falsifiability.** AC-0144 stays graded `W`. Its static audit of the real import list of
+  the process rooted at the state root is accepted as falsifiable enough for the sentence.
+- **Pins.** The seven constant-only Git pins remain a recorded limit of the pin inventory in
+  the acceptance audit, not a defect in the sentence.
+
+This supersedes the audit's earlier statement that the rows govern and the sentence does not. It
+needs no contract edit. The sentence is byte-identical to its text before this ruling.

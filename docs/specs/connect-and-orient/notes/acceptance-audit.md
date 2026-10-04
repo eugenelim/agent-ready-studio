@@ -333,28 +333,33 @@ the name is unique across the repository, as in the previous pass.
 
 ### Security proofs, and suite-level evidence — 20 met, 1 not met
 
-> **The spec's Testing Strategy line for this group awaits an owner ruling.** `spec.md:437` says
-> every guardrail property is falsifiable and carries a positive control at its own observation
-> level. AC-0147 is now met, so every AC-0133 through AC-0146 row has a guard-removing control.
-> AC-0144 is still graded `W`, and seven pins below remain constant-only, so the owner decides
-> whether the sentence stands unamended.
+> **The spec's Testing Strategy line for this group stands, by owner ruling on 2026-10-04.**
+> `spec.md:437` says every guardrail property is falsifiable and carries a positive control at its
+> own observation level. The owner reads "guardrail property" as the criteria AC-0133 through
+> AC-0147, not as each pinned Git setting. Under that reading the rows below support the sentence:
+> - AC-0147 is met, so every AC-0133 through AC-0146 row has a guard-removing control.
+> - AC-0144's static audit of the real import list is accepted as falsifiable despite its `W`
+>   grade.
 >
-> **No single unit closes this.** `connect-orient-falsifiable-criteria-proofs` closed five of the
-> six rows the retired `connect-orient-rebind-the-vacuous-criteria-to-the-spawn-audit` entry listed
-> as members, giving AC-0134, AC-0135, AC-0137, AC-0141 and AC-0146 proofs that redden at the
-> surface each criterion names; AC-0147 is owned by
-> `connect-orient-positive-controls-that-remove-no-guard`; and AC-0136 was closed by
-> `connect-orient-ac0136-overwrite-arm` on 2026-10-01. Its Unicode arm
-> closed on a scratch HFS+ volume: with `transfer.fsckObjects` omitted and `core.protectHFS=false`
-> set ambiently, the product's `core.protectHFS=true` refuses the checkout, and omitting it lets the
-> real `.git/config` be overwritten. Its `.GIT` arm is recorded as git's own path check, by owner
-> decision. **The other `W`
-> rows have no registered owner** — a weak-but-falsifiable binding is a different defect from a proof that
-> cannot redden, and no open entry covers those rows. Rebinding alone would leave the sentence false.
+> The pin boundary below is a recorded limit of the pin inventory, not of the sentence. See
+> [`verification-ledger.md#owner-ruling-2026-10-04-testing-strategy-sentence-stands`](verification-ledger.md#owner-ruling-2026-10-04-testing-strategy-sentence-stands).
 >
-> A contract amendment was opened on 2026-09-27 and abandoned after three review rounds; see
+> **The units that closed this group's open rows:**
+> - `connect-orient-falsifiable-criteria-proofs` closed AC-0134, AC-0135, AC-0137, AC-0141 and
+>   AC-0146 with proofs that redden at the surface each criterion names.
+> - `connect-orient-ac0136-overwrite-arm` closed AC-0136 on 2026-10-01. Its Unicode arm closed on
+>   a scratch HFS+ volume. With `transfer.fsckObjects` omitted and `core.protectHFS=false` set
+>   ambiently, the product's `core.protectHFS=true` refuses the checkout; omitting it lets the
+>   real `.git/config` be overwritten. Its `.GIT` arm is recorded as git's own path check, by
+>   owner decision.
+> - `connect-orient-positive-controls-that-remove-no-guard` closed AC-0138, AC-0145 and AC-0147
+>   on 2026-10-03.
+>
+> A contract amendment to the sentence was opened on 2026-09-27 and abandoned after three review
+> rounds; see
 > [`verification-ledger.md#owner-decision-2026-09-27-amend-the-falsifiability-claim`](verification-ledger.md#owner-decision-2026-09-27-amend-the-falsifiability-claim),
-> whose contents are marked unreliable. **These rows are governing; that sentence is not.**
+> whose contents are marked unreliable. The sentence now stands by the ruling above, not by
+> amendment.
 >
 > **Pinned Git configuration proof boundary, updated 2026-10-01.** The current
 > `PINNED_GIT_CONFIGURATION` inventory contains thirteen settings. Six now have
