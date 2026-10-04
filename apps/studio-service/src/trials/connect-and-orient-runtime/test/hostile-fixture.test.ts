@@ -4,18 +4,6 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { pinnedGitConfigurationArgs } from "../git-driver.js";
 import { foldsToDotGit, mountHfsVolume } from "./hfs-volume.js";
-
-// Every case here builds a real git repository and, for the positive controls,
-// spawns git. That work exceeds vitest's 5s default whenever the machine is busy
-// (6.9s, 9.5s and 12.9s observed under concurrent load), so the suite is given a
-// generous file-level budget. This is a scheduling allowance, not a slow assertion:
-// each test still fails on its own assertion, and the budget is set here rather
-// than per test. The stub block below has **diverged** from plan.md's pinned T1 text:
-// `pinHooksPath: false` became `omitPinPrefix: "core.hooksPath"` when the fixture was bound to
-// PINNED_GIT_CONFIGURATION, and T1 is a completed pinned section that cannot be edited. The
-// exemption is kept so the block stays diffable against that pinned text, not because it matches.
-vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
-
 import {
   buildHostileFixture,
   DOT_GIT_CASE_ENTRY,
@@ -26,10 +14,25 @@ import {
   inspectSubmoduleConstruction,
   materialize,
   observeProcessTree,
-  runPositiveControl,
+  POSITIVE_CONTROL_CRITERIA,
+  POSITIVE_CONTROL_PROOFS,
+  runFixturePositiveControl,
   SUBMODULE_GITLINK_PATH,
   sourceObjectHasDotGitVariant,
 } from "./hostile-fixture.js";
+
+// Every case here builds a real git repository and, for the positive controls,
+// spawns git. That work exceeds vitest's 5s default whenever the machine is busy
+// (6.9s, 9.5s and 12.9s observed under concurrent load), so the suite is given a
+// generous file-level budget. This is a scheduling allowance, not a slow
+// assertion: each test still fails on its own assertion, and the budget is set
+// here rather than per test. The stub block below has **diverged** from plan.md's
+// pinned T1 text: `pinHooksPath: false` became
+// `omitPinPrefix: "core.hooksPath"` when the fixture was bound to
+// PINNED_GIT_CONFIGURATION, and T1 is a completed pinned section that cannot be
+// edited. The exemption is kept so the block stays diffable against that pinned
+// text, not because it matches.
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 afterEach(() => {
   disposeHostileFixtures();
@@ -225,23 +228,79 @@ describe("AC-0149 hostile fixture corpus", () => {
   });
 });
 
+function namedTestBody(source: string, testName: string): string {
+  const marker = `it("${testName}"`;
+  const start = source.indexOf(marker);
+  expect(start, `missing test: ${testName}`).toBeGreaterThanOrEqual(0);
+  expect(
+    source.indexOf(marker, start + marker.length),
+    `duplicate test name: ${testName}`,
+  ).toBe(-1);
+  // The formatter closes a test with `});` at the indentation of its `it(`
+  // line, so the body ends there rather than at the next test.
+  const lineStart = source.lastIndexOf("\n", start) + 1;
+  const indent = source.slice(lineStart, start);
+  const closer = `\n${indent}});`;
+  const end = source.indexOf(closer, start);
+  expect(end, `unterminated test: ${testName}`).toBeGreaterThan(start);
+  return source.slice(start, end + closer.length);
+}
+
 describe("AC-0147 positive controls", () => {
+  it("enumerates AC-0133 through AC-0146 exactly once with non-property controls", () => {
+    expect(Object.keys(POSITIVE_CONTROL_PROOFS)).toEqual([
+      ...POSITIVE_CONTROL_CRITERIA,
+    ]);
+    expect(POSITIVE_CONTROL_CRITERIA).toHaveLength(14);
+    expect(POSITIVE_CONTROL_CRITERIA.at(0)).toBe("AC-0133");
+    expect(POSITIVE_CONTROL_CRITERIA.at(-1)).toBe("AC-0146");
+
+    const seenCases = new Set<string>();
+    for (const criterion of POSITIVE_CONTROL_CRITERIA) {
+      const proof = POSITIVE_CONTROL_PROOFS[criterion];
+      expect(proof.caseId, criterion).toBe(
+        HOSTILE_CASE_BY_CRITERION[criterion],
+      );
+      expect(proof.observation, criterion).not.toBe("");
+      expect(proof.mechanism.kind, criterion).not.toMatch(
+        /fixture-property|literal-construction/,
+      );
+      expect(proof.mechanism.removedGuard.trim(), criterion).not.toBe("");
+      const source = readFileSync(
+        new URL(proof.binding.source, import.meta.url),
+        "utf8",
+      );
+      expect(proof.binding.guardedTests.length, criterion).toBeGreaterThan(0);
+      expect(proof.binding.controlTests.length, criterion).toBeGreaterThan(0);
+      const matchedEvidence = new Set<string>();
+      for (const testName of [
+        ...proof.binding.guardedTests,
+        ...proof.binding.controlTests,
+      ]) {
+        const body = namedTestBody(source, testName);
+        const matches = proof.binding.evidence.filter((token) =>
+          body.includes(token),
+        );
+        expect(matches, `${criterion}: ${testName}`).not.toEqual([]);
+        for (const token of matches) matchedEvidence.add(token);
+      }
+      expect(
+        [...matchedEvidence].toSorted(),
+        `${criterion}: unused executable evidence`,
+      ).toEqual([...proof.binding.evidence].toSorted());
+      seenCases.add(proof.caseId);
+    }
+    expect(seenCases.size).toBe(POSITIVE_CONTROL_CRITERIA.length);
+  });
+
   it.each([
     "repository-hook",
-    "package-script",
-    "projected-skill-executable",
-    "dot-git-variant",
-    "attribute-filter",
-    "instruction-shaped-text",
     "escaping-symlink",
     "escaping-reader-path",
     "submodule",
-    "option-shaped-ref",
     "prototype-key",
     "materialized-module",
-    "authorization-header",
-    "credential-sink",
   ] as const)("observes the %s effect with its guard removed", async (caseId) => {
-    await expect(runPositiveControl(caseId)).resolves.toBe(true);
+    await expect(runFixturePositiveControl(caseId)).resolves.toBe(true);
   });
 });

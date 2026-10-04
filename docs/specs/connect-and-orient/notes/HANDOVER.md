@@ -369,3 +369,33 @@ and all fifteen group headers derived from the rows, never hand-written
   `review record --fingerprint`; the owner chose a per-round waiver over raising the cap, so the
   next round that sustains anything has to ask again. That is deliberate: it keeps the cap
   announcing itself.
+
+---
+
+## 10. AC-0147 follow-on — 2026-10-03
+
+[`connect-orient-positive-controls-that-remove-no-guard`](../../connect-orient-positive-controls-that-remove-no-guard/spec.md)
+closed AC-0138, AC-0145 and AC-0147. The audit now reads 157 rows: 104 met, 49 not met, and
+4 not verifiable here. Every AC-0133 through AC-0146 proof now has a same-fixture control that
+removes or bypasses its guard at the guarded observation level. A typed inventory binds each
+row to its named guarded and control test bodies.
+
+The owner narrowed AC-0142 to refusal before revision admission and AC-0145 to product-owned
+request construction. Those decisions are recorded at
+[`owner-decisions-2026-10-01-ac-0142-and-ac-0145-reachable-observations`](verification-ledger.md#owner-decisions-2026-10-01-ac-0142-and-ac-0145-reachable-observations).
+
+**Evidence.** The five-file focused suite passed: 162 tests. All thirteen recorded mutations went
+red as required: four inventory mutations, the audit-anchor move, and both mutations of each
+of the four new controls. `pnpm verify` and `pnpm test:capped` were each green on the remote
+`gates.yml` macOS runner: 832 passed and 3 skipped of 835. The record is in the follow-on's
+[verification ledger](../../connect-orient-positive-controls-that-remove-no-guard/notes/verification-ledger.md).
+
+**Run the full suite remotely.** Local full-suite runs on a heavily loaded development host went
+red through trial-runtime timeouts. The same tree was green on the remote runner, so dispatch
+`gates.yml` instead, as `AGENTS.md` describes.
+
+**Testing Strategy sentence.** The sentence at `spec.md:437` is unchanged. It stands by owner
+ruling on 2026-10-04: "guardrail property" means the criteria AC-0133 through AC-0147, and
+AC-0144's `W` grade is accepted. The seven constant-only Git pins remain a recorded limit of the
+pin inventory. See
+[`owner-ruling-2026-10-04-testing-strategy-sentence-stands`](verification-ledger.md#owner-ruling-2026-10-04-testing-strategy-sentence-stands).

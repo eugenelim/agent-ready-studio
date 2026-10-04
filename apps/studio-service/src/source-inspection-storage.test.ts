@@ -10,7 +10,7 @@
  *
  * This reaches no network: the transport and the Runtime are both injected.
  */
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openStorage } from "@agent-ready/storage-sqlite";
@@ -23,13 +23,37 @@ import {
   type InspectionOutcome,
   type SourceInspection,
 } from "./source-inspection.js";
+import {
+  buildHostileFixture,
+  disposeHostileFixtures,
+  materialize,
+} from "./trials/connect-and-orient-runtime/test/hostile-fixture.js";
+
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 const SHA = "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d";
 const directories: string[] = [];
 
 afterEach(() => {
-  for (const directory of directories.splice(0))
-    rmSync(directory, { recursive: true, force: true });
+  const failures: Error[] = [];
+  try {
+    disposeHostileFixtures();
+  } catch (cause) {
+    failures.push(cause instanceof Error ? cause : new Error(String(cause)));
+  }
+  for (const directory of directories.splice(0)) {
+    try {
+      rmSync(directory, { recursive: true, force: true });
+    } catch (cause) {
+      failures.push(cause instanceof Error ? cause : new Error(String(cause)));
+    }
+  }
+  if (failures.length > 0) {
+    throw new AggregateError(
+      failures,
+      "source-inspection storage cleanup failed",
+    );
+  }
 });
 
 function databasePath(): string {
@@ -89,6 +113,17 @@ function expectNoCredentialSink(
     sinkContainsCredential(snapshot, credentialValue),
     "credential reached a diagnostic, standard error, or persisted storage",
   ).toBe(false);
+}
+
+async function credentialSinkFixtureValue(): Promise<string> {
+  const fixture = await buildHostileFixture({ caseId: "credential-sink" });
+  await materialize(fixture);
+  const credentialValue = readFileSync(
+    join(fixture.worktree, ".probe/credential"),
+    "utf8",
+  ).trim();
+  expect(credentialValue).toBe("repository-token");
+  return credentialValue;
 }
 
 describe("AC-0100 to AC-0102 over a reopened database", () => {
@@ -172,8 +207,8 @@ describe("a refusal is not a connected source", () => {
     first.storage.close?.();
   });
 
-  it("rejects an embedded credential without copying its value to a sink", () => {
-    const credentialValue = "credential-proof-value";
+  it("rejects an embedded credential without copying its value to a sink", async () => {
+    const credentialValue = await credentialSinkFixtureValue();
     const submitted = new URL(
       buildFetchUrl({ owner: "acme", repository: "widgets" }),
     );
@@ -209,18 +244,6 @@ describe("a refusal is not a connected source", () => {
           reopenedRows,
         };
         expectNoCredentialSink(productionSinks, credentialValue);
-
-        expect(() =>
-          expectNoCredentialSink(
-            {
-              ...productionSinks,
-              returnedDiagnostics: `${refused.diagnostics} ${credentialValue}`,
-            },
-            credentialValue,
-          ),
-        ).toThrow(
-          "credential reached a diagnostic, standard error, or persisted storage",
-        );
       } finally {
         second.storage.close?.();
       }
@@ -228,6 +251,28 @@ describe("a refusal is not a connected source", () => {
       standardError.mockRestore();
       if (!firstClosed) first.storage.close?.();
     }
+  });
+
+  it("fails the same assertion when credential sinks are populated", async () => {
+    const credentialValue = await credentialSinkFixtureValue();
+    const emptySinks: CredentialSinkSnapshot = {
+      returnedDiagnostics: "",
+      standardError: "",
+      persistedRows: [],
+      reopenedRows: [],
+    };
+
+    expect(() =>
+      expectNoCredentialSink(
+        {
+          ...emptySinks,
+          returnedDiagnostics: `url rejected ${credentialValue}`,
+        },
+        credentialValue,
+      ),
+    ).toThrow(
+      "credential reached a diagnostic, standard error, or persisted storage",
+    );
 
     const mutatedPath = databasePath();
     const mutated = deps(clean, mutatedPath);
@@ -264,9 +309,7 @@ describe("a refusal is not a connected source", () => {
         expect(() =>
           expectNoCredentialSink(
             {
-              returnedDiagnostics: "",
-              standardError: "",
-              persistedRows: [],
+              ...emptySinks,
               reopenedRows: mutatedRows,
             },
             credentialValue,

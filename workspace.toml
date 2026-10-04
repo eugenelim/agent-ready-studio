@@ -429,17 +429,7 @@ open = [
   # Corrected forward 2026-10-01: connect-orient-ac0136-overwrite-arm closed
   # AC-0136 and moved core.protectHFS=true to behavioral; see its entry below.
   { path = "docs/specs/connect-orient-falsifiable-criteria-proofs/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Give six Connect and Orient security criteria falsifiable proofs at their own observation surfaces", needs = [] },
-  # AC-0147 requires each of AC-0133 through AC-0146 to have a positive control
-  # that removes the guard of the proof it certifies. Three do not: AC-0140's
-  # creates the sibling it then reads, AC-0142's builds a literal array and
-  # asserts membership, and AC-0145's builds an object and asserts its key
-  # exists. None touches production, so each passes whatever the product does.
-  # Distinct from the vacuous set: there the proof cannot redden, here the
-  # control removes nothing.
-  # Evidence: apps/studio-service/src/trials/connect-and-orient-runtime/test/hostile-fixture.ts,
-  # the escaping-reader-path, option-shaped-ref and authorization-header cases;
-  # notes/acceptance-audit.md, the AC-0147 row.
-  { slug = "connect-orient-positive-controls-that-remove-no-guard", source = "connect-and-orient/2026-09-27" },
+  { path = "docs/specs/connect-orient-positive-controls-that-remove-no-guard/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Make every AC-0133 through AC-0146 positive control remove or bypass its guard at the proof's observation level", needs = [] },
   # Close AC-0136 by observing the overwrite it names. Measured 2026-10-01,
   # git 2.50.1: on HFS+, which ignores U+200C, `.gi<U+200C>t/config` replaces
   # the real `.git/config` once transfer.fsckObjects and core.protectHFS=true

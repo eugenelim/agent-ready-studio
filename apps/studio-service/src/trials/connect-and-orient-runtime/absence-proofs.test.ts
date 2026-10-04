@@ -37,20 +37,20 @@ import {
   vi,
 } from "vitest";
 
-import { canonicalizeSource } from "../../source-identity.js";
+import { buildFetchUrl, canonicalizeSource } from "../../source-identity.js";
 import {
+  createGitTransport,
   PINNED_GIT_CONFIGURATION,
   pinnedGitConfigurationArgs,
+  type RevisionResolution,
+  resolveRevision,
 } from "./git-driver.js";
 import { parseGuardedJson, parseGuardedToml } from "./inadmissible-keys.js";
 import {
   ConfinementError,
   readContainedFile,
 } from "./materialization-confinement.js";
-import {
-  buildPinnedEnvironment,
-  ENVIRONMENT_ALLOWLIST_NAMES,
-} from "./runtime-environment.js";
+import { ENVIRONMENT_ALLOWLIST_NAMES } from "./runtime-environment.js";
 import {
   startTrialInspection,
   type TrialInspectionOptions,
@@ -67,7 +67,7 @@ import {
   materialize,
   observeProcessTree,
   PROBE_LOG_MARKER,
-  runPositiveControl,
+  runFixturePositiveControl,
   runProhibitedSubmoduleUpdate,
   SUBMODULE_CHILD_CONTENT,
   SUBMODULE_CHILD_FILE,
@@ -81,11 +81,23 @@ import {
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 afterEach(() => {
-  disposeHostileFixtures();
+  const failures: Error[] = [];
+  try {
+    disposeHostileFixtures();
+  } catch (cause) {
+    failures.push(cause instanceof Error ? cause : new Error(String(cause)));
+  }
   for (const root of temporaryRoots) {
-    rmSync(root, { recursive: true, force: true });
+    try {
+      rmSync(root, { recursive: true, force: true });
+    } catch (cause) {
+      failures.push(cause instanceof Error ? cause : new Error(String(cause)));
+    }
   }
   temporaryRoots.clear();
+  if (failures.length > 0) {
+    throw new AggregateError(failures, "absence-proof cleanup failed");
+  }
 });
 
 const temporaryRoots = new Set<string>();
@@ -887,7 +899,10 @@ describe("the execution-origin detector over reachable start shapes", () => {
 });
 
 function expectNoRepositoryExecution(record: TrialInspectionRecord): void {
-  expect(repositoryExecutionOrigins(record)).toEqual([]);
+  expect(
+    repositoryExecutionOrigins(record),
+    "repository execution reached the protected observation",
+  ).toEqual([]);
 }
 
 describe("AC-0133 no repository hook runs during inspection", () => {
@@ -898,8 +913,10 @@ describe("AC-0133 no repository hook runs during inspection", () => {
     expect(markers).toEqual([]);
   });
 
-  it("fires the same probe when the guard is removed", async () => {
-    await expect(runPositiveControl("repository-hook")).resolves.toBe(true);
+  it("fires the hook probe when core.hooksPath is removed", async () => {
+    await expect(runFixturePositiveControl("repository-hook")).resolves.toBe(
+      true,
+    );
   });
 });
 
@@ -936,7 +953,7 @@ describe("AC-0134 no package script runs during inspection", () => {
 
     expect(() => {
       expectNoRepositoryExecution(record);
-    }).toThrow();
+    }).toThrow("repository execution reached the protected observation");
     expect(repositoryExecutionOrigins(record)).toEqual([
       `interpreter-operand:${join(
         record.stateRoot.materializationRoot,
@@ -974,7 +991,7 @@ describe("AC-0135 no projected skill executable runs during inspection", () => {
 
     expect(() => {
       expectNoRepositoryExecution(record);
-    }).toThrow();
+    }).toThrow("repository execution reached the protected observation");
     expect(repositoryExecutionOrigins(record)).toEqual([
       `executable:${join(
         record.stateRoot.materializationRoot,
@@ -994,9 +1011,10 @@ function expectRealDotGitIntact(worktree: string): void {
   const head = readFileSync(join(dotGit, "HEAD"), "utf8");
   expect(head).not.toContain("hostile-config");
   expect(head.trim()).toMatch(/^(?:ref: refs\/\S+|[0-9a-f]{40})$/);
-  expect(readFileSync(join(dotGit, "config"), "utf8")).not.toContain(
-    "hostile-config",
-  );
+  expect(
+    readFileSync(join(dotGit, "config"), "utf8"),
+    "the real .git/config was overwritten by hostile fixture content",
+  ).not.toContain("hostile-config");
 }
 
 describe("AC-0136 a .git variant does not overwrite the real .git", () => {
@@ -1075,10 +1093,6 @@ describe("AC-0136 a .git variant does not overwrite the real .git", () => {
       "invalid path '.GIT/config'",
     );
     expectRealDotGitIntact(fixture.worktree);
-  });
-
-  it("fires the same probe when the guard is removed", async () => {
-    await expect(runPositiveControl("dot-git-variant")).resolves.toBe(true);
   });
 });
 
@@ -1256,7 +1270,9 @@ describe.skipIf(process.platform !== "darwin")(
       expect(
         readFileSync(join(fixture.worktree, ".git", "config"), "utf8"),
       ).toBe("hostile-config\n");
-      expect(() => expectRealDotGitIntact(fixture.worktree)).toThrow();
+      expect(() => expectRealDotGitIntact(fixture.worktree)).toThrow(
+        "the real .git/config was overwritten by hostile fixture content",
+      );
     });
 
     it("still refuses .GIT/config at checkout with every product guard out of force", async () => {
@@ -1358,7 +1374,7 @@ describe("AC-0137 a .gitattributes filter declaration triggers no filter", () =>
 
     expect(() => {
       expectNoRepositoryExecution(record);
-    }).toThrow();
+    }).toThrow("repository execution reached the protected observation");
     expect(repositoryExecutionOrigins(record)).toEqual([
       `command-payload:filter.probe.smudge=${join(
         record.stateRoot.materializationRoot,
@@ -1401,8 +1417,10 @@ describe("AC-0139 an escaping symlink materializes as a regular file", () => {
     expect(links).toEqual([]);
   });
 
-  it("fires the same probe when the guard is removed", async () => {
-    await expect(runPositiveControl("escaping-symlink")).resolves.toBe(true);
+  it("materializes the escaping symlink when core.symlinks is removed", async () => {
+    await expect(runFixturePositiveControl("escaping-symlink")).resolves.toBe(
+      true,
+    );
   });
 });
 
@@ -1452,10 +1470,10 @@ describe("AC-0140 the reader refuses an escaping path presented directly", () =>
     ).toBe("inside\n");
   });
 
-  it("fires the same probe when the guard is removed", async () => {
-    await expect(runPositiveControl("escaping-reader-path")).resolves.toBe(
-      true,
-    );
+  it("reads the sibling when the containment guard is bypassed", async () => {
+    await expect(
+      runFixturePositiveControl("escaping-reader-path"),
+    ).resolves.toBe(true);
   });
 });
 
@@ -1503,7 +1521,10 @@ describe("AC-0141 a real gitlink causes no submodule fetch and no traversal", ()
       vectors.length,
       "no process record to read a submodule absence from",
     ).toBeGreaterThan(0);
-    expect(submoduleOperations(vectors)).toEqual([]);
+    expect(
+      submoduleOperations(vectors),
+      "a submodule operation reached the audited Git vectors",
+    ).toEqual([]);
   }
 
   /**
@@ -1529,7 +1550,10 @@ describe("AC-0141 a real gitlink causes no submodule fetch and no traversal", ()
   }
 
   function expectNoGitlinkTraversal(materializationRoot: string): void {
-    expect(gitlinkSurfaces(materializationRoot)).toEqual({
+    expect(
+      gitlinkSurfaces(materializationRoot),
+      "a prohibited submodule traversal changed the gitlink surfaces",
+    ).toEqual({
       gitlinkPresent: true,
       populated: [],
       administrative: [],
@@ -1565,7 +1589,7 @@ describe("AC-0141 a real gitlink causes no submodule fetch and no traversal", ()
     });
     expect(() => {
       expectNoSubmoduleFetch([...auditedArgumentVectors(record), control.args]);
-    }).toThrow();
+    }).toThrow("a submodule operation reached the audited Git vectors");
     expect(submoduleOperations([control.args])).toEqual([
       `-c protocol.file.allow=always submodule update --init -- ${SUBMODULE_GITLINK_PATH}`,
     ]);
@@ -1598,7 +1622,7 @@ describe("AC-0141 a real gitlink causes no submodule fetch and no traversal", ()
     ]);
     expect(() => {
       expectNoGitlinkTraversal(root);
-    }).toThrow();
+    }).toThrow("a prohibited submodule traversal changed the gitlink surfaces");
   });
 
   it("carries the recursion refusal on every git argument vector", () => {
@@ -1613,44 +1637,54 @@ describe("AC-0141 a real gitlink causes no submodule fetch and no traversal", ()
     // materialization rather than the trial's. No guard is removed: the
     // prohibited submodule operation is issued, and the child repository's
     // committed content appearing under the gitlink is what proves it ran.
-    await expect(runPositiveControl("submodule")).resolves.toBe(true);
+    await expect(runFixturePositiveControl("submodule")).resolves.toBe(true);
   });
 });
 
-describe("AC-0142 an option-shaped remote ref is refused before any vector", () => {
+describe("AC-0142 an option-shaped remote ref is refused before admission", () => {
+  async function optionShapedReportedRef(): Promise<string> {
+    const fixture = await buildHostileFixture({ caseId: "option-shaped-ref" });
+    await materialize(fixture);
+    return readFileSync(join(fixture.worktree, ".probe/ref"), "utf8").trim();
+  }
+
+  function expectRemoteRefRefused(resolution: RevisionResolution): void {
+    expect(resolution, "option-shaped remote ref was admitted").toEqual({
+      ok: false,
+      code: "invalid-remote-ref",
+    });
+  }
+
+  async function resolveOptionShapedFixture() {
+    const reported = await optionShapedReportedRef();
+    const canonical = canonicalizeSource("https://github.com/owner/repository");
+    if (!canonical.ok) {
+      throw new Error("canonical fixture URL was refused");
+    }
+    const sha = "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d";
+    const transport = {
+      resolve: vi.fn(async () => ({ reportedRef: reported, sha })),
+    };
+    const guarded = await resolveRevision(canonical.identity, transport);
+    return {
+      reported,
+      sha,
+      identity: canonical.identity,
+      transport,
+      guarded,
+    };
+  }
+
   it("refuses a reported default branch shaped like a git option", async () => {
-    const fixture = await buildHostileFixture({ caseId: "option-shaped-ref" });
-    await materialize(fixture);
-    const reported = readFileSync(
-      join(fixture.worktree, ".probe/ref"),
-      "utf8",
-    ).trim();
+    const { guarded, identity, reported, transport } =
+      await resolveOptionShapedFixture();
 
-    const canonical = canonicalizeSource(
-      "https://github.com/owner/repository",
-      reported,
-    );
-
-    expect(canonical.ok).toBe(false);
+    expectRemoteRefRefused(guarded);
     expect(reported).toBe("--upload-pack=/bin/sh");
-  });
-
-  it("refuses it before it can reach an argument vector", async () => {
-    const fixture = await buildHostileFixture({ caseId: "option-shaped-ref" });
-    await materialize(fixture);
-    const reported = readFileSync(
-      join(fixture.worktree, ".probe/ref"),
-      "utf8",
-    ).trim();
-
-    // The refusal is what keeps the value out of a vector: there is no vector
-    // to inspect because none is built. Asserting the canonical identity is
-    // absent is the observation at the level the refusal happens.
-    const canonical = canonicalizeSource(
-      "https://github.com/owner/repository",
-      reported,
+    expect(transport.resolve).toHaveBeenCalledWith(
+      buildFetchUrl(identity),
+      undefined,
     );
-    expect(canonical).not.toHaveProperty("identity");
   });
 
   it("admits an ordinary ref, so the refusal is not blanket", () => {
@@ -1659,8 +1693,24 @@ describe("AC-0142 an option-shaped remote ref is refused before any vector", () 
     ).toBe(true);
   });
 
-  it("fires the same probe when the guard is removed", async () => {
-    await expect(runPositiveControl("option-shaped-ref")).resolves.toBe(true);
+  it("fails the same assertion when remote-ref validation is removed", async () => {
+    const { guarded, identity, reported, sha, transport } =
+      await resolveOptionShapedFixture();
+    expectRemoteRefRefused(guarded);
+
+    const guardRemovedAdmission: RevisionResolution = {
+      ok: true,
+      identity,
+      resolvedRef: reported,
+      resolvedSha: sha,
+    };
+    expect(() => {
+      expectRemoteRefRefused(guardRemovedAdmission);
+    }).toThrow("option-shaped remote ref was admitted");
+    expect(transport.resolve).toHaveBeenCalledWith(
+      buildFetchUrl(identity),
+      undefined,
+    );
   });
 });
 
@@ -1740,8 +1790,10 @@ describe("AC-0143 a prototype-mutating key yields no value under that key", () =
     });
   });
 
-  it("fires the same probe when the guard is removed", async () => {
-    await expect(runPositiveControl("prototype-key")).resolves.toBe(true);
+  it("retains the prototype key when guarded parsing is bypassed", async () => {
+    await expect(runFixturePositiveControl("prototype-key")).resolves.toBe(
+      true,
+    );
   });
 });
 
@@ -1805,64 +1857,146 @@ describe("AC-0144 no module is imported from under the materialization root", ()
     expect(child).not.toMatch(/\bimport\s*\(/);
   });
 
-  it("fires the same probe when the guard is removed", async () => {
-    await expect(runPositiveControl("materialized-module")).resolves.toBe(true);
+  it("sets the import marker when the no-import guard is bypassed", async () => {
+    await expect(
+      runFixturePositiveControl("materialized-module"),
+    ).resolves.toBe(true);
     // The control imports the module, which sets the marker. Clear it so a
     // later run of the proof above observes an absence rather than this.
     delete (globalThis as { __hostileImported?: boolean }).__hostileImported;
   });
 });
 
-describe("AC-0145 no authorization header is sent on any request", () => {
-  it("makes no HTTP request from Studio's own process at all", async () => {
+describe("AC-0145 no authorization carrier reaches request construction", () => {
+  interface AuthorizationConstructionSurface {
+    readonly label: string;
+    readonly values: readonly string[];
+  }
+
+  function authorizationFixtureValue(materializationRoot: string): string {
+    const request = JSON.parse(
+      readFileSync(join(materializationRoot, ".probe/request.json"), "utf8"),
+    ) as { authorization: string };
+    return request.authorization;
+  }
+
+  function authorizationCarrierLeaks(
+    surfaces: readonly AuthorizationConstructionSurface[],
+    plantedValue: string,
+  ): string[] {
+    const leaks: string[] = [];
+    for (const surface of surfaces) {
+      for (const value of surface.values) {
+        const lowered = value.toLowerCase();
+        if (
+          value.includes(plantedValue) ||
+          /\bauthorization\s*[:=]/.test(lowered) ||
+          lowered.includes("http.extraheader")
+        ) {
+          leaks.push(surface.label);
+        }
+      }
+    }
+    return [...new Set(leaks)];
+  }
+
+  function expectNoAuthorizationCarrier(
+    surfaces: readonly AuthorizationConstructionSurface[],
+    plantedValue: string,
+  ): void {
+    expect(
+      authorizationCarrierLeaks(surfaces, plantedValue),
+      "authorization-bearing value reached request construction",
+    ).toEqual([]);
+  }
+
+  it("constructs no authorization carrier from the hostile fixture value", async () => {
+    const record = await productTrialFor("authorization-header");
+    const plantedValue = authorizationFixtureValue(
+      record.stateRoot.materializationRoot,
+    );
+    expect(plantedValue).toBe("Bearer repository-token");
+
+    const identity = canonicalizeSource("https://github.com/owner/repository");
+    expect(identity.ok).toBe(true);
+    if (!identity.ok) {
+      return;
+    }
+    const resolutionGitArgv: string[][] = [];
+    const transport = createGitTransport("/usr/bin/git", async (invocation) => {
+      resolutionGitArgv.push([...invocation.args]);
+      return {
+        stdout: `ref: refs/heads/main\tHEAD\n${"7".repeat(40)}\tHEAD\n`,
+      };
+    });
+    await resolveRevision(identity.identity, transport);
+    expect(
+      resolutionGitArgv.length,
+      "no resolution Git argv to read an authorization absence from",
+    ).toBeGreaterThan(0);
+    expect(
+      record.spawnAudit.length,
+      "no Runtime spawn record to read an authorization absence from",
+    ).toBeGreaterThan(0);
+
+    const surfaces: AuthorizationConstructionSurface[] = [
+      {
+        label: "canonical fetch URL",
+        values: [buildFetchUrl(identity.identity)],
+      },
+      {
+        label: "resolution git argv",
+        values: resolutionGitArgv.flat(),
+      },
+      {
+        label: "Runtime child argv",
+        values: [...record.childArgs],
+      },
+      ...record.spawnAudit.map((entry, index) => ({
+        label: `Runtime spawn argv ${index}`,
+        values: [entry.executable, ...entry.args],
+      })),
+      {
+        label: "pinned Git configuration",
+        values: [...PINNED_GIT_CONFIGURATION, ...pinnedGitConfigurationArgs()],
+      },
+      {
+        label: "closed environment",
+        values: [
+          ...ENVIRONMENT_ALLOWLIST_NAMES,
+          ...Object.entries(record.environment).flatMap(([name, value]) => [
+            name,
+            value,
+          ]),
+        ],
+      },
+    ];
+
+    expectNoAuthorizationCarrier(surfaces, plantedValue);
+    expect(PINNED_GIT_CONFIGURATION).toContain("credential.helper=");
+    expect(record.environment.GIT_ASKPASS).toBe("");
+    expect(record.environment.SSH_ASKPASS).toBe("");
+  });
+
+  it("fails the same assertion when an authorization carrier is inserted", async () => {
     const fixture = await buildHostileFixture({
       caseId: "authorization-header",
     });
-    const requested: string[] = [];
-    const realFetch = globalThis.fetch;
-    globalThis.fetch = ((input: unknown) => {
-      requested.push(String(input));
-      throw new Error("no request may be made");
-    }) as typeof globalThis.fetch;
-    try {
-      await materialize(fixture);
-    } finally {
-      globalThis.fetch = realFetch;
-    }
-
-    expect(requested).toEqual([]);
-    // The header the repository asked for is materialized as inert data.
-    expect(
-      readFileSync(join(fixture.worktree, ".probe/request.json"), "utf8"),
-    ).toContain("Bearer repository-token");
-  });
-
-  it("carries no credential-bearing name in the pinned environment", () => {
-    const environment = buildPinnedEnvironment({
-      home: "/tmp/home",
-      temporaryDirectory: "/tmp/tmp",
-    });
-
-    for (const name of Object.keys(environment)) {
-      expect(name.toLowerCase()).not.toContain("auth");
-      expect(name.toLowerCase()).not.toContain("token");
-      expect(name.toLowerCase()).not.toContain("credential");
-    }
-    // The two ask-pass names are present and empty, which is what keeps git
-    // from prompting rather than a credential Studio supplies.
-    expect(environment.GIT_ASKPASS).toBe("");
-    expect(environment.SSH_ASKPASS).toBe("");
-    expect(ENVIRONMENT_ALLOWLIST_NAMES).not.toContain("GIT_TOKEN");
-  });
-
-  it("disables the credential helper on every git argument vector", () => {
-    expect(PINNED_GIT_CONFIGURATION).toContain("credential.helper=");
-    expect(pinnedGitConfigurationArgs()).toContain("credential.helper=");
-  });
-
-  it("fires the same probe when the guard is removed", async () => {
-    await expect(runPositiveControl("authorization-header")).resolves.toBe(
-      true,
-    );
+    await materialize(fixture);
+    const plantedValue = authorizationFixtureValue(fixture.worktree);
+    const guardRemoved: AuthorizationConstructionSurface[] = [
+      {
+        label: "guard-removed Git argv",
+        values: [
+          ...pinnedGitConfigurationArgs(),
+          "-c",
+          `http.extraHeader=Authorization: ${plantedValue}`,
+          "fetch",
+        ],
+      },
+    ];
+    expect(() => {
+      expectNoAuthorizationCarrier(guardRemoved, plantedValue);
+    }).toThrow("authorization-bearing value reached request construction");
   });
 });

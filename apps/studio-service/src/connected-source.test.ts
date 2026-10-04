@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -19,13 +19,6 @@ import {
   toConnectedSourceRecord,
 } from "./connected-source.js";
 import { normalizeTrialResult } from "./trial-result.js";
-import {
-  buildHostileFixture,
-  disposeHostileFixtures,
-  HOSTILE_CASE_BY_CRITERION,
-  materialize,
-  runPositiveControl,
-} from "./trials/connect-and-orient-runtime/test/hostile-fixture.js";
 
 vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
 
@@ -38,7 +31,6 @@ afterEach(() => {
   for (const root of roots.splice(0)) {
     rmSync(root, { recursive: true, force: true });
   }
-  disposeHostileFixtures();
 });
 
 let databasePath = "";
@@ -327,89 +319,5 @@ describe("AC-0084 and AC-0085 cancellation and restart are distinct", () => {
 
   it("treats both progress conditions as in flight", () => {
     expect([...IN_FLIGHT_PHASES]).toEqual(["resolving", "inspecting"]);
-  });
-});
-
-describe("AC-0146 no credential-bearing value reaches storage or a diagnostic", () => {
-  it("persists no credential from the repository", async () => {
-    const fixture = await buildHostileFixture({ caseId: "credential-sink" });
-    await materialize(fixture);
-    const planted = readFileSync(
-      join(fixture.worktree, ".probe/credential"),
-      "utf8",
-    ).trim();
-    expect(planted).toBe("repository-token");
-
-    const storage = openFreshStore();
-    persistConnectedSource(storage, record());
-    storage.close();
-    store = openStorage(databasePath);
-
-    // Every persisted column of the connected source, read back as one string.
-    const persisted = JSON.stringify(store.getConnectedSource("source-1"));
-    expect(persisted).not.toContain(planted);
-  });
-
-  it("reaches no diagnostic either", async () => {
-    const fixture = await buildHostileFixture({ caseId: "credential-sink" });
-    await materialize(fixture);
-
-    const storage = openFreshStore();
-    const outcome = persistConnectedSource(
-      storage,
-      record({
-        diagnostics: "x".repeat(PERSISTED_REPOSITORY_CONTENT_BOUND_BYTES + 1),
-      }),
-    );
-
-    expect(outcome.ok).toBe(false);
-    if (outcome.ok) {
-      return;
-    }
-    // The refusal diagnostic reports sizes and a bound, never the bytes it
-    // refused, so an oversized credential cannot escape through the message.
-    expect(outcome.diagnostic).not.toContain("repository-token");
-    expect(outcome.diagnostic).not.toContain("x".repeat(20));
-  });
-
-  it("fires the same probe when the guard is removed", async () => {
-    await expect(runPositiveControl("credential-sink")).resolves.toBe(true);
-  });
-});
-
-describe("AC-0147 every absence proof has a firing positive control", () => {
-  const CONTROLLED = [
-    "AC-0133",
-    "AC-0134",
-    "AC-0135",
-    "AC-0136",
-    "AC-0137",
-    "AC-0138",
-    "AC-0139",
-    "AC-0140",
-    "AC-0141",
-    "AC-0142",
-    "AC-0143",
-    "AC-0144",
-    "AC-0145",
-    "AC-0146",
-  ] as const;
-
-  it("ranges over AC-0133 through AC-0146 with no gap", () => {
-    for (const criterion of CONTROLLED) {
-      expect(HOSTILE_CASE_BY_CRITERION, criterion).toHaveProperty(criterion);
-    }
-    expect(CONTROLLED).toHaveLength(14);
-  });
-
-  it.each(
-    CONTROLLED,
-  )("%s's control reproduces its effect", async (criterion) => {
-    const caseId =
-      HOSTILE_CASE_BY_CRITERION[
-        criterion as keyof typeof HOSTILE_CASE_BY_CRITERION
-      ];
-
-    await expect(runPositiveControl(caseId)).resolves.toBe(true);
   });
 });
