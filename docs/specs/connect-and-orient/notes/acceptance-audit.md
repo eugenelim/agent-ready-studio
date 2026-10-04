@@ -1,4 +1,4 @@
-# Acceptance audit — all 157 criteria, 2026-09-23, updated 2026-10-03
+# Acceptance audit — all 157 criteria, 2026-09-23, updated 2026-10-04
 
 **Status of this document:** a re-run of the 2026-09-20 reconciliation, which twelve commits had
 made stale. It replaces that document. Ten independent auditors, one per criterion group, each
@@ -344,7 +344,7 @@ the name is unique across the repository, as in the previous pass.
 > The pin boundary below is a recorded limit of the pin inventory, not of the sentence. See
 > [`verification-ledger.md#owner-ruling-2026-10-04-testing-strategy-sentence-stands`](verification-ledger.md#owner-ruling-2026-10-04-testing-strategy-sentence-stands).
 >
-> **The units that closed this group's open rows:**
+> **The units that closed the AC-0133 through AC-0147 rows the sentence relies on:**
 > - `connect-orient-falsifiable-criteria-proofs` closed AC-0134, AC-0135, AC-0137, AC-0141 and
 >   AC-0146 with proofs that redden at the surface each criterion names.
 > - `connect-orient-ac0136-overwrite-arm` closed AC-0136 on 2026-10-01. Its Unicode arm closed on
